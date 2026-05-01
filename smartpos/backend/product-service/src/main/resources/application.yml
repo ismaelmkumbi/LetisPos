@@ -1,0 +1,90 @@
+server:
+  port: 8083
+  error:
+    include-message: always
+
+spring:
+  application:
+    name: product-service
+
+  datasource:
+    # `preferQueryMode=simple` disables Postgres prepared-statement parameter
+    # type inference. Required because several JPQL queries use the
+    # `(:param IS NULL OR ...)` pattern with String parameters, and Postgres
+    # otherwise tries `lower(bytea)` when the param is bound as null.
+    # Host port 5434 matches smartpos/infra/docker-compose.yml (Postgres published as 5434:5432).
+    url: ${DB_URL:jdbc:postgresql://localhost:5434/product_db?preferQueryMode=simple}
+    username: ${DB_USER:product_user}
+    password: ${DB_PASSWORD:product_pass}
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+
+  jpa:
+    hibernate:
+      # Schema is owned by Flyway; entities use citext for emails which would
+      # otherwise fail validate. Set to `validate` once the entity column
+      # definitions are aligned with the migrations.
+      ddl-auto: ${SPRING_JPA_DDL_AUTO:none}
+    properties:
+      hibernate:
+        jdbc.time_zone: UTC
+        # Batch-fetch lazy collections in chunks so the secondary `barcodes`
+        # collection (which we deliberately don't JOIN FETCH — see
+        # ProductRepository for the rationale) loads with one IN query per
+        # page rather than N+1.
+        default_batch_fetch_size: 50
+    # Keep the JPA session open during HTTP response serialization so lazy
+    # collections (`barcodes`) materialise without forcing every read path
+    # to use a DTO projection. Anti-pattern in prod, pragmatic for dev.
+    open-in-view: true
+
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+  cache:
+    type: redis
+    redis:
+      time-to-live: 3600000         # 1 h default; per-cache TTL below
+      use-key-prefix: true
+      key-prefix: "smartpos:product:cache:"
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${AUTH_JWKS_URI:http://localhost:8081/.well-known/jwks.json}
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:9094}
+    producer:
+      acks: all
+      key-serializer:   org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      properties:
+        enable.idempotence: true
+        max.in.flight.requests.per.connection: 5
+
+smartpos:
+  outbox:
+    enabled: ${SMARTPOS_OUTBOX_ENABLED:true}
+    topic-prefix: smartpos.product
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, metrics, prometheus
+
+logging:
+  level:
+    root: INFO
+    io.smartpos: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{traceId:-}] %logger{36} - %msg%n"

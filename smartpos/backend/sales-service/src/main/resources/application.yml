@@ -1,0 +1,102 @@
+server:
+  port: 8085
+  error:
+    include-message: always
+
+spring:
+  application:
+    name: sales-service
+
+  datasource:
+    # See product-service notes — preferQueryMode=simple sidesteps a
+    # Postgres null-parameter type-inference quirk in JPQL queries.
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/sales_db?preferQueryMode=simple}
+    username: ${DB_USER:sales_user}
+    password: ${DB_PASSWORD:sales_pass}
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 4
+
+  jpa:
+    hibernate:
+      ddl-auto: ${SPRING_JPA_DDL_AUTO:none}
+    properties:
+      hibernate:
+        jdbc.time_zone: UTC
+    open-in-view: false
+
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${AUTH_JWKS_URI:http://localhost:8081/.well-known/jwks.json}
+
+  cloud:
+    openfeign:
+      client:
+        config:
+          default:
+            connect-timeout: 2000
+            read-timeout: 5000
+            logger-level: basic
+          inventory-service:
+            url: ${INVENTORY_URI:http://localhost:8084}
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:9094}
+    producer:
+      acks: all
+      key-serializer:   org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      properties:
+        enable.idempotence: true
+        max.in.flight.requests.per.connection: 5
+    consumer:
+      group-id: ${KAFKA_GROUP:smartpos-sales-service}
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      key-deserializer:   org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    listener:
+      ack-mode: manual_immediate
+
+smartpos:
+  outbox:
+    enabled: ${SMARTPOS_OUTBOX_ENABLED:true}
+    topic-prefix: smartpos.sales
+  sales:
+    default-currency: ${SMARTPOS_DEFAULT_CURRENCY:TZS}
+    reservation-ttl-minutes: 10
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      inventory:
+        failure-rate-threshold: 50
+        slow-call-duration-threshold: 2s
+        slow-call-rate-threshold: 60
+        minimum-number-of-calls: 10
+        sliding-window-size: 20
+        wait-duration-in-open-state: 30s
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, metrics, prometheus
+
+logging:
+  level:
+    root: INFO
+    io.smartpos: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{traceId:-}] %logger{36} - %msg%n"

@@ -1,0 +1,74 @@
+server:
+  port: 8082
+  error:
+    include-message: always
+
+spring:
+  application:
+    name: user-service
+
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/user_db}
+    username: ${DB_USER:user_user}
+    password: ${DB_PASSWORD:user_pass}
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+
+  jpa:
+    hibernate:
+      ddl-auto: ${SPRING_JPA_DDL_AUTO:none}
+    properties:
+      hibernate:
+        jdbc.time_zone: UTC
+    # Lazy `roles`/`permissions` collections on UserProfile materialise
+    # during HTTP response serialization. Until UserDto is fully decoupled
+    # from the entity, keep the session open in dev.
+    open-in-view: true
+
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # User Service verifies tokens by fetching JWKS from Auth Service
+          jwk-set-uri: ${AUTH_JWKS_URI:http://localhost:8081/.well-known/jwks.json}
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:9094}
+    consumer:
+      group-id: ${KAFKA_GROUP:smartpos-user-service}
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      key-deserializer:   org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    # Producer is needed only for DLT publishing (Phase 6c poison-message handling).
+    producer:
+      acks: all
+      key-serializer:   org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+    listener:
+      ack-mode: manual_immediate
+
+smartpos:
+  internal:
+    # Shared secret for service-to-service calls (e.g. auth-service asking
+    # user-service for a user's roles at login time). Must match the value
+    # in every service that talks internally.
+    shared-secret: ${SMARTPOS_INTERNAL_SHARED_SECRET:dev-internal-token-change-me}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, metrics, prometheus
+
+logging:
+  level:
+    root: INFO
+    io.smartpos: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{traceId:-}] %logger{36} - %msg%n"

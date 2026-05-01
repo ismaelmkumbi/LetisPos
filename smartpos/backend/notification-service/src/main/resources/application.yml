@@ -1,0 +1,95 @@
+server:
+  port: 8089
+  error:
+    include-message: always
+
+spring:
+  application:
+    name: notification-service
+
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/notification_db}
+    username: ${DB_USER:notification_user}
+    password: ${DB_PASSWORD:notification_pass}
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+
+  jpa:
+    hibernate:
+      ddl-auto: ${SPRING_JPA_DDL_AUTO:none}
+    properties:
+      hibernate:
+        jdbc.time_zone: UTC
+    open-in-view: false
+
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${AUTH_JWKS_URI:http://localhost:8081/.well-known/jwks.json}
+
+  # Default SMTP — overridden per tenant via the settings table at send time.
+  mail:
+    host: ${MAIL_HOST:smtp.example.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:9094}
+    consumer:
+      group-id: ${KAFKA_GROUP:smartpos-notification-service}
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      key-deserializer:   org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    producer:
+      acks: all
+      key-serializer:   org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+    listener:
+      ack-mode: manual_immediate
+
+smartpos:
+  notification:
+    # Twilio configuration — used by SMS + WhatsApp channels.
+    twilio:
+      account-sid: ${TWILIO_ACCOUNT_SID:}
+      auth-token:  ${TWILIO_AUTH_TOKEN:}
+      sms-from:    ${TWILIO_SMS_FROM:}
+      whatsapp-from: ${TWILIO_WHATSAPP_FROM:}        # e.g. "whatsapp:+14155238886"
+    retry:
+      max-attempts: 3
+      backoff-seconds: 60
+  internal:
+    shared-secret: ${SMARTPOS_INTERNAL_SHARED_SECRET:dev-internal-token-change-me}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, metrics, prometheus
+  health:
+    # SMTP is configured per-tenant at runtime; the boot-time health probe
+    # against the placeholder smtp.example.com would otherwise fail every poll
+    # and flip /actuator/health to DOWN. The dispatcher logs its own errors.
+    mail:
+      enabled: false
+
+logging:
+  level:
+    root: INFO
+    io.smartpos: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{traceId:-}] %logger{36} - %msg%n"

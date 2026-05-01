@@ -1,0 +1,138 @@
+/* Letis POS — global base styles */
+
+:root {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  color-scheme: light dark;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-text-size-adjust: 100%;
+
+  /* ── Letis POS design tokens ──────────────────────────────────────────────── */
+  --font-display:   'DM Serif Display', Georgia, 'Times New Roman', serif;
+  --font-ui:        'DM Sans', 'Inter', system-ui, sans-serif;
+  --color-bg:       #F7F6F3;
+  --color-surface:  #FFFFFF;
+  --color-primary:  #14746B;
+  --color-hero:     #0F4C4A;
+  --color-accent:   #B8902A;
+  --shadow-card:    0 1px 3px rgba(15, 23, 42, 0.06), 0 4px 16px rgba(15, 23, 42, 0.04);
+  --shadow-card-hover: 0 6px 32px rgba(20, 116, 107, 0.14), 0 2px 8px rgba(15, 23, 42, 0.06);
+  --radius-card:    16px;
+  --radius-hero:    20px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background-color: #F8FAFC;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+/* ── Custom scrollbar (Webkit) ──────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 99px;
+}
+::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 99px;
+  border: 1px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94A3B8;
+  background-clip: content-box;
+}
+
+/* Dark mode scrollbar */
+.darkbg ::-webkit-scrollbar-thumb {
+  background: #334155;
+  background-clip: content-box;
+}
+.darkbg ::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+  background-clip: content-box;
+}
+
+/* ── Page-enter animation ───────────────────────────────────────────────── */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Focus-visible ring (accessibility) — Letis Teal mid ─────────────────── */
+:focus-visible {
+  outline: 2px solid #2A8F84;
+  outline-offset: 2px;
+}
+
+/* ── Selection color — Letis Teal at 18% ─────────────────────────────────── */
+::selection {
+  background-color: rgba(42, 143, 132, 0.20);
+  color: inherit;
+}
+
+/* ── Smooth transitions for interactive elements ────────────────────────── */
+button,
+[role="button"] {
+  transition: all 0.2s ease;
+}
+
+/* ── Prevent layout flash on font load ──────────────────────────────────── */
+html {
+  font-display: swap;
+}
+
+/* ── MUI overrides that need global scope ───────────────────────────────── */
+
+/* Tighter list nav items */
+.sidebarNav .MuiList-root {
+  padding: 0;
+}
+
+/* Remove default list padding */
+.sidebarNav li {
+  list-style: none;
+}
+
+/* ApexCharts tooltip polish */
+.apexcharts-tooltip {
+  border-radius: 10px !important;
+  box-shadow: 0 8px 24px -8px rgba(15, 23, 42, 0.18) !important;
+  font-family: 'Inter', sans-serif !important;
+}
+.apexcharts-tooltip-title {
+  font-weight: 700 !important;
+  background: #F8FAFC !important;
+  border-bottom: 1px solid #E2E8F0 !important;
+  font-size: 12px !important;
+}
+
+/* Hide number input spinner arrows */
+input[type='number']::-webkit-outer-spin-button,
+input[type='number']::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type='number'] {
+  -moz-appearance: textfield;
+}

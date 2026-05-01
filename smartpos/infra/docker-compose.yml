@@ -1,0 +1,144 @@
+version: "3.9"
+
+# Shared infra for local development of SmartPOS microservices.
+# Brings up: Postgres (per-service DBs), Redis, Kafka (KRaft, no ZooKeeper),
+#           Kafka UI, MinIO, Mailhog, Jaeger.
+#
+# Usage:
+#   docker compose -f infra/docker-compose.yml up -d
+#   docker compose -f infra/docker-compose.yml down
+#   docker compose -f infra/docker-compose.yml logs -f
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: smartpos-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: smartpos
+      POSTGRES_PASSWORD: smartpos
+      POSTGRES_DB: postgres
+    ports:
+      - "5434:5432"      # host Postgres often owns 5432 in dev; remap
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./postgres/init-databases.sql:/docker-entrypoint-initdb.d/00-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U smartpos"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: smartpos-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # ---------------- Kafka (KRaft mode — no ZooKeeper) ----------------
+  # Single-broker dev setup. Production uses a 3+ broker cluster with replication.
+  # Internal (container-to-container) listener: PLAINTEXT://kafka:9092
+  # Host-facing listener:                       PLAINTEXT_HOST://localhost:9094
+  kafka:
+    image: apache/kafka:3.8.0
+    container_name: smartpos-kafka
+    restart: unless-stopped
+    ports:
+      - "9092:9092"      # internal (not usually needed from host)
+      - "9094:9094"      # host clients (Spring apps running on your machine)
+    environment:
+      # Node / cluster
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      CLUSTER_ID: smartpos-local-cluster-1
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+
+      # Listeners
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093,PLAINTEXT_HOST://0.0.0.0:9094
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:9094
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+
+      # Single-node defaults
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_LOG_RETENTION_HOURS: 168        # 7 days
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 20
+      start_period: 30s
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:v0.7.2
+    container_name: smartpos-kafka-ui
+    restart: unless-stopped
+    depends_on:
+      kafka:
+        condition: service_healthy
+    environment:
+      KAFKA_CLUSTERS_0_NAME: smartpos-local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+    ports:
+      - "8088:8080"      # http://localhost:8088 (8085 is claimed by sales-service)
+
+  minio:
+    image: minio/minio:latest
+    container_name: smartpos-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: smartpos
+      MINIO_ROOT_PASSWORD: smartpos-secret
+    ports:
+      - "9000:9000"
+      - "9001:9001"      # console http://localhost:9001
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  mailhog:
+    # dev SMTP + UI, catches all outgoing mail for testing password-reset & invoice emails
+    image: mailhog/mailhog:latest
+    container_name: smartpos-mailhog
+    restart: unless-stopped
+    ports:
+      - "1025:1025"      # SMTP
+      - "8025:8025"      # UI http://localhost:8025
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.57
+    container_name: smartpos-jaeger
+    restart: unless-stopped
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    ports:
+      - "16686:16686"    # UI http://localhost:16686
+      - "4317:4317"      # OTLP gRPC
+      - "4318:4318"      # OTLP HTTP
+
+volumes:
+  postgres-data:
+  redis-data:
+  kafka-data:
+  minio-data:

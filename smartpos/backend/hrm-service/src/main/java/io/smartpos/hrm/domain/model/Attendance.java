@@ -1,0 +1,41 @@
+package io.smartpos.hrm.domain.model;
+
+import jakarta.persistence.*;
+import lombok.*;
+
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.util.UUID;
+
+@Entity
+@Table(name = "attendance")
+@Getter @Setter
+@NoArgsConstructor @AllArgsConstructor
+@Builder
+public class Attendance {
+
+    @Id @Column(name = "id", nullable = false, updatable = false)
+    private UUID id;
+
+    @Column(name = "employee_id", nullable = false) private UUID employeeId;
+    @Column(name = "work_date", nullable = false)   private LocalDate workDate;
+    @Column(name = "check_in")  private Instant checkIn;
+    @Column(name = "check_out") private Instant checkOut;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
+    @Builder.Default
+    private AttendanceStatus status = AttendanceStatus.PRESENT;
+
+    @Column(name = "hours_worked") private BigDecimal hoursWorked;
+    @Column(name = "notes") private String notes;
+    @Column(name = "tenant_id") private UUID tenantId;
+    @Column(name = "created_at", nullable = false, updatable = false) private Instant createdAt;
+
+    @PrePersist
+    void onCreate() {
+        if (id == null) id = UUID.randomUUID();
+        if (createdAt == null) createdAt = Instant.now();
+    }
+}

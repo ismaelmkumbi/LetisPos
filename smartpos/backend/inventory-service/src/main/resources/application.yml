@@ -1,0 +1,77 @@
+server:
+  port: 8084
+  error:
+    include-message: always
+
+spring:
+  application:
+    name: inventory-service
+
+  datasource:
+    # preferQueryMode=simple — see product-service for rationale.
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/inventory_db?preferQueryMode=simple}
+    username: ${DB_USER:inventory_user}
+    password: ${DB_PASSWORD:inventory_pass}
+    hikari:
+      maximum-pool-size: 20     # hot path — more connections
+      minimum-idle: 4
+
+  jpa:
+    hibernate:
+      ddl-auto: ${SPRING_JPA_DDL_AUTO:none}
+    properties:
+      hibernate:
+        jdbc.time_zone: UTC
+    open-in-view: false
+
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+  cache:
+    type: redis
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${AUTH_JWKS_URI:http://localhost:8081/.well-known/jwks.json}
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:9094}
+    producer:
+      acks: all
+      key-serializer:   org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      properties:
+        enable.idempotence: true
+        max.in.flight.requests.per.connection: 5
+
+smartpos:
+  outbox:
+    enabled: ${SMARTPOS_OUTBOX_ENABLED:true}
+    topic-prefix: smartpos.inventory
+  inventory:
+    reservation:
+      ttl-minutes: 10              # default reservation lifetime
+    bootstrap:
+      # Seed a default "Main" warehouse on empty DB
+      seed-main-warehouse: ${SMARTPOS_SEED_MAIN_WAREHOUSE:true}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, metrics, prometheus
+
+logging:
+  level:
+    root: INFO
+    io.smartpos: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{traceId:-}] %logger{36} - %msg%n"

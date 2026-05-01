@@ -1,0 +1,20 @@
+/** Barrel re-exports — import from 'src/api/smartpos' for convenience. */
+export * from './client';
+export * from './types';
+export * as authApi from './auth';
+export * as productsApi from './products';
+export * as customersApi from './customers';
+export * as suppliersApi from './suppliers';
+export * as inventoryApi from './inventory';
+export * as salesApi from './sales';
+export * as paymentsApi from './payments';
+export * as reportsApi from './reports';
+export * as serialsApi from './serials';
+export * as notificationsApi from './notifications';
+export * as accountingApi from './accounting';
+export * as hrmApi from './hrm';
+export * as recurringApi from './recurring';
+export * as aiApi from './ai';
+export * as posTerminalsApi from './posTerminals';
+export * as integrationsApi from './integrations';
+export * as i18nApi from './i18n';

@@ -1,0 +1,86 @@
+server:
+  port: 8086
+  error:
+    include-message: always
+
+spring:
+  application:
+    name: payment-service
+
+  datasource:
+    # preferQueryMode=simple — see product-service for rationale.
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/payment_db?preferQueryMode=simple}
+    username: ${DB_USER:payment_user}
+    password: ${DB_PASSWORD:payment_pass}
+    hikari:
+      maximum-pool-size: 15
+      minimum-idle: 3
+
+  jpa:
+    hibernate:
+      ddl-auto: ${SPRING_JPA_DDL_AUTO:none}
+    properties:
+      hibernate:
+        jdbc.time_zone: UTC
+    open-in-view: false
+
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${AUTH_JWKS_URI:http://localhost:8081/.well-known/jwks.json}
+
+  cloud:
+    openfeign:
+      client:
+        config:
+          default:
+            connect-timeout: 2000
+            read-timeout: 5000
+          sales-service:
+            url: ${SALES_URI:http://localhost:8085}
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:9094}
+    producer:
+      acks: all
+      key-serializer:   org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      properties:
+        enable.idempotence: true
+        max.in.flight.requests.per.connection: 5
+
+smartpos:
+  outbox:
+    enabled: ${SMARTPOS_OUTBOX_ENABLED:true}
+    topic-prefix: smartpos.payment
+  payment:
+    default-currency: ${SMARTPOS_DEFAULT_CURRENCY:TZS}
+    bootstrap:
+      seed-cash-account: ${SMARTPOS_SEED_CASH_ACCOUNT:true}
+    stripe:
+      enabled: ${STRIPE_ENABLED:false}
+      secret-key: ${STRIPE_SECRET_KEY:}
+      webhook-secret: ${STRIPE_WEBHOOK_SECRET:}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, metrics, prometheus
+
+logging:
+  level:
+    root: INFO
+    io.smartpos: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{traceId:-}] %logger{36} - %msg%n"

@@ -1,0 +1,95 @@
+server:
+  port: 8081
+  servlet:
+    context-path: /
+  error:
+    include-message: always
+    include-binding-errors: always
+
+spring:
+  application:
+    name: auth-service
+
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/auth_db}
+    username: ${DB_USER:auth_user}
+    password: ${DB_PASSWORD:auth_pass}
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+
+  jpa:
+    hibernate:
+      # Schema is owned by Flyway. Keep `none` until citext column types
+      # on the User entity are explicitly declared (see migration V1).
+      ddl-auto: ${SPRING_JPA_DDL_AUTO:none}
+    properties:
+      hibernate:
+        jdbc.time_zone: UTC
+        format_sql: true
+    open-in-view: false
+
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:9094}
+    producer:
+      acks: all
+      key-serializer:   org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      properties:
+        enable.idempotence: true
+        max.in.flight.requests.per.connection: 5
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, metrics, prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: when_authorized
+
+smartpos:
+  outbox:
+    enabled: ${SMARTPOS_OUTBOX_ENABLED:true}
+    topic-prefix: smartpos.auth
+  auth:
+    jwt:
+      # Dev key. In production mount via Vault/K8s secret and rotate quarterly.
+      # Generated with: openssl genpkey -algorithm RSA -pkcs8 -out priv.pem -pkeyopt rsa_keygen_bits:2048
+      issuer: smartpos-auth
+      access-token-ttl-minutes: 15
+      refresh-token-ttl-days: 7
+      # Path to PEM keys. If blank, a keypair is generated on startup (DEV ONLY).
+      private-key-path: ${JWT_PRIVATE_KEY_PATH:}
+      public-key-path: ${JWT_PUBLIC_KEY_PATH:}
+      key-id: smartpos-auth-key-1
+    bootstrap:
+      # Creates an initial admin user on first startup if no users exist.
+      admin-email: ${BOOTSTRAP_ADMIN_EMAIL:admin@smartpos.local}
+      admin-password: ${BOOTSTRAP_ADMIN_PASSWORD:Admin@12345}
+  internal:
+    # Shared secret used when calling other services' /api/internal/** endpoints
+    # (e.g. user-service for JWT claim hydration at login). Must match value on the server.
+    shared-secret: ${SMARTPOS_INTERNAL_SHARED_SECRET:dev-internal-token-change-me}
+  user-service:
+    base-url: ${USER_SERVICE_URL:http://localhost:8082}
+
+logging:
+  level:
+    root: INFO
+    io.smartpos: DEBUG
+    org.springframework.security: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{traceId:-}] %logger{36} - %msg%n"

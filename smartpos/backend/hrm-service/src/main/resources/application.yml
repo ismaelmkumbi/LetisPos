@@ -1,0 +1,51 @@
+server:
+  port: 8090
+  error:
+    include-message: always
+
+spring:
+  application:
+    name: hrm-service
+
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/hrm_db}
+    username: ${DB_USER:hrm_user}
+    password: ${DB_PASSWORD:hrm_pass}
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+
+  jpa:
+    hibernate:
+      ddl-auto: ${SPRING_JPA_DDL_AUTO:none}
+    properties:
+      hibernate:
+        jdbc.time_zone: UTC
+    open-in-view: false
+
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${AUTH_JWKS_URI:http://localhost:8081/.well-known/jwks.json}
+
+smartpos:
+  internal:
+    shared-secret: ${SMARTPOS_INTERNAL_SHARED_SECRET:dev-internal-token-change-me}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, metrics, prometheus
+
+logging:
+  level:
+    root: INFO
+    io.smartpos: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{traceId:-}] %logger{36} - %msg%n"
