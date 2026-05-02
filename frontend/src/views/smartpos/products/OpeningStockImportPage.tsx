@@ -4,7 +4,7 @@ import {
   Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   FormControl, InputLabel, Select, MenuItem, LinearProgress, Divider,
 } from '@mui/material';
-import { IconUpload, IconDownload, IconTrash, IconFileDescription } from '@tabler/icons-react';
+import { IconUpload, IconDownload, IconTrash } from '@tabler/icons-react';
 import { listWarehouses } from 'src/api/smartpos/inventory';
 import { importOpeningStock } from 'src/api/smartpos/products';
 import PageHeader from 'src/components/smartpos/PageHeader';
@@ -13,9 +13,9 @@ import type { UUID } from 'src/api/smartpos/types';
 
 const cardSx = {
   border: `1px solid ${brand.neutral[200]}`,
-  borderRadius: '14px',
+  borderRadius: '8px',
   bgcolor: '#fff',
-  boxShadow: '0 1px 2px rgba(15,23,42,0.04)',
+  boxShadow: `0 1px 2px ${brand.neutral[900]}08, 0 24px 60px -44px ${brand.neutral[900]}55`,
 } as const;
 
 interface RowItem {

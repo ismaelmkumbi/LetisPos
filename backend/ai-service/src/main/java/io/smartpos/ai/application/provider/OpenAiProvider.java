@@ -38,6 +38,37 @@ public class OpenAiProvider implements AiProvider {
         return call(systemPrompt, userPrompt, true);
     }
 
+    /**
+     * Vision call. Uses the same JSON-mode response format, but the user
+     * message becomes a multi-part content array per OpenAI's vision API:
+     *   [ {type:"text", text:"..."},
+     *     {type:"image_url", image_url:{url:"data:image/jpeg;base64,..."}} ]
+     * Requires a model that supports images (gpt-4o-mini and gpt-4o do).
+     */
+    @Override
+    public Result completeJsonWithImages(String systemPrompt, String userPrompt, List<String> imageDataUrls) {
+        if (props.openai().apiKey() == null || props.openai().apiKey().isBlank()) {
+            throw new IllegalStateException("OPENAI_API_KEY not configured");
+        }
+        java.util.List<Map<String, Object>> userContent = new java.util.ArrayList<>();
+        userContent.add(Map.of("type", "text", "text", userPrompt));
+        for (String url : imageDataUrls) {
+            // "low" detail keeps the prompt cost down; the model still recognises
+            // typical product photos at this resolution.
+            userContent.add(Map.of("type", "image_url",
+                    "image_url", Map.of("url", url, "detail", "low")));
+        }
+
+        Map<String, Object> body = new java.util.HashMap<>();
+        body.put("model", props.openai().model());
+        body.put("messages", List.of(
+                Map.of("role", "system", "content", systemPrompt == null ? "" : systemPrompt),
+                Map.of("role", "user",   "content", userContent)));
+        body.put("response_format", Map.of("type", "json_object"));
+        body.put("temperature", 0.2);
+        return execute(body);
+    }
+
     private Result call(String systemPrompt, String userPrompt, boolean jsonMode) {
         if (props.openai().apiKey() == null || props.openai().apiKey().isBlank()) {
             throw new IllegalStateException("OPENAI_API_KEY not configured");
@@ -52,7 +83,10 @@ public class OpenAiProvider implements AiProvider {
             body.put("response_format", Map.of("type", "json_object"));
             body.put("temperature", 0.2);
         }
+        return execute(body);
+    }
 
+    private Result execute(Map<String, Object> body) {
         @SuppressWarnings("unchecked")
         Map<String, Object> resp = http.post()
                 .uri(URL)
@@ -65,7 +99,6 @@ public class OpenAiProvider implements AiProvider {
                 .block();
 
         if (resp == null) throw new IllegalStateException("Empty response from OpenAI");
-        // choices[0].message.content
         @SuppressWarnings("unchecked")
         List<Map<String, Object>> choices = (List<Map<String, Object>>) resp.get("choices");
         String text = "";

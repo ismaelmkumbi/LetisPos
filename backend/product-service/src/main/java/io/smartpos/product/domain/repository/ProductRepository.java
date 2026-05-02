@@ -41,4 +41,13 @@ public interface ProductRepository extends JpaRepository<Product, UUID> {
                          @Param("brandId")    UUID   brandId,
                          @Param("status")     Boolean status,
                          Pageable pageable);
+
+    /**
+     * Mint the next product code from {@code product_code_seq}. The returned
+     * value is consumed — calling this twice yields two different numbers,
+     * even if the first one is never used. That's the price of guaranteed
+     * uniqueness; gaps in numbering are intentional and harmless.
+     */
+    @Query(value = "SELECT nextval('product_code_seq')", nativeQuery = true)
+    long nextCodeSequence();
 }

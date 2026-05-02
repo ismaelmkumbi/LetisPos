@@ -78,6 +78,49 @@ public final class AiDtos {
             Instant generatedAt
     ) {}
 
+    // ── Product AI: free-text description → full product profile ──────────
+
+    public record ProductDescribeRequest(
+            @NotBlank @Size(max = 2000) String description,
+            WorkspaceContext context
+    ) {}
+
+    public record ProductDescribeResponse(
+            String name,
+            String description,
+            UUID categoryId,
+            UUID subCategoryId,
+            UUID brandId,
+            UUID unitId,
+            String barcodeSymbology,
+            String code,
+            BigDecimal cost,
+            BigDecimal price,
+            BigDecimal wholesalePrice,
+            BigDecimal minPrice,
+            BigDecimal taxRate,
+            String taxMethod,
+            Integer stockAlert,
+            String type,
+            Integer warrantyMonths,
+            Integer guaranteeMonths,
+            BigDecimal lengthCm,
+            BigDecimal widthCm,
+            BigDecimal heightCm,
+            BigDecimal weightGrams,
+            Boolean trackSerial,
+            Boolean trackImei,
+            Boolean featured,
+            Boolean hideOnline,
+            Integer points,
+            Double confidence,
+            java.util.Map<String, Double> fieldConfidence,
+            String rationale,
+            String provider,
+            String model,
+            Instant generatedAt
+    ) {}
+
     // ── Product AI: import mapping (xlsx/csv rows → product objects) ──────
 
     public record ImportRow(int row, java.util.Map<String, String> values) {}
@@ -113,6 +156,36 @@ public final class AiDtos {
             String model,
             Integer promptTokens,
             Integer completionTokens,
+            Instant generatedAt
+    ) {}
+
+    // ── Product AI: image → full product profile (vision) ──────────────────
+    //
+    // {@code imageDataUrls} accepts either base64 data URIs
+    // ({@code data:image/jpeg;base64,/9j/...}) or fetchable HTTPS URLs. The
+    // service forwards them verbatim to the vision provider.
+
+    public record ProductFromImageRequest(
+            @NotNull @Size(min = 1, max = 3) List<@NotBlank @Size(max = 1_200_000) String> imageDataUrls,
+            String hint,                    // optional user note like "this is a 25kg sack"
+            WorkspaceContext context
+    ) {}
+
+    // Reuses ProductDescribeResponse — vision returns the same field set.
+
+    // ── Product AI: disambiguation candidates ──────────────────────────────
+    //
+    // When the user types something vague ("Samsung phone"), suggest() may
+    // return up to N candidate product profiles instead of forcing a guess.
+    // Each candidate is a complete suggestion the UI can show as a quick-pick.
+
+    public record ProductCandidatesResponse(
+            ProductSuggestion top,                  // best single guess (back-compat)
+            List<ProductSuggestion> candidates,     // ranked alternatives
+            Boolean ambiguous,                      // true when multiple plausible matches
+            String clarification,                   // suggested follow-up question for the user
+            String provider,
+            String model,
             Instant generatedAt
     ) {}
 }

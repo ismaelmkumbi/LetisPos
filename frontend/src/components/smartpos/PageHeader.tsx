@@ -76,10 +76,10 @@ export function PageHeader({ title, subtitle, badge, action, actions }: PageHead
                 variant="h4"
                 sx={{
                   fontWeight: 900,
-                  letterSpacing: 0,
+                  letterSpacing: '-0.5px',
                   lineHeight: 1.1,
                   color: brand.neutral[900],
-                  fontSize: { xs: '1.65rem', md: '1.9rem' },
+                  fontSize: { xs: '1.8rem', md: '2.1rem' },
                 }}
               >
                 {title}
@@ -89,10 +89,10 @@ export function PageHeader({ title, subtitle, badge, action, actions }: PageHead
                   label={badge.label}
                   size="small"
                   sx={{
-                    height: 22,
+                    height: 24,
                     fontWeight: 700,
-                    fontSize: '0.6875rem',
-                    borderRadius: '6px',
+                    fontSize: '0.72rem',
+                    borderRadius: '8px',
                     ...BADGE_TONES[badge.tone ?? 'neutral'],
                   }}
                 />
@@ -101,7 +101,7 @@ export function PageHeader({ title, subtitle, badge, action, actions }: PageHead
             {subtitle && (
               <Typography
                 variant="body2"
-                sx={{ color: brand.neutral[500], mt: 0.75, lineHeight: 1.4, fontWeight: 600 }}
+                sx={{ color: brand.neutral[500], mt: 0.75, lineHeight: 1.4, fontWeight: 600, fontSize: '0.9rem' }}
               >
                 {subtitle}
               </Typography>

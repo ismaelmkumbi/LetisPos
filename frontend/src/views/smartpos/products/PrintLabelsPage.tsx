@@ -3,9 +3,9 @@ import {
   Box, Card, CardContent, CardHeader, TextField, Divider,
   Stack, FormControl, InputLabel, Select, MenuItem, IconButton,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  FormControlLabel, Switch, Autocomplete, Typography, Chip,
+  FormControlLabel, Switch, Autocomplete, Typography,
 } from '@mui/material';
-import { IconPrinter, IconTrash, IconBarcode } from '@tabler/icons-react';
+import { IconPrinter, IconTrash } from '@tabler/icons-react';
 import { listWarehouses } from 'src/api/smartpos/inventory';
 import { listProducts } from 'src/api/smartpos/products';
 import PageHeader from 'src/components/smartpos/PageHeader';
@@ -14,9 +14,9 @@ import type { Product, UUID } from 'src/api/smartpos/types';
 
 const cardSx = {
   border: `1px solid ${brand.neutral[200]}`,
-  borderRadius: '14px',
+  borderRadius: '8px',
   bgcolor: '#fff',
-  boxShadow: '0 1px 2px rgba(15,23,42,0.04)',
+  boxShadow: `0 1px 2px ${brand.neutral[900]}08, 0 24px 60px -44px ${brand.neutral[900]}55`,
 } as const;
 
 interface LabelProduct {

@@ -101,20 +101,21 @@ export default function CountStockPage() {
       {/* ── Filter bar ── */}
       <Box sx={{
         mb: 2, borderRadius: '12px', border: `1px solid ${brand.neutral[200]}`,
-        bgcolor: '#fff', boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)', overflow: 'hidden',
+        bgcolor: '#fff', overflow: 'hidden',
       }}>
-        <Stack direction="row" spacing={1} alignItems="center" sx={{ px: 1.25, py: 1 }}>
+        <Stack direction="row" spacing={1.25} alignItems="center" sx={{ px: 2, py: 1.5 }}>
           <TextField
-            size="small" placeholder="Search by reference…"
+            size="small"
+            placeholder="Search by reference…"
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(0); }}
+            inputProps={{ 'aria-label': 'Search stock counts' }}
             sx={{
-              flex: 1, maxWidth: 420,
-              '& .MuiOutlinedInput-root': { borderRadius: '8px', bgcolor: brand.neutral[50], fontSize: '0.8125rem', '&:hover': { bgcolor: '#fff' }, '&.Mui-focused': { bgcolor: '#fff' } },
-              '& .MuiOutlinedInput-input': { py: 0.75 },
+              minWidth: { xs: '100%', md: 360 }, flex: 1.2,
+              '& .MuiOutlinedInput-root': { borderRadius: '10px', height: 44, fontSize: '0.95rem' },
             }}
             InputProps={{
-              startAdornment: <InputAdornment position="start"><IconSearch size={15} color={brand.neutral[500]} /></InputAdornment>,
+              startAdornment: <InputAdornment position="start"><IconSearch size={18} color={brand.neutral[500]} /></InputAdornment>,
               endAdornment: search ? (
                 <InputAdornment position="end">
                   <IconButton size="small" onClick={() => { setSearch(''); setPage(0); }} sx={{ p: 0.25 }}>
@@ -127,13 +128,13 @@ export default function CountStockPage() {
           <Box sx={{ flex: 1 }} />
           <ToggleButtonGroup size="small" exclusive value={dense ? 'compact' : 'cosy'} onChange={(_, v) => { if (v) setDense(v === 'compact'); }} sx={{
             '& .MuiToggleButton-root': {
-              borderRadius: '8px !important', border: `1px solid ${brand.neutral[200]} !important`,
-              px: 0.75, py: 0.25, color: brand.neutral[500],
+              borderRadius: '10px !important', border: `1px solid ${brand.neutral[200]} !important`,
+              px: 1.25, py: 0.5, color: brand.neutral[600], fontWeight: 600, textTransform: 'none',
               '&.Mui-selected': { bgcolor: brand.primary[50], color: brand.primary[700], borderColor: `${brand.primary[200]} !important` },
             },
           }}>
-            <Tooltip title="Cosy density"><ToggleButton value="cosy"><IconLayoutRows size={14} /></ToggleButton></Tooltip>
-            <Tooltip title="Compact density"><ToggleButton value="compact"><IconLayoutList size={14} /></ToggleButton></Tooltip>
+            <Tooltip title="Comfortable row height"><ToggleButton value="cosy"><IconLayoutRows size={16} style={{ marginRight: 6 }} /> Cosy</ToggleButton></Tooltip>
+            <Tooltip title="More rows per screen"><ToggleButton value="compact"><IconLayoutList size={16} style={{ marginRight: 6 }} /> Compact</ToggleButton></Tooltip>
           </ToggleButtonGroup>
         </Stack>
       </Box>

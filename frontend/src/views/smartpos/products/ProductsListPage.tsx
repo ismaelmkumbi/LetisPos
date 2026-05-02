@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import {
-  Alert, Avatar, Box, Button, Checkbox, Chip, Collapse, Dialog, DialogActions,
-  DialogContent, DialogContentText, DialogTitle, IconButton, InputAdornment,
+  Alert, Avatar, Box, Button, Chip, Dialog, DialogActions,
+  DialogContent, DialogContentText, DialogTitle, IconButton,
   MenuItem, Paper, Stack, TextField,
   Tooltip, Typography,
 } from '@mui/material';
 import {
   IconAlertTriangle, IconCopy,
-  IconDotsVertical, IconEyeOff, IconFilter, IconPlus, IconSearch, IconStar,
+  IconDotsVertical, IconEyeOff, IconPlus, IconStar,
   IconTrash,
 } from '@tabler/icons-react';
 
@@ -19,16 +19,19 @@ import {
   listCategories, listBrands,
   type Product,
 } from 'src/api/smartpos/products';
+import ProductsImportDialog from 'src/views/smartpos/products/ProductsImportDialog';
 import type { Category, Brand } from 'src/api/smartpos/types';
 import { listStockLevels, listWarehouses, type StockLevel, type Warehouse } from 'src/api/smartpos/inventory';
 import DataTable, { type Column, StatusBadge } from 'src/components/smartpos/DataTable';
 import { PageHeader } from 'src/components/smartpos/PageHeader';
+import FilterBar from 'src/components/smartpos/FilterBar';
+import BulkActionBar from 'src/components/smartpos/BulkActionBar';
+import { useSelection } from 'src/components/smartpos/useSelection';
 import { brand } from 'src/theme/smartpos/brand';
 import { formatMoney } from 'src/utils/smartpos/currency';
 
 const fmt = formatMoney;
 
-/** Quality score (0–100) for a product, based on how many optional fields are filled. */
 function dataQualityScore(p: Product): number {
   const checks = [
     !!p.imageUrl,
@@ -102,37 +105,7 @@ export default function ProductsListPage() {
   const [brands, setBrands]             = useState<Brand[]>([]);
 
   // ── Bulk selection ───────────────────────────────────────────────────────────
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  // Keep a ref so column renders can read the latest value without being in useMemo deps.
-  const selectedIdsRef = useRef(selectedIds);
-  useEffect(() => { selectedIdsRef.current = selectedIds; }, [selectedIds]);
-
-  // ── Shift+click range selection ──────────────────────────────────────────────
-  const lastClickedIndexRef = useRef<number | null>(null);
-
-  const handleCheckboxClick = useCallback((p: Product, index: number, e: React.MouseEvent) => {
-    if (e.shiftKey && lastClickedIndexRef.current !== null) {
-      const from = Math.min(lastClickedIndexRef.current, index);
-      const to = Math.max(lastClickedIndexRef.current, index);
-      setSelectedIds((prev) => {
-        const next = new Set(prev);
-        for (let i = from; i <= to; i++) {
-          const row = rows[i];
-          if (row) next.add(row.id);
-        }
-        return next;
-      });
-    } else {
-      setSelectedIds((prev) => {
-        const next = new Set(prev);
-        if (next.has(p.id)) next.delete(p.id); else next.add(p.id);
-        return next;
-      });
-    }
-    lastClickedIndexRef.current = index;
-  }, [rows]);
-
-  const clearSelection = useCallback(() => setSelectedIds(new Set()), []);
+  const sel = useSelection(rows);
 
   // ── Quick duplicate product ──────────────────────────────────────────────────
   const duplicateProduct = useCallback(async (p: Product) => {
@@ -178,7 +151,7 @@ export default function ProductsListPage() {
       });
       setRefreshToken((prev) => prev + 1);
     } catch {
-      // Silently fail — the user will notice the new product didn't appear
+      //
     }
   }, []);
 
@@ -187,7 +160,6 @@ export default function ProductsListPage() {
   const [anchorEl, setAnchorEl]         = useState<HTMLElement | null>(null);
   const hoverTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
-  // Cleanup timer on unmount to prevent state updates after unmount
   useEffect(() => () => clearTimeout(hoverTimer.current), []);
 
   const handleMouseEnter = useCallback((p: Product, el: HTMLElement) => {
@@ -220,13 +192,13 @@ export default function ProductsListPage() {
         searchRef.current?.focus();
       }
       if (e.key === 'Escape') {
-        if (selectedIdsRef.current.size > 0) clearSelection();
+        if (sel.selectedIdsRef.current.size > 0) sel.clearSelection();
         else if (search) { setSearch(''); setPage(0); }
       }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [navigate, search, clearSelection]);
+  }, [navigate, search, sel]);
 
   // ── Fetch lookup data once ─────────────────────────────────────────────────
   useEffect(() => {
@@ -303,9 +275,9 @@ export default function ProductsListPage() {
   const handleBatchDelete = async () => {
     setBatchDeleting(true);
     try {
-      await Promise.all(Array.from(selectedIds).map((id) => deleteProduct(id)));
+      await Promise.all(Array.from(sel.selectedIds).map((id) => deleteProduct(id)));
       setRefreshToken((n) => n + 1);
-      clearSelection();
+      sel.clearSelection();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Batch delete failed');
     } finally {
@@ -319,12 +291,12 @@ export default function ProductsListPage() {
     if (!batchCategoryValue) return;
     setBatchCategoryProcessing(true);
     try {
-      const ids = Array.from(selectedIds);
+      const ids = Array.from(sel.selectedIds);
       const results = await Promise.allSettled(ids.map((id) => updateProduct(id, { categoryId: batchCategoryValue })));
       const failed = results.filter((r) => r.status === 'rejected').length;
       if (failed > 0) setError(`${failed} product(s) failed to update category`);
       setRefreshToken((n) => n + 1);
-      clearSelection();
+      sel.clearSelection();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Batch category update failed');
     } finally {
@@ -339,7 +311,7 @@ export default function ProductsListPage() {
     if (isNaN(raw) || raw <= 0) return;
     setBatchPriceProcessing(true);
     try {
-      const ids = Array.from(selectedIds);
+      const ids = Array.from(sel.selectedIds);
       const updates = ids.map((id) => {
         const product = rows.find((r) => r.id === id);
         const currentPrice = product?.price ?? 0;
@@ -350,7 +322,7 @@ export default function ProductsListPage() {
       const failed = results.filter((r) => r.status === 'rejected').length;
       if (failed > 0) setError(`${failed} product(s) failed to update price`);
       setRefreshToken((n) => n + 1);
-      clearSelection();
+      sel.clearSelection();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Batch price update failed');
     } finally {
@@ -365,14 +337,14 @@ export default function ProductsListPage() {
     try {
       const alertQty = parseInt(batchStockAlertValue, 10);
       if (isNaN(alertQty) || alertQty < 0) return;
-      const ids = Array.from(selectedIds);
+      const ids = Array.from(sel.selectedIds);
       const results = await Promise.allSettled(
         ids.map((id) => updateProduct(id, { stockAlert: alertQty }))
       );
       const failed = results.filter((r) => r.status === 'rejected').length;
       if (failed > 0) setError(`${failed} product(s) failed to update stock`);
       setRefreshToken((n) => n + 1);
-      clearSelection();
+      sel.clearSelection();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Batch stock update failed');
     } finally {
@@ -381,31 +353,13 @@ export default function ProductsListPage() {
     }
   };
   const actionBtnSx = {
-    p: 0.65, borderRadius: '8px',
-    border: `1px solid ${brand.neutral[200]}`,
-    color: brand.neutral[600], bgcolor: '#fff',
-    '&:hover': { color: brand.primary[700], borderColor: brand.primary[200], bgcolor: brand.primary[50] },
+    p: 0.5, borderRadius: '8px',
+    color: brand.neutral[400],
+    '&:hover': { color: brand.primary[600], bgcolor: brand.primary[50] },
   };
-  // selectedIds is intentionally excluded from deps — the render fn reads from
-  // selectedIdsRef so column defs stay stable across checkbox interactions.
-  // Each DataTable row re-renders independently via its own key, so the visual
-  // checkbox state is always correct.
+
   const columns: Column<Product>[] = useMemo(() => [
-    {
-      key: '_select',
-      label: '',
-      width: 44,
-      enableHiding: false,
-      render: (p, idx) => (
-        <Checkbox
-          size="small"
-          checked={selectedIdsRef.current.has(p.id)}
-          onChange={() => {}}
-          onClick={(e) => { e.stopPropagation(); handleCheckboxClick(p, idx, e); }}
-          sx={{ p: 0.375, color: brand.neutral[300], '&.Mui-checked': { color: brand.primary[600] } }}
-        />
-      ),
-    },
+    sel.selectionColumn(),
     {
       key: 'name',
       label: 'Product',
@@ -519,7 +473,6 @@ export default function ProductsListPage() {
         : <Typography component="span" sx={{ color: brand.neutral[300], fontSize: '0.75rem' }}>—</Typography>,
     },
     {
-      // Fix #2: Product DTO has no onHand field; stockAlert is the reorder threshold — label accordingly
       key: 'stockAlert', label: 'Reorder Level', align: 'center', width: 110,
       sortable: true,
       exportValue: (p) => p.stockAlert,
@@ -624,7 +577,7 @@ export default function ProductsListPage() {
       ),
     },
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  ], [brands, categories, navigate, handleMouseEnter, handleMouseLeave, duplicateProduct, handleCheckboxClick, stockLevelMap]);
+  ], [brands, categories, navigate, handleMouseEnter, handleMouseLeave, duplicateProduct, sel.selectionColumn, stockLevelMap]);
 
   const warehouseName = (id: string) => warehouses.find((w) => w.id === id)?.name ?? id;
 
@@ -646,7 +599,23 @@ export default function ProductsListPage() {
 
   // ── Filter panel visibility ──────────────────────────────────────────────
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const hasActiveFilters = activeFilters.length > 0;
+
+  // ── AI Import dialog ──────────────────────────────────────────────────────
+  const [aiImportOpen, setAiImportOpen] = useState(false);
+
+  // Auto-open the AI Import dialog when arriving from the floating "Import CSV"
+  // FAB (which navigates here with ?import=ai). Strip the param after consuming
+  // so a refresh doesn't re-open the dialog.
+  useEffect(() => {
+    if (searchParams.get('import') === 'ai') {
+      setAiImportOpen(true);
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete('import');
+        return next;
+      }, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
@@ -659,155 +628,79 @@ export default function ProductsListPage() {
         ]}
       />
 
-      {/* Filter bar */}
-      <Paper elevation={0} sx={{ mb: 2, borderRadius: '12px', border: `1px solid ${brand.neutral[200]}`, bgcolor: '#fff', overflow: 'hidden' }}>
-        {/* Top row: search + filter toggle */}
-        <Stack direction="row" spacing={1.25} alignItems="center" sx={{ px: 2, py: 1.5 }}>
-          <TextField
-            size="small"
-            placeholder="Search product, SKU, barcode…"
-            value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(0); }}
-            inputRef={searchRef}
-            inputProps={{ 'aria-label': 'Search products' }}
-            sx={{
-              minWidth: { xs: '100%', md: 360 }, flex: 1.2,
-              '& .MuiOutlinedInput-root': { borderRadius: '10px', height: 44, fontSize: '0.95rem' },
-            }}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start"><IconSearch size={18} color={brand.neutral[500]} /></InputAdornment>
-              ),
-            }}
-          />
-          <Button
-            variant={hasActiveFilters ? 'contained' : 'outlined'}
-            size="small"
-            startIcon={<IconFilter size={15} />}
-            onClick={() => setFiltersOpen(!filtersOpen)}
-            sx={{
-              height: 44, borderRadius: '10px', px: 1.75, fontWeight: 700, whiteSpace: 'nowrap',
-              flexShrink: 0,
-              ...(hasActiveFilters
-                ? { background: `linear-gradient(135deg, ${brand.primary[500]} 0%, ${brand.primary[700]} 100%)` }
-                : { borderColor: brand.neutral[200], color: brand.neutral[700] }),
-            }}
-          >
-            Filters
-            {hasActiveFilters && (
-              <Box
-                component="span"
-                sx={{
-                  ml: 0.75, width: 20, height: 20, borderRadius: '50%',
-                  bgcolor: 'rgba(255,255,255,0.25)',
-                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: '0.7rem', fontWeight: 800,
-                }}
-              >
-                {activeFilters.length}
-              </Box>
-            )}
-          </Button>
-        </Stack>
+      <FilterBar
+        searchPlaceholder="Search product, SKU, barcode…"
+        searchValue={search}
+        onSearchChange={(v) => { setSearch(v); setPage(0); }}
+        searchAriaLabel="Search products"
+        searchInputRef={searchRef}
+        filtersOpen={filtersOpen}
+        onFiltersToggle={() => setFiltersOpen(!filtersOpen)}
+        activeFilters={activeFilters}
+        onClearAll={clearAll}
+      >
+        <TextField
+          select size="small" value={categoryFilter}
+          onChange={(e) => { setCategoryFilter(e.target.value); setPage(0); }}
+          SelectProps={{ displayEmpty: true }}
+          inputProps={{ 'aria-label': 'Filter by category' }}
+          sx={{ minWidth: 200, '& .MuiOutlinedInput-root': { borderRadius: '10px', height: 42 } }}
+        >
+          <MenuItem value="">All categories</MenuItem>
+          {categories.filter((c) => !c.parentId).map((c) => (
+            <MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>
+          ))}
+        </TextField>
 
-        {/* Collapsible filter dropdowns */}
-        <Collapse in={filtersOpen}>
-          <Stack direction="row" spacing={1.25} alignItems="center" flexWrap="wrap" useFlexGap sx={{ px: 2, pb: 1.5, pt: 0 }}>
-            <TextField
-              select size="small" value={categoryFilter}
-              onChange={(e) => { setCategoryFilter(e.target.value); setPage(0); }}
-              SelectProps={{ displayEmpty: true }}
-              inputProps={{ 'aria-label': 'Filter by category' }}
-              sx={{ minWidth: 200, '& .MuiOutlinedInput-root': { borderRadius: '10px', height: 42 } }}
-            >
-              <MenuItem value="">All categories</MenuItem>
-              {categories.filter((c) => !c.parentId).map((c) => (
-                <MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>
-              ))}
-            </TextField>
+        <TextField
+          select size="small" value={brandFilter}
+          onChange={(e) => { setBrandFilter(e.target.value); setPage(0); }}
+          SelectProps={{ displayEmpty: true }}
+          inputProps={{ 'aria-label': 'Filter by brand' }}
+          sx={{ minWidth: 170, '& .MuiOutlinedInput-root': { borderRadius: '10px', height: 42 } }}
+        >
+          <MenuItem value="">All brands</MenuItem>
+          {brands.map((b) => <MenuItem key={b.id} value={b.id}>{b.name}</MenuItem>)}
+        </TextField>
 
-            <TextField
-              select size="small" value={brandFilter}
-              onChange={(e) => { setBrandFilter(e.target.value); setPage(0); }}
-              SelectProps={{ displayEmpty: true }}
-              inputProps={{ 'aria-label': 'Filter by brand' }}
-              sx={{ minWidth: 170, '& .MuiOutlinedInput-root': { borderRadius: '10px', height: 42 } }}
-            >
-              <MenuItem value="">All brands</MenuItem>
-              {brands.map((b) => <MenuItem key={b.id} value={b.id}>{b.name}</MenuItem>)}
-            </TextField>
+        <TextField
+          select size="small" value={warehouseFilter}
+          onChange={(e) => { setWarehouseFilter(e.target.value); setPage(0); }}
+          SelectProps={{ displayEmpty: true }}
+          inputProps={{ 'aria-label': 'Filter by warehouse' }}
+          sx={{ minWidth: 170, '& .MuiOutlinedInput-root': { borderRadius: '10px', height: 42 } }}
+        >
+          <MenuItem value="">All warehouses</MenuItem>
+          {warehouses.map((w) => <MenuItem key={w.id} value={w.id}>{w.name}</MenuItem>)}
+        </TextField>
 
-            <TextField
-              select size="small" value={warehouseFilter}
-              onChange={(e) => { setWarehouseFilter(e.target.value); setPage(0); }}
-              SelectProps={{ displayEmpty: true }}
-              inputProps={{ 'aria-label': 'Filter by warehouse' }}
-              sx={{ minWidth: 170, '& .MuiOutlinedInput-root': { borderRadius: '10px', height: 42 } }}
-            >
-              <MenuItem value="">All warehouses</MenuItem>
-              {warehouses.map((w) => <MenuItem key={w.id} value={w.id}>{w.name}</MenuItem>)}
-            </TextField>
-
-            <TextField
-              select size="small" value={statusFilter}
-              onChange={(e) => { setStatusFilter(e.target.value as 'all' | 'active' | 'inactive'); setPage(0); }}
-              SelectProps={{ displayEmpty: true }}
-              inputProps={{ 'aria-label': 'Filter by status' }}
-              sx={{ minWidth: 160, '& .MuiOutlinedInput-root': { borderRadius: '10px', height: 42 } }}
-            >
-              <MenuItem value="all">All statuses</MenuItem>
-              <MenuItem value="active">Active</MenuItem>
-              <MenuItem value="inactive">Inactive</MenuItem>
-            </TextField>
-          </Stack>
-        </Collapse>
-
-        {/* Active filter chips — always visible */}
-        {activeFilters.length > 0 && (
-          <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap sx={{ px: 2, pb: 1.5, borderTop: filtersOpen ? `1px solid ${brand.neutral[100]}` : 'none' }}>
-            {activeFilters.map((f) => (
-              <Chip
-                key={f.key}
-                label={f.label}
-                size="medium"
-                onDelete={f.clear}
-                sx={{
-                  height: 32, borderRadius: '8px', bgcolor: brand.primary[50],
-                  border: `1px solid ${brand.primary[200]}`, fontWeight: 600, color: brand.primary[700],
-                  '& .MuiChip-deleteIcon': { color: brand.primary[500], fontSize: 16 },
-                }}
-              />
-            ))}
-            <Button variant="text" onClick={clearAll} size="small" sx={{ color: brand.neutral[500], fontWeight: 600, textTransform: 'none', px: 0.75, fontSize: '0.8rem' }}>
-              Clear all
-            </Button>
-          </Stack>
-        )}
-      </Paper>
+        <TextField
+          select size="small" value={statusFilter}
+          onChange={(e) => { setStatusFilter(e.target.value as 'all' | 'active' | 'inactive'); setPage(0); }}
+          SelectProps={{ displayEmpty: true }}
+          inputProps={{ 'aria-label': 'Filter by status' }}
+          sx={{ minWidth: 160, '& .MuiOutlinedInput-root': { borderRadius: '10px', height: 42 } }}
+        >
+          <MenuItem value="all">All statuses</MenuItem>
+          <MenuItem value="active">Active</MenuItem>
+          <MenuItem value="inactive">Inactive</MenuItem>
+        </TextField>
+      </FilterBar>
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
       {/* Bulk action bar */}
-      {selectedIds.size > 0 && (
-        <Stack
-          direction="row" spacing={1} alignItems="center"
-          sx={{ mb: 1.2, px: 1.75, py: 1.25, borderRadius: '10px', border: `1px solid ${brand.neutral[200]}`, bgcolor: brand.success.light, flexWrap: 'wrap', rowGap: 1 }}
-        >
-          <Typography sx={{ color: brand.primary[700], fontWeight: 800, fontSize: '1rem', mr: 1 }}>
-            {selectedIds.size} selected
-          </Typography>
+      {sel.selectedIds.size > 0 && (
+        <BulkActionBar selectedCount={sel.selectedIds.size} onClear={sel.clearSelection} itemLabel="product">
           <Button size="small" variant="outlined" color="error" startIcon={<IconTrash size={14} />} onClick={() => setBatchDeleteOpen(true)} sx={{ borderRadius: '8px', fontWeight: 700 }}>
             Delete
           </Button>
           <Button size="small" variant="outlined" onClick={() => { setBatchCategoryValue(''); setBatchCategoryOpen(true); }} sx={{ borderRadius: '8px', fontWeight: 700 }}>Change Category</Button>
           <Button size="small" variant="outlined" onClick={() => { setBatchPriceMode('fixed'); setBatchPriceValue(''); setBatchPriceOpen(true); }} sx={{ borderRadius: '8px', fontWeight: 700 }}>Update Price</Button>
           <Button size="small" variant="outlined" onClick={() => setBatchStockOpen(true)} sx={{ borderRadius: '8px', fontWeight: 700 }}>Update Stock</Button>
-          <Box sx={{ flex: 1 }} />
-          <Button size="small" variant="text" onClick={clearSelection} sx={{ fontWeight: 700, color: brand.neutral[600] }}>Cancel</Button>
-        </Stack>
+        </BulkActionBar>
       )}
 
-      {/* Fix #5: enableExport wires the DataTable's built-in CSV export. Fix #4: catalogView grid toggle removed. */}
       <DataTable
         columns={columns}
         rows={rows}
@@ -831,7 +724,6 @@ export default function ProductsListPage() {
         expandable
         renderExpanded={(p) => (
           <Stack direction={{ xs: 'column', md: 'row' }} spacing={2.5} alignItems="flex-start">
-            {/* Product image */}
             <Avatar
               src={p.imageUrl ?? undefined}
               variant="rounded"
@@ -839,8 +731,6 @@ export default function ProductsListPage() {
             >
               {p.name.charAt(0)}
             </Avatar>
-
-            {/* Details grid */}
             <Box sx={{ flex: 1, width: '100%' }}>
               <Typography sx={{ fontWeight: 800, fontSize: '1rem', color: brand.neutral[800], mb: 1.5 }}>
                 {p.name}
@@ -876,8 +766,6 @@ export default function ProductsListPage() {
                 ))}
               </Stack>
             </Box>
-
-            {/* Badges */}
             <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap sx={{ flexShrink: 0 }}>
               {p.featured && <Chip label="Featured" size="small" sx={{ height: 22, fontWeight: 700, fontSize: '0.65rem', bgcolor: brand.accent[50], color: brand.accent[700], borderRadius: '6px' }} />}
               {p.sellable === false && <Chip label="Hidden" size="small" sx={{ height: 22, fontWeight: 700, fontSize: '0.65rem', bgcolor: brand.neutral[100], color: brand.neutral[600], borderRadius: '6px' }} />}
@@ -888,25 +776,23 @@ export default function ProductsListPage() {
         )}
       />
 
-      {/* Import dialog removed */}
-
       {/* Batch delete confirm */}
       <Dialog open={batchDeleteOpen} onClose={() => setBatchDeleteOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700 }}>Delete {selectedIds.size} {selectedIds.size === 1 ? 'product' : 'products'}?</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 700 }}>Delete {sel.selectedIds.size} {sel.selectedIds.size === 1 ? 'product' : 'products'}?</DialogTitle>
         <DialogContent>
           <DialogContentText>These products will be permanently removed from the catalog. This cannot be undone.</DialogContentText>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={() => setBatchDeleteOpen(false)} disabled={batchDeleting}>Cancel</Button>
           <Button variant="contained" color="error" onClick={handleBatchDelete} disabled={batchDeleting}>
-            {batchDeleting ? 'Deleting…' : `Delete ${selectedIds.size}`}
+            {batchDeleting ? 'Deleting…' : `Delete ${sel.selectedIds.size}`}
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* Batch change category */}
       <Dialog open={batchCategoryOpen} onClose={() => !batchCategoryProcessing && setBatchCategoryOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700 }}>Change Category ({selectedIds.size} products)</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 700 }}>Change Category ({sel.selectedIds.size} products)</DialogTitle>
         <DialogContent>
           <TextField
             select fullWidth size="small" label="New category"
@@ -921,14 +807,14 @@ export default function ProductsListPage() {
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={() => setBatchCategoryOpen(false)} disabled={batchCategoryProcessing}>Cancel</Button>
           <Button variant="contained" onClick={handleBatchCategory} disabled={!batchCategoryValue || batchCategoryProcessing}>
-            {batchCategoryProcessing ? 'Updating…' : `Update ${selectedIds.size} products`}
+            {batchCategoryProcessing ? 'Updating…' : `Update ${sel.selectedIds.size} products`}
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* Batch update price */}
       <Dialog open={batchPriceOpen} onClose={() => !batchPriceProcessing && setBatchPriceOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700 }}>Update Price ({selectedIds.size} products)</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 700 }}>Update Price ({sel.selectedIds.size} products)</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
             <Stack direction="row" spacing={1}>
@@ -962,14 +848,14 @@ export default function ProductsListPage() {
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={() => setBatchPriceOpen(false)} disabled={batchPriceProcessing}>Cancel</Button>
           <Button variant="contained" onClick={handleBatchPrice} disabled={!batchPriceValue || batchPriceProcessing}>
-            {batchPriceProcessing ? 'Updating…' : `Update ${selectedIds.size} products`}
+            {batchPriceProcessing ? 'Updating…' : `Update ${sel.selectedIds.size} products`}
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* Batch update stock alert */}
       <Dialog open={batchStockOpen} onClose={() => !batchStockProcessing && (setBatchStockOpen(false), setBatchStockAlertValue(''))} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700 }}>Update Stock Alert ({selectedIds.size} products)</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 700 }}>Update Stock Alert ({sel.selectedIds.size} products)</DialogTitle>
         <DialogContent>
           <DialogContentText sx={{ mb: 2 }}>
             Set the reorder alert level for all selected products.
@@ -990,7 +876,7 @@ export default function ProductsListPage() {
         </DialogActions>
       </Dialog>
 
-      {/* Quick-preview hover card — Fix #11: timer cleanup in useEffect above */}
+      {/* Quick-preview hover card */}
       {hoverProduct && anchorEl && (
         <Box
           sx={{
@@ -1039,6 +925,15 @@ export default function ProductsListPage() {
           </Paper>
         </Box>
       )}
+
+      <ProductsImportDialog
+        open={aiImportOpen}
+        onClose={() => setAiImportOpen(false)}
+        onImported={() => {
+          setAiImportOpen(false);
+          setRefreshToken((n) => n + 1);
+        }}
+      />
     </Box>
   );
 }

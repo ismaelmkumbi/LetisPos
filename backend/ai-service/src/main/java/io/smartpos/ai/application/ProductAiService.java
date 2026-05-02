@@ -64,8 +64,65 @@ public class ProductAiService {
             Rules:
               - Only use category/brand/unit IDs from the provided lists. If none
                 fits, return null for that field — DO NOT invent UUIDs.
-              - If you don't know a price, return null instead of guessing wildly.
+              - NAME EXPANSION: if the user typed a vague identifier (e.g.
+                "iPhone 17", "Galaxy S24", "Bluetooth speaker"), expand it to
+                the most common full SKU including variant attributes
+                (storage / capacity / size / colour). Pick the mid-tier
+                variant if multiple exist. Examples:
+                  "iPhone 17"        → "Apple iPhone 17 256GB"
+                  "Galaxy S24"       → "Samsung Galaxy S24 256GB"
+                  "Coca-Cola"        → "Coca-Cola 500ml"
+              - PRICING: produce realistic East-African retail prices
+                (typically TZS / KES / UGX). For consumer electronics,
+                anchor against current Tanzanian retail (e.g. iPhone 17
+                256GB ≈ TSh 3,000,000 retail / 2,500,000 cost; Coca-Cola
+                500ml ≈ TSh 1,000 retail / 700 cost). Set wholesalePrice
+                ≈ 0.92 × price and minPrice ≈ 0.88 × price unless context
+                suggests otherwise. Do NOT leave price null when the
+                product is well-known — guess a sensible mid-market figure.
               - Use the provided currency and default tax rate as a guide.
+              - Output ONLY the JSON object — no commentary, no markdown.
+            """;
+
+    private static final String SYS_CANDIDATES = """
+            PRODUCT_CANDIDATES
+            You help a retail POS operator add a product when their input is
+            ambiguous (e.g. "Samsung phone", "iPhone", "Bluetooth speaker").
+            Return up to FOUR ranked candidate product variants as JSON:
+
+            {
+              "ambiguous":     boolean,                  // true when several plausible variants exist
+              "clarification": string|null,              // short follow-up Q for the user
+              "candidates": [
+                {
+                  "name": string, "description": string|null,
+                  "categoryId": uuid|null, "brandId": uuid|null, "unitId": uuid|null,
+                  "barcodeSymbology": "CODE128"|"EAN13"|"EAN8"|"UPC"|"CODE39",
+                  "code": string|null,
+                  "cost": number|null, "price": number|null,
+                  "wholesalePrice": number|null, "minPrice": number|null,
+                  "taxRate": number|null,
+                  "confidence": number,
+                  "rationale": string                    // 1 sentence — what makes THIS variant
+                }
+              ]
+            }
+
+            Rules:
+              - Order candidates by likelihood (most likely first).
+              - Each candidate's name MUST include the differentiating attribute
+                (e.g. storage / colour / capacity / year). Examples:
+                  "iPhone"       → ["Apple iPhone 15 128GB", "Apple iPhone 15 256GB",
+                                    "Apple iPhone 14 128GB", "Apple iPhone SE 128GB"]
+                  "Samsung phone"→ ["Samsung Galaxy S24 256GB", "Samsung Galaxy A55 128GB",
+                                    "Samsung Galaxy A15 64GB", "Samsung Galaxy Z Flip5 256GB"]
+                  "soda"         → ["Coca-Cola 500ml", "Pepsi 500ml", "Coca-Cola 1L",
+                                    "Sprite 500ml"]
+              - Realistic East-African retail prices (TZS / KES / UGX) per the
+                pricing rules in PRODUCT_SUGGEST.
+              - When the input clearly identifies one product, return a single
+                candidate with ambiguous=false.
+              - Only use category/brand/unit IDs from the provided lists.
               - Output ONLY the JSON object — no commentary, no markdown.
             """;
 
@@ -103,6 +160,77 @@ public class ProductAiService {
                 fits, return null AND add a warning like "category 'XYZ' not found".
               - Trim whitespace, parse numbers, infer obvious column meanings.
               - Skip blank rows — do not emit them.
+              - Output ONLY the JSON object — no commentary, no markdown.
+            """;
+
+    private static final String SYS_DESCRIBE = """
+            PRODUCT_DESCRIBE
+            You help a retail POS operator add a new product from a free-text
+            natural-language description. Given the description and lists of
+            existing categories, brands and units, return a COMPLETE product
+            profile as JSON matching this schema EXACTLY:
+
+            {
+              "name":              string,           // cleaned product name
+              "description":       string|null,       // reformulated summary
+              "categoryId":        uuid|null,         // from provided categories
+              "subCategoryId":     uuid|null,         // from description context
+              "brandId":           uuid|null,
+              "unitId":            uuid|null,
+              "barcodeSymbology":  "CODE128"|"EAN13"|"EAN8"|"UPC"|"CODE39",
+              "code":              string|null,       // plausible SKU or null
+              "cost":              number|null,
+              "price":             number|null,
+              "wholesalePrice":    number|null,
+              "minPrice":          number|null,
+              "taxRate":           number|null,       // 0-100 (percent)
+              "taxMethod":         "INCLUSIVE"|"EXCLUSIVE"|null,
+              "stockAlert":        integer|null,
+              "type":              "STANDARD"|"SERVICE"|"COMBO"|null,
+              "warrantyMonths":    integer|null,
+              "guaranteeMonths":   integer|null,
+              "lengthCm":          number|null,
+              "widthCm":           number|null,
+              "heightCm":          number|null,
+              "weightGrams":       number|null,
+              "trackSerial":       boolean,
+              "trackImei":         boolean,
+              "featured":          boolean,
+              "hideOnline":        boolean,
+              "points":            integer|null,
+              "confidence":        number,            // 0.0-1.0 overall
+              "fieldConfidence":   {                  // per-field 0.0-1.0
+                "name": 0.95, "price": 0.70, ...
+              },
+              "rationale":         string             // 1-3 sentence reasoning
+            }
+
+            Rules:
+              - Parse prices/costs from the description verbatim when the user
+                states specific amounts. When the user is vague but the product
+                is well-known, supply realistic East-African retail prices in
+                TZS / KES / UGX (anchor: iPhone 17 256GB ≈ TSh 3,000,000;
+                500ml soda ≈ TSh 1,000; bag of 25kg rice ≈ TSh 80,000).
+                wholesalePrice ≈ 0.92 × price, minPrice ≈ 0.88 × price.
+              - NAME EXPANSION: turn vague inputs into full SKUs.
+                "iPhone 17"          → "Apple iPhone 17 256GB"
+                "Galaxy S24"         → "Samsung Galaxy S24 256GB"
+                "Tecno phone"        → pick the most common Tecno (e.g.
+                                       "Tecno Spark 20 128GB"); if entirely
+                                       ambiguous, set confidence ≤ 0.5 and
+                                       say so in rationale.
+              - Infer product type from description clues: "service", "consulting",
+                "repair" → SERVICE; "bundle", "pack", "combo", "set" → COMBO;
+                everything else → STANDARD.
+              - Extract dimensions/weight when described ("500ml bottle",
+                "2kg bag", "50cm wide").
+              - For warranty: infer from category norms (smartphones / laptops
+                12-24 months; small electronics 6-12; food/groceries null).
+              - Only use category/brand/unit IDs from the provided lists — NEVER
+                invent UUIDs. If none fits, return null for that field.
+              - Use the provided currency and default tax rate as a guide.
+              - Return null for fields you cannot reasonably infer.
+              - Provide a fieldConfidence map with a score for each non-null field.
               - Output ONLY the JSON object — no commentary, no markdown.
             """;
 
@@ -152,6 +280,187 @@ public class ProductAiService {
                 provider.name(),
                 provider.model(),
                 Instant.now()
+        );
+    }
+
+    public AiDtos.ProductDescribeResponse describe(AiDtos.ProductDescribeRequest req, UUID userId) {
+        String userPrompt = buildDescribePrompt(req);
+        AiProvider provider = aiRouter.active();
+        long t0 = System.currentTimeMillis();
+        AiProvider.Result result;
+        String error = null;
+        try {
+            result = provider.completeJson(SYS_DESCRIBE, userPrompt);
+        } catch (Exception e) {
+            error = e.getMessage();
+            log.warn("AI provider {} failed: {}", provider.name(), error);
+            result = new AiProvider.Result("{}", 0, 0);
+        }
+        int duration = (int) (System.currentTimeMillis() - t0);
+
+        invocations.save(AiInvocation.builder()
+                .kind("PRODUCT_DESCRIBE").provider(provider.name()).model(provider.model())
+                .promptTokens(result.promptTokens()).completionTokens(result.completionTokens())
+                .inputSummary("describe " + truncate(req.description(), 120))
+                .output(truncate(result.text(), 4000)).error(error).userId(userId)
+                .durationMs(duration).build());
+
+        return mapDescribeResponse(parseJson(result.text()), provider, req.description());
+    }
+
+    /** Build a ProductDescribeResponse from a parsed JSON object. Used by both
+     *  the text-based {@link #describe} flow and the vision-based fromImage flow. */
+    private AiDtos.ProductDescribeResponse mapDescribeResponse(JsonNode root, AiProvider provider, String fallbackName) {
+        var fieldConf = parseFieldConfidence(root);
+        return new AiDtos.ProductDescribeResponse(
+                str(root, "name", fallbackName),
+                str(root, "description", null),
+                uuid(root, "categoryId"),
+                uuid(root, "subCategoryId"),
+                uuid(root, "brandId"),
+                uuid(root, "unitId"),
+                str(root, "barcodeSymbology", "CODE128"),
+                str(root, "code", null),
+                bd(root, "cost"),
+                bd(root, "price"),
+                bd(root, "wholesalePrice"),
+                bd(root, "minPrice"),
+                bd(root, "taxRate"),
+                str(root, "taxMethod", null),
+                root.hasNonNull("stockAlert") ? root.get("stockAlert").asInt() : null,
+                str(root, "type", null),
+                root.hasNonNull("warrantyMonths") ? root.get("warrantyMonths").asInt() : null,
+                root.hasNonNull("guaranteeMonths") ? root.get("guaranteeMonths").asInt() : null,
+                bd(root, "lengthCm"),
+                bd(root, "widthCm"),
+                bd(root, "heightCm"),
+                bd(root, "weightGrams"),
+                bool(root, "trackSerial"),
+                bool(root, "trackImei"),
+                bool(root, "featured"),
+                bool(root, "hideOnline"),
+                root.hasNonNull("points") ? root.get("points").asInt() : null,
+                num(root, "confidence", 0.0),
+                fieldConf,
+                str(root, "rationale", null),
+                provider.name(),
+                provider.model(),
+                Instant.now()
+        );
+    }
+
+    /** Build a ProductSuggestion from a parsed JSON node — used by the
+     *  candidates flow where each array entry has the same shape as suggest(). */
+    private AiDtos.ProductSuggestion mapSuggestion(JsonNode root, AiProvider provider, String fallbackName) {
+        return new AiDtos.ProductSuggestion(
+                str(root, "name", fallbackName),
+                str(root, "description", null),
+                uuid(root, "categoryId"),
+                uuid(root, "brandId"),
+                uuid(root, "unitId"),
+                str(root, "barcodeSymbology", "CODE128"),
+                str(root, "code", null),
+                bd(root, "cost"),
+                bd(root, "price"),
+                bd(root, "wholesalePrice"),
+                bd(root, "minPrice"),
+                bd(root, "taxRate"),
+                num(root, "confidence", 0.0),
+                str(root, "rationale", null),
+                provider.name(),
+                provider.model(),
+                Instant.now()
+        );
+    }
+
+    /**
+     * Vision flow: take a base64 product photo (or several) and return a full
+     * product profile, same shape as {@link #describe}. Reuses SYS_DESCRIBE
+     * but feeds the model an image-content block via the provider's vision API.
+     */
+    public AiDtos.ProductDescribeResponse fromImage(AiDtos.ProductFromImageRequest req, UUID userId) {
+        if (req.imageDataUrls() == null || req.imageDataUrls().isEmpty() || req.imageDataUrls().size() > 3) {
+            throw new IllegalArgumentException("Upload 1 to 3 product images.");
+        }
+        for (String image : req.imageDataUrls()) {
+            if (image == null || image.isBlank() || image.length() > 1_200_000) {
+                throw new IllegalArgumentException("Each product image must be a non-empty data URL or HTTPS URL under 1.2 MB.");
+            }
+            boolean isDataImage = image.startsWith("data:image/");
+            boolean isHttpsImage = image.startsWith("https://");
+            if (!isDataImage && !isHttpsImage) {
+                throw new IllegalArgumentException("Product images must be data:image URLs or HTTPS URLs.");
+            }
+        }
+
+        StringBuilder userPrompt = new StringBuilder();
+        userPrompt.append("Identify this product from the image(s) and return the full profile.\n");
+        if (req.hint() != null && !req.hint().isBlank()) {
+            userPrompt.append("Operator hint: ").append(req.hint().trim()).append('\n');
+        }
+        if (req.context() != null) appendContext(userPrompt, req.context());
+
+        AiProvider provider = aiRouter.active();
+        long t0 = System.currentTimeMillis();
+        AiProvider.Result result;
+        String error = null;
+        try {
+            result = provider.completeJsonWithImages(SYS_DESCRIBE, userPrompt.toString(), req.imageDataUrls());
+        } catch (Exception e) {
+            error = e.getMessage();
+            log.warn("AI provider {} vision failed: {}", provider.name(), error);
+            result = new AiProvider.Result("{}", 0, 0);
+        }
+        int duration = (int) (System.currentTimeMillis() - t0);
+
+        invocations.save(AiInvocation.builder()
+                .kind("PRODUCT_FROM_IMAGE").provider(provider.name()).model(provider.model())
+                .promptTokens(result.promptTokens()).completionTokens(result.completionTokens())
+                .inputSummary("from-image (" + req.imageDataUrls().size() + " img)")
+                .output(truncate(result.text(), 4000)).error(error).userId(userId)
+                .durationMs(duration).build());
+
+        return mapDescribeResponse(parseJson(result.text()), provider, "(image input)");
+    }
+
+    /**
+     * Disambiguation flow: given a vague seed name, return up to 4 ranked
+     * candidate products. UI shows them as quick-pick chips. The {@code top}
+     * field stays populated for callers that ignore candidates.
+     */
+    public AiDtos.ProductCandidatesResponse suggestCandidates(AiDtos.ProductSuggestRequest req, UUID userId) {
+        String userPrompt = buildSuggestPrompt(req);
+        AiProvider provider = aiRouter.active();
+        long t0 = System.currentTimeMillis();
+        AiProvider.Result result;
+        String error = null;
+        try {
+            result = provider.completeJson(SYS_CANDIDATES, userPrompt);
+        } catch (Exception e) {
+            error = e.getMessage();
+            log.warn("AI provider {} candidates failed: {}", provider.name(), error);
+            result = new AiProvider.Result("{\"candidates\":[]}", 0, 0);
+        }
+        int duration = (int) (System.currentTimeMillis() - t0);
+
+        invocations.save(AiInvocation.builder()
+                .kind("PRODUCT_CANDIDATES").provider(provider.name()).model(provider.model())
+                .promptTokens(result.promptTokens()).completionTokens(result.completionTokens())
+                .inputSummary("candidates " + req.name())
+                .output(truncate(result.text(), 4000)).error(error).userId(userId)
+                .durationMs(duration).build());
+
+        JsonNode root = parseJson(result.text());
+        java.util.List<AiDtos.ProductSuggestion> list = new java.util.ArrayList<>();
+        JsonNode arr = root.get("candidates");
+        if (arr != null && arr.isArray()) {
+            for (JsonNode c : arr) list.add(mapSuggestion(c, provider, req.name()));
+        }
+        AiDtos.ProductSuggestion top = list.isEmpty() ? mapSuggestion(root, provider, req.name()) : list.get(0);
+        Boolean ambiguous = root.hasNonNull("ambiguous") ? root.get("ambiguous").asBoolean() : list.size() > 1;
+        return new AiDtos.ProductCandidatesResponse(
+                top, list, ambiguous, str(root, "clarification", null),
+                provider.name(), provider.model(), Instant.now()
         );
     }
 
@@ -226,6 +535,13 @@ public class ProductAiService {
         return sb.toString();
     }
 
+    private String buildDescribePrompt(AiDtos.ProductDescribeRequest req) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Product description:\n\"\"\"\n").append(req.description()).append("\n\"\"\"\n");
+        appendContext(sb, req.context());
+        return sb.toString();
+    }
+
     private String buildImportPrompt(AiDtos.ProductImportMapRequest req) {
         StringBuilder sb = new StringBuilder();
         if (req.headers() != null) {
@@ -290,6 +606,22 @@ public class ProductAiService {
     private static Double num(JsonNode n, String k, double fallback) {
         if (n == null || !n.hasNonNull(k)) return fallback;
         return n.get(k).asDouble(fallback);
+    }
+    private static Boolean bool(JsonNode n, String k) {
+        if (n == null || !n.hasNonNull(k)) return null;
+        return n.get(k).asBoolean();
+    }
+    private static java.util.Map<String, Double> parseFieldConfidence(JsonNode root) {
+        if (root == null || !root.hasNonNull("fieldConfidence")) return null;
+        JsonNode fc = root.get("fieldConfidence");
+        if (!fc.isObject()) return null;
+        var map = new java.util.HashMap<String, Double>();
+        var it = fc.fields();
+        while (it.hasNext()) {
+            var entry = it.next();
+            map.put(entry.getKey(), entry.getValue().asDouble());
+        }
+        return map;
     }
     private static String truncate(String s, int max) {
         if (s == null) return null;

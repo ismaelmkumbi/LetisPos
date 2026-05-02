@@ -22,5 +22,17 @@ public interface AiProvider {
         return complete(systemPrompt, userPrompt);
     }
 
+    /**
+     * JSON-mode completion enriched with one or more images. {@code imageDataUrls}
+     * are passed through verbatim — accepts either {@code data:image/...;base64,...}
+     * URIs or external https URLs the model can fetch. Providers that don't
+     * support vision should throw {@link UnsupportedOperationException}.
+     */
+    default Result completeJsonWithImages(String systemPrompt, String userPrompt,
+                                          java.util.List<String> imageDataUrls) {
+        throw new UnsupportedOperationException(
+                "Provider " + name() + " does not support vision input");
+    }
+
     record Result(String text, Integer promptTokens, Integer completionTokens) {}
 }

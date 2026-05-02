@@ -32,7 +32,7 @@ const CONTEXT_ACTIONS: Record<string, FloatingAction[]> = {
   ],
   '/smartpos/products': [
     { key: 'new-product', label: 'New Product', icon: <IconPackage size={20} />, path: '/smartpos/products', shortcut: 'P' },
-    { key: 'import', label: 'Import CSV', icon: <IconArrowUp size={20} />, path: '/smartpos/products/import' },
+    { key: 'import', label: 'Import CSV', icon: <IconArrowUp size={20} />, path: '/smartpos/products?import=ai' },
   ],
   '/smartpos/customers': [
     { key: 'new-customer', label: 'New Customer', icon: <IconUsers size={20} />, path: '/smartpos/customers', shortcut: 'C' },

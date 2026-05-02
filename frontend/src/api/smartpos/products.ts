@@ -52,7 +52,7 @@ export interface VariantInput {
 }
 
 export interface CreateProductBody {
-  code: string;
+  code?: string;
   name: string;
   description?: string;
   categoryId?: UUID;
@@ -95,6 +95,15 @@ export interface CreateProductBody {
 export async function createProduct(body: CreateProductBody): Promise<Product> {
   const { data } = await api.post<Product>('/api/v1/products', body);
   return data;
+}
+
+/**
+ * Mint a fresh SKU (e.g. PROD-000042) from the backend sequence. Each call
+ * consumes a value, so call this lazily on user click — not on form mount.
+ */
+export async function nextSku(): Promise<string> {
+  const { data } = await api.get<{ code: string }>('/api/v1/products/next-sku');
+  return data.code;
 }
 
 export async function updateProduct(id: UUID, body: Partial<CreateProductBody>): Promise<Product> {

@@ -9,7 +9,9 @@ import java.util.List;
 import java.util.UUID;
 
 public record CreateProductRequest(
-        @NotBlank @Size(max = 64) String code,
+        // Optional — when blank/null, the service mints a code from
+        // product_code_seq (e.g. PROD-000001).
+        @Size(max = 64) String code,
         @NotBlank @Size(max = 255) String name,
         String description,
         UUID categoryId,

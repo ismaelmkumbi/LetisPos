@@ -8,11 +8,11 @@ backend and a React + TypeScript frontend.
 
 ```
 LetisPos/
-├── smartpos/          # Backend — Spring Boot microservices + infra
-│   ├── backend/       # Maven multi-module project (gateway + 11 services)
-│   ├── infra/         # docker-compose: Postgres, Redis, Kafka, MinIO, Jaeger
-│   └── tools/         # demo seeders, ops scripts
-└── main/              # Frontend — React 18 + Vite + MUI v5 + TanStack Table
+├── frontend/          # Frontend — React 18 + Vite + MUI v5 + TanStack Table
+├── backend/           # Maven multi-module project (gateway + 11 services)
+└── ops/               # Infra & ops tooling
+    ├── infra/         # docker-compose: Postgres, Redis, Kafka, MinIO, Jaeger
+    └── tools/         # demo seeders, ops scripts
 ```
 
 ## Backend services
@@ -40,17 +40,17 @@ Services if you need horizontal scaling.
 
 ```bash
 # 1. Infra
-cd smartpos/infra && docker compose up -d
+cd ops/infra && docker compose up -d
 
 # 2. Backend (one shell per service, or use a Procfile/foreman)
-cd smartpos/backend
+cd backend
 mvn -DskipTests install
 DB_URL='jdbc:postgresql://localhost:5434/auth_db' \
   mvn -pl auth-service -am spring-boot:run
 # …repeat for each service with its own DB_URL
 
 # 3. Frontend
-cd main
+cd frontend
 npm install
 npm run dev   # http://localhost:5173
 ```

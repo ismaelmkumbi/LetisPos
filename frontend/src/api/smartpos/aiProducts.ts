@@ -54,6 +54,54 @@ export async function aiSuggestProduct(body: ProductSuggestBody): Promise<Produc
   return data;
 }
 
+// ── Describe (free-text → full product profile) ──────────────────────────
+
+export interface ProductDescribeBody {
+  description: string;
+  context?: WorkspaceContext;
+}
+
+export interface ProductDescribeResponse {
+  name: string;
+  description?: string | null;
+  categoryId?: UUID | null;
+  subCategoryId?: UUID | null;
+  brandId?: UUID | null;
+  unitId?: UUID | null;
+  barcodeSymbology?: BarcodeSymbology | null;
+  code?: string | null;
+  cost?: number | null;
+  price?: number | null;
+  wholesalePrice?: number | null;
+  minPrice?: number | null;
+  taxRate?: number | null;
+  taxMethod?: 'INCLUSIVE' | 'EXCLUSIVE' | null;
+  stockAlert?: number | null;
+  type?: 'STANDARD' | 'SERVICE' | 'COMBO' | null;
+  warrantyMonths?: number | null;
+  guaranteeMonths?: number | null;
+  lengthCm?: number | null;
+  widthCm?: number | null;
+  heightCm?: number | null;
+  weightGrams?: number | null;
+  trackSerial?: boolean | null;
+  trackImei?: boolean | null;
+  featured?: boolean | null;
+  hideOnline?: boolean | null;
+  points?: number | null;
+  confidence: number;
+  fieldConfidence?: Record<string, number> | null;
+  rationale?: string | null;
+  provider: string;
+  model: string;
+  generatedAt: string;
+}
+
+export async function aiDescribeProduct(body: ProductDescribeBody): Promise<ProductDescribeResponse> {
+  const { data } = await api.post<ProductDescribeResponse>('/api/v1/ai/products/describe', body);
+  return data;
+}
+
 // ── Smart import ──────────────────────────────────────────────────────────
 
 export interface ImportRow { row: number; values: Record<string, string> }
@@ -94,5 +142,36 @@ export interface ProductImportMapResponse {
 
 export async function aiImportMap(body: ProductImportMapBody): Promise<ProductImportMapResponse> {
   const { data } = await api.post<ProductImportMapResponse>('/api/v1/ai/products/import-map', body);
+  return data;
+}
+
+// ── Vision: photo → full product profile ──────────────────────────────────
+
+export interface ProductFromImageBody {
+  /** base64 data URLs (e.g. "data:image/jpeg;base64,/9j/...") or external https URLs. */
+  imageDataUrls: string[];
+  hint?: string;
+  context?: WorkspaceContext;
+}
+
+export async function aiProductFromImage(body: ProductFromImageBody): Promise<ProductDescribeResponse> {
+  const { data } = await api.post<ProductDescribeResponse>('/api/v1/ai/products/from-image', body);
+  return data;
+}
+
+// ── Disambiguation: vague seed → up to 4 candidate variants ───────────────
+
+export interface ProductCandidatesResponse {
+  top: ProductSuggestion;
+  candidates: ProductSuggestion[];
+  ambiguous: boolean;
+  clarification?: string | null;
+  provider: string;
+  model: string;
+  generatedAt: string;
+}
+
+export async function aiProductCandidates(body: ProductSuggestBody): Promise<ProductCandidatesResponse> {
+  const { data } = await api.post<ProductCandidatesResponse>('/api/v1/ai/products/candidates', body);
   return data;
 }

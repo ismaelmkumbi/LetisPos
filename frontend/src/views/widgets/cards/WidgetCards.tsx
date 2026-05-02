@@ -5,9 +5,6 @@ import { Grid } from '@mui/material';
 import Breadcrumb from 'src/layouts/full/shared/breadcrumb/Breadcrumb';
 import PageContainer from 'src/components/container/PageContainer';
 
-import PaymentGateways from '../../../components/dashboards/ecommerce/PaymentGateways';
-import RecentTransactions from '../../../components/dashboards/ecommerce/RecentTransactions';
-import TopCards from '../../..//components/dashboards/modern/TopCards';
 import UpcomingAcitivity from '../../../components/widgets/cards/UpcomingActivity';
 import ComplexCard from '../../../components/widgets/cards/ComplexCard';
 import MusicCard from '../../../components/widgets/cards/MusicCard';
@@ -37,9 +34,6 @@ const WidgetCards = () => {
       <Breadcrumb title="Cards" items={BCrumb} />
       {/* end breadcrumb */}
       <Grid container spacing={3}>
-        <Grid size={12}>
-          <TopCards />
-        </Grid>
         <Grid size={12}>
           <ComplexCard />
         </Grid>
@@ -79,23 +73,7 @@ const WidgetCards = () => {
             sm: 6,
             lg: 4
           }}>
-          <PaymentGateways />
-        </Grid>
-        <Grid
-          size={{
-            xs: 12,
-            sm: 6,
-            lg: 4
-          }}>
           <UpcomingAcitivity />
-        </Grid>
-        <Grid
-          size={{
-            xs: 12,
-            sm: 6,
-            lg: 4
-          }}>
-          <RecentTransactions />
         </Grid>
       </Grid>
     </PageContainer>)

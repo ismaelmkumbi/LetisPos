@@ -37,11 +37,42 @@ public class ProductAiController {
         return service.suggest(req, principal(jwt));
     }
 
+    @PostMapping("/describe")
+    @PreAuthorize("hasAuthority('product.create')")
+    public AiDtos.ProductDescribeResponse describe(@Valid @RequestBody AiDtos.ProductDescribeRequest req,
+                                                    @AuthenticationPrincipal Jwt jwt) {
+        return service.describe(req, principal(jwt));
+    }
+
     @PostMapping("/import-map")
     @PreAuthorize("hasAuthority('product.create')")
     public AiDtos.ProductImportMapResponse importMap(@Valid @RequestBody AiDtos.ProductImportMapRequest req,
                                                      @AuthenticationPrincipal Jwt jwt) {
         return service.importMap(req, principal(jwt));
+    }
+
+    /**
+     * Vision flow — POST one or more product photos (data: URLs or HTTPS) and
+     * receive a full product profile, same shape as {@code /describe}. The
+     * UI's camera/upload control sends base64 dataURLs; ~1 MB per image is
+     * a reasonable client-side cap.
+     */
+    @PostMapping("/from-image")
+    @PreAuthorize("hasAuthority('product.create')")
+    public AiDtos.ProductDescribeResponse fromImage(@Valid @RequestBody AiDtos.ProductFromImageRequest req,
+                                                    @AuthenticationPrincipal Jwt jwt) {
+        return service.fromImage(req, principal(jwt));
+    }
+
+    /**
+     * Disambiguation flow — same input shape as {@code /suggest} but returns
+     * up to 4 ranked candidate variants the UI can render as quick-pick chips.
+     */
+    @PostMapping("/candidates")
+    @PreAuthorize("hasAuthority('product.create')")
+    public AiDtos.ProductCandidatesResponse candidates(@Valid @RequestBody AiDtos.ProductSuggestRequest req,
+                                                       @AuthenticationPrincipal Jwt jwt) {
+        return service.suggestCandidates(req, principal(jwt));
     }
 
     private UUID principal(Jwt jwt) {

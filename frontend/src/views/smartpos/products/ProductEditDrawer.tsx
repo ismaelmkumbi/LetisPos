@@ -36,7 +36,7 @@ import {
   listUnits, createUnit,
   type CreateProductBody, type Product,
 } from 'src/api/smartpos/products';
-import { aiSuggestProduct, type ProductSuggestion } from 'src/api/smartpos/aiProducts';
+import { aiSuggestProduct, aiDescribeProduct, type ProductSuggestion, type ProductDescribeResponse } from 'src/api/smartpos/aiProducts';
 import type { BarcodeSymbology, Brand, Category, Unit } from 'src/api/smartpos/types';
 import EditDrawer from 'src/components/smartpos/EditDrawer';
 import ComboItemsEditor from './ComboItemsEditor';
@@ -77,7 +77,9 @@ const emptyVariant = (): VariantDraft => ({
   wholesalePrice: '', minPrice: '', imageUrl: '',
 });
 
-const emptyForm: CreateProductBody = {
+type ProductDrawerForm = Omit<CreateProductBody, 'code'> & { code: string };
+
+const emptyForm: ProductDrawerForm = {
   code: '', name: '', description: '',
   cost: 0, price: 0,
   taxMethod: 'EXCLUSIVE',
@@ -208,7 +210,7 @@ const emptyQuickAdd: QuickAddState = {
 // ─── Component ─────────────────────────────────────────────────────────────────
 
 export default function ProductEditDrawer({ open, initial, onClose, onSaved, onDuplicate, prefill }: ProductEditDrawerProps) {
-  const [form, setForm]                   = useState<CreateProductBody>(emptyForm);
+  const [form, setForm]                   = useState<ProductDrawerForm>(emptyForm);
   const [variantDrafts, setVariantDrafts] = useState<VariantDraft[]>([]);
   const [submitting, setSubmitting]       = useState(false);
   const [error, setError]                 = useState<string | null>(null);
@@ -229,6 +231,8 @@ export default function ProductEditDrawer({ open, initial, onClose, onSaved, onD
   /** Last suggestion the AI returned. The drawer shows a "Review suggestion"
    *  card with per-field accept buttons until the user clears it. */
   const [aiSuggestion, setAiSuggestion] = useState<ProductSuggestion | null>(null);
+  const [describeMode, setDescribeMode] = useState(false);
+  const [aiDescribeResult, setAiDescribeResult] = useState<ProductDescribeResponse | null>(null);
 
   // section open state — Basic info & Pricing open by default
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
@@ -353,7 +357,7 @@ export default function ProductEditDrawer({ open, initial, onClose, onSaved, onD
   );
 
   // ── patch helpers ────────────────────────────────────────────────────────────
-  const patch = <K extends keyof CreateProductBody>(k: K, v: CreateProductBody[K]) =>
+  const patch = <K extends keyof ProductDrawerForm>(k: K, v: ProductDrawerForm[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
 
   const patchVariant = (idx: number, field: keyof VariantDraft, value: string) =>
@@ -389,22 +393,55 @@ export default function ProductEditDrawer({ open, initial, onClose, onSaved, onD
     }
   };
 
+  const askAiDescribe = async () => {
+    const text = (describeMode ? form.description?.trim() : form.name.trim()) || form.name.trim();
+    if (!text || text.length < 3) {
+      setAiError('Provide more detail for the AI to work with');
+      return;
+    }
+    setAiSuggesting(true);
+    setAiError(null);
+    try {
+      const sug = await aiDescribeProduct({
+        description: text,
+        context: {
+          categories: categories.map((c) => ({ id: c.id, name: c.name })),
+          brands:     brands.map((b) => ({ id: b.id, name: b.name })),
+          units:      units.map((u) => ({ id: u.id, name: u.name })),
+          currency:   'TZS',
+          defaultTaxRate: 18,
+        },
+      });
+      setAiDescribeResult(sug);
+      setOpenSections((s) => ({ ...s, pricing: true, basic: true, inventory: true, warranty: true }));
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { message?: string } }; message?: string };
+      setAiError(e.response?.data?.message ?? e.message ?? 'AI request failed');
+    } finally {
+      setAiSuggesting(false);
+    }
+  };
+
   /** Fields that the AI can fill in. We list them explicitly so future schema
    *  changes don't accidentally overwrite the user's manual edits. */
   const SUGGESTABLE_FIELDS: (keyof CreateProductBody)[] = [
     'name', 'description', 'categoryId', 'brandId', 'unitId',
     'barcodeSymbology', 'code', 'cost', 'price', 'wholesalePrice',
-    'minPrice', 'taxRate',
+    'minPrice', 'taxRate', 'taxMethod', 'stockAlert', 'type',
+    'warrantyMonths', 'guaranteeMonths',
+    'lengthCm', 'widthCm', 'heightCm', 'weightGrams',
+    'trackSerial', 'trackImei', 'featured', 'hideOnline', 'points',
   ];
 
   /** Pull a single field from the suggestion onto the form, or all of them. */
   const acceptSuggestion = (only?: keyof CreateProductBody) => {
-    if (!aiSuggestion) return;
+    const src = (aiDescribeResult ?? aiSuggestion) as Record<string, unknown> | null;
+    if (!src) return;
     setForm((f) => {
       const next = { ...f };
       const fields = only ? [only] : SUGGESTABLE_FIELDS;
       for (const k of fields) {
-        const v = (aiSuggestion as unknown as Record<string, unknown>)[k as string];
+        const v = src[k as string];
         if (v !== null && v !== undefined && v !== '') {
           (next as unknown as Record<string, unknown>)[k as string] = v;
         }
@@ -413,14 +450,25 @@ export default function ProductEditDrawer({ open, initial, onClose, onSaved, onD
     });
     if (only) {
       // After applying the field, clear it from the suggestion card so it disappears.
-      setAiSuggestion((s) => {
-        if (!s) return s;
-        const cleared = { ...s } as ProductSuggestion & Record<string, unknown>;
-        cleared[only as string] = null;
-        return cleared as ProductSuggestion;
-      });
+      if (aiDescribeResult) {
+        setAiDescribeResult((s) => {
+          if (!s) return s;
+          if (!only) return null;
+          const cleared = { ...s } as ProductDescribeResponse & Record<string, unknown>;
+          cleared[only as string] = null;
+          return cleared as ProductDescribeResponse;
+        });
+      } else {
+        setAiSuggestion((s) => {
+          if (!s) return s;
+          const cleared = { ...s } as ProductSuggestion & Record<string, unknown>;
+          cleared[only as string] = null;
+          return cleared as ProductSuggestion;
+        });
+      }
     } else {
       setAiSuggestion(null);
+      setAiDescribeResult(null);
     }
   };
 
@@ -482,8 +530,8 @@ export default function ProductEditDrawer({ open, initial, onClose, onSaved, onD
 
   // ── submit ───────────────────────────────────────────────────────────────────
   const handleSubmit = async () => {
-    if (!form.code.trim() || !form.name.trim()) {
-      setError('Code and name are required.');
+    if (!form.name.trim()) {
+      setError('Name is required.');
       return;
     }
     setSubmitting(true);
@@ -503,6 +551,7 @@ export default function ProductEditDrawer({ open, initial, onClose, onSaved, onD
 
     const body: CreateProductBody = {
       ...form,
+      code: form.code.trim() || undefined,
       variants: variants.length > 0 ? variants : undefined,
     };
 
@@ -595,18 +644,21 @@ export default function ProductEditDrawer({ open, initial, onClose, onSaved, onD
                 size="small" fullWidth
                 placeholder="e.g. Classic White T-Shirt"
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); askAi(); }
+                  if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+                    e.preventDefault();
+                    describeMode ? askAiDescribe() : askAi();
+                  }
                 }}
-                helperText={aiError ?? 'Tip: type the name then ⌘/Ctrl + Enter — AI fills the rest'}
+                helperText={aiError ?? (describeMode ? 'Describe the product freely — AI extracts all attributes' : 'Tip: type the name then ⌘/Ctrl + Enter — AI fills the rest')}
                 FormHelperTextProps={{ sx: { color: aiError ? brand.error.main : brand.neutral[400] } }}
                 InputProps={{
                   endAdornment: (
                     <InputAdornment position="end">
-                      <Tooltip title={aiSuggesting ? 'Asking AI…' : 'Suggest with AI (⌘+Enter)'}>
+                      <Tooltip title={aiSuggesting ? 'Asking AI…' : (describeMode ? 'Generate full profile (⌘+Enter)' : 'Suggest with AI (⌘+Enter)')}>
                         <span>
                           <IconButton
                             size="small"
-                            onClick={askAi}
+                            onClick={describeMode ? askAiDescribe : askAi}
                             disabled={aiSuggesting || !form.name.trim()}
                             sx={{
                               bgcolor: aiSuggesting ? brand.neutral[100] : brand.primary[50],
@@ -626,9 +678,28 @@ export default function ProductEditDrawer({ open, initial, onClose, onSaved, onD
                   ),
                 }}
               />
+              <Typography
+                variant="caption"
+                onClick={() => { setDescribeMode(!describeMode); setAiDescribeResult(null); }}
+                sx={{
+                  color: describeMode ? brand.primary[600] : brand.neutral[500],
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                  fontSize: '0.72rem',
+                  mt: 0.25,
+                  display: 'block',
+                  '&:hover': { color: brand.primary[700] },
+                }}
+              >
+                {describeMode ? 'Simple name mode (quick fill)' : 'Describe product in detail →'}
+              </Typography>
 
               {/* AI suggestion card */}
-              {aiSuggestion && (
+              {(aiSuggestion || aiDescribeResult) && (() => {
+                const src = (aiDescribeResult ?? aiSuggestion)!;
+                const srcRec = src as unknown as Record<string, unknown>;
+                const isDescribe = !!aiDescribeResult;
+                return (
                 <Box
                   sx={{
                     p: 1.5,
@@ -642,41 +713,45 @@ export default function ProductEditDrawer({ open, initial, onClose, onSaved, onD
                       <IconSparkles size={16} />
                     </Box>
                     <Typography variant="subtitle2" sx={{ fontWeight: 700, color: brand.primary[800], flex: 1 }}>
-                      AI suggestion
+                      {isDescribe ? 'AI full profile' : 'AI suggestion'}
                     </Typography>
                     <Chip
-                      label={`${Math.round((aiSuggestion.confidence ?? 0) * 100)}% confident`}
+                      label={`${Math.round((src.confidence ?? 0) * 100)}% confident`}
                       size="small"
                       sx={{
                         height: 20, fontSize: '0.6875rem', fontWeight: 700,
                         bgcolor: '#fff',
-                        color: (aiSuggestion.confidence ?? 0) >= 0.7 ? brand.success.main
-                              : (aiSuggestion.confidence ?? 0) >= 0.4 ? brand.warning.main
+                        color: (src.confidence ?? 0) >= 0.7 ? brand.success.main
+                              : (src.confidence ?? 0) >= 0.4 ? brand.warning.main
                               : brand.neutral[500],
                         border: `1px solid ${brand.neutral[200]}`,
                       }}
                     />
                     <Typography variant="caption" sx={{ color: brand.neutral[500] }}>
-                      via {aiSuggestion.provider}
+                      via {src.provider}
                     </Typography>
-                    <IconButton size="small" onClick={() => setAiSuggestion(null)} sx={{ color: brand.neutral[400] }}>
+                    <IconButton
+                      size="small"
+                      onClick={() => { setAiSuggestion(null); setAiDescribeResult(null); }}
+                      sx={{ color: brand.neutral[400] }}
+                    >
                       <IconX size={14} />
                     </IconButton>
                   </Stack>
 
-                  {aiSuggestion.rationale && (
+                  {src.rationale && (
                     <Typography variant="caption" sx={{
                       display: 'block', mb: 1.25, color: brand.neutral[600],
                       fontStyle: 'italic', lineHeight: 1.4,
                     }}>
-                      "{aiSuggestion.rationale}"
+                      "{src.rationale}"
                     </Typography>
                   )}
 
                   {/* Per-field accept chips */}
                   <Stack direction="row" spacing={0.625} flexWrap="wrap" useFlexGap sx={{ mb: 1 }}>
                     {SUGGESTABLE_FIELDS.map((k) => {
-                      const v = (aiSuggestion as unknown as Record<string, unknown>)[k as string];
+                      const v = srcRec[k as string];
                       if (v === null || v === undefined || v === '') return null;
                       let display = String(v);
                       if (k === 'categoryId') display = `Category: ${categories.find((c) => c.id === v)?.name ?? '—'}`;
@@ -725,7 +800,7 @@ export default function ProductEditDrawer({ open, initial, onClose, onSaved, onD
                     <Button
                       size="small"
                       variant="text"
-                      onClick={() => setAiSuggestion(null)}
+                      onClick={() => { setAiSuggestion(null); setAiDescribeResult(null); }}
                       sx={{
                         color: brand.neutral[600], textTransform: 'none',
                         fontWeight: 600, fontSize: '0.75rem',
@@ -735,7 +810,8 @@ export default function ProductEditDrawer({ open, initial, onClose, onSaved, onD
                     </Button>
                   </Stack>
                 </Box>
-              )}
+                );
+              })()}
 
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
                 <TextField

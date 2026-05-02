@@ -1,6 +1,6 @@
-# ── Old PHP systems — superseded by smartpos/ + main/ ──────────────────────
-smart_pos/
+# ── Legacy PHP systems — not needed, do not push ──────────────────────────
 pos_master/
+smart_pos/
 
 # ── OS / IDE ───────────────────────────────────────────────────────────────
 .DS_Store
@@ -20,26 +20,26 @@ Thumbs.db
 secrets.*
 credentials.*
 
-# ── Frontend (main/) ───────────────────────────────────────────────────────
-main/node_modules/
-main/dist/
-main/build/
-main/.vite/
-main/coverage/
-main/*.log
-main/.env
-main/.env.local
-main/.env.*.local
+# ── Frontend (frontend/) ──────────────────────────────────────────────────
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+frontend/.vite/
+frontend/coverage/
+frontend/*.log
+frontend/.env
+frontend/.env.local
+frontend/.env.*.local
 
-# ── Backend (smartpos/) ────────────────────────────────────────────────────
-smartpos/backend/**/target/
-smartpos/backend/**/*.jar
-smartpos/backend/**/*.war
-smartpos/backend/**/.mvn/wrapper/maven-wrapper.jar
-smartpos/backend/.env
-smartpos/backend/.env.local
-smartpos/logs/
-smartpos/**/*.log
+# ── Backend (backend/) ─────────────────────────────────────────────────────
+backend/**/target/
+backend/**/*.jar
+backend/**/*.war
+backend/**/.mvn/wrapper/maven-wrapper.jar
+backend/.env
+backend/.env.local
+ops/logs/
+ops/**/*.log
 
 # ── Maven / Gradle generic ─────────────────────────────────────────────────
 target/
@@ -54,8 +54,8 @@ yarn-error.log*
 pnpm-debug.log*
 
 # ── Docker volumes / generated data ────────────────────────────────────────
-smartpos/infra/postgres/data/
-smartpos/infra/**/data/
+ops/infra/postgres/data/
+ops/infra/**/data/
 
 # ── Misc generated ─────────────────────────────────────────────────────────
 *.log

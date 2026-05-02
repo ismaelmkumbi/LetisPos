@@ -57,6 +57,20 @@ public class ProductController {
     }
 
     /**
+     * Mint and return the next available SKU (e.g. {@code PROD-000042}). Each
+     * call consumes a value from {@code product_code_seq}, so the UI's
+     * "Generate" button receives a guaranteed-unique code it can show in the
+     * form. Cancelling the form simply leaves a gap — uniqueness is preserved.
+     */
+    @GetMapping("/next-sku")
+    @PreAuthorize("hasAuthority('product.create')")
+    public NextSkuResponse nextSku() {
+        return new NextSkuResponse(productService.nextSku());
+    }
+
+    public record NextSkuResponse(String code) {}
+
+    /**
      * Bulk create — typically called by the AI import wizard.
      * Returns 200 with per-row created/failed details (partial success allowed).
      */

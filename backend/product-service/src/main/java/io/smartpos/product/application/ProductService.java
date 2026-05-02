@@ -79,14 +79,27 @@ public class ProductService {
 
     public record BarcodeLookup(UUID productId, UUID variantId) {}
 
+    /**
+     * Mint a fresh SKU like {@code PROD-000042}. Consumes a sequence value, so
+     * each call returns a strictly higher number; gaps are expected when
+     * users preview-and-cancel. Used both by the create flow (when the caller
+     * omits {@code code}) and by the {@code GET /next-sku} endpoint.
+     */
+    @Transactional
+    public String nextSku() {
+        long n = productRepo.nextCodeSequence();
+        return String.format("PROD-%06d", n);
+    }
+
     @Transactional
     public ProductDto create(CreateProductRequest req) {
-        if (productRepo.existsByCodeIgnoreCase(req.code())) {
+        String code = (req.code() == null || req.code().isBlank()) ? nextSku() : req.code();
+        if (productRepo.existsByCodeIgnoreCase(code)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "SKU already exists");
         }
 
         Product p = Product.builder()
-                .code(req.code())
+                .code(code)
                 .name(req.name())
                 .description(req.description())
                 .categoryId(req.categoryId())
