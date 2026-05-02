@@ -20,11 +20,11 @@ import {
   Stack,
   Typography,
 } from '@mui/material';
-import { listProducts, getProductByBarcode, type Product } from 'src/api/smartpos/products';
+import { listProducts, getProduct, getProductByBarcode, type Product } from 'src/api/smartpos/products';
 import { listCustomers } from 'src/api/smartpos/customers';
 import type { Customer } from 'src/api/smartpos/types';
-import { listWarehouses, type Warehouse } from 'src/api/smartpos/inventory';
-import { posCheckout, type CreateSaleBody, type Sale } from 'src/api/smartpos/sales';
+import { listWarehouses, lowStockAlerts, type Warehouse } from 'src/api/smartpos/inventory';
+import { posCheckout, getTopProducts, type CreateSaleBody, type Sale } from 'src/api/smartpos/sales';
 import {
   listTerminals,
   publishDisplayEvent,
@@ -64,9 +64,15 @@ export default function PosTerminalPage() {
 
   const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'CARD' | 'SPLIT'>('CASH');
   const [tendered, setTendered] = useState<string>('');
+  const [discount, setDiscount] = useState<number>(0);
+  const [discountType, setDiscountType] = useState<'FIXED' | 'PERCENT'>('FIXED');
   const [submitting, setSubmitting] = useState(false);
   const [banner, setBanner] = useState<{ kind: 'success' | 'error'; text: string } | null>(null);
   const [lastSale, setLastSale] = useState<Sale | null>(null);
+
+  const [categoryId, setCategoryId] = useState<string>('');
+  const [brandId, setBrandId] = useState<string>('');
+  const [activeTab, setActiveTab] = useState<string>('all');
 
   const [terminals, setTerminals] = useState<PosTerminal[]>([]);
   const [linkedTerminalId, setLinkedTerminalId] = useState<string>(
@@ -119,17 +125,52 @@ export default function PosTerminalPage() {
   }, [online, linkedTerminalId, flush]);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
+    const timer = setTimeout(async () => {
       if (search.length === 0 || search.length >= 2) {
         setProductsLoading(true);
-        listProducts({ search, size: 48 })
-          .then((p) => setProducts(p.content))
-          .catch(() => {})
-          .finally(() => setProductsLoading(false));
+        try {
+          if (activeTab === 'low' && warehouseId) {
+            const alerts = await lowStockAlerts(warehouseId, 0, 48);
+            const ids = alerts.content.map((a) => a.productId);
+            if (ids.length > 0) {
+              const prods = await Promise.all(ids.map((id) => getProduct(id).catch(() => null)));
+              setProducts(prods.filter((p): p is Product => p !== null));
+            } else {
+              setProducts([]);
+            }
+          } else if (activeTab === 'bestsellers') {
+            const top = await getTopProducts({ limit: 48 });
+            const ids = top.map((t) => t.productId);
+            if (ids.length > 0) {
+              const prods = await Promise.all(ids.map((id) => getProduct(id).catch(() => null)));
+              setProducts(prods.filter((p): p is Product => p !== null));
+            } else {
+              setProducts([]);
+            }
+          } else {
+            const baseParams: Record<string, unknown> = {
+              search: search || undefined,
+              categoryId: activeTab === 'all' ? (categoryId || undefined) : undefined,
+              brandId: activeTab === 'all' ? (brandId || undefined) : undefined,
+              size: 48,
+            };
+            if (activeTab === 'featured') {
+              (baseParams as any).featured = true;
+            } else if (activeTab === 'recent') {
+              (baseParams as any).sort = 'createdAt,desc';
+            }
+            const p = await listProducts(baseParams as any);
+            setProducts(p.content);
+          }
+        } catch {
+          // silent
+        } finally {
+          setProductsLoading(false);
+        }
       }
     }, 250);
     return () => clearTimeout(timer);
-  }, [search]);
+  }, [search, categoryId, brandId, activeTab, warehouseId]);
 
   // ── Cart ops ─────────────────────────────────────────────────────────────
 
@@ -242,11 +283,12 @@ export default function PosTerminalPage() {
   const totals = useMemo(() => {
     const subtotal = lines.reduce((s, l) => s + l.unitPrice * l.qty, 0);
     const tax = lines.reduce((s, l) => s + l.unitPrice * l.qty * (l.taxRate / 100), 0);
-    const grand = subtotal + tax;
+    const discountAmount = discountType === 'PERCENT' ? subtotal * (discount / 100) : discount;
+    const grand = subtotal + tax - discountAmount;
     const tenderedNum = Number(tendered) || 0;
     const change = Math.max(0, tenderedNum - grand);
-    return { subtotal, tax, grand, tenderedNum, change };
-  }, [lines, tendered]);
+    return { subtotal, tax, discount: discountAmount, grand, tenderedNum, change };
+  }, [lines, tendered, discount, discountType]);
 
   // Mirror cart to customer display (debounced)
   useEffect(() => {
@@ -283,6 +325,7 @@ export default function PosTerminalPage() {
         warehouseId,
         customerId: customerId || undefined,
         isPos: true,
+        discount: discount > 0 ? discount : undefined,
         lines: lines.map((l) => ({
           productId: l.productId,
           variantId: l.variantId,
@@ -373,8 +416,20 @@ export default function PosTerminalPage() {
 
     tendered,
     onTenderedChange: setTendered,
+    discount,
+    discountType,
+    onDiscountChange: (v: number) => setDiscount(v),
+    onDiscountTypeChange: (t: 'FIXED' | 'PERCENT') => setDiscountType(t),
 
     totals,
+
+    categoryId,
+    brandId,
+    onCategoryChange: setCategoryId,
+    onBrandChange: setBrandId,
+
+    activeTab,
+    onTabChange: setActiveTab,
 
     banner,
     onBannerClose: () => setBanner(null),

@@ -224,6 +224,22 @@ export async function getSaleReturn(returnId: UUID): Promise<SaleReturn> {
   return data;
 }
 
+// ---------- Stats ----------
+
+export interface TopProduct {
+  productId: UUID;
+  productName: string;
+  totalQty: number;
+  totalAmount: number;
+}
+
+export async function getTopProducts(params: {
+  dateFrom?: string; dateTo?: string; warehouseId?: UUID; limit?: number;
+} = {}): Promise<TopProduct[]> {
+  const { data } = await api.get<TopProduct[]>('/api/v1/sales/top-products', { params });
+  return data;
+}
+
 // ---------- POS fast path ----------
 
 /** Create + reserve + commit in one atomic call (counter purchase). */

@@ -91,6 +91,26 @@ export async function lowStockAlerts(
   return data;
 }
 
+/** Batch stock lookup — POS product grid real-time stock counts. */
+export async function batchStockLevels(
+  warehouseId: UUID,
+  productIds: UUID[],
+): Promise<Record<string, StockLevel>> {
+  if (productIds.length === 0) return {};
+  const { data } = await api.get<Record<string, StockLevel>>('/api/v1/stock/batch', {
+    params: { warehouseId, productIds },
+    paramsSerializer: {
+      serialize: (params) => {
+        const sp = new URLSearchParams();
+        sp.append('warehouseId', params.warehouseId);
+        (params.productIds as string[]).forEach((id: string) => sp.append('productIds', id));
+        return sp.toString();
+      },
+    },
+  });
+  return data;
+}
+
 // ---------- Stock reservations (POS saga) ----------
 
 export interface ReservationLine {

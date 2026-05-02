@@ -48,8 +48,8 @@ public class ProductService {
 
     @Transactional(readOnly = true)
     public Page<ProductDto> search(String search, UUID categoryId, UUID brandId,
-                                   Boolean status, Pageable pageable) {
-        return productRepo.search(search, categoryId, brandId, status, pageable).map(ProductDto::from);
+                                   Boolean status, Boolean featured, Pageable pageable) {
+        return productRepo.search(search, categoryId, brandId, status, featured, pageable).map(ProductDto::from);
     }
 
     /**

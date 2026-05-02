@@ -10,9 +10,10 @@ export interface ProductSearchParams {
   categoryId?: UUID;
   brandId?: UUID;
   status?: boolean;
+  featured?: boolean;
   page?: number;
   size?: number;
-  sort?: string;        // "name,asc"
+  sort?: string;        // "name,asc" or "createdAt,desc"
 }
 
 export async function listProducts(params: ProductSearchParams = {}): Promise<Page<Product>> {

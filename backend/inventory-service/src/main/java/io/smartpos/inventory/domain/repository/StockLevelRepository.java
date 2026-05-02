@@ -62,4 +62,14 @@ public interface StockLevelRepository extends JpaRepository<StockLevel, UUID> {
              AND s.stockAlertThreshold > 0
            """)
     Page<StockLevel> findLowStock(@Param("warehouseId") UUID warehouseId, Pageable pageable);
+
+    /** Batch lookup — stock levels for many products in one warehouse. */
+    @Query("""
+           SELECT s FROM StockLevel s
+           WHERE s.warehouseId = :warehouseId
+             AND s.productId IN (:productIds)
+             AND s.variantId IS NULL
+           """)
+    List<StockLevel> findByWarehouseAndProducts(@Param("warehouseId") UUID warehouseId,
+                                                @Param("productIds") List<UUID> productIds);
 }

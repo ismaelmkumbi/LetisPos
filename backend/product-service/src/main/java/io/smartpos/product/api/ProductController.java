@@ -34,8 +34,9 @@ public class ProductController {
                                    @RequestParam(required = false) UUID categoryId,
                                    @RequestParam(required = false) UUID brandId,
                                    @RequestParam(required = false) Boolean status,
+                                   @RequestParam(required = false) Boolean featured,
                                    Pageable pageable) {
-        return productService.search(search, categoryId, brandId, status, pageable);
+        return productService.search(search, categoryId, brandId, status, featured, pageable);
     }
 
     @GetMapping("/{id}")

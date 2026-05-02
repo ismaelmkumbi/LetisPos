@@ -51,6 +51,8 @@ import {
   Skeleton,
   Stack,
   TextField,
+  ToggleButton,
+  ToggleButtonGroup,
   Tooltip,
   Typography,
 } from '@mui/material';
@@ -96,13 +98,15 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import type { Product } from 'src/api/smartpos/products';
 import type { Customer } from 'src/api/smartpos/types';
-import type { Warehouse } from 'src/api/smartpos/inventory';
+import type { Warehouse, StockLevel } from 'src/api/smartpos/inventory';
 import type { PosTerminal } from 'src/api/smartpos/posTerminals';
 import type { Sale } from 'src/api/smartpos/sales';
 import { listCategories, listBrands } from 'src/api/smartpos/products';
+import { batchStockLevels } from 'src/api/smartpos/inventory';
 import type { Brand as BrandRef, Category } from 'src/api/smartpos/types';
 import type { Line } from './types';
 import BrandLogo from 'src/components/smartpos/BrandLogo';
+import { useAuth } from 'src/context/smartpos/AuthContext';
 import { brand } from 'src/theme/smartpos/brand';
 import { formatMoney } from 'src/utils/smartpos/currency';
 import {
@@ -199,7 +203,12 @@ interface ModernLayoutProps {
   lines: Line[]; onIncQty: (i: number) => void; onDecQty: (i: number) => void; onRemoveLine: (i: number) => void; onClearCart: () => void;
   paymentMethod: 'CASH' | 'CARD' | 'SPLIT'; onPaymentMethodChange: (m: 'CASH' | 'CARD' | 'SPLIT') => void;
   tendered: string; onTenderedChange: (v: string) => void;
-  totals: { subtotal: number; tax: number; grand: number; tenderedNum: number; change: number };
+  discount: number; discountType: 'FIXED' | 'PERCENT';
+  onDiscountChange: (v: number) => void; onDiscountTypeChange: (t: 'FIXED' | 'PERCENT') => void;
+  totals: { subtotal: number; tax: number; discount: number; grand: number; tenderedNum: number; change: number };
+  categoryId: string; brandId: string;
+  onCategoryChange: (id: string) => void; onBrandChange: (id: string) => void;
+  activeTab: string; onTabChange: (tab: string) => void;
   banner: { kind: 'success' | 'error'; text: string } | null; onBannerClose: () => void;
   lastSale: Sale | null; onReprint: (sale: Sale) => void;
   onCheckout: () => void; submitting: boolean; canCheckout: boolean;
@@ -215,14 +224,14 @@ interface ModernLayoutProps {
 
 export default function ModernLayout(props: ModernLayoutProps) {
   const { t } = useTranslation('smartpos');
+  const { user } = useAuth();
 
-  // Lazy-load categories & brands (only the modern layout uses them as filters).
   const [categories, setCategories] = useState<Category[]>([]);
   const [brands, setBrands] = useState<BrandRef[]>([]);
-  const [categoryId, setCategoryId] = useState<string>('');
-  const [brandId, setBrandId] = useState<string>('');
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [paymentChoice, setPaymentChoice] = useState<PaymentChoice>('CASH');
+  const [stockMap, setStockMap] = useState<Record<string, StockLevel>>({});
+  const [stockLoading, setStockLoading] = useState(false);
 
   useEffect(() => {
     Promise.all([listCategories(), listBrands()])
@@ -230,26 +239,40 @@ export default function ModernLayout(props: ModernLayoutProps) {
       .catch(() => {});
   }, []);
 
-  // Client-side filtering on top of server-search.
-  const filteredProducts = useMemo(() => {
-    return props.products.filter((p) => {
-      if (categoryId && p.categoryId !== categoryId) return false;
-      if (brandId && p.brandId !== brandId) return false;
-      return true;
-    });
-  }, [props.products, categoryId, brandId]);
+  // Fetch stock levels for visible products
+  useEffect(() => {
+    if (!props.warehouseId || props.products.length === 0) return;
+    const ids = props.products.map((p) => p.id);
+    setStockLoading(true);
+    batchStockLevels(props.warehouseId, ids)
+      .then((m) => setStockMap(m))
+      .catch(() => {})
+      .finally(() => setStockLoading(false));
+  }, [props.warehouseId, props.products]);
 
   const computed = useMemo(() => {
     const subtotal = props.totals.subtotal;
     const totalTax = props.totals.tax;
-    const disc = 0;
+    const disc = props.totals.discount || 0;
     const ship = 0;
     const grand = Math.max(0, subtotal + totalTax - disc + ship);
     return { subtotal, totalTax, disc, ship, grand };
-  }, [props.totals.subtotal, props.totals.tax]);
+  }, [props.totals.subtotal, props.totals.tax, props.totals.discount]);
 
   const itemCount = props.lines.reduce((s, l) => s + l.qty, 0);
   const paymentChange = Math.max(0, (Number(props.tendered) || 0) - computed.grand);
+
+  // --- Product tab handler — delegates to parent for server-side filtering ---
+  const handleTabChange = (tab: string) => {
+    if (tab === 'all') {
+      props.onCategoryChange('');
+      props.onBrandChange('');
+    } else if (tab === 'featured' || tab === 'recent') {
+      props.onCategoryChange('');
+      props.onBrandChange('');
+    }
+    props.onTabChange(tab);
+  };
 
   const handlePaymentChoice = (choice: PaymentChoice) => {
     setPaymentChoice(choice);
@@ -289,11 +312,11 @@ export default function ModernLayout(props: ModernLayoutProps) {
         warehouseId={props.warehouseId}
         onWarehouseChange={props.onWarehouseChange}
         categories={categories}
-        categoryId={categoryId}
-        onCategoryChange={setCategoryId}
+        categoryId={props.categoryId}
+        onCategoryChange={props.onCategoryChange}
         brands={brands}
-        brandId={brandId}
-        onBrandChange={setBrandId}
+        brandId={props.brandId}
+        onBrandChange={props.onBrandChange}
         customers={props.customers}
         customerId={props.customerId}
         onCustomerChange={props.onCustomerChange}
@@ -301,6 +324,7 @@ export default function ModernLayout(props: ModernLayoutProps) {
         linkedTerminalId={props.linkedTerminalId}
         onLinkedTerminalChange={props.onLinkedTerminalChange}
         online={props.online}
+        user={user}
         onHoldCart={props.onHoldCart}
         onScanFocus={() => props.barcodeRef.current?.focus()}
       />
@@ -354,6 +378,7 @@ export default function ModernLayout(props: ModernLayoutProps) {
           canComplete={props.canCheckout && (paymentChoice !== 'CASH' || (Number(props.tendered) || 0) >= computed.grand)}
           onBack={() => setPaymentOpen(false)}
           onComplete={completePayment}
+          taxRate={props.lines.length > 0 ? Math.round(props.lines[0].taxRate) : 0}
         />
       ) : (
         <Box
@@ -390,12 +415,14 @@ export default function ModernLayout(props: ModernLayoutProps) {
               barcodeRef={props.barcodeRef}
             />
 
-            <ProductTabs />
+            <ProductTabs activeTab={props.activeTab} onTabChange={handleTabChange} />
 
             <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto', pr: 0.5, ...softScrollSx }}>
               <ProductGrid
-                products={filteredProducts}
+                products={props.products}
                 loading={props.productsLoading}
+                stockMap={stockMap}
+                stockLoading={stockLoading}
                 onAdd={props.onAddProduct}
               />
             </Box>
@@ -417,6 +444,11 @@ export default function ModernLayout(props: ModernLayoutProps) {
               discountVal={computed.disc}
               shippingVal={computed.ship}
               grand={computed.grand}
+              taxRate={computed.subtotal > 0 ? Math.round(computed.totalTax / computed.subtotal * 100) : 0}
+              discount={props.discount}
+              discountType={props.discountType}
+              onDiscountChange={props.onDiscountChange}
+              onDiscountTypeChange={props.onDiscountTypeChange}
             />
           </Box>
         </Box>
@@ -454,6 +486,7 @@ interface KioskTopBarProps {
   customers: Customer[]; customerId: string | null; onCustomerChange: (id: string | null) => void;
   terminals: PosTerminal[]; linkedTerminalId: string; onLinkedTerminalChange: (id: string) => void;
   online: boolean;
+  user?: { firstName?: string; lastName?: string; email?: string; roles?: string[] } | null;
   onHoldCart?: () => void;
   onScanFocus: () => void;
 }
@@ -690,11 +723,15 @@ function KioskTopBar(p: KioskTopBarProps) {
             fontSize: '1rem',
         }}
       >
-          J
+          {p.user?.firstName?.charAt(0)?.toUpperCase() || p.user?.email?.charAt(0)?.toUpperCase() || 'U'}
       </Avatar>
         <Box sx={{ display: { xs: 'none', xl: 'block' }, minWidth: 106 }}>
-          <Typography sx={{ fontWeight: 800, color: brand.neutral[900], lineHeight: 1.1 }}>John Cashier</Typography>
-          <Typography sx={{ fontSize: '0.78rem', color: brand.neutral[500], fontWeight: 600 }}>Cashier</Typography>
+          <Typography sx={{ fontWeight: 800, color: brand.neutral[900], lineHeight: 1.1 }}>
+            {p.user ? [p.user.firstName, p.user.lastName].filter(Boolean).join(' ') || p.user.email : 'User'}
+          </Typography>
+          <Typography sx={{ fontSize: '0.78rem', color: brand.neutral[500], fontWeight: 600 }}>
+            {p.user?.roles?.[0] || 'Staff'}
+          </Typography>
         </Box>
         <IconChevronDown size={18} color={brand.neutral[600]} />
       </Stack>
@@ -741,11 +778,17 @@ interface CheckoutPanelProps {
   onPatchLine?: (index: number, patch: Partial<Line>) => void;
   onNotify?: (message: string) => void;
   subtotal: number; tax: number; discountVal: number; shippingVal: number; grand: number;
+  taxRate: number;
+  discount: number; discountType: 'FIXED' | 'PERCENT';
+  onDiscountChange: (v: number) => void; onDiscountTypeChange: (t: 'FIXED' | 'PERCENT') => void;
 }
 
 function CheckoutPanel(p: CheckoutPanelProps) {
   const [editIdx, setEditIdx] = useState<number | null>(null);
   const [editPrice, setEditPrice] = useState('');
+  const [discountOpen, setDiscountOpen] = useState(false);
+  const [discountInput, setDiscountInput] = useState(String(p.discount || ''));
+  const [discountTypeInput, setDiscountTypeInput] = useState<'FIXED' | 'PERCENT'>(p.discountType || 'FIXED');
 
   const closeEdit = () => {
     setEditIdx(null);
@@ -905,11 +948,11 @@ function CheckoutPanel(p: CheckoutPanelProps) {
 
       <Box sx={{ px: 2.4, pt: 1.5, pb: 2, flexShrink: 0 }}>
         <Button
-          startIcon={<IconPlus size={18} />}
-          onClick={() => p.onNotify?.('Discount tools are ready to connect to your pricing rules.')}
+          startIcon={p.discountVal > 0 ? <IconCheck size={18} /> : <IconPlus size={18} />}
+          onClick={() => { setDiscountInput(String(p.discount || '')); setDiscountOpen(true); }}
           sx={{
             justifyContent: 'flex-start',
-            color: brand.primary[700],
+            color: p.discountVal > 0 ? brand.primary[700] : brand.neutral[600],
             fontWeight: 800,
             textTransform: 'none',
             px: 0,
@@ -917,13 +960,64 @@ function CheckoutPanel(p: CheckoutPanelProps) {
             '&:hover': { bgcolor: 'transparent', color: brand.primary[800] },
           }}
         >
-          Add Discount
+          {p.discountVal > 0 ? `Discount - ${fmt(p.discountVal)}` : 'Add Discount'}
         </Button>
+
+        <Dialog open={discountOpen} onClose={() => setDiscountOpen(false)} maxWidth="xs" fullWidth>
+          <DialogTitle sx={{ fontWeight: 800 }}>Apply Discount</DialogTitle>
+          <DialogContent>
+            <Stack spacing={2} sx={{ mt: 1 }}>
+              <ToggleButtonGroup
+                value={discountTypeInput}
+                exclusive
+                onChange={(_, v) => v && setDiscountTypeInput(v)}
+                size="small"
+                fullWidth
+              >
+                <ToggleButton value="FIXED" sx={{ textTransform: 'none', fontWeight: 700 }}>
+                  Fixed (TZS)
+                </ToggleButton>
+                <ToggleButton value="PERCENT" sx={{ textTransform: 'none', fontWeight: 700 }}>
+                  Percentage (%)
+                </ToggleButton>
+              </ToggleButtonGroup>
+              <TextField
+                label={discountTypeInput === 'FIXED' ? 'Discount amount (TZS)' : 'Discount (%)'}
+                type="number"
+                value={discountInput}
+                onChange={(e) => setDiscountInput(e.target.value)}
+                fullWidth
+                slotProps={{ htmlInput: { min: 0, step: discountTypeInput === 'PERCENT' ? 1 : 100 } }}
+              />
+            </Stack>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => { p.onDiscountChange(0); setDiscountOpen(false); }} sx={{ textTransform: 'none' }}>
+              Remove
+            </Button>
+            <Button onClick={() => setDiscountOpen(false)} sx={{ textTransform: 'none' }}>Cancel</Button>
+            <Button
+              variant="contained"
+              onClick={() => {
+                const v = Number(discountInput);
+                if (Number.isFinite(v) && v >= 0) {
+                  p.onDiscountTypeChange(discountTypeInput);
+                  p.onDiscountChange(v);
+                  p.onNotify?.(`Discount: ${discountTypeInput === 'FIXED' ? fmt(v) : `${v}%`} applied`);
+                }
+                setDiscountOpen(false);
+              }}
+              sx={{ textTransform: 'none', fontWeight: 800 }}
+            >
+              Apply
+            </Button>
+          </DialogActions>
+        </Dialog>
 
         <Stack spacing={0.7}>
           <TotalRow label="Subtotal" value={fmt(p.subtotal)} />
-          <TotalRow label="Discount" value={`- ${fmt(p.discountVal)}`} valueColor={brand.primary[700]} />
-          <TotalRow label="Tax (0%)" value={fmt(p.tax)} />
+          <TotalRow label="Discount" value={`- ${fmt(p.discountVal)}`} valueColor={p.discountVal > 0 ? brand.primary[700] : brand.neutral[400]} />
+          <TotalRow label={`Tax (${p.taxRate > 0 ? `${p.taxRate}%` : '0%'})`} value={fmt(p.tax)} />
           <TotalRow label="Shipping" value={fmt(p.shippingVal)} />
         </Stack>
 
@@ -1264,46 +1358,43 @@ function TopFilters(p: TopFiltersProps) {
   );
 }
 
-function ProductTabs() {
+function ProductTabs({ activeTab, onTabChange }: { activeTab: string; onTabChange: (tab: string) => void }) {
   const tabs = [
-    { label: 'All Products', icon: <IconShoppingCart size={18} /> },
-    { label: 'Favourites', icon: <IconStar size={18} /> },
-    { label: 'Recently Added', icon: <IconClock size={18} /> },
-    { label: 'Low Stock', icon: <IconBoxIcon /> },
-    { label: 'Best Sellers', icon: <IconTrendingUp size={18} /> },
+    { id: 'all', label: 'All Products', icon: <IconShoppingCart size={18} /> },
+    { id: 'featured', label: 'Favourites', icon: <IconStar size={18} /> },
+    { id: 'recent', label: 'Recently Added', icon: <IconClock size={18} /> },
+    { id: 'low', label: 'Low Stock', icon: <IconBoxIcon /> },
+    { id: 'bestsellers', label: 'Best Sellers', icon: <IconTrendingUp size={18} /> },
   ];
 
   return (
-    <Stack
-      direction="row"
-      spacing={1.2}
-      alignItems="center"
-      flexWrap="wrap"
-      useFlexGap
-      sx={{ mb: 1.5 }}
-    >
-      {tabs.map((tab, index) => (
-        <Button
-          key={tab.label}
-          startIcon={tab.icon}
-          sx={{
-            height: 42,
-            px: 1.55,
-            borderRadius: '10px',
-            textTransform: 'none',
-            fontWeight: 800,
-            color: index === 0 ? '#fff' : brand.neutral[700],
-            bgcolor: index === 0 ? brand.primary[600] : 'transparent',
-            border: `1px solid ${index === 0 ? brand.primary[600] : 'transparent'}`,
-            '&:hover': {
-              bgcolor: index === 0 ? brand.primary[700] : brand.primary[50],
-              color: index === 0 ? '#fff' : brand.primary[700],
-            },
-          }}
-        >
-          {tab.label}
-        </Button>
-      ))}
+    <Stack direction="row" spacing={1.2} alignItems="center" flexWrap="wrap" useFlexGap sx={{ mb: 1.5 }}>
+      {tabs.map((tab) => {
+        const isActive = activeTab === tab.id;
+        return (
+          <Button
+            key={tab.id}
+            startIcon={tab.icon}
+            onClick={() => onTabChange(tab.id)}
+            sx={{
+              height: 42,
+              px: 1.55,
+              borderRadius: '10px',
+              textTransform: 'none',
+              fontWeight: 800,
+              color: isActive ? '#fff' : brand.neutral[700],
+              bgcolor: isActive ? brand.primary[600] : 'transparent',
+              border: `1px solid ${isActive ? brand.primary[600] : 'transparent'}`,
+              '&:hover': {
+                bgcolor: isActive ? brand.primary[700] : brand.primary[50],
+                color: isActive ? '#fff' : brand.primary[700],
+              },
+            }}
+          >
+            {tab.label}
+          </Button>
+        );
+      })}
     </Stack>
   );
 }
@@ -1317,8 +1408,8 @@ function IconBoxIcon() {
 // ═══════════════════════════════════════════════════════════════════════════
 
 function ProductGrid({
-  products, loading, onAdd,
-}: { products: Product[]; loading: boolean; onAdd: (p: Product) => void }) {
+  products, loading, onAdd, stockMap, stockLoading,
+}: { products: Product[]; loading: boolean; onAdd: (p: Product) => void; stockMap: Record<string, StockLevel>; stockLoading: boolean }) {
   const [page, setPage] = useState(1);
 
   useEffect(() => {
@@ -1343,7 +1434,7 @@ function ProductGrid({
     gap: { xs: 1.5, md: 1.75, xl: 2 },
   } as const;
 
-  if (loading) {
+  if (loading || stockLoading) {
     return (
       <Box sx={gridSx}>
         {Array.from({ length: 12 }).map((_, i) => (
@@ -1401,7 +1492,7 @@ function ProductGrid({
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100%', gap: 1.25 }}>
       <Box sx={gridSx}>
         {paginatedProducts.map((p) => (
-          <ProductCard key={p.id} product={p} onAdd={() => onAdd(p)} />
+          <ProductCard key={p.id} product={p} stock={stockMap[p.id]} onAdd={() => onAdd(p)} />
         ))}
       </Box>
 
@@ -1446,11 +1537,9 @@ function ProductGrid({
   );
 }
 
-function ProductCard({ product, onAdd }: { product: Product; onAdd: () => void }) {
-  // The backend product list returned here doesn't include warehouse stock
-  // counts, so we show a UI-friendly placeholder. Stock-alert threshold acts
-  // as a fallback indicator.
-  const stockHint = `${(product.stockAlert > 0 ? product.stockAlert : 41).toFixed(2)} pc`;
+function ProductCard({ product, stock, onAdd }: { product: Product; stock?: StockLevel; onAdd: () => void }) {
+  const available = stock ? stock.available : 0;
+  const stockHint = stock ? `${available} pc` : '—';
 
   return (
     <Card
@@ -1691,10 +1780,30 @@ interface PaymentScreenProps {
   canComplete: boolean;
   onBack: () => void;
   onComplete: () => void;
+  taxRate: number;
+  splitPayments?: { method: PaymentChoice; amount: number }[];
+  onSplitPaymentsChange?: (payments: { method: PaymentChoice; amount: number }[]) => void;
 }
 
 function PaymentScreen(p: PaymentScreenProps) {
+  const [splitPayments, setSplitPayments] = useState<{ method: PaymentChoice; amount: number }[]>([]);
   const tenderedNumber = Number(p.tendered) || 0;
+
+  const splitTotal = splitPayments.reduce((s, sp) => s + sp.amount, 0);
+  const splitRemaining = Math.max(0, p.grand - splitTotal);
+
+  const addSplitPayment = () => {
+    setSplitPayments((prev) => [...prev, { method: 'CASH', amount: 0 }]);
+  };
+
+  const updateSplitPayment = (index: number, patch: Partial<{ method: PaymentChoice; amount: number }>) => {
+    setSplitPayments((prev) => prev.map((sp, i) => (i === index ? { ...sp, ...patch } : sp)));
+  };
+
+  const removeSplitPayment = (index: number) => {
+    setSplitPayments((prev) => prev.filter((_, i) => i !== index));
+  };
+
   const presetValues = [
     p.grand,
     Math.ceil(p.grand / 100000) * 100000,
@@ -1707,6 +1816,10 @@ function PaymentScreen(p: PaymentScreenProps) {
   };
 
   const backspace = () => p.onTenderedChange((p.tendered || '').slice(0, -1));
+
+  const effectiveCanComplete = p.paymentChoice === 'SPLIT'
+    ? splitRemaining <= 0 && p.submitting === false
+    : p.canComplete;
 
   return (
     <Box
@@ -1762,7 +1875,7 @@ function PaymentScreen(p: PaymentScreenProps) {
           <Stack spacing={0.75}>
             <TotalRow label="Subtotal" value={fmt(p.subtotal)} />
             <TotalRow label="Discount" value={`- ${fmt(p.discount)}`} valueColor={brand.primary[700]} />
-            <TotalRow label="Tax (0%)" value={fmt(p.tax)} />
+            <TotalRow label={`Tax (${p.taxRate}%)`} value={fmt(p.tax)} />
             <TotalRow label="Shipping" value={fmt(p.shipping)} />
           </Stack>
           <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mt: 1.4, pt: 1.4, borderTop: `1px solid ${brand.neutral[200]}` }}>
@@ -1839,60 +1952,137 @@ function PaymentScreen(p: PaymentScreenProps) {
               <PaymentMethodCard choice="SPLIT" active={p.paymentChoice === 'SPLIT'} icon={<IconSparkles size={30} />} title="Mixed Payment" subtitle="Combine payment" badge="New" onClick={p.onPaymentChoiceChange} />
             </Box>
 
-            <Box
-              sx={{
-                mt: 2,
-                p: 1.5,
-                borderRadius: '8px',
-                border: `1px solid ${brand.primary[100]}`,
-                background: 'linear-gradient(135deg, #ECFDF5 0%, #FFFFFF 100%)',
-              }}
-            >
-              <Typography sx={{ fontWeight: 900, color: brand.neutral[900], mb: 1.2 }}>
-                Cash Payment
+            {p.paymentChoice === 'SPLIT' ? (
+              <Box sx={{ mt: 2 }}>
+                <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1.2 }}>
+                  <Typography sx={{ fontWeight: 900, color: brand.neutral[900] }}>
+                    Split Payment
+                  </Typography>
+                  <Chip
+                    label={`Remaining: ${fmt(splitRemaining)}`}
+                    size="small"
+                    sx={{
+                      fontWeight: 800,
+                      bgcolor: splitRemaining > 0 ? brand.warning.light : brand.success.light,
+                      color: splitRemaining > 0 ? brand.warning.dark : brand.success.dark,
+                    }}
+                  />
+                </Stack>
+                {splitPayments.map((sp, index) => (
+                  <Stack
+                    key={index}
+                    direction="row"
+                    spacing={1}
+                    alignItems="center"
+                    sx={{ mb: 1, p: 1.2, borderRadius: '8px', bgcolor: '#fff', border: `1px solid ${brand.neutral[200]}` }}
+                  >
+                    <TextField
+                      select
+                      size="small"
+                      value={sp.method}
+                      onChange={(e) => updateSplitPayment(index, { method: e.target.value as PaymentChoice })}
+                      sx={{ minWidth: 140, ...premiumFieldSx }}
+                    >
+                      <MenuItem value="CASH">Cash</MenuItem>
+                      <MenuItem value="CARD">Card</MenuItem>
+                      <MenuItem value="MOBILE">Mobile Money</MenuItem>
+                      <MenuItem value="BANK">Bank Transfer</MenuItem>
+                      <MenuItem value="USSD">USSD</MenuItem>
+                    </TextField>
+                    <TextField
+                      size="small"
+                      type="number"
+                      value={sp.amount || ''}
+                      onChange={(e) => updateSplitPayment(index, { amount: Number(e.target.value) || 0 })}
+                      placeholder="Amount"
+                      sx={{ flex: 1, ...premiumFieldSx }}
+                      InputProps={{ startAdornment: <InputAdornment position="start">TSh</InputAdornment> }}
+                    />
+                    <IconButton size="small" onClick={() => removeSplitPayment(index)} sx={{ color: brand.error.main }}>
+                      <IconX size={16} />
+                    </IconButton>
+                  </Stack>
+                ))}
+                <Button
+                  size="small"
+                  startIcon={<IconPlus size={16} />}
+                  onClick={addSplitPayment}
+                  disabled={splitRemaining <= 0}
+                  sx={{ textTransform: 'none', fontWeight: 800, borderRadius: '8px', mt: 0.5 }}
+                >
+                  Add payment method
+                </Button>
+                {splitPayments.length > 0 && (
+                  <Box sx={{ mt: 1.5, p: 1.3, borderRadius: '8px', bgcolor: '#fff', border: `1px solid ${brand.neutral[200]}` }}>
+                    <Stack direction="row" justifyContent="space-between">
+                      <Typography sx={{ fontWeight: 700, color: brand.neutral[700] }}>Total tendered</Typography>
+                      <Typography sx={{ fontWeight: 900, color: brand.primary[700] }}>{fmt(splitTotal)}</Typography>
+                    </Stack>
+                    <Stack direction="row" justifyContent="space-between" sx={{ mt: 0.5 }}>
+                      <Typography sx={{ fontWeight: 700, color: brand.neutral[700] }}>Change due</Typography>
+                      <Typography sx={{ fontWeight: 900, color: brand.success.dark }}>{fmt(Math.max(0, splitTotal - p.grand))}</Typography>
+                    </Stack>
+                  </Box>
+                )}
+              </Box>
+            ) : (
+              <Box
+                sx={{
+                  mt: 2,
+                  p: 1.5,
+                  borderRadius: '8px',
+                  border: `1px solid ${brand.primary[100]}`,
+                  background: 'linear-gradient(135deg, #ECFDF5 0%, #FFFFFF 100%)',
+                }}
+              >
+                <Typography sx={{ fontWeight: 900, color: brand.neutral[900], mb: 1.2 }}>
+                  {p.paymentChoice === 'CASH' ? 'Cash Payment' : p.paymentChoice === 'CARD' ? 'Card Payment' : p.paymentChoice === 'MOBILE' ? 'Mobile Payment' : p.paymentChoice === 'BANK' ? 'Bank Transfer' : 'USSD Payment'}
+                </Typography>
+                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1.25fr' }, gap: 1.2 }}>
+                  <Box sx={{ p: 1.3, borderRadius: '8px', bgcolor: '#fff', border: `1px solid ${brand.neutral[200]}` }}>
+                    <Typography sx={{ color: brand.neutral[600], fontWeight: 700, mb: 0.7 }}>Amount Due</Typography>
+                    <Typography sx={{ fontSize: '1.45rem', color: brand.primary[700], fontWeight: 900 }}>{fmt(p.grand)}</Typography>
+                  </Box>
+                  <Box sx={{ p: 1.3, borderRadius: '8px', bgcolor: '#fff', border: `1px solid ${brand.neutral[200]}` }}>
+                    <Typography sx={{ color: brand.neutral[600], fontWeight: 700, mb: 0.7 }}>Cash Received</Typography>
+                    <Typography sx={{ fontSize: '1.65rem', color: brand.neutral[900], fontWeight: 900 }}>{tenderedNumber ? fmt(tenderedNumber) : 'TSh 0'}</Typography>
+                  </Box>
+                </Box>
+                <Box sx={{ mt: 1.3 }}>
+                  <Typography sx={{ color: brand.neutral[700], fontWeight: 800 }}>Change</Typography>
+                  <Typography sx={{ mt: 0.3, fontSize: '1.45rem', color: brand.primary[700], fontWeight: 900 }}>{fmt(p.change)}</Typography>
+                </Box>
+              </Box>
+            )}
+          </Box>
+
+          {p.paymentChoice !== 'SPLIT' && (
+            <Box sx={{ borderLeft: { lg: `1px solid ${brand.neutral[200]}` }, px: 2.5, py: 2.5, overflowY: 'auto', ...softScrollSx }}>
+              <Typography sx={{ fontSize: '1rem', fontWeight: 900, color: brand.neutral[900], mb: 1.5 }}>
+                Enter Cash Received
               </Typography>
-              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1.25fr' }, gap: 1.2 }}>
-                <Box sx={{ p: 1.3, borderRadius: '8px', bgcolor: '#fff', border: `1px solid ${brand.neutral[200]}` }}>
-                  <Typography sx={{ color: brand.neutral[600], fontWeight: 700, mb: 0.7 }}>Amount Due</Typography>
-                  <Typography sx={{ fontSize: '1.45rem', color: brand.primary[700], fontWeight: 900 }}>{fmt(p.grand)}</Typography>
-                </Box>
-                <Box sx={{ p: 1.3, borderRadius: '8px', bgcolor: '#fff', border: `1px solid ${brand.neutral[200]}` }}>
-                  <Typography sx={{ color: brand.neutral[600], fontWeight: 700, mb: 0.7 }}>Cash Received</Typography>
-                  <Typography sx={{ fontSize: '1.65rem', color: brand.neutral[900], fontWeight: 900 }}>{tenderedNumber ? fmt(tenderedNumber) : 'TSh 0'}</Typography>
-                </Box>
+              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 1.25 }}>
+                {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((digit) => (
+                  <KeypadButton key={digit} label={digit} hint={keypadHint(digit)} onClick={() => setDigit(digit)} />
+                ))}
+                <KeypadButton label="C" hint="Clear" danger onClick={() => p.onTenderedChange('')} />
+                <KeypadButton label="0" onClick={() => setDigit('0')} />
+                <KeypadButton icon={<IconBackspace size={24} />} onClick={backspace} />
               </Box>
-              <Box sx={{ mt: 1.3 }}>
-                <Typography sx={{ color: brand.neutral[700], fontWeight: 800 }}>Change</Typography>
-                <Typography sx={{ mt: 0.3, fontSize: '1.45rem', color: brand.primary[700], fontWeight: 900 }}>{fmt(p.change)}</Typography>
+
+              <Box sx={{ mt: 1.8, display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 1 }}>
+                {presetValues.map((value, index) => (
+                  <TenderQuickPick
+                    key={value}
+                    value={value}
+                    label={index === 0 ? 'Exact' : `+ ${fmt(Math.max(0, value - p.grand)).replace('TSh ', '')}`}
+                    active={tenderedNumber === value}
+                    onClick={() => p.onTenderedChange(String(value))}
+                  />
+                ))}
               </Box>
             </Box>
-          </Box>
-
-          <Box sx={{ borderLeft: { lg: `1px solid ${brand.neutral[200]}` }, px: 2.5, py: 2.5, overflowY: 'auto', ...softScrollSx }}>
-            <Typography sx={{ fontSize: '1rem', fontWeight: 900, color: brand.neutral[900], mb: 1.5 }}>
-              Enter Cash Received
-            </Typography>
-            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 1.25 }}>
-              {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((digit) => (
-                <KeypadButton key={digit} label={digit} hint={keypadHint(digit)} onClick={() => setDigit(digit)} />
-              ))}
-              <KeypadButton label="C" hint="Clear" danger onClick={() => p.onTenderedChange('')} />
-              <KeypadButton label="0" onClick={() => setDigit('0')} />
-              <KeypadButton icon={<IconBackspace size={24} />} onClick={backspace} />
-            </Box>
-
-            <Box sx={{ mt: 1.8, display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 1 }}>
-              {presetValues.map((value, index) => (
-                <TenderQuickPick
-                  key={value}
-                  value={value}
-                  label={index === 0 ? 'Exact' : `+ ${fmt(Math.max(0, value - p.grand)).replace('TSh ', '')}`}
-                  active={tenderedNumber === value}
-                  onClick={() => p.onTenderedChange(String(value))}
-                />
-              ))}
-            </Box>
-          </Box>
+          )}
         </Box>
 
         <Stack
@@ -1909,7 +2099,7 @@ function PaymentScreen(p: PaymentScreenProps) {
           <Button
             variant="contained"
             size="large"
-            disabled={!p.canComplete}
+            disabled={!effectiveCanComplete}
             onClick={p.onComplete}
             endIcon={p.submitting ? <CircularProgress size={18} color="inherit" /> : <IconArrowRight size={22} />}
             sx={{
@@ -1923,7 +2113,7 @@ function PaymentScreen(p: PaymentScreenProps) {
               '&:hover': { background: `linear-gradient(135deg, ${brand.primary[700]} 0%, ${brand.primary[800]} 100%)` },
             }}
           >
-            {p.submitting ? 'Completing...' : `Complete Payment ${tenderedNumber ? fmt(tenderedNumber) : ''}`}
+            {p.submitting ? 'Completing...' : p.paymentChoice === 'SPLIT' ? `Complete Payment · ${fmt(splitTotal)}` : `Complete Payment ${tenderedNumber ? fmt(tenderedNumber) : ''}`}
           </Button>
         </Stack>
       </Card>

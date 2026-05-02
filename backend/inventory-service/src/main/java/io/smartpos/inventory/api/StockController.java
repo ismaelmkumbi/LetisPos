@@ -15,6 +15,8 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -43,6 +45,13 @@ public class StockController {
     @PreAuthorize("hasAuthority('stock.view')")
     public Page<StockLevelDto> lowStock(@RequestParam(required = false) UUID warehouseId, Pageable pageable) {
         return service.lowStock(warehouseId, pageable);
+    }
+
+    @GetMapping("/batch")
+    @PreAuthorize("hasAuthority('stock.view') or hasAuthority('pos.use')")
+    public Map<UUID, StockLevelDto> batch(@RequestParam UUID warehouseId,
+                                          @RequestParam List<UUID> productIds) {
+        return service.batchLevels(warehouseId, productIds);
     }
 
     @GetMapping("/summary")

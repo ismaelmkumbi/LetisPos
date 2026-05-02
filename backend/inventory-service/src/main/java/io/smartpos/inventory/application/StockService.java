@@ -66,6 +66,16 @@ public class StockService {
         return stockRepo.findLowStock(warehouseId, p).map(StockLevelDto::from);
     }
 
+    @Transactional(readOnly = true)
+    public Map<UUID, StockLevelDto> batchLevels(UUID warehouseId, List<UUID> productIds) {
+        List<StockLevel> levels = stockRepo.findByWarehouseAndProducts(warehouseId, productIds);
+        Map<UUID, StockLevelDto> result = new LinkedHashMap<>();
+        for (StockLevel s : levels) {
+            result.put(s.getProductId(), StockLevelDto.from(s));
+        }
+        return result;
+    }
+
     // ---- Reservations: reserve / commit / release ----
 
     /**
