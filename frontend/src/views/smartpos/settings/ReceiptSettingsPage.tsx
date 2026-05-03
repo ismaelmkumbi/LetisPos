@@ -162,6 +162,7 @@ export default function ReceiptSettingsPage() {
         }
       })
       .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
   }, [warehouseId]);
 
   const update = useCallback((patch: Partial<ReceiptConfig>) => {
