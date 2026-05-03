@@ -49,6 +49,12 @@ const WARRANTY_COLOURS: Record<string, { bg: string; fg: string }> = {
   none:    { bg: brand.neutral[100],    fg: brand.neutral[500] },
 };
 
+const actionBtnSx = {
+  p: 0.5, borderRadius: '8px',
+  color: brand.neutral[400],
+  '&:hover': { color: brand.primary[600], bgcolor: brand.primary[50] },
+};
+
 export default function SerialsListPage() {
   const { t } = useTranslation('smartpos');
   const navigate = useNavigate();
@@ -195,12 +201,6 @@ export default function SerialsListPage() {
     return () => { cancelled = true; clearTimeout(handle); };
   }, [search, status, page, refreshToken, sort]);
 
-  const actionBtnSx = {
-    p: 0.5, borderRadius: '8px',
-    color: brand.neutral[400],
-    '&:hover': { color: brand.primary[600], bgcolor: brand.primary[50] },
-  };
-
   const cols: Column<ProductSerial>[] = useMemo(() => [
     sel.selectionColumn(),
     {
@@ -291,7 +291,7 @@ export default function SerialsListPage() {
         </Tooltip>
       ),
     },
-  ], [page, sel.selectionColumn]);
+  ], [page, sel]);
 
   const activeFilters: { key: string; label: string; clear: () => void }[] = [];
   if (search.trim()) activeFilters.push({ key: 'search', label: `Search: ${search.trim()}`, clear: () => { setSearch(''); setPage(0); } });

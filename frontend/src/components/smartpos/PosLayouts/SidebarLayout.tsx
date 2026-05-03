@@ -35,6 +35,7 @@ import {
   IconX,
 } from '@tabler/icons-react';
 import type { PosLayoutProps } from './PosLayoutProps';
+import type { Line } from './types';
 import EditLineModal from 'src/components/smartpos/EditLineModal';
 import CashRegisterIndicator from 'src/components/smartpos/CashRegisterIndicator';
 import TotalRow from './TotalRow';
@@ -61,7 +62,7 @@ const filterFieldSx = {
 
 export default function SidebarLayout(props: PosLayoutProps) {
   const [editLineIdx, setEditLineIdx] = useState<number | null>(null);
-  const [editLine, setEditLine] = useState<any>(null);
+  const [editLine, setEditLine] = useState<Line | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [brands, setBrands] = useState<BrandRef[]>([]);
 

@@ -316,7 +316,7 @@ export async function pollExportJob(
   const timeout = opts.timeoutMs ?? 120_000;
   const start = Date.now();
 
-  while (true) {
+  for (;;) {
     if (opts.signal?.aborted) {
       throw new DOMException('Export poll aborted', 'AbortError');
     }

@@ -4,7 +4,7 @@
  * The "create return" path still lives inside the Sale detail view: select
  * a sale, then issue a return against it. This page just lists the results.
  */
-import { useEffect, useState } from 'react';
+import { type ElementType, useEffect, useState } from 'react';
 import {
   Alert, Box, Button, Chip, MenuItem, Stack, TextField, Typography,
 } from '@mui/material';
@@ -94,7 +94,7 @@ export default function ReturnsPage() {
     { key: 'sale', label: 'Original sale',
       render: (r) => (
         <Button
-          component={RouterLink as any}
+          component={RouterLink as ElementType}
           to={`/smartpos/sales/${r.saleId}/edit`}
           size="small"
           variant="text"

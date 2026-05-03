@@ -30,6 +30,12 @@ const emptyForm = (): Omit<Category, 'id'> => ({
   name: '', code: '', parentId: null, imageUrl: null, description: null,
 });
 
+const actionBtnSx = {
+  p: 0.5, borderRadius: '8px',
+  color: brand.neutral[400],
+  '&:hover': { color: brand.primary[600], bgcolor: brand.primary[50] },
+};
+
 export default function CategoriesListPage() {
   useTranslation('smartpos');
 
@@ -172,12 +178,6 @@ export default function CategoriesListPage() {
     }
   };
 
-  const actionBtnSx = {
-    p: 0.5, borderRadius: '8px',
-    color: brand.neutral[400],
-    '&:hover': { color: brand.primary[600], bgcolor: brand.primary[50] },
-  };
-
   const columns: Column<Category>[] = useMemo(() => [
     sel.selectionColumn(),
     {
@@ -280,7 +280,7 @@ export default function CategoriesListPage() {
         </Tooltip>
       ),
     },
-  ], [catById, page, sel.selectionColumn]);
+  ], [catById, page, sel]);
 
   const activeFilters: { key: string; label: string; clear: () => void }[] = [];
   if (search.trim()) activeFilters.push({ key: 'search', label: `Search: ${search.trim()}`, clear: () => { setSearch(''); setPage(0); } });

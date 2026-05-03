@@ -38,6 +38,7 @@ import {
   IconX,
 } from '@tabler/icons-react';
 import type { PosLayoutProps, PaymentChoice } from './PosLayoutProps';
+import type { Line } from './types';
 import EditLineModal from 'src/components/smartpos/EditLineModal';
 import CashRegisterIndicator from 'src/components/smartpos/CashRegisterIndicator';
 import TotalRow from './TotalRow';
@@ -65,7 +66,7 @@ const filterFieldSx = {
 export default function ModalLayout(props: PosLayoutProps) {
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [editLineIdx, setEditLineIdx] = useState<number | null>(null);
-  const [editLine, setEditLine] = useState<any>(null);
+  const [editLine, setEditLine] = useState<Line | null>(null);
   const [paymentChoice, setPaymentChoice] = useState<PaymentChoice>('CASH');
   const [categories, setCategories] = useState<Category[]>([]);
   const [brands, setBrands] = useState<BrandRef[]>([]);

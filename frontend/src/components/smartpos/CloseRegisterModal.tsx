@@ -64,8 +64,9 @@ export default function CloseRegisterModal({ open, warehouseId, session, onClose
       });
       onClosed(result);
       handleClose();
-    } catch (e: any) {
-      setError(e?.response?.data?.detail || 'Failed to close register');
+    } catch (e) {
+      type AxiosLike = { response?: { data?: { detail?: string } } };
+      setError((e as AxiosLike)?.response?.data?.detail || 'Failed to close register');
     } finally {
       setSubmitting(false);
     }

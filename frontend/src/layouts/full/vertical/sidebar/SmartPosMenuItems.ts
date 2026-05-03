@@ -5,6 +5,7 @@
  * keys resolved via the `smartpos` namespace so the menu live-switches
  * language along with the rest of the UI.
  */
+import type { ElementType } from 'react';
 import type { TFunction } from 'i18next';
 import {
   IconDashboard,
@@ -55,7 +56,7 @@ export interface MenuItem {
   id?: string;
   title?: string;
   subheader?: string;
-  icon?: any;
+  icon?: ElementType;
   href?: string;
   children?: MenuItem[];
   chip?: string;

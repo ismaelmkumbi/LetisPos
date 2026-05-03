@@ -30,6 +30,12 @@ const BARCODE_COLORS: Record<string, { bg: string; color: string }> = {
   QR:      { bg: brand.info.light,   color: brand.info.dark },
 };
 
+const actionBtnSx = {
+  p: 0.5, borderRadius: '8px',
+  color: brand.neutral[400],
+  '&:hover': { color: brand.primary[600], bgcolor: brand.primary[50] },
+};
+
 export default function BarcodesListPage() {
   const navigate = useNavigate();
   const [rows, setRows] = useState<BarcodeWithProduct[]>([]);
@@ -93,12 +99,6 @@ export default function BarcodesListPage() {
       setTimeout(() => setCopyToast(null), 2500);
     }
   }, [rows, sel.selectedIds]);
-
-  const actionBtnSx = {
-    p: 0.5, borderRadius: '8px',
-    color: brand.neutral[400],
-    '&:hover': { color: brand.primary[600], bgcolor: brand.primary[50] },
-  };
 
   const columns: Column<BarcodeWithProduct>[] = useMemo(() => [
     sel.selectionColumn(),
@@ -217,7 +217,7 @@ export default function BarcodesListPage() {
         </Tooltip>
       ),
     },
-  ], [page, sel.selectionColumn]);
+  ], [page, sel]);
 
   const activeFilters: { key: string; label: string; clear: () => void }[] = [];
   if (search.trim()) activeFilters.push({ key: 'search', label: `Search: ${search.trim()}`, clear: () => { setSearch(''); setPage(0); } });

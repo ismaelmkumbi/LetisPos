@@ -10,7 +10,7 @@
  *  - Sticky column support
  *  - Row selection with checkboxes
  */
-import { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Box, Card, Skeleton, Stack, Table, TableBody, TableCell,
   TableHead, TableRow, Typography, Pagination, Chip,
@@ -627,7 +627,7 @@ export function EnhancedDataTable<T>({
                           }),
                         }}
                       >
-                        {col.render ? col.render(row) : (row as any)[col.key] ?? '—'}
+                        {col.render ? col.render(row) : (row as Record<string, unknown>)[col.key] as React.ReactNode ?? '—'}
                       </TableCell>
                     ))}
                   </TableRow>

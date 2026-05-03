@@ -28,6 +28,12 @@ const PAGE_SIZE = 20;
 
 const emptyForm = (): Omit<Brand, 'id'> => ({ name: '', imageUrl: null, description: null });
 
+const actionBtnSx = {
+  p: 0.5, borderRadius: '8px',
+  color: brand.neutral[400],
+  '&:hover': { color: brand.primary[600], bgcolor: brand.primary[50] },
+};
+
 export default function BrandsListPage() {
   useTranslation('smartpos');
 
@@ -150,12 +156,6 @@ export default function BrandsListPage() {
     }
   };
 
-  const actionBtnSx = {
-    p: 0.5, borderRadius: '8px',
-    color: brand.neutral[400],
-    '&:hover': { color: brand.primary[600], bgcolor: brand.primary[50] },
-  };
-
   const columns: Column<Brand>[] = useMemo(() => [
     sel.selectionColumn(),
     {
@@ -229,7 +229,7 @@ export default function BrandsListPage() {
         </Tooltip>
       ),
     },
-  ], [page, sel.selectionColumn]);
+  ], [page, sel]);
 
   const activeFilters: { key: string; label: string; clear: () => void }[] = [];
   if (search.trim()) activeFilters.push({ key: 'search', label: `Search: ${search.trim()}`, clear: () => { setSearch(''); setPage(0); } });

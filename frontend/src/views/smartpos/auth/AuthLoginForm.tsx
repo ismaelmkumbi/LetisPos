@@ -82,9 +82,11 @@ const AuthLoginForm: React.FC<Props> = ({ title, subtitle, subtext }) => {
     try {
       await login(email.trim().toLowerCase(), password);
       navigate(from, { replace: true });
-    } catch (err: any) {
-      const status = err?.response?.status;
-      const detail = err?.response?.data?.detail ?? err?.response?.data?.title;
+    } catch (err) {
+      type AxiosLike = { response?: { status?: number; data?: { detail?: string; title?: string } } };
+      const e = err as AxiosLike;
+      const status = e?.response?.status;
+      const detail = e?.response?.data?.detail ?? e?.response?.data?.title;
       if (status === 401)      setError(detail ?? 'Invalid email or password');
       else if (status === 403) setError(detail ?? 'Account is locked or disabled');
       else                     setError(detail ?? 'Unable to sign in. Please try again.');

@@ -28,6 +28,7 @@ interface CustomizerContextState {
 }
 
 // Create the context with an initial value
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const CustomizerContext = createContext<CustomizerContextState | any>(undefined);
 
 // Define the type for the children prop

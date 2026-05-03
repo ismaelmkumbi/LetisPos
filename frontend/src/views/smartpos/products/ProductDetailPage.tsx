@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { type ElementType, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link as RouterLink, useLocation, useNavigate, useParams } from 'react-router';
 import {
   Alert,
@@ -571,7 +571,7 @@ export default function ProductDetailPage() {
   return (
     <Box sx={{ animation: 'fadeInUp 0.35s ease', key: pathname, maxWidth: 1680, mx: 'auto', pb: 3 }}>
       <Button
-        component={RouterLink as any}
+        component={RouterLink as ElementType}
         to="/smartpos/products"
         variant="text"
         startIcon={<IconArrowLeft size={15} />}

@@ -48,7 +48,7 @@ export default function ReceiptSettingsPage() {
   };
 
   const toggle = (field: keyof ReceiptConfig) => () => {
-    update({ [field]: !(config[field] as any) as any });
+    update({ [field]: !(config[field] as boolean) } as Partial<ReceiptConfig>);
   };
 
   return (

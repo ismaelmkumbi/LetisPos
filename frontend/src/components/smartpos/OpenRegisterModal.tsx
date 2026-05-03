@@ -49,8 +49,9 @@ export default function OpenRegisterModal({ open, warehouseId, onClose, onOpened
       });
       onOpened(session);
       handleClose();
-    } catch (e: any) {
-      setError(e?.response?.data?.detail || 'Failed to open register');
+    } catch (e) {
+      type AxiosLike = { response?: { data?: { detail?: string } } };
+      setError((e as AxiosLike)?.response?.data?.detail || 'Failed to open register');
     } finally {
       setSubmitting(false);
     }

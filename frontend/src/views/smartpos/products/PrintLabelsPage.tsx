@@ -52,12 +52,15 @@ export default function PrintLabelsPage() {
   const [searchInput, setSearchInput] = useState('');
   const [productOptions, setProductOptions] = useState<Product[]>([]);
 
+  // Intentionally runs once on mount — warehouseId is only checked to avoid
+  // overwriting a pre-selected warehouse; adding it as a dep would re-create
+  // the Audio element on every change.
   useEffect(() => {
     listWarehouses().then((ws) => {
       setWarehouses(ws);
       if (ws.length > 0 && !warehouseId) setWarehouseId(ws[0].id);
     }).catch(() => {});
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleProductSearch = useCallback(async (query: string) => {
     if (query.length < 2) { setProductOptions([]); return; }
@@ -157,7 +160,7 @@ export default function PrintLabelsPage() {
         </div>
         <script>
           window.onload = function() { window.print(); window.close(); };
-        <\/script>
+        </script>
       </body></html>
     `);
     printWindow.document.close();

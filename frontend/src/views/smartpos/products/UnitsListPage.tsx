@@ -26,6 +26,13 @@ import { brand } from 'src/theme/smartpos/brand';
 
 const PAGE_SIZE = 20;
 
+// Static style — defined outside component so useMemo deps don't change on every render
+const actionBtnSx = {
+  p: 0.5, borderRadius: '8px',
+  color: brand.neutral[400],
+  '&:hover': { color: brand.primary[600], bgcolor: brand.primary[50] },
+};
+
 const emptyForm = (): Omit<Unit, 'id'> => ({
   name: '', shortName: '', baseUnitId: null, conversionFactor: 1,
 });
@@ -175,12 +182,6 @@ export default function UnitsListPage() {
     }
   };
 
-  const actionBtnSx = {
-    p: 0.5, borderRadius: '8px',
-    color: brand.neutral[400],
-    '&:hover': { color: brand.primary[600], bgcolor: brand.primary[50] },
-  };
-
   const columns: Column<Unit>[] = useMemo(() => [
     sel.selectionColumn(),
     {
@@ -285,7 +286,7 @@ export default function UnitsListPage() {
         </Tooltip>
       ),
     },
-  ], [page, sel.selectionColumn, unitById]);
+  ], [page, sel, unitById]);
 
   const activeFilters: { key: string; label: string; clear: () => void }[] = [];
   if (search.trim()) activeFilters.push({ key: 'search', label: `Search: ${search.trim()}`, clear: () => { setSearch(''); setPage(0); } });

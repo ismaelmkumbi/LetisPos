@@ -37,7 +37,8 @@ export function usePosSounds() {
   const ensureAudioContext = useCallback(async () => {
     if (audioCtxRef.current) return audioCtxRef.current;
     try {
-      const Ctx = window.AudioContext || (window as any).webkitAudioContext;
+      const Ctx = window.AudioContext
+        || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
       if (!Ctx) return null;
       const ctx = new Ctx();
       audioCtxRef.current = ctx;
@@ -57,12 +58,14 @@ export function usePosSounds() {
   }, []);
 
   // Init the fallback <audio> tag (doesn't need user gesture for preload)
+  // Intentional: create fallback Audio element once on mount; volume updates
+  // are handled by the separate effect below.
   useEffect(() => {
     const a = new Audio(BEEP_URL);
     a.preload = 'auto';
     a.volume = volume;
     fallbackAudioRef.current = a;
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Update fallback volume when changed
   useEffect(() => {

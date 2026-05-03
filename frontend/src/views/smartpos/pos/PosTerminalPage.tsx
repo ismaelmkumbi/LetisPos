@@ -20,7 +20,7 @@ import {
   Stack,
   Typography,
 } from '@mui/material';
-import { listProducts, getProduct, getProductByBarcode, type Product } from 'src/api/smartpos/products';
+import { listProducts, getProduct, getProductByBarcode, type Product, type ProductSearchParams } from 'src/api/smartpos/products';
 import { listCustomers, createCustomer } from 'src/api/smartpos/customers';
 import type { Customer } from 'src/api/smartpos/types';
 import { listWarehouses, lowStockAlerts, batchStockLevels, type StockLevel, type Warehouse } from 'src/api/smartpos/inventory';
@@ -116,6 +116,8 @@ export default function PosTerminalPage() {
   const [posSettings, setPosSettings] = useState<PosSettings | null>(null);
   const [receiptPreview, setReceiptPreview] = useState<{ sale: Sale; paymentMethod: string } | null>(null);
 
+  // draftsOpen / holdsTick are intentional cache-bust triggers — they force a
+  // re-read from sessionStorage whenever the drafts panel or hold-tick changes.
   const heldCarts = useMemo((): CartHold[] => {
     try {
       const raw = sessionStorage.getItem(POS_HOLDS_KEY);
@@ -123,7 +125,7 @@ export default function PosTerminalPage() {
     } catch {
       return [];
     }
-  }, [draftsOpen, holdsTick]);
+  }, [draftsOpen, holdsTick]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Bootstrap ────────────────────────────────────────────────────────────
 
@@ -206,18 +208,18 @@ export default function PosTerminalPage() {
               setProducts([]);
             }
           } else {
-            const baseParams: Record<string, unknown> = {
+            const baseParams: ProductSearchParams = {
               search: search || undefined,
               categoryId: activeTab === 'all' ? (categoryId || undefined) : undefined,
               brandId: activeTab === 'all' ? (brandId || undefined) : undefined,
               size: 48,
             };
             if (activeTab === 'featured') {
-              (baseParams as any).featured = true;
+              baseParams.featured = true;
             } else if (activeTab === 'recent') {
-              (baseParams as any).sort = 'createdAt,desc';
+              baseParams.sort = 'createdAt,desc';
             }
-            const p = await listProducts(baseParams as any);
+            const p = await listProducts(baseParams);
             setProducts(p.content);
           }
         } catch {

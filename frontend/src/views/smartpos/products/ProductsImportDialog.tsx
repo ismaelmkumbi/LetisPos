@@ -799,7 +799,7 @@ function pickFirst(values: Record<string, string>, candidates: string[]): string
 
 function toNumber(v: string | null | undefined): number | undefined {
   if (v == null) return undefined;
-  const s = String(v).replace(/[^\d.\-]/g, '');
+  const s = String(v).replace(/[^\d.-]/g, '');
   if (!s) return undefined;
   const n = Number(s);
   return Number.isFinite(n) ? n : undefined;
