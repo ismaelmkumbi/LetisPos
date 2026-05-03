@@ -109,7 +109,7 @@ jobs:
   backend:
     name: Backend — ${{ matrix.service }}
     needs: changes
-    if: needs.changes.outputs.backend == 'true'
+    if: needs.changes.outputs.backend == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     # dorny/test-reporter needs checks:write to post results
     permissions:
@@ -172,7 +172,7 @@ jobs:
   frontend:
     name: Frontend — Build & Lint
     needs: changes
-    if: needs.changes.outputs.frontend == 'true'
+    if: needs.changes.outputs.frontend == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -220,7 +220,8 @@ jobs:
     needs: [backend, frontend, changes]
     if: |
       always() && !cancelled() &&
-      (needs.backend.result == 'success' || needs.frontend.result == 'success')
+      (needs.backend.result == 'success' || needs.frontend.result == 'success' ||
+       needs.backend.result == 'skipped'  || needs.frontend.result == 'skipped')
     runs-on: ubuntu-latest
     environment:
       name: production
