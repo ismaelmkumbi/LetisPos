@@ -21,9 +21,9 @@ import {
   Typography,
 } from '@mui/material';
 import { listProducts, getProduct, getProductByBarcode, type Product } from 'src/api/smartpos/products';
-import { listCustomers } from 'src/api/smartpos/customers';
+import { listCustomers, createCustomer } from 'src/api/smartpos/customers';
 import type { Customer } from 'src/api/smartpos/types';
-import { listWarehouses, lowStockAlerts, type Warehouse } from 'src/api/smartpos/inventory';
+import { listWarehouses, lowStockAlerts, batchStockLevels, type StockLevel, type Warehouse } from 'src/api/smartpos/inventory';
 import { posCheckout, getTopProducts, type CreateSaleBody, type Sale } from 'src/api/smartpos/sales';
 import {
   listTerminals,
@@ -32,11 +32,30 @@ import {
 } from 'src/api/smartpos/posTerminals';
 import { useOfflineSyncQueue } from 'src/hooks/useOfflineSyncQueue';
 import { useOnlineStatus } from 'src/components/smartpos/OfflineBanner';
-import { printReceipt } from 'src/components/smartpos/Receipt';
-import { formatMoney } from 'src/utils/smartpos/currency';
+import { printReceipt, ReceiptPreviewModal } from 'src/components/smartpos/Receipt';
+import {
+  getCurrentRegister,
+  type CashRegisterSession,
+} from 'src/api/smartpos/cashRegister';
+import OpenRegisterModal from 'src/components/smartpos/OpenRegisterModal';
+import CloseRegisterModal from 'src/components/smartpos/CloseRegisterModal';
+
+import PaymentSuccessOverlay from 'src/components/smartpos/PaymentSuccessOverlay';
+import TodaySalesModal from 'src/components/smartpos/TodaySalesModal';
+import { getReceiptConfig } from 'src/components/smartpos/Receipt';
+import { getPosSettings, type PosSettings } from 'src/api/smartpos/posSettings';
 import ModernLayout from 'src/components/smartpos/PosLayouts/ModernLayout';
+import ClassicLayout from 'src/components/smartpos/PosLayouts/ClassicLayout';
+import CompactLayout from 'src/components/smartpos/PosLayouts/CompactLayout';
+import SidebarLayout from 'src/components/smartpos/PosLayouts/SidebarLayout';
+import ModalLayout from 'src/components/smartpos/PosLayouts/ModalLayout';
+
+import { usePosLayout } from 'src/context/smartpos/PosLayoutContext';
+import { useAuth } from 'src/context/smartpos/AuthContext';
 import type { Line } from 'src/components/smartpos/PosLayouts/types';
+import type { PosLayoutProps } from 'src/components/smartpos/PosLayouts/PosLayoutProps';
 import { playPosAddBeep, playPosErrorSound, playPosSuccessSound } from 'src/utils/smartpos/posBeep';
+import { usePosKeyboardShortcuts } from 'src/hooks/usePosKeyboardShortcuts';
 
 const LINKED_TERMINAL_KEY = 'smartpos.linkedTerminalId';
 const POS_HOLDS_KEY = 'smartpos.pos.cartHolds';
@@ -48,9 +67,8 @@ type CartHold = {
   warehouseId: string;
   customerId: string | null;
 };
-const fmt = formatMoney;
-
 export default function PosTerminalPage() {
+  const { user } = useAuth();
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [warehouseId, setWarehouseId] = useState<string>('');
   const [products, setProducts] = useState<Product[]>([]);
@@ -73,6 +91,8 @@ export default function PosTerminalPage() {
   const [categoryId, setCategoryId] = useState<string>('');
   const [brandId, setBrandId] = useState<string>('');
   const [activeTab, setActiveTab] = useState<string>('all');
+  const [stockMap, setStockMap] = useState<Record<string, StockLevel>>({});
+  const [stockLoading, setStockLoading] = useState(false);
 
   const [terminals, setTerminals] = useState<PosTerminal[]>([]);
   const [linkedTerminalId, setLinkedTerminalId] = useState<string>(
@@ -84,6 +104,17 @@ export default function PosTerminalPage() {
   const barcodeRef = useRef<HTMLInputElement>(null);
   const [draftsOpen, setDraftsOpen] = useState(false);
   const [holdsTick, setHoldsTick] = useState(0);
+
+  // ── Cash register ───────────────────────────────────────────────────────
+  const [registerSession, setRegisterSession] = useState<CashRegisterSession | null>(null);
+  const [registerLoading, setRegisterLoading] = useState(false);
+  const [openRegisterOpen, setOpenRegisterOpen] = useState(false);
+  const [closeRegisterOpen, setCloseRegisterOpen] = useState(false);
+
+  const [successOverlay, setSuccessOverlay] = useState(false);
+  const [todaySalesOpen, setTodaySalesOpen] = useState(false);
+  const [posSettings, setPosSettings] = useState<PosSettings | null>(null);
+  const [receiptPreview, setReceiptPreview] = useState<{ sale: Sale; paymentMethod: string } | null>(null);
 
   const heldCarts = useMemo((): CartHold[] => {
     try {
@@ -104,12 +135,21 @@ export default function PosTerminalPage() {
       listProducts({ size: 48 }),
       listTerminals(),
     ])
-      .then(([w, c, p, tm]) => {
+      .then(async ([w, c, p, tm]) => {
         setWarehouses(w);
         if (w[0]) setWarehouseId(w[0].id);
         setCustomers(c.content);
         setProducts(p.content);
         setTerminals(tm);
+        // Auto-select walk-in customer
+        let walkIn = c.content.find((cu) => cu.name === 'Walk-in Customer');
+        if (!walkIn) {
+          try {
+            walkIn = await createCustomer({ name: 'Walk-in Customer' });
+            setCustomers((prev) => [walkIn!, ...prev]);
+          } catch { /* silent */ }
+        }
+        if (walkIn) setCustomerId(walkIn.id);
       })
       .catch(() => {})
       .finally(() => setProductsLoading(false));
@@ -119,6 +159,24 @@ export default function PosTerminalPage() {
     if (linkedTerminalId) localStorage.setItem(LINKED_TERMINAL_KEY, linkedTerminalId);
     else localStorage.removeItem(LINKED_TERMINAL_KEY);
   }, [linkedTerminalId]);
+
+  // Refresh cash register session when warehouse changes or after checkout
+  useEffect(() => {
+    if (!warehouseId) return;
+    setRegisterLoading(true);
+    getCurrentRegister(warehouseId)
+      .then((s) => setRegisterSession(s))
+      .catch(() => {})
+      .finally(() => setRegisterLoading(false));
+  }, [warehouseId]);
+
+  // Fetch POS settings (tax rate, currency, etc.) on warehouse change
+  useEffect(() => {
+    if (!warehouseId) return;
+    getPosSettings(warehouseId)
+      .then((s) => setPosSettings(s))
+      .catch(() => setPosSettings(null));
+  }, [warehouseId]);
 
   useEffect(() => {
     if (online && linkedTerminalId) flush().catch(() => {});
@@ -172,6 +230,17 @@ export default function PosTerminalPage() {
     return () => clearTimeout(timer);
   }, [search, categoryId, brandId, activeTab, warehouseId]);
 
+  // Fetch real-time stock for visible products
+  useEffect(() => {
+    if (!warehouseId || products.length === 0) return;
+    const ids = products.map((p) => p.id);
+    setStockLoading(true);
+    batchStockLevels(warehouseId, ids)
+      .then((m) => setStockMap(m))
+      .catch(() => {})
+      .finally(() => setStockLoading(false));
+  }, [warehouseId, products]);
+
   // ── Cart ops ─────────────────────────────────────────────────────────────
 
   const scanBarcode = async () => {
@@ -190,6 +259,11 @@ export default function PosTerminalPage() {
   };
 
   const addProduct = (p: Product) => {
+    const stock = stockMap[p.id];
+    if (stock && stock.available <= 0) {
+      setBanner({ kind: 'error', text: `${p.name} is out of stock. Receive stock first.` });
+      return;
+    }
     playPosAddBeep();
     setLines((prev) => {
       const existing = prev.find((l) => l.productId === p.id && !l.variantId);
@@ -207,7 +281,7 @@ export default function PosTerminalPage() {
           unitCost: p.cost,
           priceTier: 'retail',
           qty: 1,
-          taxRate: p.taxRate,
+          taxRate: p.taxRate > 0 ? p.taxRate : (posSettings?.defaultTaxRate ?? p.taxRate),
         },
       ];
     });
@@ -278,6 +352,45 @@ export default function PosTerminalPage() {
     setBanner(null);
   };
 
+  // ── Receipt name lookups ───────────────────────────────────────────────
+  // The Sale payload only carries IDs. Resolve human names from local state
+  // so receipts show "John Doe" instead of "769ef700".
+  const buildReceiptLookups = (sale: Sale) => {
+    const productNames: Record<string, string> = {};
+    for (const p of products) productNames[p.id] = p.name;
+    for (const l of sale.lines) {
+      if (l.productName && !/^[0-9a-f-]{36}$/i.test(l.productName)) {
+        productNames[l.productId] = l.productName;
+      }
+    }
+    return {
+      sellerName: user ? [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email : undefined,
+      customerName: customers.find((c) => c.id === sale.customerId)?.name,
+      warehouseName: warehouses.find((w) => w.id === sale.warehouseId)?.name,
+      productNames,
+    };
+  };
+
+  // ── Keyboard shortcuts ─────────────────────────────────────────────────
+  usePosKeyboardShortcuts({
+    focusBarcode: () => barcodeRef.current?.focus(),
+    onQuickAddCustomer: () => {},
+    onHoldCart: holdCart,
+    onRegisterToggle: () => {
+      if (registerSession && registerSession.status === 'OPEN') {
+        setCloseRegisterOpen(true);
+      } else {
+        setOpenRegisterOpen(true);
+      }
+    },
+    onCompleteSale: () => {
+      if (canCheckout) checkout();
+    },
+    onReprint: () => {
+      if (lastSale) printReceipt(lastSale, { paymentMethod, lookups: buildReceiptLookups(lastSale) });
+    },
+  });
+
   // ── Totals ────────────────────────────────────────────────────────────────
 
   const totals = useMemo(() => {
@@ -312,7 +425,15 @@ export default function PosTerminalPage() {
     return () => clearTimeout(timer);
   }, [linkedTerminalId, lines, totals.subtotal, totals.tax, totals.grand]);
 
-  const canCheckout = lines.length > 0 && !!warehouseId && !submitting;
+  const canCheckout = useMemo(() => {
+    if (lines.length === 0 || !warehouseId || submitting) return false;
+    // Block checkout if any line item has zero or negative available stock
+    const hasOutOfStock = lines.some((l) => {
+      const s = stockMap[l.productId];
+      return s && s.available <= 0;
+    });
+    return !hasOutOfStock;
+  }, [lines, warehouseId, submitting, stockMap]);
 
   // ── Checkout ──────────────────────────────────────────────────────────────
 
@@ -326,12 +447,15 @@ export default function PosTerminalPage() {
         customerId: customerId || undefined,
         isPos: true,
         discount: discount > 0 ? discount : undefined,
+        taxMethod: posSettings?.defaultTaxMethod || undefined,
+        currency: posSettings?.currencyCode || undefined,
         lines: lines.map((l) => ({
           productId: l.productId,
           variantId: l.variantId,
           unitPrice: l.unitPrice,
           qty: l.qty,
           taxRate: l.taxRate,
+          taxMethod: posSettings?.defaultTaxMethod || undefined,
         })),
       };
 
@@ -351,7 +475,6 @@ export default function PosTerminalPage() {
       const sale = await posCheckout(body);
       setLastSale(sale);
       playPosSuccessSound();
-      setBanner({ kind: 'success', text: `Sale ${sale.ref} confirmed — ${fmt(sale.grandTotal)}` });
 
       if (linkedTerminalId) {
         publishDisplayEvent(linkedTerminalId, 'PAYMENT', {
@@ -364,17 +487,26 @@ export default function PosTerminalPage() {
         }, 4000);
       }
 
-      clear();
-      try {
-        printReceipt(sale);
-      } catch {
-        /* non-blocking */
+      // Auto-print if configured
+      const rc = getReceiptConfig();
+      if (rc.autoPrint) {
+        try { printReceipt(sale, { paymentMethod, lookups: buildReceiptLookups(sale) }); } catch { /* non-blocking */ }
       }
+
+      // Show success overlay instead of clearing immediately
+      setSuccessOverlay(true);
     } catch (e: unknown) {
       setBanner({ kind: 'error', text: e instanceof Error ? e.message : 'Checkout failed' });
     } finally {
       setSubmitting(false);
     }
+  };
+
+  // ── Inline customer creation callback ──────────────────────────────────────
+
+  const handleCustomerCreated = (customer: Customer) => {
+    setCustomers((prev) => [customer, ...prev]);
+    setCustomerId(customer.id);
   };
 
   // ── Shared layout props ────────────────────────────────────────────────────
@@ -394,6 +526,8 @@ export default function PosTerminalPage() {
 
     products,
     productsLoading,
+    stockMap,
+    stockLoading,
     onAddProduct: addProduct,
     onPatchLine: patchLine,
 
@@ -404,6 +538,7 @@ export default function PosTerminalPage() {
     customers,
     customerId,
     onCustomerChange: setCustomerId,
+    onCustomerCreated: handleCustomerCreated,
 
     lines,
     onIncQty: inc,
@@ -435,7 +570,7 @@ export default function PosTerminalPage() {
     onBannerClose: () => setBanner(null),
 
     lastSale,
-    onReprint: printReceipt,
+    onReprint: (sale: Sale) => printReceipt(sale, { paymentMethod, lookups: buildReceiptLookups(sale) }),
 
     onCheckout: checkout,
     submitting,
@@ -446,14 +581,31 @@ export default function PosTerminalPage() {
 
     onHoldCart: holdCart,
     onOpenHeldCarts: () => setDraftsOpen(true),
+
     onNotify: (text: string) => setBanner({ kind: 'success', text }),
+
+    registerSession,
+    registerLoading,
+    onOpenRegister: () => setOpenRegisterOpen(true),
+    onCloseRegister: () => setCloseRegisterOpen(true),
+    onTodaySales: () => setTodaySalesOpen(true),
   };
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
+  const { layout } = usePosLayout();
+  const LayoutComponent: Record<string, React.ComponentType<PosLayoutProps>> = {
+    modern: ModernLayout as React.ComponentType<PosLayoutProps>,
+    classic: ClassicLayout as React.ComponentType<PosLayoutProps>,
+    compact: CompactLayout as React.ComponentType<PosLayoutProps>,
+    sidebar: SidebarLayout as React.ComponentType<PosLayoutProps>,
+    modal: ModalLayout as React.ComponentType<PosLayoutProps>,
+  };
+  const ChosenLayout = LayoutComponent[layout];
+
   return (
     <Box sx={{ height: '100vh', overflow: 'hidden', bgcolor: '#F7F8FA' }}>
-      <ModernLayout {...layoutProps} />
+      <ChosenLayout {...(layoutProps as PosLayoutProps)} />
 
       <Dialog open={draftsOpen} onClose={() => setDraftsOpen(false)} fullWidth maxWidth="sm">
         <DialogTitle sx={{ fontWeight: 800 }}>Recent drafts (held carts)</DialogTitle>
@@ -506,6 +658,55 @@ export default function PosTerminalPage() {
           <Button onClick={() => setDraftsOpen(false)} sx={{ textTransform: 'none' }}>Close</Button>
         </DialogActions>
       </Dialog>
+
+      <OpenRegisterModal
+        open={openRegisterOpen}
+        warehouseId={warehouseId}
+        onClose={() => setOpenRegisterOpen(false)}
+        onOpened={(session) => setRegisterSession(session)}
+      />
+
+      <CloseRegisterModal
+        open={closeRegisterOpen}
+        warehouseId={warehouseId}
+        session={registerSession}
+        onClose={() => setCloseRegisterOpen(false)}
+        onClosed={() => setRegisterSession(null)}
+      />
+
+      <PaymentSuccessOverlay
+        open={successOverlay}
+        sale={lastSale}
+        paymentMethod={paymentMethod}
+        change={totals.change}
+        onNewSale={() => {
+          setSuccessOverlay(false);
+          clear();
+        }}
+        onPrint={(sale) => {
+          try { printReceipt(sale, { paymentMethod, lookups: buildReceiptLookups(sale) }); } catch { /* non-blocking */ }
+        }}
+        onPreview={(sale) => {
+          if (sale) setReceiptPreview({ sale, paymentMethod });
+        }}
+        onClose={() => setSuccessOverlay(false)}
+      />
+
+      {receiptPreview && (
+        <ReceiptPreviewModal
+          open={!!receiptPreview}
+          onClose={() => setReceiptPreview(null)}
+          sale={receiptPreview.sale}
+          paymentMethod={receiptPreview.paymentMethod}
+          lookups={buildReceiptLookups(receiptPreview.sale)}
+        />
+      )}
+
+      <TodaySalesModal
+        open={todaySalesOpen}
+        onClose={() => setTodaySalesOpen(false)}
+        warehouseId={warehouseId}
+      />
     </Box>
   );
 }

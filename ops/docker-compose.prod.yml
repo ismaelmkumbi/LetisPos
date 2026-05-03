@@ -1,0 +1,415 @@
+# LetisPOS — Production Docker Compose
+# ======================================
+# Uses pre-built images from GitHub Container Registry.
+# Infrastructure (Postgres, Redis, Kafka, MinIO) runs in containers.
+# For high-traffic production, consider managed services (RDS, ElastiCache, MSK).
+#
+# Usage:
+#   IMAGE_TAG=latest docker compose -f ops/docker-compose.prod.yml up -d
+#   IMAGE_TAG=sha-abc123 docker compose -f ops/docker-compose.prod.yml up -d
+
+version: "3.9"
+
+x-health-defaults: &health-defaults
+  interval: 10s
+  timeout: 5s
+  retries: 6
+  start_period: 40s
+
+x-logging: &logging-defaults
+  driver: json-file
+  options:
+    max-size: "20m"
+    max-file: "5"
+
+services:
+  # ═══════════════════════════════════════════════════════════════════════════════
+  #  Infrastructure
+  # ═══════════════════════════════════════════════════════════════════════════════
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: smartpos-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: smartpos
+      POSTGRES_PASSWORD: ${DB_ROOT_PASSWORD:?Set DB_ROOT_PASSWORD in .env}
+      POSTGRES_DB: postgres
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./infra/postgres/init-databases.sql:/docker-entrypoint-initdb.d/00-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U smartpos"]
+      <<: *health-defaults
+    logging: *logging-defaults
+    networks:
+      - smartpos-net
+
+  redis:
+    image: redis:7-alpine
+    container_name: smartpos-redis
+    restart: unless-stopped
+    command:
+      - redis-server
+      - --appendonly yes
+      - --maxmemory 256mb
+      - --maxmemory-policy allkeys-lru
+      - --save 900 1
+      - --save 300 10
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      <<: *health-defaults
+    logging: *logging-defaults
+    networks:
+      - smartpos-net
+
+  kafka:
+    image: apache/kafka:3.8.0
+    container_name: smartpos-kafka
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:9094:9094"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      CLUSTER_ID: ${KAFKA_CLUSTER_ID:-smartpos-prod-1}
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093,PLAINTEXT_HOST://0.0.0.0:9094
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:9094
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_LOG_RETENTION_HOURS: 168
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list >/dev/null 2>&1 || exit 1"]
+      <<: *health-defaults
+      start_period: 60s
+    logging: *logging-defaults
+    networks:
+      - smartpos-net
+
+  minio:
+    image: minio/minio:latest
+    container_name: smartpos-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-smartpos}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-smartpos-secret}
+    ports:
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      <<: *health-defaults
+    logging: *logging-defaults
+    networks:
+      - smartpos-net
+
+  # ═══════════════════════════════════════════════════════════════════════════════
+  #  Application services (images from GHCR)
+  # ═══════════════════════════════════════════════════════════════════════════════
+
+  gateway:
+    image: ghcr.io/ismaelmkumbi/gateway:${IMAGE_TAG:-latest}
+    container_name: smartpos-gateway
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      AUTH_URI: http://auth-service:8081
+      USER_URI: http://user-service:8082
+      PRODUCT_URI: http://product-service:8083
+      INVENTORY_URI: http://inventory-service:8084
+      SALES_URI: http://sales-service:8085
+      PAYMENT_URI: http://payment-service:8086
+      REPORT_URI: http://report-service:8087
+      NOTIFICATION_URI: http://notification-service:8089
+      HRM_URI: http://hrm-service:8090
+      AI_URI: http://ai-service:8091
+      INTEGRATION_URI: http://integration-service:8092
+      AUTH_JWKS_URI: http://auth-service:8081/.well-known/jwks.json
+      SERVER_PORT: "8080"
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/actuator/health"]
+      <<: *health-defaults
+    logging: *logging-defaults
+    networks:
+      - smartpos-net
+
+  auth-service:
+    image: ghcr.io/ismaelmkumbi/auth-service:${IMAGE_TAG:-latest}
+    container_name: smartpos-auth
+    restart: unless-stopped
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/auth_db?preferQueryMode=simple
+      DB_USERNAME: auth_user
+      DB_PASSWORD: auth_pass
+      REDIS_HOST: redis
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SERVER_PORT: "8081"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8081/actuator/health"]
+      <<: *health-defaults
+    logging: *logging-defaults
+    networks:
+      - smartpos-net
+
+  user-service:
+    image: ghcr.io/ismaelmkumbi/user-service:${IMAGE_TAG:-latest}
+    container_name: smartpos-user
+    restart: unless-stopped
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/user_db?preferQueryMode=simple
+      DB_USERNAME: user_user
+      DB_PASSWORD: user_pass
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SERVER_PORT: "8082"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8082/actuator/health"]
+      <<: *health-defaults
+    logging: *logging-defaults
+    networks:
+      - smartpos-net
+
+  product-service:
+    image: ghcr.io/ismaelmkumbi/product-service:${IMAGE_TAG:-latest}
+    container_name: smartpos-product
+    restart: unless-stopped
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/product_db?preferQueryMode=simple
+      DB_USERNAME: product_user
+      DB_PASSWORD: product_pass
+      REDIS_HOST: redis
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SERVER_PORT: "8083"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8083/actuator/health"]
+      <<: *health-defaults
+    logging: *logging-defaults
+    networks:
+      - smartpos-net
+
+  inventory-service:
+    image: ghcr.io/ismaelmkumbi/inventory-service:${IMAGE_TAG:-latest}
+    container_name: smartpos-inventory
+    restart: unless-stopped
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/inventory_db?preferQueryMode=simple
+      DB_USERNAME: inventory_user
+      DB_PASSWORD: inventory_pass
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SERVER_PORT: "8084"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8084/actuator/health"]
+      <<: *health-defaults
+    logging: *logging-defaults
+    networks:
+      - smartpos-net
+
+  sales-service:
+    image: ghcr.io/ismaelmkumbi/sales-service:${IMAGE_TAG:-latest}
+    container_name: smartpos-sales
+    restart: unless-stopped
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/sales_db?preferQueryMode=simple
+      DB_USERNAME: sales_user
+      DB_PASSWORD: sales_pass
+      REDIS_HOST: redis
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SERVER_PORT: "8085"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8085/actuator/health"]
+      <<: *health-defaults
+    logging: *logging-defaults
+    networks:
+      - smartpos-net
+
+  payment-service:
+    image: ghcr.io/ismaelmkumbi/payment-service:${IMAGE_TAG:-latest}
+    container_name: smartpos-payment
+    restart: unless-stopped
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/payment_db?preferQueryMode=simple
+      DB_USERNAME: payment_user
+      DB_PASSWORD: payment_pass
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SERVER_PORT: "8086"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8086/actuator/health"]
+      <<: *health-defaults
+    logging: *logging-defaults
+    networks:
+      - smartpos-net
+
+  report-service:
+    image: ghcr.io/ismaelmkumbi/report-service:${IMAGE_TAG:-latest}
+    container_name: smartpos-report
+    restart: unless-stopped
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/report_db?preferQueryMode=simple
+      DB_USERNAME: report_user
+      DB_PASSWORD: report_pass
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      S3_ENDPOINT: http://minio:9000
+      S3_ACCESS_KEY: smartpos
+      S3_SECRET_KEY: smartpos-secret
+      SERVER_PORT: "8087"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8087/actuator/health"]
+      <<: *health-defaults
+    logging: *logging-defaults
+    networks:
+      - smartpos-net
+
+  notification-service:
+    image: ghcr.io/ismaelmkumbi/notification-service:${IMAGE_TAG:-latest}
+    container_name: smartpos-notification
+    restart: unless-stopped
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/notification_db?preferQueryMode=simple
+      DB_USERNAME: notification_user
+      DB_PASSWORD: notification_pass
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SERVER_PORT: "8089"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8089/actuator/health"]
+      <<: *health-defaults
+    logging: *logging-defaults
+    networks:
+      - smartpos-net
+
+  hrm-service:
+    image: ghcr.io/ismaelmkumbi/hrm-service:${IMAGE_TAG:-latest}
+    container_name: smartpos-hrm
+    restart: unless-stopped
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/hrm_db?preferQueryMode=simple
+      DB_USERNAME: hrm_user
+      DB_PASSWORD: hrm_pass
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SERVER_PORT: "8090"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8090/actuator/health"]
+      <<: *health-defaults
+    logging: *logging-defaults
+    networks:
+      - smartpos-net
+
+  ai-service:
+    image: ghcr.io/ismaelmkumbi/ai-service:${IMAGE_TAG:-latest}
+    container_name: smartpos-ai
+    restart: unless-stopped
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/ai_db?preferQueryMode=simple
+      DB_USERNAME: ai_user
+      DB_PASSWORD: ai_pass
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SERVER_PORT: "8091"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8091/actuator/health"]
+      <<: *health-defaults
+    logging: *logging-defaults
+    networks:
+      - smartpos-net
+
+  integration-service:
+    image: ghcr.io/ismaelmkumbi/integration-service:${IMAGE_TAG:-latest}
+    container_name: smartpos-integration
+    restart: unless-stopped
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/integration_db?preferQueryMode=simple
+      DB_USERNAME: integration_user
+      DB_PASSWORD: integration_pass
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SERVER_PORT: "8092"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8092/actuator/health"]
+      <<: *health-defaults
+    logging: *logging-defaults
+    networks:
+      - smartpos-net
+
+  # ═══════════════════════════════════════════════════════════════════════════════
+  #  Frontend (Nginx serving React SPA)
+  # ═══════════════════════════════════════════════════════════════════════════════
+
+  frontend:
+    image: ghcr.io/ismaelmkumbi/frontend:${IMAGE_TAG:-latest}
+    container_name: smartpos-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      gateway:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:80/"]
+      <<: *health-defaults
+    logging: *logging-defaults
+    networks:
+      - smartpos-net
+
+networks:
+  smartpos-net:
+    driver: bridge
+
+volumes:
+  postgres-data:
+  redis-data:
+  kafka-data:
+  minio-data:

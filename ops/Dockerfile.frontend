@@ -1,0 +1,16 @@
+# ── Multi-stage Nginx image for LetisPOS frontend ──────────────────────────────
+# Stage 1: Build (handled by Vite in CI, dist/ is mounted)
+# Stage 2: Serve static files with Nginx + reverse-proxy API calls to gateway
+
+FROM nginx:1.27-alpine
+
+# Copy built frontend assets
+COPY frontend/dist /usr/share/nginx/html
+
+# Nginx config: SPA routing + API proxy to gateway
+COPY ops/nginx/default.conf /etc/nginx/conf.d/default.conf
+
+EXPOSE 80
+
+HEALTHCHECK --interval=10s --timeout=3s --start-period=5s --retries=3 \
+  CMD wget -qO- http://localhost:80/ || exit 1

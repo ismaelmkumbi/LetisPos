@@ -12,4 +12,10 @@ export type Line = {
   priceTier?: 'retail' | 'wholesale' | 'member';
   qty: number;
   taxRate: number;
+  /** Per-line discount amount (fixed or percent). */
+  discount?: number;
+  /** Per-line discount type. */
+  discountType?: 'FIXED' | 'PERCENT';
+  /** IMEI or serial number for tracked products. */
+  imei?: string;
 };

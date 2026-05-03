@@ -1,0 +1,313 @@
+# LetisPOS — Main CI/CD Pipeline
+# =================================
+# Triggered on push to main. Builds, tests, containerizes all services,
+# pushes images to GitHub Container Registry, and deploys to production.
+#
+# Secrets required (set in Settings → Secrets and variables → Actions):
+#   VPS_HOST          — Production server IP/hostname
+#   VPS_USER          — SSH user (e.g. deploy)
+#   VPS_SSH_KEY       — SSH private key for authentication
+#   VPS_PROJECT_PATH  — (optional) project directory on server (default: /opt/letispos)
+
+name: CI/CD
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Override image tag (default: git SHA)'
+        required: false
+        default: ''
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ghcr.io/ismaelmkumbi
+  JAVA_VERSION: '21'
+
+jobs:
+  # ────────────────────────────────────────────────────────────────────────
+  #  Detect what changed
+  # ────────────────────────────────────────────────────────────────────────
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+      gateway: ${{ steps.filter.outputs.gateway }}
+      auth_service: ${{ steps.filter.outputs.auth_service }}
+      user_service: ${{ steps.filter.outputs.user_service }}
+      product_service: ${{ steps.filter.outputs.product_service }}
+      inventory_service: ${{ steps.filter.outputs.inventory_service }}
+      sales_service: ${{ steps.filter.outputs.sales_service }}
+      payment_service: ${{ steps.filter.outputs.payment_service }}
+      report_service: ${{ steps.filter.outputs.report_service }}
+      notification_service: ${{ steps.filter.outputs.notification_service }}
+      hrm_service: ${{ steps.filter.outputs.hrm_service }}
+      ai_service: ${{ steps.filter.outputs.ai_service }}
+      integration_service: ${{ steps.filter.outputs.integration_service }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            backend:
+              - 'backend/**'
+            frontend:
+              - 'frontend/**'
+            gateway:
+              - 'backend/gateway/**'
+              - 'backend/pom.xml'
+            auth_service:
+              - 'backend/auth-service/**'
+              - 'backend/pom.xml'
+            user_service:
+              - 'backend/user-service/**'
+              - 'backend/pom.xml'
+            product_service:
+              - 'backend/product-service/**'
+              - 'backend/pom.xml'
+            inventory_service:
+              - 'backend/inventory-service/**'
+              - 'backend/pom.xml'
+            sales_service:
+              - 'backend/sales-service/**'
+              - 'backend/pom.xml'
+            payment_service:
+              - 'backend/payment-service/**'
+              - 'backend/pom.xml'
+            report_service:
+              - 'backend/report-service/**'
+              - 'backend/pom.xml'
+            notification_service:
+              - 'backend/notification-service/**'
+              - 'backend/pom.xml'
+            hrm_service:
+              - 'backend/hrm-service/**'
+              - 'backend/pom.xml'
+            ai_service:
+              - 'backend/ai-service/**'
+              - 'backend/pom.xml'
+            integration_service:
+              - 'backend/integration-service/**'
+              - 'backend/pom.xml'
+
+  # ────────────────────────────────────────────────────────────────────────
+  #  Build & Test — Backend (matrix across all services)
+  # ────────────────────────────────────────────────────────────────────────
+  backend:
+    name: Backend — ${{ matrix.service }}
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - gateway
+          - auth-service
+          - user-service
+          - product-service
+          - inventory-service
+          - sales-service
+          - payment-service
+          - report-service
+          - notification-service
+          - hrm-service
+          - ai-service
+          - integration-service
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: temurin
+          cache: maven
+
+      - name: Build & test ${{ matrix.service }}
+        run: |
+          cd backend
+          mvn -B -pl ${{ matrix.service }} -am clean package \
+            -Dstyle.color=always \
+            2>&1 | tee build.log
+
+      - name: Publish test results
+        if: always()
+        uses: dorny/test-reporter@v1
+        with:
+          name: Tests — ${{ matrix.service }}
+          path: backend/${{ matrix.service }}/target/surefire-reports/*.xml
+          reporter: java-junit
+          fail-on-error: false
+
+      - name: Upload build log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log-${{ matrix.service }}
+          path: backend/build.log
+          retention-days: 7
+
+  # ────────────────────────────────────────────────────────────────────────
+  #  Build — Frontend
+  # ────────────────────────────────────────────────────────────────────────
+  frontend:
+    name: Frontend — Build & Lint
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: cd frontend && npm ci
+
+      - name: Lint
+        run: cd frontend && npm run lint
+
+      - name: Type-check
+        run: cd frontend && npx tsc --noEmit
+
+      - name: Build
+        run: cd frontend && npm run build
+
+      - name: Upload dist artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
+          retention-days: 1
+
+  # ────────────────────────────────────────────────────────────────────────
+  #  Containerize — Push images to GHCR
+  # ────────────────────────────────────────────────────────────────────────
+  push-images:
+    name: Push images to GHCR
+    needs: [backend, frontend, changes]
+    if: success() || (needs.backend.result == 'success' && needs.frontend.result == 'success')
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - gateway
+          - auth-service
+          - user-service
+          - product-service
+          - inventory-service
+          - sales-service
+          - payment-service
+          - report-service
+          - notification-service
+          - hrm-service
+          - ai-service
+          - integration-service
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: temurin
+          cache: maven
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push image for ${{ matrix.service }}
+        run: |
+          cd backend
+          TAG=${{ inputs.tag || github.sha }}
+          mvn -B -pl ${{ matrix.service }} -am compile jib:build \
+            -DskipTests \
+            -Djib.registry=${{ env.IMAGE_PREFIX }} \
+            -Djib.tag="$TAG" \
+            -Dstyle.color=always
+
+  # ────────────────────────────────────────────────────────────────────────
+  #  Frontend container image
+  # ────────────────────────────────────────────────────────────────────────
+  push-frontend-image:
+    name: Push frontend image to GHCR
+    needs: [frontend, changes]
+    if: needs.changes.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download frontend dist
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & push frontend image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ops/Dockerfile.frontend
+          push: true
+          tags: |
+            ${{ env.IMAGE_PREFIX }}/frontend:${{ inputs.tag || github.sha }}
+            ${{ env.IMAGE_PREFIX }}/frontend:latest
+
+  # ────────────────────────────────────────────────────────────────────────
+  #  Deploy to production
+  # ────────────────────────────────────────────────────────────────────────
+  deploy:
+    name: Deploy to production
+    needs: [push-images, push-frontend-image]
+    if: success()
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://${{ secrets.VPS_HOST }}
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script_stop: true
+          script: |
+            PROJECT_DIR="${{ secrets.VPS_PROJECT_PATH || '/opt/letispos' }}"
+            cd "$PROJECT_DIR"
+            git pull origin main
+            export IMAGE_TAG=${{ inputs.tag || github.sha }}
+            bash ops/scripts/deploy.sh

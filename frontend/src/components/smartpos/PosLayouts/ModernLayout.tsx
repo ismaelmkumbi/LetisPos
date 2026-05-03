@@ -100,11 +100,15 @@ import type { Product } from 'src/api/smartpos/products';
 import type { Customer } from 'src/api/smartpos/types';
 import type { Warehouse, StockLevel } from 'src/api/smartpos/inventory';
 import type { PosTerminal } from 'src/api/smartpos/posTerminals';
-import type { Sale } from 'src/api/smartpos/sales';
 import { listCategories, listBrands } from 'src/api/smartpos/products';
-import { batchStockLevels } from 'src/api/smartpos/inventory';
 import type { Brand as BrandRef, Category } from 'src/api/smartpos/types';
 import type { Line } from './types';
+import type { PosLayoutProps, PaymentChoice, LayoutTab } from './PosLayoutProps';
+import { unitPriceForTier, posSurface, premiumFieldSx, softScrollSx, focusVisibleSx, POS_LANG_CYCLE, CHECKOUT_PANEL_MIN_WIDTH, FOOTER_HEIGHT, PRODUCT_PAGE_SIZE } from './shared';
+import EditLineModal from 'src/components/smartpos/EditLineModal';
+import QuickAddCustomerModal from 'src/components/smartpos/QuickAddCustomerModal';
+import CashRegisterIndicator from 'src/components/smartpos/CashRegisterIndicator';
+import TotalRow from './TotalRow';
 import BrandLogo from 'src/components/smartpos/BrandLogo';
 import { useAuth } from 'src/context/smartpos/AuthContext';
 import { brand } from 'src/theme/smartpos/brand';
@@ -119,110 +123,14 @@ import {
 
 const fmt = formatMoney;
 
-/** Unit price from tier when line has basePrice / unitCost from catalog. */
-function unitPriceForTier(line: Line, tier: NonNullable<Line['priceTier']>): number {
-  const base = line.basePrice ?? line.unitPrice;
-  if (tier === 'retail') return Math.round(base * 100) / 100;
-  if (tier === 'wholesale') {
-    const c = line.unitCost;
-    const v = c != null && c > 0 ? c : base * 0.92;
-    return Math.round(v * 100) / 100;
-  }
-  return Math.round(base * 0.97 * 100) / 100;
-}
-
-const POS_LANG_CYCLE = ['en', 'fr', 'ar', 'ch'] as const;
-
 // ─── Layout dimensions ─────────────────────────────────────────────────────
-//
-// We engage the two-column layout at the `md` breakpoint (≥900 px) instead of
-// `lg`, because the dashboard sidebar already eats ~272 px of viewport — on
-// a 1366 px screen the inner content area is ~1094 px which is below MUI's
-// `lg` (1200 px) but well above `md`. Engaging earlier keeps the products
-// grid visible without scrolling on the vast majority of dashboards.
-
-const CHECKOUT_PANEL_MIN_WIDTH = 420;
-const FOOTER_HEIGHT = 72;
-const PRODUCT_PAGE_SIZE = 10;
-type PaymentChoice = 'CASH' | 'CARD' | 'MOBILE' | 'BANK' | 'USSD' | 'SPLIT';
-
-const posSurface = {
-  border: `1px solid ${brand.neutral[200]}`,
-  borderRadius: '18px',
-  bgcolor: '#fff',
-  boxShadow: `0 1px 2px ${brand.neutral[900]}08, 0 18px 48px -28px ${brand.primary[900]}33`,
-} as const;
-
-const premiumFieldSx = {
-  '& .MuiOutlinedInput-root': {
-    borderRadius: '12px',
-    bgcolor: '#fff',
-    fontSize: '0.86rem',
-    transition: 'box-shadow 0.18s ease, border-color 0.18s ease, background 0.18s ease',
-    '& fieldset': { borderColor: brand.neutral[200] },
-    '&:hover fieldset': { borderColor: brand.primary[300] },
-    '&.Mui-focused': {
-      bgcolor: '#fff',
-      boxShadow: `0 0 0 4px ${brand.primary[100]}99`,
-    },
-    '&.Mui-focused fieldset': { borderColor: brand.primary[500] },
-  },
-  '& .MuiInputLabel-root': {
-    fontSize: '0.78rem',
-    fontWeight: 700,
-    color: brand.neutral[500],
-  },
-} as const;
-
-const softScrollSx = {
-  '&::-webkit-scrollbar': { width: 6, height: 6 },
-  '&::-webkit-scrollbar-thumb': {
-    bgcolor: brand.neutral[300],
-    borderRadius: 8,
-  },
-  '&::-webkit-scrollbar-track': { bgcolor: 'transparent' },
-} as const;
-
-const focusVisibleSx = {
-  '&:focus-visible': {
-    outline: `3px solid ${brand.primary[200]}`,
-    outlineOffset: 2,
-  },
-} as const;
-
-// ─── Props (mirror other PosLayouts) ───────────────────────────────────────
-
-interface ModernLayoutProps {
-  warehouses: Warehouse[]; warehouseId: string; onWarehouseChange: (id: string) => void;
-  search: string; onSearchChange: (value: string) => void;
-  barcode: string; onBarcodeChange: (value: string) => void; onBarcodeScan: () => void; barcodeRef: React.RefObject<HTMLInputElement | null>;
-  products: Product[]; productsLoading: boolean; onAddProduct: (p: Product) => void;
-  onPatchLine?: (index: number, patch: Partial<Line>) => void;
-  terminals: PosTerminal[]; linkedTerminalId: string; onLinkedTerminalChange: (id: string) => void;
-  customers: Customer[]; customerId: string | null; onCustomerChange: (id: string | null) => void;
-  lines: Line[]; onIncQty: (i: number) => void; onDecQty: (i: number) => void; onRemoveLine: (i: number) => void; onClearCart: () => void;
-  paymentMethod: 'CASH' | 'CARD' | 'SPLIT'; onPaymentMethodChange: (m: 'CASH' | 'CARD' | 'SPLIT') => void;
-  tendered: string; onTenderedChange: (v: string) => void;
-  discount: number; discountType: 'FIXED' | 'PERCENT';
-  onDiscountChange: (v: number) => void; onDiscountTypeChange: (t: 'FIXED' | 'PERCENT') => void;
-  totals: { subtotal: number; tax: number; discount: number; grand: number; tenderedNum: number; change: number };
-  categoryId: string; brandId: string;
-  onCategoryChange: (id: string) => void; onBrandChange: (id: string) => void;
-  activeTab: string; onTabChange: (tab: string) => void;
-  banner: { kind: 'success' | 'error'; text: string } | null; onBannerClose: () => void;
-  lastSale: Sale | null; onReprint: (sale: Sale) => void;
-  onCheckout: () => void; submitting: boolean; canCheckout: boolean;
-  online: boolean; queueSize: number;
-  onHoldCart?: () => void;
-  onOpenHeldCarts?: () => void;
-  onNotify?: (message: string) => void;
-}
+// (shared constants imported from ./shared)
 
 // ═══════════════════════════════════════════════════════════════════════════
 //  Modern Layout
 // ═══════════════════════════════════════════════════════════════════════════
 
-export default function ModernLayout(props: ModernLayoutProps) {
+export default function ModernLayout(props: PosLayoutProps) {
   const { t } = useTranslation('smartpos');
   const { user } = useAuth();
 
@@ -230,25 +138,12 @@ export default function ModernLayout(props: ModernLayoutProps) {
   const [brands, setBrands] = useState<BrandRef[]>([]);
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [paymentChoice, setPaymentChoice] = useState<PaymentChoice>('CASH');
-  const [stockMap, setStockMap] = useState<Record<string, StockLevel>>({});
-  const [stockLoading, setStockLoading] = useState(false);
 
   useEffect(() => {
     Promise.all([listCategories(), listBrands()])
       .then(([c, b]) => { setCategories(c); setBrands(b); })
       .catch(() => {});
   }, []);
-
-  // Fetch stock levels for visible products
-  useEffect(() => {
-    if (!props.warehouseId || props.products.length === 0) return;
-    const ids = props.products.map((p) => p.id);
-    setStockLoading(true);
-    batchStockLevels(props.warehouseId, ids)
-      .then((m) => setStockMap(m))
-      .catch(() => {})
-      .finally(() => setStockLoading(false));
-  }, [props.warehouseId, props.products]);
 
   const computed = useMemo(() => {
     const subtotal = props.totals.subtotal;
@@ -263,7 +158,7 @@ export default function ModernLayout(props: ModernLayoutProps) {
   const paymentChange = Math.max(0, (Number(props.tendered) || 0) - computed.grand);
 
   // --- Product tab handler — delegates to parent for server-side filtering ---
-  const handleTabChange = (tab: string) => {
+  const handleTabChange = (tab: LayoutTab) => {
     if (tab === 'all') {
       props.onCategoryChange('');
       props.onBrandChange('');
@@ -327,6 +222,12 @@ export default function ModernLayout(props: ModernLayoutProps) {
         user={user}
         onHoldCart={props.onHoldCart}
         onScanFocus={() => props.barcodeRef.current?.focus()}
+        onCustomerCreated={props.onCustomerCreated}
+        onTodaySales={props.onTodaySales}
+        registerSession={props.registerSession}
+        registerLoading={props.registerLoading}
+        onOpenRegister={props.onOpenRegister}
+        onCloseRegister={props.onCloseRegister}
       />
 
       {/* ═══ Banner ═════════════════════════════════════════════════════ */}
@@ -421,8 +322,8 @@ export default function ModernLayout(props: ModernLayoutProps) {
               <ProductGrid
                 products={props.products}
                 loading={props.productsLoading}
-                stockMap={stockMap}
-                stockLoading={stockLoading}
+                stockMap={props.stockMap}
+                stockLoading={props.stockLoading}
                 onAdd={props.onAddProduct}
               />
             </Box>
@@ -449,6 +350,8 @@ export default function ModernLayout(props: ModernLayoutProps) {
               discountType={props.discountType}
               onDiscountChange={props.onDiscountChange}
               onDiscountTypeChange={props.onDiscountTypeChange}
+              products={props.products}
+              stockMap={props.stockMap}
             />
           </Box>
         </Box>
@@ -462,6 +365,7 @@ export default function ModernLayout(props: ModernLayoutProps) {
           onClear={props.onClearCart}
           onHoldCart={props.onHoldCart}
           onOpenHeldCarts={props.onOpenHeldCarts}
+
           canCheckout={props.canCheckout}
           submitting={props.submitting}
           onCheckout={openPayment}
@@ -484,15 +388,22 @@ interface KioskTopBarProps {
   categories: Category[]; categoryId: string; onCategoryChange: (id: string) => void;
   brands: BrandRef[]; brandId: string; onBrandChange: (id: string) => void;
   customers: Customer[]; customerId: string | null; onCustomerChange: (id: string | null) => void;
+  onCustomerCreated?: (customer: Customer) => void;
   terminals: PosTerminal[]; linkedTerminalId: string; onLinkedTerminalChange: (id: string) => void;
   online: boolean;
   user?: { firstName?: string; lastName?: string; email?: string; roles?: string[] } | null;
   onHoldCart?: () => void;
   onScanFocus: () => void;
+  onTodaySales?: () => void;
+  registerSession?: import('src/api/smartpos/cashRegister').CashRegisterSession | null;
+  registerLoading?: boolean;
+  onOpenRegister?: () => void;
+  onCloseRegister?: () => void;
 }
 
 function KioskTopBar(p: KioskTopBarProps) {
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [quickAddOpen, setQuickAddOpen] = useState(false);
   const { i18n } = useTranslation();
 
   const cycleLanguage = () => {
@@ -519,12 +430,12 @@ function KioskTopBar(p: KioskTopBarProps) {
   };
 
   const topFieldSx = {
-    minWidth: 170,
+    minWidth: 160,
     '& .MuiOutlinedInput-root': {
-      height: 46,
+      height: 40,
       borderRadius: '10px',
       bgcolor: '#fff',
-      fontSize: '0.86rem',
+      fontSize: '0.84rem',
       '& fieldset': { borderColor: brand.neutral[200] },
       '&:hover fieldset': { borderColor: brand.primary[300] },
       '&.Mui-focused fieldset': { borderColor: brand.primary[500] },
@@ -535,12 +446,12 @@ function KioskTopBar(p: KioskTopBarProps) {
   return (
     <Box
       sx={{
-        height: 74,
+        height: 64,
         flexShrink: 0,
         display: 'flex',
         alignItems: 'center',
-        gap: 1.25,
-        px: 2.5,
+        gap: 1,
+        px: 2,
         bgcolor: '#fff',
         borderBottom: `1px solid ${brand.neutral[200]}`,
         boxShadow: `0 1px 10px ${brand.neutral[900]}08`,
@@ -553,19 +464,25 @@ function KioskTopBar(p: KioskTopBarProps) {
         <BrandLogo size="lg" />
       </Box>
 
-      <Stack direction="row" spacing={0.6} alignItems="center" sx={{ flexShrink: 0, mr: 1.5 }}>
-        <IconCircleFilled size={9} color={p.online ? brand.primary[600] : brand.warning.main} />
-        <Typography sx={{ fontSize: '0.86rem', fontWeight: 700, color: p.online ? brand.primary[700] : brand.warning.dark }}>
-          {p.online ? 'Online' : 'Offline'}
-        </Typography>
-      </Stack>
+      <Tooltip title={p.online ? 'Online' : 'Offline — sales will queue locally'} arrow>
+        <Box sx={{ flexShrink: 0, display: 'flex', alignItems: 'center', px: 0.5 }}>
+          <IconCircleFilled size={11} color={p.online ? brand.primary[600] : brand.warning.main} />
+        </Box>
+      </Tooltip>
+
+      <CashRegisterIndicator
+        session={p.registerSession ?? null}
+        loading={p.registerLoading ?? false}
+        onOpen={() => p.onOpenRegister?.()}
+        onClose={() => p.onCloseRegister?.()}
+      />
 
       <TextField
         select
         size="small"
         value={p.warehouseId}
         onChange={(e) => p.onWarehouseChange(e.target.value)}
-        sx={{ ...topFieldSx, minWidth: 190 }}
+        sx={{ ...topFieldSx, minWidth: 170 }}
       >
         {p.warehouses.map((warehouse) => (
           <MenuItem key={warehouse.id} value={warehouse.id}>{warehouse.name}</MenuItem>
@@ -577,7 +494,8 @@ function KioskTopBar(p: KioskTopBarProps) {
         size="small"
         value={p.categoryId}
         onChange={(e) => p.onCategoryChange(e.target.value)}
-        sx={{ ...topFieldSx, minWidth: 200 }}
+        slotProps={{ select: { displayEmpty: true } }}
+        sx={{ minWidth: 170, '& .MuiOutlinedInput-root': { height: 40, borderRadius: '10px', bgcolor: '#fff', fontSize: '0.84rem', '& fieldset': { borderColor: brand.neutral[200] }, '&:hover fieldset': { borderColor: brand.primary[300] }, '&.Mui-focused fieldset': { borderColor: brand.primary[500] } } }}
       >
         <MenuItem value="">All Categories</MenuItem>
         {p.categories.map((category) => (
@@ -590,7 +508,8 @@ function KioskTopBar(p: KioskTopBarProps) {
         size="small"
         value={p.brandId}
         onChange={(e) => p.onBrandChange(e.target.value)}
-        sx={{ ...topFieldSx, minWidth: 200 }}
+        slotProps={{ select: { displayEmpty: true } }}
+        sx={{ minWidth: 170, '& .MuiOutlinedInput-root': { height: 40, borderRadius: '10px', bgcolor: '#fff', fontSize: '0.84rem', '& fieldset': { borderColor: brand.neutral[200] }, '&:hover fieldset': { borderColor: brand.primary[300] }, '&.Mui-focused fieldset': { borderColor: brand.primary[500] } } }}
       >
         <MenuItem value="">All Brands</MenuItem>
         {p.brands.map((brandRef) => (
@@ -604,7 +523,7 @@ function KioskTopBar(p: KioskTopBarProps) {
         value={p.customers.find((c) => c.id === p.customerId) || null}
         onChange={(_, value) => p.onCustomerChange(value?.id ?? null)}
         getOptionLabel={(customer) => customer.name}
-        sx={{ minWidth: 240, flexShrink: 0 }}
+        sx={{ minWidth: 220, flexShrink: 0 }}
         renderInput={(params) => (
           <TextField
             {...params}
@@ -624,66 +543,71 @@ function KioskTopBar(p: KioskTopBarProps) {
         )}
       />
 
+      <Tooltip title="Quick add customer" arrow>
+        <IconButton
+          size="small"
+          onClick={() => setQuickAddOpen(true)}
+          sx={{
+            width: 40,
+            height: 40,
+            flexShrink: 0,
+            borderRadius: '10px',
+            border: `1px solid ${brand.primary[200]}`,
+            color: brand.primary[600],
+            bgcolor: brand.primary[50],
+            '&:hover': { bgcolor: brand.primary[100], color: brand.primary[700] },
+          }}
+        >
+          <IconUserPlus size={18} />
+        </IconButton>
+      </Tooltip>
+
       <Box sx={{ flex: 1, minWidth: 8 }} />
 
-      <Button
-        variant="outlined"
-        startIcon={<IconQrcode size={18} />}
-        onClick={p.onScanFocus}
-        sx={{
-          height: 46,
-          borderRadius: '10px',
-          px: 2,
-          flexShrink: 0,
-          textTransform: 'none',
-          fontWeight: 800,
-          color: brand.neutral[800],
-          borderColor: brand.neutral[200],
-          '&:hover': { borderColor: brand.primary[300], bgcolor: brand.primary[50] },
-        }}
-      >
-        Scan Barcode
-      </Button>
-
-      <Button
-        variant="outlined"
-        startIcon={<IconShoppingCart size={18} />}
-        onClick={p.onHoldCart}
-        sx={{
-          height: 46,
-          borderRadius: '10px',
-          px: 2,
-          flexShrink: 0,
-          textTransform: 'none',
-          fontWeight: 800,
-          color: brand.neutral[800],
-          borderColor: brand.neutral[200],
-          '&:hover': { borderColor: brand.primary[300], bgcolor: brand.primary[50] },
-        }}
-      >
-        Hold Order
-      </Button>
-
-      <Tooltip title={p.linkedTerminalId ? 'Customer display paired' : 'Pair customer display'} arrow>
+      {/* Right-side icon cluster — order matches POS-master legacy: receipts → settings → lang → display → fullscreen */}
+      <Stack direction="row" spacing={0.5} alignItems="center" sx={{ flexShrink: 0 }}>
+        <KioskIconButton title="Today's sales" onClick={() => p.onTodaySales?.()}>
+          <IconReceipt size={17} />
+        </KioskIconButton>
+        <KioskIconButton title="Settings" to="/smartpos/settings">
+          <IconSettings size={17} />
+        </KioskIconButton>
+        <KioskIconButton title="Language" onClick={cycleLanguage}>
+          <IconLanguage size={17} />
+        </KioskIconButton>
         <Select
           size="small"
           value={p.linkedTerminalId}
           onChange={(e) => p.onLinkedTerminalChange(e.target.value)}
           displayEmpty
-          renderValue={() => <IconDeviceDesktop size={15} color={p.linkedTerminalId ? brand.primary[600] : brand.neutral[500]} />}
+          renderValue={(selected) => {
+            if (!selected) {
+              return (
+                <Stack direction="row" spacing={0.75} alignItems="center" sx={{ color: brand.neutral[500] }}>
+                  <IconDeviceDesktop size={16} />
+                  <Typography sx={{ fontSize: '0.82rem', fontWeight: 600 }}>Display</Typography>
+                </Stack>
+              );
+            }
+            const terminal = p.terminals.find((t) => t.id === selected);
+            return (
+              <Stack direction="row" spacing={0.75} alignItems="center" sx={{ color: brand.primary[600] }}>
+                <IconDeviceDesktop size={16} color={brand.primary[600]} />
+                <Typography sx={{ fontSize: '0.82rem', fontWeight: 700 }} noWrap>
+                  {terminal?.name ?? selected.slice(0, 8)}
+                </Typography>
+              </Stack>
+            );
+          }}
           sx={{
-            width: 46,
-            height: 46,
+            minWidth: 130,
+            height: 40,
             flexShrink: 0,
             borderRadius: '10px',
-            '& .MuiSelect-select': {
-              p: 0,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            },
             '& .MuiOutlinedInput-notchedOutline': { borderColor: brand.neutral[200] },
-            '& .MuiSelect-icon': { display: 'none' },
+            '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: brand.primary[300] },
+            '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: brand.primary[500] },
+            '& .MuiSelect-select': { display: 'flex', alignItems: 'center', py: 0.75 },
           }}
         >
           <MenuItem value=""><em>Not paired</em></MenuItem>
@@ -691,36 +615,23 @@ function KioskTopBar(p: KioskTopBarProps) {
             <MenuItem key={terminal.id} value={terminal.id}>{terminal.name} · {terminal.code}</MenuItem>
           ))}
         </Select>
-      </Tooltip>
+        <KioskIconButton
+          title={isFullscreen ? 'Exit full screen' : 'Enter full screen'}
+          onClick={toggleFullscreen}
+        >
+          {isFullscreen ? <IconArrowsMinimize size={17} /> : <IconArrowsMaximize size={17} />}
+        </KioskIconButton>
+      </Stack>
 
-      <KioskIconButton title="Customer list" to="/smartpos/customers">
-        <IconUserPlus size={17} />
-      </KioskIconButton>
-      <KioskIconButton title="Language" onClick={cycleLanguage}>
-        <IconLanguage size={17} />
-      </KioskIconButton>
-      <KioskIconButton title="Recent receipts" to="/smartpos/sales">
-        <IconReceipt size={17} />
-      </KioskIconButton>
-      <KioskIconButton title="Settings" to="/smartpos/settings">
-        <IconSettings size={17} />
-      </KioskIconButton>
-      <KioskIconButton
-        title={isFullscreen ? 'Exit full screen' : 'Enter full screen'}
-        onClick={toggleFullscreen}
-      >
-        {isFullscreen ? <IconArrowsMinimize size={17} /> : <IconArrowsMaximize size={17} />}
-      </KioskIconButton>
-
-      <Stack direction="row" spacing={1} alignItems="center" sx={{ pl: 0.75, flexShrink: 0 }}>
+      <Stack direction="row" spacing={0.75} alignItems="center" sx={{ pl: 0.5, flexShrink: 0 }}>
       <Avatar
         sx={{
-            width: 42,
-            height: 42,
+            width: 36,
+            height: 36,
             bgcolor: brand.primary[50],
             color: brand.primary[700],
             fontWeight: 900,
-            fontSize: '1rem',
+            fontSize: '0.9rem',
         }}
       >
           {p.user?.firstName?.charAt(0)?.toUpperCase() || p.user?.email?.charAt(0)?.toUpperCase() || 'U'}
@@ -735,6 +646,15 @@ function KioskTopBar(p: KioskTopBarProps) {
         </Box>
         <IconChevronDown size={18} color={brand.neutral[600]} />
       </Stack>
+
+      <QuickAddCustomerModal
+        open={quickAddOpen}
+        onClose={() => setQuickAddOpen(false)}
+        onCreated={(customer) => {
+          p.onCustomerCreated?.(customer);
+          setQuickAddOpen(false);
+        }}
+      />
     </Box>
   );
 }
@@ -743,8 +663,8 @@ function KioskIconButton({
   title, children, onClick, to,
 }: { title: string; children: React.ReactNode; onClick?: () => void; to?: string }) {
   const sx = {
-    width: 46,
-    height: 46,
+    width: 40,
+    height: 40,
     flexShrink: 0,
     borderRadius: '10px',
     border: `1px solid ${brand.neutral[200]}`,
@@ -781,31 +701,16 @@ interface CheckoutPanelProps {
   taxRate: number;
   discount: number; discountType: 'FIXED' | 'PERCENT';
   onDiscountChange: (v: number) => void; onDiscountTypeChange: (t: 'FIXED' | 'PERCENT') => void;
+  products: Product[];
+  stockMap: Record<string, StockLevel>;
 }
 
 function CheckoutPanel(p: CheckoutPanelProps) {
-  const [editIdx, setEditIdx] = useState<number | null>(null);
-  const [editPrice, setEditPrice] = useState('');
+  const [editLineIdx, setEditLineIdx] = useState<number | null>(null);
+  const [editLine, setEditLine] = useState<Line | null>(null);
   const [discountOpen, setDiscountOpen] = useState(false);
   const [discountInput, setDiscountInput] = useState(String(p.discount || ''));
   const [discountTypeInput, setDiscountTypeInput] = useState<'FIXED' | 'PERCENT'>(p.discountType || 'FIXED');
-
-  const closeEdit = () => {
-    setEditIdx(null);
-    setEditPrice('');
-  };
-
-  const saveEditPrice = () => {
-    if (editIdx === null) return;
-    const n = Number(editPrice);
-    if (!Number.isFinite(n) || n < 0) {
-      p.onNotify?.('Enter a valid unit price.');
-      return;
-    }
-    p.onPatchLine?.(editIdx, { unitPrice: n, priceTier: 'retail', basePrice: n });
-    closeEdit();
-    p.onNotify?.('Line price updated.');
-  };
 
   return (
     <>
@@ -934,8 +839,8 @@ function CheckoutPanel(p: CheckoutPanelProps) {
                 onDec={() => p.onDec(i)}
                 onRemove={() => p.onRemove(i)}
                 onEditClick={() => {
-                  setEditIdx(i);
-                  setEditPrice(String(line.unitPrice));
+                  setEditLineIdx(i);
+                  setEditLine(line);
                 }}
                 onPatchLine={(patch) => p.onPatchLine?.(i, patch)}
               />
@@ -1041,25 +946,17 @@ function CheckoutPanel(p: CheckoutPanelProps) {
       </Box>
     </Card>
 
-    <Dialog open={editIdx !== null} onClose={closeEdit} maxWidth="xs" fullWidth>
-      <DialogTitle sx={{ fontWeight: 800 }}>Edit unit price</DialogTitle>
-      <DialogContent>
-        <TextField
-          autoFocus
-          margin="dense"
-          label="Unit price"
-          type="number"
-          fullWidth
-          value={editPrice}
-          onChange={(e) => setEditPrice(e.target.value)}
-          sx={{ mt: 0.5 }}
-        />
-      </DialogContent>
-      <DialogActions sx={{ px: 3, pb: 2 }}>
-        <Button onClick={closeEdit} sx={{ textTransform: 'none' }}>Cancel</Button>
-        <Button variant="contained" onClick={saveEditPrice} sx={{ textTransform: 'none' }}>Save</Button>
-      </DialogActions>
-    </Dialog>
+    {editLine && (
+    <EditLineModal
+      open={editLineIdx !== null}
+      onClose={() => { setEditLineIdx(null); setEditLine(null); }}
+      line={editLine}
+      lineIndex={editLineIdx!}
+      product={p.products.find((prod) => prod.id === editLine.productId)}
+      stockAvailable={p.stockMap[editLine.productId]?.available}
+      onSave={(index, patch) => p.onPatchLine?.(index, patch)}
+    />
+    )}
     </>
   );
 }
@@ -1225,25 +1122,6 @@ function CartItem({
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-//  TotalRow
-// ═══════════════════════════════════════════════════════════════════════════
-
-function TotalRow({
-  label, value, valueColor,
-}: { label: string; value: string; valueColor?: string }) {
-  return (
-    <Stack direction="row" justifyContent="space-between" alignItems="center">
-      <Typography sx={{ fontSize: '0.82rem', color: brand.neutral[500], fontWeight: 700 }}>
-        {label}
-      </Typography>
-      <Typography sx={{ fontSize: '0.9rem', fontWeight: 800, color: valueColor || brand.neutral[800], letterSpacing: '-0.01em' }}>
-        {value}
-      </Typography>
-    </Stack>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
 //  TopFilters
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -1358,8 +1236,8 @@ function TopFilters(p: TopFiltersProps) {
   );
 }
 
-function ProductTabs({ activeTab, onTabChange }: { activeTab: string; onTabChange: (tab: string) => void }) {
-  const tabs = [
+function ProductTabs({ activeTab, onTabChange }: { activeTab: LayoutTab; onTabChange: (tab: LayoutTab) => void }) {
+  const tabs: { id: LayoutTab; label: string; icon: React.ReactNode }[] = [
     { id: 'all', label: 'All Products', icon: <IconShoppingCart size={18} /> },
     { id: 'featured', label: 'Favourites', icon: <IconStar size={18} /> },
     { id: 'recent', label: 'Recently Added', icon: <IconClock size={18} /> },
@@ -1538,24 +1416,39 @@ function ProductGrid({
 }
 
 function ProductCard({ product, stock, onAdd }: { product: Product; stock?: StockLevel; onAdd: () => void }) {
-  const available = stock ? stock.available : 0;
-  const stockHint = stock ? `${available} pc` : '—';
+  const hasStock = stock !== undefined;
+  const available = stock ? stock.available : -1;
+  const outOfStock = !hasStock || available <= 0;
+  const lowStock = hasStock && available > 0 && stock.available <= stock.stockAlertThreshold;
+
+  const stockLabel = !hasStock ? 'No stock' : available <= 0 ? 'Out of stock' : `${available} pc`;
+  const stockChipColor = outOfStock
+    ? { bg: brand.error.light, color: brand.error.dark, border: `${brand.error.main}33` }
+    : lowStock
+      ? { bg: brand.warning.light, color: brand.warning.dark, border: `${brand.warning.main}33` }
+      : { bg: brand.success.light, color: brand.success.dark, border: `${brand.success.main}33` };
+
+  const handleAction = () => {
+    if (outOfStock) return;
+    onAdd();
+  };
 
   return (
     <Card
       elevation={0}
       tabIndex={0}
       role="button"
-      aria-label={`Add ${product.name}`}
+      aria-label={outOfStock ? `${product.name} — out of stock` : `Add ${product.name}`}
       sx={{
         position: 'relative',
         overflow: 'hidden',
         ...posSurface,
         borderRadius: '8px',
-        transition: 'transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease',
-        cursor: 'pointer',
+        opacity: outOfStock ? 0.55 : 1,
+        transition: 'transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, opacity 0.18s ease',
+        cursor: outOfStock ? 'not-allowed' : 'pointer',
         ...focusVisibleSx,
-        '&:hover': {
+        '&:hover': outOfStock ? {} : {
           transform: 'translateY(-3px)',
           borderColor: brand.primary[300],
           boxShadow: `0 20px 36px -24px ${brand.primary[700]}77`,
@@ -1564,11 +1457,11 @@ function ProductCard({ product, stock, onAdd }: { product: Product; stock?: Stoc
             transform: 'scale(1)',
           },
         },
-        '&:active': { transform: 'translateY(-1px)' },
+        '&:active': outOfStock ? {} : { transform: 'translateY(-1px)' },
       }}
-      onClick={onAdd}
+      onClick={handleAction}
       onKeyDown={(event) => {
-        if (event.key === 'Enter' || event.key === ' ') {
+        if ((event.key === 'Enter' || event.key === ' ') && !outOfStock) {
           event.preventDefault();
           onAdd();
         }
@@ -1609,7 +1502,7 @@ function ProductCard({ product, stock, onAdd }: { product: Product; stock?: Stoc
         {/* Stock chip */}
         <Chip
           size="small"
-          label={stockHint}
+          label={stockLabel}
           sx={{
             position: 'absolute',
             top: 8,
@@ -1617,13 +1510,35 @@ function ProductCard({ product, stock, onAdd }: { product: Product; stock?: Stoc
             height: 22,
             fontSize: '0.68rem',
             fontWeight: 700,
-            bgcolor: brand.success.light,
-            color: brand.success.dark,
+            bgcolor: stockChipColor.bg,
+            color: stockChipColor.color,
             borderRadius: '8px',
-            border: `1px solid ${brand.success.main}33`,
+            border: `1px solid ${stockChipColor.border}`,
             backdropFilter: 'blur(6px)',
           }}
         />
+
+        {/* Out-of-stock overlay */}
+        {outOfStock && (
+          <Typography
+            sx={{
+              position: 'absolute',
+              inset: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontWeight: 900,
+              fontSize: '0.9rem',
+              color: brand.error.dark,
+              bgcolor: 'rgba(255,255,255,0.65)',
+              backdropFilter: 'blur(2px)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.06em',
+            }}
+          >
+            Out of stock
+          </Typography>
+        )}
       </Box>
 
       {/* Body */}
@@ -1649,18 +1564,19 @@ function ProductCard({ product, stock, onAdd }: { product: Product; stock?: Stoc
           </Typography>
           <IconButton
             className="product-add-btn"
+            disabled={outOfStock}
             onClick={(e) => { e.stopPropagation(); onAdd(); }}
             sx={{
               width: 30, height: 30,
               borderRadius: '10px',
-              bgcolor: brand.primary[600],
-              color: '#fff',
+              bgcolor: outOfStock ? brand.neutral[300] : brand.primary[600],
+              color: outOfStock ? brand.neutral[500] : '#fff',
               opacity: 0.85,
               transform: 'scale(0.95)',
               transition: 'all 0.18s ease',
-              boxShadow: `0 4px 10px -2px ${brand.primary[500]}55`,
+              boxShadow: outOfStock ? 'none' : `0 4px 10px -2px ${brand.primary[500]}55`,
               ...focusVisibleSx,
-              '&:hover': { bgcolor: brand.primary[700], boxShadow: `0 6px 14px -2px ${brand.primary[500]}77` },
+              '&:hover': outOfStock ? {} : { bgcolor: brand.primary[700], boxShadow: `0 6px 14px -2px ${brand.primary[500]}77` },
             }}
           >
             <IconPlus size={15} stroke={3} />
@@ -2247,6 +2163,7 @@ interface FooterBarProps {
   onClear: () => void;
   onHoldCart?: () => void;
   onOpenHeldCarts?: () => void;
+
   canCheckout: boolean; submitting: boolean;
   onCheckout: () => void;
   grand: number; itemCount: number;
@@ -2299,6 +2216,7 @@ function FooterBar(p: FooterBarProps) {
         <FooterAction icon={<IconHome size={15} />} label="Home" to="/smartpos/dashboard" />
         <FooterAction icon={<IconRefresh size={15} />} label="Reset" onClick={p.onClear} />
         <FooterAction icon={<IconReceipt size={15} />} label="Recent Drafts" onClick={p.onOpenHeldCarts} />
+
         <FooterAction icon={<IconShoppingCart size={15} />} label="Hold" onClick={p.onHoldCart} />
         <PosBeepSoundPicker />
       </Stack>

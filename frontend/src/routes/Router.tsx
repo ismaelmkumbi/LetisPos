@@ -82,6 +82,9 @@ const SmartPosIntegrations = Loadable(
   lazy(() => import('../views/smartpos/integrations/IntegrationsPage')),
 );
 const SmartPosI18nAdmin = Loadable(lazy(() => import('../views/smartpos/settings/I18nAdminPage')));
+const SmartPosReceiptSettings = Loadable(
+  lazy(() => import('../views/smartpos/settings/ReceiptSettingsPage')),
+);
 const SmartPosCustomers = Loadable(
   lazy(() => import('../views/smartpos/customers/CustomersListPage')),
 );
@@ -373,6 +376,7 @@ const Router = [
       { path: 'integrations', element: <SmartPosIntegrations /> },
       // Settings
       { path: 'settings/i18n', element: <SmartPosI18nAdmin /> },
+      { path: 'settings/receipt', element: <SmartPosReceiptSettings /> },
       { path: 'customers', element: <SmartPosCustomers /> },
       { path: 'suppliers', element: <SmartPosSuppliers /> },
       { path: 'warehouses', element: <SmartPosWarehouses /> },

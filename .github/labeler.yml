@@ -1,0 +1,38 @@
+# PR Labeler — auto-labels PRs based on changed files
+# Uses actions/labeler@v5
+
+"area:frontend":
+  - changed-files:
+      - any-glob-to-any-file: "frontend/**"
+
+"area:backend":
+  - changed-files:
+      - any-glob-to-any-file: "backend/**"
+
+"service:gateway":
+  - changed-files:
+      - any-glob-to-any-file: "backend/gateway/**"
+
+"service:auth":
+  - changed-files:
+      - any-glob-to-any-file: "backend/auth-service/**"
+
+"service:sales":
+  - changed-files:
+      - any-glob-to-any-file: "backend/sales-service/**"
+
+"service:inventory":
+  - changed-files:
+      - any-glob-to-any-file: "backend/inventory-service/**"
+
+"service:product":
+  - changed-files:
+      - any-glob-to-any-file: "backend/product-service/**"
+
+"type:ci":
+  - changed-files:
+      - any-glob-to-any-file: ".github/**"
+
+"type:infra":
+  - changed-files:
+      - any-glob-to-any-file: "ops/**"

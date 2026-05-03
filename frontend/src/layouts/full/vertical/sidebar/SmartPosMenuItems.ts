@@ -118,42 +118,62 @@ export function buildSmartPosMenu(t: TFunction): MenuItem[] {
     { id: uid(), title: t('smartpos:nav.transfers'), icon: IconArrowsTransferDown, href: '/smartpos/transfers' },
     { id: uid(), title: t('smartpos:nav.expenses'),  icon: IconReceipt2,            href: '/smartpos/expenses' },
 
-    // Accounting
-    { subheader: t('smartpos:nav.accounting') },
-    { id: uid(), title: t('smartpos:nav.chart_of_accounts'),    icon: IconCalculator, href: '/smartpos/accounting/chart-of-accounts' },
-    { id: uid(), title: t('smartpos:nav.journal_entries'),      icon: IconReceipt2,   href: '/smartpos/accounting/journal-entries' },
-    { id: uid(), title: t('smartpos:nav.financial_statements'), icon: IconChartBar,   href: '/smartpos/accounting/financials' },
+    // Accounting (collapsible)
+    {
+      id: uid(), title: t('smartpos:nav.accounting'), icon: IconCalculator,
+      children: [
+        { id: uid(), title: t('smartpos:nav.chart_of_accounts'),    icon: IconCalculator, href: '/smartpos/accounting/chart-of-accounts' },
+        { id: uid(), title: t('smartpos:nav.journal_entries'),      icon: IconReceipt2,   href: '/smartpos/accounting/journal-entries' },
+        { id: uid(), title: t('smartpos:nav.financial_statements'), icon: IconChartBar,   href: '/smartpos/accounting/financials' },
+      ],
+    },
 
-    // HRM
-    { subheader: t('smartpos:nav.hrm') },
-    { id: uid(), title: t('smartpos:nav.employees'),       icon: IconUsersGroup, href: '/smartpos/hrm/employees' },
-    { id: uid(), title: t('smartpos:nav.attendance'),      icon: IconClock,      href: '/smartpos/hrm/attendance' },
-    { id: uid(), title: t('smartpos:nav.leave_requests'),  icon: IconBeach,      href: '/smartpos/hrm/leave' },
-    { id: uid(), title: t('smartpos:nav.payroll'),         icon: IconWallet,     href: '/smartpos/hrm/payroll' },
+    // HRM (collapsible)
+    {
+      id: uid(), title: t('smartpos:nav.hrm'), icon: IconUsersGroup,
+      children: [
+        { id: uid(), title: t('smartpos:nav.employees'),       icon: IconUsersGroup, href: '/smartpos/hrm/employees' },
+        { id: uid(), title: t('smartpos:nav.attendance'),      icon: IconClock,      href: '/smartpos/hrm/attendance' },
+        { id: uid(), title: t('smartpos:nav.leave_requests'),  icon: IconBeach,      href: '/smartpos/hrm/leave' },
+        { id: uid(), title: t('smartpos:nav.payroll'),         icon: IconWallet,     href: '/smartpos/hrm/payroll' },
+      ],
+    },
 
-    // Reports
-    { subheader: t('smartpos:nav.reports_group') },
-    { id: uid(), title: t('smartpos:nav.reports'),           icon: IconChartBar,         href: '/smartpos/reports' },
-    { id: uid(), title: t('smartpos:nav.advanced_reports'),  icon: IconChartInfographic, href: '/smartpos/reports/advanced' },
-    { id: uid(), title: t('smartpos:nav.ai_insights'),       icon: IconSparkles,         href: '/smartpos/ai',
-      chip: 'AI', chipColor: 'secondary' },
-    { id: uid(), title: t('smartpos:nav.async_exports'),     icon: IconDownload,         href: '/smartpos/exports' },
+    // Reports (collapsible)
+    {
+      id: uid(), title: t('smartpos:nav.reports_group'), icon: IconChartBar,
+      children: [
+        { id: uid(), title: t('smartpos:nav.reports'),           icon: IconChartBar,         href: '/smartpos/reports' },
+        { id: uid(), title: t('smartpos:nav.advanced_reports'),  icon: IconChartInfographic, href: '/smartpos/reports/advanced' },
+        { id: uid(), title: t('smartpos:nav.ai_insights'),       icon: IconSparkles,         href: '/smartpos/ai', chip: 'AI', chipColor: 'secondary' },
+        { id: uid(), title: t('smartpos:nav.async_exports'),     icon: IconDownload,         href: '/smartpos/exports' },
+      ],
+    },
 
-    // Notifications
-    { subheader: t('smartpos:nav.notifications_group') },
-    { id: uid(), title: t('smartpos:nav.notification_templates'),  icon: IconBookmarks, href: '/smartpos/notifications/templates' },
-    { id: uid(), title: t('smartpos:nav.notification_deliveries'), icon: IconBell,      href: '/smartpos/notifications/deliveries' },
+    // Notifications (collapsible)
+    {
+      id: uid(), title: t('smartpos:nav.notifications_group'), icon: IconBell,
+      children: [
+        { id: uid(), title: t('smartpos:nav.notification_templates'),  icon: IconBookmarks, href: '/smartpos/notifications/templates' },
+        { id: uid(), title: t('smartpos:nav.notification_deliveries'), icon: IconBell,      href: '/smartpos/notifications/deliveries' },
+      ],
+    },
 
     // Integrations
     { id: uid(), title: t('smartpos:nav.integrations'), icon: IconPlug, href: '/smartpos/integrations' },
 
-    // Settings
-    { subheader: t('smartpos:nav.settings') },
-    { id: uid(), title: t('smartpos:nav.users_roles'),     icon: IconUserShield, href: '/smartpos/settings/users' },
-    { id: uid(), title: t('smartpos:nav.tenants'),         icon: IconBuilding,   href: '/smartpos/settings/tenants' },
-    { id: uid(), title: t('smartpos:nav.languages_admin'), icon: IconLanguage,   href: '/smartpos/settings/i18n' },
-    { id: uid(), title: t('smartpos:nav.localization'),    icon: IconWorld,      href: '/smartpos/settings/locale' },
-    { id: uid(), title: t('smartpos:nav.preferences'),     icon: IconSettings,   href: '/smartpos/settings' },
+    // Settings (collapsible)
+    {
+      id: uid(), title: t('smartpos:nav.settings'), icon: IconSettings,
+      children: [
+        { id: uid(), title: t('smartpos:nav.users_roles'),     icon: IconUserShield, href: '/smartpos/settings/users' },
+        { id: uid(), title: t('smartpos:nav.tenants'),         icon: IconBuilding,   href: '/smartpos/settings/tenants' },
+        { id: uid(), title: t('smartpos:nav.languages_admin'), icon: IconLanguage,   href: '/smartpos/settings/i18n' },
+        { id: uid(), title: t('smartpos:nav.localization'),    icon: IconWorld,      href: '/smartpos/settings/locale' },
+        { id: uid(), title: t('smartpos:nav.preferences'),     icon: IconSettings,   href: '/smartpos/settings' },
+        { id: uid(), title: t('smartpos:nav.receipt_settings'), icon: IconReceipt,   href: '/smartpos/settings/receipt' },
+      ],
+    },
   ];
 }
 

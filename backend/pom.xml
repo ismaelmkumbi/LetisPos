@@ -41,6 +41,11 @@
         <maven.compiler.release>21</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
+        <!-- Container registry: override via -Djib.registry=ghcr.io/owner or env CI_REGISTRY -->
+        <jib.registry>ghcr.io/ismaelmkumbi</jib.registry>
+        <!-- Tag: git SHA in CI, 'latest' for local docker builds -->
+        <jib.tag>latest</jib.tag>
+
         <spring-cloud.version>2023.0.3</spring-cloud.version>
         <jjwt.version>0.12.6</jjwt.version>
         <springdoc.version>2.6.0</springdoc.version>
@@ -123,8 +128,26 @@
                             <image>eclipse-temurin:21-jre-alpine</image>
                         </from>
                         <to>
-                            <image>smartpos/${project.artifactId}:${project.version}</image>
+                            <image>${jib.registry}/${project.artifactId}:${jib.tag}</image>
+                            <tags>
+                                <tag>latest</tag>
+                            </tags>
                         </to>
+                        <container>
+                            <creationTime>USE_CURRENT_TIMESTAMP</creationTime>
+                            <jvmFlags>
+                                <jvmFlag>-XX:+UseZgc</jvmFlag>
+                                <jvmFlag>-XX:MaxRAMPercentage=75</jvmFlag>
+                                <jvmFlag>-XX:+ExitOnOutOfMemoryError</jvmFlag>
+                            </jvmFlags>
+                            <ports>
+                                <port>8080</port>
+                            </ports>
+                            <labels>
+                                <org.opencontainers.image.source>https://github.com/ismaelmkumbi/LetisPos</org.opencontainers.image.source>
+                                <org.opencontainers.image.description>LetisPOS — ${project.name}</org.opencontainers.image.description>
+                            </labels>
+                        </container>
                     </configuration>
                 </plugin>
             </plugins>

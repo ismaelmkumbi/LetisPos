@@ -3,7 +3,7 @@ import 'simplebar/dist/simplebar.min.css';
 import { Box, styled, SxProps } from '@mui/material';
 
 const SimpleBarStyle = styled(SimpleBar)(() => ({
-  maxHeight: '100%',
+  height: '100%',
 }));
 
 interface PropsType {

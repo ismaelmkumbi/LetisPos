@@ -226,6 +226,23 @@ export async function getSaleReturn(returnId: UUID): Promise<SaleReturn> {
 
 // ---------- Stats ----------
 
+export interface SaleStats {
+  count: number;
+  gross: number;
+  tax: number;
+  discount: number;
+  net: number;
+  paid: number;
+  due: number;
+}
+
+export async function getSaleStats(params: {
+  dateFrom?: string; dateTo?: string; warehouseId?: UUID; customerId?: UUID;
+} = {}): Promise<SaleStats> {
+  const { data } = await api.get<SaleStats>('/api/v1/sales/stats', { params });
+  return data;
+}
+
 export interface TopProduct {
   productId: UUID;
   productName: string;

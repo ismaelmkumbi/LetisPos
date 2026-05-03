@@ -1,47 +1,61 @@
+import { useEffect, useState } from 'react';
 import { Alert, Autocomplete, Box, Button, Card, CardContent, Chip, CircularProgress, Divider, IconButton, InputAdornment, MenuItem, Skeleton, Stack, TextField, Tooltip, Typography } from '@mui/material';
 import { IconSearch, IconBarcode, IconTrash, IconPlus, IconMinus, IconX, IconCheck } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
-import type { Product, Customer } from 'src/api/smartpos/products';
-import type { Warehouse } from 'src/api/smartpos/inventory';
-import type { PosTerminal } from 'src/api/smartpos/posTerminals';
-import type { Sale } from 'src/api/smartpos/sales';
-import type { Line } from './types';
+import type { PosLayoutProps } from './PosLayoutProps';
+import CashRegisterIndicator from 'src/components/smartpos/CashRegisterIndicator';
+import { listCategories, listBrands } from 'src/api/smartpos/products';
+import type { Brand as BrandRef, Category } from 'src/api/smartpos/types';
 import { brand, brandGradients } from 'src/theme/smartpos/brand';
 import { formatMoney } from 'src/utils/smartpos/currency';
 
 const fmt = formatMoney;
 
-interface ClassicLayoutProps {
-  warehouses: Warehouse[]; warehouseId: string; onWarehouseChange: (id: string) => void;
-  search: string; onSearchChange: (value: string) => void;
-  barcode: string; onBarcodeChange: (value: string) => void; onBarcodeScan: () => void; barcodeRef: React.RefObject<HTMLInputElement | null>;
-  products: Product[]; productsLoading: boolean; onAddProduct: (p: Product) => void;
-  terminals: PosTerminal[]; linkedTerminalId: string; onLinkedTerminalChange: (id: string) => void;
-  customers: Customer[]; customerId: string | null; onCustomerChange: (id: string | null) => void;
-  lines: Line[]; onIncQty: (index: number) => void; onDecQty: (index: number) => void; onRemoveLine: (index: number) => void; onClearCart: () => void;
-  paymentMethod: 'CASH' | 'CARD' | 'SPLIT'; onPaymentMethodChange: (method: 'CASH' | 'CARD' | 'SPLIT') => void;
-  tendered: string; onTenderedChange: (value: string) => void;
-  totals: { subtotal: number; tax: number; grand: number; tenderedNum: number; change: number };
-  banner: { kind: 'success' | 'error'; text: string } | null; onBannerClose: () => void;
-  lastSale: Sale | null; onReprint: (sale: Sale) => void;
-  onCheckout: () => void; submitting: boolean; canCheckout: boolean;
-  online: boolean; queueSize: number;
-}
-
-export default function ClassicLayout(props: ClassicLayoutProps) {
+export default function ClassicLayout(props: PosLayoutProps) {
   const { t } = useTranslation('smartpos');
-  
+
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [brands, setBrands] = useState<BrandRef[]>([]);
+
+  useEffect(() => {
+    Promise.all([listCategories(), listBrands()])
+      .then(([c, b]) => { setCategories(c); setBrands(b); })
+      .catch(() => {});
+  }, []);
+
+  const fieldSx = {
+    minWidth: 160,
+    '& .MuiOutlinedInput-root': {
+      borderRadius: '10px',
+      fontSize: '0.85rem',
+      bgcolor: '#fff',
+      '& fieldset': { borderColor: brand.neutral[200] },
+      '&:hover fieldset': { borderColor: brand.primary[300] },
+      '&.Mui-focused fieldset': { borderColor: brand.primary[500] },
+    },
+    '& .MuiInputLabel-root': { fontSize: '0.85rem' },
+  } as const;
+
   return (
     <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '1fr 420px' }, gap: 2.5, alignItems: 'start' }}>
       <Box>
         <Card elevation={0} sx={{ border: `1px solid ${brand.neutral[200]}`, borderRadius: '14px', mb: 2 }}>
           <CardContent sx={{ py: 1.75, '&:last-child': { pb: 1.75 } }}>
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems={{ sm: 'center' }}>
-              <TextField select size="small" label={t('pos.warehouse')} value={props.warehouseId} onChange={(e) => props.onWarehouseChange(e.target.value)} sx={{ minWidth: 160 }}>
+              <TextField select size="small" label={t('pos.warehouse')} value={props.warehouseId} onChange={(e) => props.onWarehouseChange(e.target.value)} sx={fieldSx}>
                 {props.warehouses.map((w) => (<MenuItem key={w.id} value={w.id}>{w.name}</MenuItem>))}
               </TextField>
-              <TextField size="small" placeholder="Search products…" value={props.search} onChange={(e) => props.onSearchChange(e.target.value)} sx={{ flex: 1, minWidth: 160 }} slotProps={{ input: { startAdornment: (<InputAdornment position="start"><IconSearch size={16} color={brand.neutral[400]} /></InputAdornment>) } }} />
+              <TextField size="small" placeholder="Search products…" value={props.search} onChange={(e) => props.onSearchChange(e.target.value)} sx={{ ...fieldSx, flex: 1, minWidth: 160 }} slotProps={{ input: { startAdornment: (<InputAdornment position="start"><IconSearch size={16} color={brand.neutral[400]} /></InputAdornment>) } }} />
               <TextField size="small" placeholder={t('pos.scan_barcode')} value={props.barcode} inputRef={props.barcodeRef} onChange={(e) => props.onBarcodeChange(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') props.onBarcodeScan(); if (e.key === 'Escape') props.onBarcodeChange(''); }} sx={{ minWidth: 180 }} slotProps={{ input: { startAdornment: (<InputAdornment position="start"><IconBarcode size={16} color={brand.primary[500]} /></InputAdornment>) } }} />
+              <TextField select size="small" value={props.categoryId} onChange={(e) => props.onCategoryChange(e.target.value)} slotProps={{ select: { displayEmpty: true } }} sx={{ ...fieldSx, minWidth: 180 }}>
+                <MenuItem value="">All Categories</MenuItem>
+                {categories.map((c) => (<MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>))}
+              </TextField>
+              <TextField select size="small" value={props.brandId} onChange={(e) => props.onBrandChange(e.target.value)} slotProps={{ select: { displayEmpty: true } }} sx={{ ...fieldSx, minWidth: 170 }}>
+                <MenuItem value="">All Brands</MenuItem>
+                {brands.map((b) => (<MenuItem key={b.id} value={b.id}>{b.name}</MenuItem>))}
+              </TextField>
+              <CashRegisterIndicator session={props.registerSession ?? null} loading={props.registerLoading ?? false} onOpen={() => props.onOpenRegister?.()} onClose={() => props.onCloseRegister?.()} />
               <Tooltip title="Pair to customer-facing display"><TextField select size="small" label="Display" value={props.linkedTerminalId} onChange={(e) => props.onLinkedTerminalChange(e.target.value)} sx={{ minWidth: 150 }} helperText={!props.online ? `Offline · ${props.queueSize} queued` : props.queueSize > 0 ? `${props.queueSize} pending sync` : undefined} slotProps={{ input: { startAdornment: (<InputAdornment position="start"><IconSearch size={15} color={brand.neutral[400]} /></InputAdornment>) } }}><MenuItem value=""><em>Not paired</em></MenuItem>{props.terminals.map((tm) => (<MenuItem key={tm.id} value={tm.id}>{tm.name} · {tm.code}</MenuItem>))}</TextField></Tooltip>
             </Stack>
           </CardContent>

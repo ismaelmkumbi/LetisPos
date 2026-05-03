@@ -88,7 +88,11 @@ const Sidebar = () => {
             <Scrollbar
               sx={{
                 flex: 1,
-                '& .simplebar-content': { height: '100%', display: 'flex', flexDirection: 'column' },
+                minHeight: 0,
+                // minHeight (not height) so the content can grow taller than the
+                // visible area and SimpleBar actually scrolls. With height:100%
+                // the bottom items (e.g. Settings) get clipped.
+                '& .simplebar-content': { minHeight: '100%', display: 'flex', flexDirection: 'column' },
               }}
             >
               <SidebarItems />
