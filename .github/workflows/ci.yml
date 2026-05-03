@@ -29,6 +29,7 @@ env:
   REGISTRY: ghcr.io
   IMAGE_PREFIX: ghcr.io/ismaelmkumbi
   JAVA_VERSION: '21'
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   # ────────────────────────────────────────────────────────────────────────
@@ -58,6 +59,8 @@ jobs:
       - uses: dorny/paths-filter@v3
         id: filter
         with:
+          # On workflow_dispatch there is no 'before' SHA; compare against HEAD~1
+          base: ${{ github.event_name == 'workflow_dispatch' && 'HEAD~1' || github.event.before }}
           filters: |
             backend:
               - 'backend/**'
@@ -108,6 +111,10 @@ jobs:
     needs: changes
     if: needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
+    # dorny/test-reporter needs checks:write to post results
+    permissions:
+      contents: read
+      checks: write
     strategy:
       fail-fast: false
       matrix:
@@ -143,6 +150,7 @@ jobs:
 
       - name: Publish test results
         if: always()
+        continue-on-error: true
         uses: dorny/test-reporter@v1
         with:
           name: Tests — ${{ matrix.service }}
