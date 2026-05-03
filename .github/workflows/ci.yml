@@ -7,7 +7,7 @@
 #   VPS_HOST          — Production server IP/hostname
 #   VPS_USER          — SSH user (e.g. deploy)
 #   VPS_SSH_KEY       — SSH private key for authentication
-#   VPS_PROJECT_PATH  — (optional) project directory on server (default: /opt/letispos)
+#   VPS_PROJECT_PATH  — (optional) project directory on server (default: /var/www/LetisPos)
 
 name: CI/CD
 
@@ -196,120 +196,57 @@ jobs:
           retention-days: 1
 
   # ────────────────────────────────────────────────────────────────────────
-  #  Containerize — Push images to GHCR
+  #  Deploy to production
+  #
+  #  Architecture: production runs 12 systemd JAR units (not Docker Compose).
+  #  - Frontend: nginx serves /var/www/LetisPos/frontend/dist directly.
+  #  - Backend: systemd units run java -jar backend/{svc}/target/{svc}.jar
+  #  - Maven 3.8.7 + Java 21 are installed on the VPS.
+  #
+  #  Steps:
+  #    1. Sync built frontend/dist to server (if frontend changed)
+  #    2. SSH: git pull → mvn build changed services → systemctl restart
   # ────────────────────────────────────────────────────────────────────────
-  push-images:
-    name: Push images to GHCR
+  deploy:
+    name: Deploy to production
     needs: [backend, frontend, changes]
     if: |
-      always() &&
-      !cancelled() &&
-      needs.changes.result == 'success' &&
-      needs.backend.result != 'failure' &&
-      needs.frontend.result != 'failure'
+      always() && !cancelled() &&
+      (needs.backend.result == 'success' || needs.frontend.result == 'success')
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        service:
-          - gateway
-          - auth-service
-          - user-service
-          - product-service
-          - inventory-service
-          - sales-service
-          - payment-service
-          - report-service
-          - notification-service
-          - hrm-service
-          - ai-service
-          - integration-service
-    permissions:
-      contents: read
-      packages: write
+    environment:
+      name: production
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up JDK ${{ env.JAVA_VERSION }}
-        uses: actions/setup-java@v4
-        with:
-          java-version: ${{ env.JAVA_VERSION }}
-          distribution: temurin
-          cache: maven
-
-      - name: Login to GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Push image for ${{ matrix.service }}
+      # ── SSH key for rsync ──────────────────────────────────────────────
+      - name: Set up SSH key
         run: |
-          cd backend
-          TAG=${{ inputs.tag || github.sha }}
-          mvn -B -pl ${{ matrix.service }} -am compile jib:build \
-            -DskipTests \
-            -Djib.registry=${{ env.IMAGE_PREFIX }} \
-            -Djib.tag="$TAG" \
-            -Dstyle.color=always
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
 
-  # ────────────────────────────────────────────────────────────────────────
-  #  Frontend container image
-  # ────────────────────────────────────────────────────────────────────────
-  push-frontend-image:
-    name: Push frontend image to GHCR
-    needs: [frontend, changes]
-    if: |
-      always() &&
-      needs.changes.outputs.frontend == 'true' &&
-      needs.frontend.result != 'failure'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-    steps:
-      - uses: actions/checkout@v4
-
+      # ── Frontend: download dist artifact and rsync to server ───────────
       - name: Download frontend dist
+        if: needs.frontend.result == 'success'
         uses: actions/download-artifact@v4
         with:
           name: frontend-dist
           path: frontend/dist
 
-      - name: Login to GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Sync frontend → server
+        if: needs.frontend.result == 'success'
+        run: |
+          rsync -az --delete \
+            -e "ssh -i ~/.ssh/id_deploy -o StrictHostKeyChecking=no" \
+            frontend/dist/ \
+            "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:${{ secrets.VPS_PROJECT_PATH || '/var/www/LetisPos' }}/frontend/dist/"
+          echo "✓ Frontend synced"
 
-      - name: Build & push frontend image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: ops/Dockerfile.frontend
-          push: true
-          tags: |
-            ${{ env.IMAGE_PREFIX }}/frontend:${{ inputs.tag || github.sha }}
-            ${{ env.IMAGE_PREFIX }}/frontend:latest
-
-  # ────────────────────────────────────────────────────────────────────────
-  #  Deploy to production
-  # ────────────────────────────────────────────────────────────────────────
-  deploy:
-    name: Deploy to production
-    needs: [push-images, push-frontend-image]
-    if: |
-      always() &&
-      !cancelled() &&
-      needs.push-images.result != 'failure' &&
-      needs.push-frontend-image.result != 'failure'
-    runs-on: ubuntu-latest
-    environment:
-      name: production
-    steps:
-      - name: Deploy via SSH
+      # ── Backend: SSH → git pull → Maven → systemctl restart ───────────
+      - name: Build & restart changed services
+        if: needs.backend.result == 'success'
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.VPS_HOST }}
@@ -317,8 +254,55 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           script_stop: true
           script: |
-            PROJECT_DIR="${{ secrets.VPS_PROJECT_PATH || '/opt/letispos' }}"
+            set -euo pipefail
+            PROJECT_DIR="${{ secrets.VPS_PROJECT_PATH || '/var/www/LetisPos' }}"
             cd "$PROJECT_DIR"
-            git pull origin main
-            export IMAGE_TAG=${{ inputs.tag || github.sha }}
-            bash ops/scripts/deploy.sh
+
+            echo "==> git pull"
+            git pull origin main --ff-only
+
+            # ── Work out which services changed ────────────────────────
+            CHANGED=""
+            [ "${{ needs.changes.outputs.gateway }}"              = "true" ] && CHANGED="$CHANGED gateway"
+            [ "${{ needs.changes.outputs.auth_service }}"         = "true" ] && CHANGED="$CHANGED auth-service"
+            [ "${{ needs.changes.outputs.user_service }}"         = "true" ] && CHANGED="$CHANGED user-service"
+            [ "${{ needs.changes.outputs.product_service }}"      = "true" ] && CHANGED="$CHANGED product-service"
+            [ "${{ needs.changes.outputs.inventory_service }}"    = "true" ] && CHANGED="$CHANGED inventory-service"
+            [ "${{ needs.changes.outputs.sales_service }}"        = "true" ] && CHANGED="$CHANGED sales-service"
+            [ "${{ needs.changes.outputs.payment_service }}"      = "true" ] && CHANGED="$CHANGED payment-service"
+            [ "${{ needs.changes.outputs.report_service }}"       = "true" ] && CHANGED="$CHANGED report-service"
+            [ "${{ needs.changes.outputs.notification_service }}" = "true" ] && CHANGED="$CHANGED notification-service"
+            [ "${{ needs.changes.outputs.hrm_service }}"          = "true" ] && CHANGED="$CHANGED hrm-service"
+            [ "${{ needs.changes.outputs.ai_service }}"           = "true" ] && CHANGED="$CHANGED ai-service"
+            [ "${{ needs.changes.outputs.integration_service }}"  = "true" ] && CHANGED="$CHANGED integration-service"
+            CHANGED="${CHANGED# }"
+
+            # Fallback: if change detection gave no specific service, rebuild all
+            if [ -z "$CHANGED" ]; then
+              CHANGED="gateway auth-service user-service product-service inventory-service sales-service payment-service report-service notification-service hrm-service ai-service integration-service"
+            fi
+
+            echo "==> Services to build: $CHANGED"
+
+            # ── Maven build (only changed modules + their deps) ───────
+            MODULES=$(echo "$CHANGED" | tr ' ' ',')
+            cd backend
+            mvn -B -pl "$MODULES" -am package -DskipTests -q
+            cd ..
+
+            # ── Restart each changed systemd unit ─────────────────────
+            for svc in $CHANGED; do
+              UNIT="letispos-${svc}"
+              echo "==> Restarting $UNIT"
+              systemctl restart "$UNIT"
+              sleep 4
+              # Fail fast if the service didn't come up
+              if ! systemctl is-active --quiet "$UNIT"; then
+                echo "ERROR: $UNIT failed to start. Last 30 log lines:"
+                journalctl -u "$UNIT" -n 30 --no-pager
+                exit 1
+              fi
+              echo "    ✓ $UNIT active"
+            done
+
+            echo "==> Deploy complete — $(date -u)"
