@@ -1,16 +1,18 @@
 /**
  * Receipt Settings Page — configure receipt layout, paper size, and all
- * display toggles matching the server-side pos_settings table.
- *
- * Moved from the POS terminal footer modal to its own settings page
- * at /smartpos/settings/receipt.
+ * display toggles. Persists to the server-side pos_settings table via the
+ * POS Settings API, and syncs to localStorage for the POS terminal's
+ * offline-first receipt renderer.
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import {
+  Alert,
+  Autocomplete,
   Box,
   Button,
   Card,
   CardContent,
+  CircularProgress,
   FormControlLabel,
   Slider,
   Stack,
@@ -31,25 +33,186 @@ import {
   type ReceiptLayout,
   type ReceiptPaper,
 } from 'src/components/smartpos/Receipt';
+import { getPosSettings, updatePosSettings, type PosSettings } from 'src/api/smartpos/posSettings';
+import { listWarehouses, type Warehouse } from 'src/api/smartpos/inventory';
+import { useAuth } from 'src/context/smartpos/AuthContext';
+import type { UUID } from 'src/api/smartpos/types';
+
+/* ─── Layout / Paper ↔ int conversion ─────────────────────────────── */
+
+const LAYOUT_TO_INT: Record<ReceiptLayout, number> = { standard: 0, compact: 1, detailed: 2 };
+const INT_TO_LAYOUT: Record<number, ReceiptLayout> = { 0: 'standard', 1: 'compact', 2: 'detailed' };
+
+const PAPER_TO_INT: Record<ReceiptPaper, number> = { '58mm': 0, '80mm': 1, '88mm': 2, a4: 3 };
+const INT_TO_PAPER: Record<number, ReceiptPaper> = { 0: '58mm', 1: '80mm', 2: '88mm', 3: 'a4' };
+
+function posSettingsToConfig(ps: PosSettings): ReceiptConfig {
+  return {
+    layout: INT_TO_LAYOUT[ps.receiptLayout] ?? 'standard',
+    paperSize: INT_TO_PAPER[ps.receiptPaperSize] ?? '80mm',
+    autoPrint: ps.autoPrint,
+    showLogo: ps.showLogo,
+    logoSize: ps.logoSize,
+    showStoreName: ps.showStoreName,
+    showStoreAddress: ps.showStoreAddress,
+    showStorePhone: ps.showStorePhone,
+    showStoreEmail: ps.showStoreEmail,
+    storeName: ps.storeName,
+    storeAddress: ps.storeAddress,
+    storePhone: ps.storePhone,
+    storeEmail: ps.storeEmail,
+    storeTaxId: ps.storeTaxId,
+    showRef: ps.showReference,
+    showDate: ps.showDate,
+    showSeller: ps.showSeller,
+    showCustomer: ps.showCustomer,
+    showWarehouse: ps.showWarehouse,
+    showBarcode: ps.showBarcode,
+    showTax: ps.showTax,
+    showDiscount: ps.showDiscount,
+    showShipping: ps.showShipping,
+    showNote: ps.showNote,
+    showPaid: ps.showPaid,
+    showDue: ps.showDue,
+    showPayments: ps.showPayments,
+    showFooter: ps.showFooter,
+    footerMessage: ps.footerMessage,
+  };
+}
+
+function configToPosSettingsPatch(config: ReceiptConfig) {
+  return {
+    receiptLayout: LAYOUT_TO_INT[config.layout] ?? 0,
+    receiptPaperSize: PAPER_TO_INT[config.paperSize] ?? 1,
+    autoPrint: config.autoPrint,
+    showLogo: config.showLogo,
+    logoSize: config.logoSize,
+    showStoreName: config.showStoreName,
+    showStoreAddress: config.showStoreAddress,
+    showStorePhone: config.showStorePhone,
+    showStoreEmail: config.showStoreEmail,
+    storeName: config.storeName,
+    storeAddress: config.storeAddress,
+    storePhone: config.storePhone,
+    storeEmail: config.storeEmail,
+    storeTaxId: config.storeTaxId,
+    showReference: config.showRef,
+    showDate: config.showDate,
+    showSeller: config.showSeller,
+    showCustomer: config.showCustomer,
+    showWarehouse: config.showWarehouse,
+    showBarcode: config.showBarcode,
+    showTax: config.showTax,
+    showDiscount: config.showDiscount,
+    showShipping: config.showShipping,
+    showNote: config.showNote,
+    showPaid: config.showPaid,
+    showDue: config.showDue,
+    showPayments: config.showPayments,
+    showFooter: config.showFooter,
+    footerMessage: config.footerMessage,
+  };
+}
+
+/* ─── Component ─────────────────────────────────────────────────────── */
 
 export default function ReceiptSettingsPage() {
-  const [config, setConfig] = useState<ReceiptConfig>(() => getReceiptConfig());
+  const { user } = useAuth();
 
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+  const [warehouseId, setWarehouseId] = useState<UUID | null>(null);
+  const [config, setConfig] = useState<ReceiptConfig>(() => getReceiptConfig());
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
+
+  // Load warehouses
   useEffect(() => {
-    setConfig(getReceiptConfig());
+    listWarehouses()
+      .then((w) => setWarehouses(w.filter((x) => x.active)))
+      .catch(() => {});
   }, []);
 
-  const update = (patch: Partial<ReceiptConfig>) => {
+  // Default to user's first warehouse
+  useEffect(() => {
+    if (warehouseId || warehouses.length === 0) return;
+    const first = user?.warehouseIds?.[0] ?? warehouses[0]?.id;
+    if (first) setWarehouseId(first);
+  }, [warehouses, warehouseId, user]);
+
+  // Load server settings when warehouse changes
+  useEffect(() => {
+    if (!warehouseId) return;
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    getPosSettings(warehouseId)
+      .then((ps) => {
+        if (!cancelled) {
+          const c = posSettingsToConfig(ps);
+          setConfig(c);
+          saveReceiptConfig(c); // keep localStorage in sync
+        }
+      })
+      .catch((e) => {
+        if (!cancelled) {
+          // Fall back to localStorage on error
+          setError(e instanceof Error ? e.message : 'Failed to load from server; using local config.');
+        }
+      })
+      .finally(() => { if (!cancelled) setLoading(false); });
+  }, [warehouseId]);
+
+  const update = useCallback((patch: Partial<ReceiptConfig>) => {
     setConfig((prev) => ({ ...prev, ...patch }));
-  };
+  }, []);
 
-  const handleSave = () => {
-    saveReceiptConfig(config);
-  };
-
-  const toggle = (field: keyof ReceiptConfig) => () => {
+  const toggle = useCallback((field: keyof ReceiptConfig) => () => {
     update({ [field]: !(config[field] as boolean) } as Partial<ReceiptConfig>);
+  }, [config, update]);
+
+  const handleSave = async () => {
+    // Always save to localStorage for the POS terminal
+    saveReceiptConfig(config);
+
+    // Save to server if warehouse selected
+    if (!warehouseId) {
+      setInfo('Saved to local storage. Select a warehouse to persist server-side.');
+      setTimeout(() => setInfo(null), 3000);
+      return;
+    }
+
+    setSaving(true);
+    setError(null);
+    setInfo(null);
+    try {
+      await updatePosSettings(warehouseId, configToPosSettingsPatch(config));
+      setInfo('Receipt preferences saved.');
+      setTimeout(() => setInfo(null), 3000);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Save to server failed; saved to local storage instead.');
+    } finally {
+      setSaving(false);
+    }
   };
+
+  const selWarehouse = warehouses.find((w) => w.id === warehouseId);
+
+  if (loading && warehouseId) {
+    return (
+      <Box>
+        <PageHeader title="Receipt Settings" subtitle="Thermal or A4 layout, store info & visible fields" />
+        <Stack spacing={2.5} sx={{ maxWidth: 720 }}>
+          <SkeletonV />
+          <SkeletonV />
+          <SkeletonV />
+          <SkeletonV />
+          <SkeletonV />
+        </Stack>
+      </Box>
+    );
+  }
 
   return (
     <Box>
@@ -58,8 +221,35 @@ export default function ReceiptSettingsPage() {
         subtitle="Thermal or A4 layout, store info & visible fields"
       />
 
+      {error && <Alert severity="warning" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
+      {info && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setInfo(null)}>{info}</Alert>}
+
+      {/* Warehouse selector */}
+      <Card elevation={0} sx={{ border: `1px solid ${brand.neutral[200]}`, borderRadius: 3, mb: 2.5 }}>
+        <CardContent>
+          <Stack direction="row" spacing={2} alignItems="center">
+            <Box sx={{ minWidth: 280 }}>
+              <SectionLabel>Warehouse</SectionLabel>
+              <Autocomplete
+                value={selWarehouse ?? null}
+                options={warehouses}
+                getOptionLabel={(w) => `${w.name}${w.city ? ` — ${w.city}` : ''}`}
+                onChange={(_, v) => v && setWarehouseId(v.id)}
+                size="small"
+                renderInput={(p) => <TextField {...p} size="small" sx={premiumFieldSx} />}
+              />
+            </Box>
+            {!warehouseId && (
+              <Typography variant="caption" sx={{ color: brand.neutral[400], alignSelf: 'flex-end', pb: 0.5 }}>
+                Using local config — select a warehouse for server persistence
+              </Typography>
+            )}
+          </Stack>
+        </CardContent>
+      </Card>
+
       <Stack spacing={2.5} sx={{ maxWidth: 720 }}>
-        {/* ── Layout & Paper ── */}
+        {/* Layout & Paper */}
         <Card elevation={0} sx={{ border: `1px solid ${brand.neutral[200]}`, borderRadius: 3 }}>
           <CardContent>
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
@@ -98,7 +288,7 @@ export default function ReceiptSettingsPage() {
           </CardContent>
         </Card>
 
-        {/* ── Store Info ── */}
+        {/* Store Info */}
         <Card elevation={0} sx={{ border: `1px solid ${brand.neutral[200]}`, borderRadius: 3 }}>
           <CardContent>
             <SectionLabel>Store Information</SectionLabel>
@@ -151,7 +341,7 @@ export default function ReceiptSettingsPage() {
           </CardContent>
         </Card>
 
-        {/* ── Header Display Toggles ── */}
+        {/* Header Display Toggles */}
         <Card elevation={0} sx={{ border: `1px solid ${brand.neutral[200]}`, borderRadius: 3 }}>
           <CardContent>
             <SectionLabel>Header Display</SectionLabel>
@@ -180,7 +370,7 @@ export default function ReceiptSettingsPage() {
           </CardContent>
         </Card>
 
-        {/* ── Meta Field Toggles ── */}
+        {/* Meta Field Toggles */}
         <Card elevation={0} sx={{ border: `1px solid ${brand.neutral[200]}`, borderRadius: 3 }}>
           <CardContent>
             <SectionLabel>Meta Fields</SectionLabel>
@@ -194,7 +384,7 @@ export default function ReceiptSettingsPage() {
           </CardContent>
         </Card>
 
-        {/* ── Item & Totals Toggles ── */}
+        {/* Items & Totals Toggles */}
         <Card elevation={0} sx={{ border: `1px solid ${brand.neutral[200]}`, borderRadius: 3 }}>
           <CardContent>
             <SectionLabel>Items & Totals</SectionLabel>
@@ -211,7 +401,7 @@ export default function ReceiptSettingsPage() {
           </CardContent>
         </Card>
 
-        {/* ── Footer ── */}
+        {/* Footer */}
         <Card elevation={0} sx={{ border: `1px solid ${brand.neutral[200]}`, borderRadius: 3 }}>
           <CardContent>
             <SectionLabel>Footer</SectionLabel>
@@ -242,7 +432,7 @@ export default function ReceiptSettingsPage() {
           </CardContent>
         </Card>
 
-        {/* ── Auto-print ── */}
+        {/* Auto-print */}
         <Card elevation={0} sx={{ border: `1px solid ${brand.neutral[200]}`, borderRadius: 3 }}>
           <CardContent>
             <FormControlLabel
@@ -262,12 +452,13 @@ export default function ReceiptSettingsPage() {
           </CardContent>
         </Card>
 
-        {/* ── Save ── */}
+        {/* Save */}
         <Box sx={{ display: 'flex', justifyContent: 'flex-end', pb: 4 }}>
           <Button
             variant="contained"
             onClick={handleSave}
-            startIcon={<IconCheck size={18} />}
+            disabled={saving}
+            startIcon={saving ? <CircularProgress size={18} color="inherit" /> : <IconCheck size={18} />}
             sx={{
               textTransform: 'none',
               fontWeight: 800,
@@ -275,7 +466,7 @@ export default function ReceiptSettingsPage() {
               px: 3,
             }}
           >
-            Save Preferences
+            {saving ? 'Saving…' : 'Save Preferences'}
           </Button>
         </Box>
       </Stack>
@@ -283,9 +474,17 @@ export default function ReceiptSettingsPage() {
   );
 }
 
+/* ─── Shared helpers ────────────────────────────────────────────────── */
+
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <Typography variant="caption" sx={{ fontWeight: 700, color: brand.neutral[500], mb: 0.5, display: 'block', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+    <Typography
+      variant="caption"
+      sx={{
+        fontWeight: 700, color: brand.neutral[500], mb: 0.5,
+        display: 'block', textTransform: 'uppercase', letterSpacing: '0.03em',
+      }}
+    >
       {children}
     </Typography>
   );
@@ -306,6 +505,16 @@ function ToggleGrid({ children }: { children: React.ReactNode }) {
     <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 0.25 }}>
       {children}
     </Box>
+  );
+}
+
+function SkeletonV() {
+  return (
+    <Card elevation={0} sx={{ border: `1px solid ${brand.neutral[200]}`, borderRadius: 3 }}>
+      <CardContent>
+        <Box sx={{ height: 120 }} />
+      </CardContent>
+    </Card>
   );
 }
 
