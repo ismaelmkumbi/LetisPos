@@ -201,7 +201,12 @@ jobs:
   push-images:
     name: Push images to GHCR
     needs: [backend, frontend, changes]
-    if: success() || (needs.backend.result == 'success' && needs.frontend.result == 'success')
+    if: |
+      always() &&
+      !cancelled() &&
+      needs.changes.result == 'success' &&
+      needs.backend.result != 'failure' &&
+      needs.frontend.result != 'failure'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -255,7 +260,10 @@ jobs:
   push-frontend-image:
     name: Push frontend image to GHCR
     needs: [frontend, changes]
-    if: needs.changes.outputs.frontend == 'true'
+    if: |
+      always() &&
+      needs.changes.outputs.frontend == 'true' &&
+      needs.frontend.result != 'failure'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -292,7 +300,11 @@ jobs:
   deploy:
     name: Deploy to production
     needs: [push-images, push-frontend-image]
-    if: success()
+    if: |
+      always() &&
+      !cancelled() &&
+      needs.push-images.result != 'failure' &&
+      needs.push-frontend-image.result != 'failure'
     runs-on: ubuntu-latest
     environment:
       name: production
