@@ -489,14 +489,14 @@ export default function PosTerminalPage() {
         }, 4000);
       }
 
-      // Auto-print if configured
+      // Auto-print now opens the receipt preview first, matching the legacy POS flow.
       const rc = getReceiptConfig();
       if (rc.autoPrint) {
-        try { printReceipt(sale, { paymentMethod, lookups: buildReceiptLookups(sale) }); } catch { /* non-blocking */ }
+        setReceiptPreview({ sale, paymentMethod });
+        clear();
+      } else {
+        setSuccessOverlay(true);
       }
-
-      // Show success overlay instead of clearing immediately
-      setSuccessOverlay(true);
     } catch (e: unknown) {
       setBanner({ kind: 'error', text: e instanceof Error ? e.message : 'Checkout failed' });
     } finally {

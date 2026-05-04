@@ -170,15 +170,18 @@ function ReceiptBody({
   config,
   paymentMethod,
   lookups,
+  preview = false,
 }: {
   sale: Sale;
   config: ReceiptConfig;
   paymentMethod?: string;
   lookups?: ReceiptLookups;
+  preview?: boolean;
 }) {
   const isA4 = config.paperSize === 'a4';
+  const className = `${isA4 ? 'receipt-a4' : 'receipt-thermal'} smartpos-receipt${preview ? ' force-show receipt-preview' : ''}`;
   return (
-    <div className={isA4 ? 'smartpos-receipt receipt-a4' : 'smartpos-receipt receipt-thermal'}>
+    <div className={className}>
       <ReceiptStyles config={config} />
       {isA4 ? (
         <A4Receipt sale={sale} config={config} paymentMethod={paymentMethod} lookups={lookups} />
@@ -207,12 +210,23 @@ function ReceiptStyles({ config }: { config: ReceiptConfig }) {
       @media print {
         @page { size: ${isA4 ? 'A4' : `${paperWidth} auto`}; margin: ${isA4 ? '12mm' : '0'}; }
         body * { visibility: hidden !important; }
-        .smartpos-receipt, .smartpos-receipt * { visibility: visible !important; }
-        .smartpos-receipt { position: absolute; left: 0; top: 0; width: ${paperWidth}; padding: ${paperPad}; background: #fff; color: #05070b; box-shadow: none !important; box-sizing: border-box; }
-        .receipt-a4 { width: 186mm; }
+        [data-smartpos-receipt-print], [data-smartpos-receipt-print] * { visibility: visible !important; }
+        html, body { margin: 0 !important; padding: 0 !important; background: #fff !important; }
+        [data-smartpos-receipt-print] .smartpos-receipt { position: absolute; left: 50%; top: 0; transform: translateX(-50%); width: ${paperWidth}; padding: ${paperPad}; background: #fff; color: #05070b; box-shadow: none !important; box-sizing: border-box; }
+        [data-smartpos-receipt-print] .receipt-a4 { width: 186mm; }
       }
       @media screen { .smartpos-receipt { display: none; } }
       .smartpos-receipt.force-show { display: block; margin: 0 auto; }
+      .smartpos-receipt.receipt-preview.receipt-thermal { width: min(100%, 390px); padding: 28px 30px; font-size: 14px; line-height: 21px; }
+      .smartpos-receipt.receipt-preview.receipt-thermal .store-name { font-size: 22px; }
+      .smartpos-receipt.receipt-preview.receipt-thermal .meta { font-size: 14px; line-height: 21px; }
+      .smartpos-receipt.receipt-preview.receipt-thermal .item-name { font-size: 14px; }
+      .smartpos-receipt.receipt-preview.receipt-thermal .item-qty { font-size: 13px; }
+      .smartpos-receipt.receipt-preview.receipt-thermal .items .td-total,
+      .smartpos-receipt.receipt-preview.receipt-thermal .totals .grand td,
+      .smartpos-receipt.receipt-preview.receipt-thermal .payment-table { font-size: 14px; }
+      .smartpos-receipt.receipt-preview.receipt-thermal .footer-message { font-size: 15px; }
+      .smartpos-receipt.receipt-preview.receipt-a4 { width: min(100%, 760px); }
 
       /* ──────────────────────────────────────────────────────────────────
        * Receipt design — matches legacy pos_master style
@@ -755,10 +769,14 @@ export function ReceiptPreviewModal({
       fullWidth
       PaperProps={{
         sx: {
-          maxWidth: config.paperSize === 'a4' ? 820 : 420,
-          bgcolor: '#F1F5F9',
-          borderRadius: '16px',
+          maxWidth: config.paperSize === 'a4' ? 900 : 560,
+          width: config.paperSize === 'a4' ? 'min(94vw, 900px)' : 'min(94vw, 560px)',
+          bgcolor: '#fff',
+          borderRadius: '14px',
           overflow: 'hidden',
+          maxHeight: '92vh',
+          display: 'flex',
+          flexDirection: 'column',
         },
       }}
     >
@@ -776,10 +794,12 @@ export function ReceiptPreviewModal({
         }}
       >
         <Stack direction="row" spacing={1} alignItems="center">
-          <Typography sx={{ fontWeight: 800, fontSize: '1rem' }}>Receipt Preview</Typography>
-          <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>
-            {config.paperSize === 'a4' ? 'A4' : config.paperSize} &middot; {config.layout}
-          </Typography>
+          <Box>
+            <Typography sx={{ fontWeight: 900, fontSize: '1.05rem', color: '#0F172A' }}>Invoice POS</Typography>
+            <Typography variant="caption" sx={{ color: '#64748B', fontWeight: 700 }}>
+              Preview before printing
+            </Typography>
+          </Box>
         </Stack>
         <Stack direction="row" spacing={0.5}>
           <Button
@@ -798,23 +818,45 @@ export function ReceiptPreviewModal({
       </Box>
 
       {/* Receipt — rendered for screen (bypasses display:none) */}
-      <DialogContent sx={{ p: 3, bgcolor: '#F1F5F9', display: 'flex', justifyContent: 'center' }}>
+      <DialogContent
+        sx={{
+          p: { xs: 2, sm: 3 },
+          background: 'linear-gradient(180deg, #F8FAFC 0%, #EEF6F2 100%)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'flex-start',
+          flex: 1,
+          minHeight: 0,
+          overflowY: 'auto',
+          overscrollBehavior: 'contain',
+        }}
+      >
         <Box
           sx={{
-            bgcolor: '#fff',
-            boxShadow: '0 2px 16px rgba(0,0,0,.12)',
-            borderRadius: config.paperSize === 'a4' ? '8px' : 0,
-            overflow: 'hidden',
+            width: '100%',
+            display: 'flex',
+            justifyContent: 'center',
+            py: 0.5,
           }}
         >
-          <div className="smartpos-receipt force-show" style={{ display: 'block' }}>
+          <Box
+            sx={{
+              width: config.paperSize === 'a4' ? 'min(100%, 780px)' : 'min(100%, 430px)',
+              bgcolor: '#fff',
+              boxShadow: '0 24px 60px rgba(15, 23, 42, 0.14)',
+              border: '1px solid #E2E8F0',
+              borderRadius: config.paperSize === 'a4' ? '12px' : '4px',
+              overflow: 'hidden',
+            }}
+          >
             <ReceiptBody
               sale={sale}
               config={config}
               paymentMethod={paymentMethod}
               lookups={lookups}
+              preview
             />
-          </div>
+          </Box>
         </Box>
       </DialogContent>
     </Dialog>
@@ -826,7 +868,7 @@ export function printReceipt(sale: Sale, options: PrintReceiptOptions = {}) {
   const { paymentMethod, lookups, ...configOverrides } = options;
   const config = { ...getReceiptConfig(), ...configOverrides };
   const host = document.createElement('div');
-  host.setAttribute('data-smartpos-receipt', 'true');
+  host.setAttribute('data-smartpos-receipt-print', 'true');
   document.body.appendChild(host);
   const root = createRoot(host);
   root.render(
