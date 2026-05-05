@@ -1,11 +1,12 @@
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
-import React, { useContext } from 'react';
+import React, { useContext, useState, useRef, useEffect } from 'react';
 import { NavLink } from 'react-router';
 import { Box, Chip, ListItemButton, ListItemIcon, ListItemText, Tooltip, Typography } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { CustomizerContext } from 'src/context/CustomizerContext';
 import { brand } from 'src/theme/smartpos/brand';
+import NavFlyout from '../NavFlyout/NavFlyout';
 
 type NavGroup = {
   [x: string]: any;
@@ -40,6 +41,27 @@ const NavItem = ({ item, level, pathDirect, hideMenu, onClick }: ItemType) => {
   const Icon = item?.icon;
   const { t } = useTranslation();
 
+  // Flyout state for collapsed sidebar
+  const [flyoutAnchor, setFlyoutAnchor] = useState<HTMLElement | null>(null);
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+    };
+  }, []);
+
+  const handleMouseEnter = (e: React.MouseEvent<HTMLElement>) => {
+    if (!hideMenu) return;
+    if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+    setFlyoutAnchor(e.currentTarget);
+  };
+
+  const handleMouseLeave = () => {
+    if (!hideMenu) return;
+    closeTimerRef.current = setTimeout(() => setFlyoutAnchor(null), 200);
+  };
+
   const iconSize = level > 1 ? 16 : 18;
   const itemIcon = <Icon stroke={isActive ? 2 : 1.5} size={iconSize} />;
 
@@ -68,7 +90,7 @@ const NavItem = ({ item, level, pathDirect, hideMenu, onClick }: ItemType) => {
         borderRadius: '10px',
         padding: hideMenu ? '10px 0' : '8px 10px',
         justifyContent: hideMenu ? 'center' : 'flex-start',
-        minHeight: 40,
+        minHeight: 44,
         color: isActive
           ? isDark ? brand.primary[300] : brand.primary[700]
           : isDark ? brand.neutral[400] : brand.neutral[600],
@@ -105,7 +127,7 @@ const NavItem = ({ item, level, pathDirect, hideMenu, onClick }: ItemType) => {
           mx: 1,
           pl: hideMenu ? 0 : `${(level - 1) * 12 + 10}px`,
           borderRadius: '8px',
-          minHeight: 34,
+          minHeight: 44,
           padding: hideMenu ? '8px 0' : '6px 10px',
           color: isActive
             ? isDark ? brand.primary[300] : brand.primary[700]
@@ -173,13 +195,42 @@ const NavItem = ({ item, level, pathDirect, hideMenu, onClick }: ItemType) => {
     </ListItemButton>
   );
 
-  // Collapsed sidebar: wrap in tooltip for discoverability
+  // Collapsed sidebar: tooltip (delayed) + hover flyout
   if (hideMenu) {
     return (
-      <Box component="li" sx={{ listStyle: 'none' }}>
-        <Tooltip title={t(`${item?.title}`)} placement="right" arrow>
+      <Box
+        component="li"
+        sx={{ listStyle: 'none' }}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+      >
+        <Tooltip title={t(`${item?.title}`)} placement="right" arrow enterDelay={800}>
           {button}
         </Tooltip>
+        {flyoutAnchor && (
+          <NavFlyout
+            anchorEl={flyoutAnchor}
+            open={Boolean(flyoutAnchor)}
+            onClose={() => setFlyoutAnchor(null)}
+            title={t(`${item?.title}`)}
+            titleIcon={item?.icon}
+          >
+            <Box sx={{ px: 1, py: 0.5, display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Typography variant="body2" fontWeight={500}>
+                {t(`${item?.title}`)}
+              </Typography>
+              {item?.chip && (
+                <Chip
+                  color={item?.chipColor ?? 'primary'}
+                  variant="filled"
+                  size="small"
+                  label={item.chip}
+                  sx={{ height: 18, fontSize: '0.6rem', fontWeight: 800, borderRadius: '6px' }}
+                />
+              )}
+            </Box>
+          </NavFlyout>
+        )}
       </Box>
     );
   }

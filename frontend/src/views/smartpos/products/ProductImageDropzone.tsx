@@ -25,8 +25,9 @@ export default function ProductImageDropzone({
     try {
       const result = await uploadProductImage(file);
       onImageChange(result.url);
-    } catch (err: any) {
-      const msg = err?.response?.data?.detail ?? err?.message ?? 'Upload failed';
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { detail?: string } }; message?: string };
+      const msg = e?.response?.data?.detail ?? e?.message ?? 'Upload failed';
       setUploadError(msg);
     } finally {
       setUploading(false);

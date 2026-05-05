@@ -15,8 +15,8 @@ import { CustomizerContext } from 'src/context/CustomizerContext';
 import BrandLogo, { LetisMark } from 'src/components/smartpos/BrandLogo';
 
 const Logo: FC = () => {
-  const { isCollapse, isSidebarHover, activeMode } = useContext(CustomizerContext);
-  const collapsed = isCollapse === 'mini-sidebar' && !isSidebarHover;
+  const { isCollapse, activeMode } = useContext(CustomizerContext);
+  const collapsed = isCollapse === 'mini-sidebar';
 
   const LinkStyled = styled(Link)(() => ({
     height: config.topbarHeight,

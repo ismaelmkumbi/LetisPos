@@ -11,14 +11,14 @@ import { brand } from 'src/theme/smartpos/brand';
 
 export const Profile = () => {
   const { t } = useTranslation('smartpos');
-  const { isSidebarHover, isCollapse, activeMode } = useContext(CustomizerContext);
+  const { isCollapse, activeMode } = useContext(CustomizerContext);
   const { user, logout } = useAuth();
   const nav = useNavigate();
   const { pathname } = useLocation();
   const isDark = activeMode === 'dark';
 
   const lgUp = useMediaQuery((theme: any) => theme.breakpoints.up('lg'));
-  const hideMenu = lgUp ? isCollapse === 'mini-sidebar' && !isSidebarHover : '';
+  const hideMenu = lgUp ? isCollapse === 'mini-sidebar' : '';
   const onSmartPos = pathname.startsWith('/smartpos');
 
   const handleLogout = async () => {

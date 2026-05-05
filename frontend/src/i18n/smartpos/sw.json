@@ -18,8 +18,13 @@
     "signing_in": "Inaingiza…"
   },
   "nav": {
-    "overview": "Muhtasari",
+    "daily_ops": "Shughuli za Kila Siku",
     "dashboard": "Dashibodi",
+    "catalog": "Katalogi na Hifadhi",
+    "commerce": "Biashara",
+    "finance": "Fedha",
+    "reports_group_header": "Ripoti na Ufahamu",
+    "administration": "Usimamizi",
     "pos_terminal": "Kituo cha Mauzo",
     "sales_group": "Mauzo",
     "sales": "Mauzo",

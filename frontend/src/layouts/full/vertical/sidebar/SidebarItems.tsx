@@ -16,11 +16,11 @@ const SidebarItems = () => {
   const { pathname } = useLocation();
   const pathDirect = pathname;
   const pathWithoutLastPart = pathname.slice(0, pathname.lastIndexOf('/'));
-  const { isSidebarHover, isCollapse, isMobileSidebar, setIsMobileSidebar } = useContext(CustomizerContext);
+  const { isCollapse, isMobileSidebar, setIsMobileSidebar } = useContext(CustomizerContext);
   const { t } = useTranslation('smartpos');
 
   const lgUp = useMediaQuery((theme: any) => theme.breakpoints.up('lg'));
-  const hideMenu: any = lgUp ? isCollapse == "mini-sidebar" && !isSidebarHover : '';
+  const hideMenu: any = lgUp ? isCollapse == "mini-sidebar" : '';
 
   // Use SmartPOS menu inside /smartpos/*, Modernize demo menu everywhere else.
   // SmartPOS menu is rebuilt on each render so it picks up locale changes.
