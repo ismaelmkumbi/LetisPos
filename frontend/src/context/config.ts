@@ -4,7 +4,7 @@ const config = {
   activeTheme: 'LETIS_THEME',
   activeLayout: 'vertical',
   isLayout: 'boxed',
-  isSidebarHover: false,
+
   isCollapse: 'full-sidebar',
   isLanguage: 'en',
   isCardShadow: true,

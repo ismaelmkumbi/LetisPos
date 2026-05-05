@@ -1,9 +1,11 @@
 /**
  * SmartPOS sidebar navigation.
  *
- * Distinct from the Modernize demo menu (MenuItems.ts). Titles are i18n
- * keys resolved via the `smartpos` namespace so the menu live-switches
- * language along with the rest of the UI.
+ * Menu is organised by POS workflow priority:
+ *   Daily Operations → Catalog → Commerce → Finance → Reports → Administration
+ *
+ * Titles are i18n keys resolved via the `smartpos` namespace so the menu
+ * live-switches language along with the rest of the UI.
  */
 import type { ElementType } from 'react';
 import type { TFunction } from 'i18next';
@@ -78,26 +80,18 @@ export function buildSmartPosMenu(t: TFunction): MenuItem[] {
   const uid = () => `smp-${++n}`;
 
   return [
-    // Overview
-    { subheader: t('smartpos:nav.overview') },
-    { id: uid(), title: t('smartpos:nav.dashboard'), icon: IconDashboard, href: '/smartpos/dashboard' },
-
-    // Sales
-    { subheader: t('smartpos:nav.sales_group') },
+    // ── Daily Operations ──────────────────────────────────────────────
+    { subheader: t('smartpos:nav.daily_ops') },
+    { id: uid(), title: t('smartpos:nav.dashboard'),  icon: IconDashboard,    href: '/smartpos/dashboard' },
     { id: uid(), title: t('smartpos:nav.pos_terminal'), icon: IconCashRegister, href: '/smartpos/pos',
       chip: 'LIVE', chipColor: 'secondary' },
-    { id: uid(), title: t('smartpos:nav.sales'),              icon: IconReceipt,      href: '/smartpos/sales' },
-    { id: uid(), title: t('smartpos:nav.quotations'),         icon: IconFileInvoice,  href: '/smartpos/quotations' },
-    { id: uid(), title: t('smartpos:nav.returns'),            icon: IconArrowBackUp,  href: '/smartpos/returns' },
-    { id: uid(), title: t('smartpos:nav.recurring_invoices'), icon: IconRepeat,       href: '/smartpos/recurring-invoices' },
-    { id: uid(), title: t('smartpos:nav.pos_terminals'), icon: IconDeviceDesktop, href: '/smartpos/pos/terminals' },
+    { id: uid(), title: t('smartpos:nav.sales'),        icon: IconReceipt,      href: '/smartpos/sales' },
+    { id: uid(), title: t('smartpos:nav.quotations'),   icon: IconFileInvoice,  href: '/smartpos/quotations' },
+    { id: uid(), title: t('smartpos:nav.returns'),      icon: IconArrowBackUp,  href: '/smartpos/returns' },
+    { id: uid(), title: t('smartpos:nav.recurring_invoices'), icon: IconRepeat, href: '/smartpos/recurring-invoices' },
 
-    // Procurement
-    { subheader: t('smartpos:nav.procurement') },
-    { id: uid(), title: t('smartpos:nav.purchases'), icon: IconShoppingCart, href: '/smartpos/purchases' },
-    { id: uid(), title: t('smartpos:nav.suppliers'), icon: IconTruck,        href: '/smartpos/suppliers' },
-
-    // Catalog
+    // ── Catalog & Inventory ───────────────────────────────────────────
+    { subheader: t('smartpos:nav.catalog') },
     {
       id: uid(), title: t('smartpos:nav.products'), icon: IconPackage,
       children: [
@@ -113,18 +107,21 @@ export function buildSmartPosMenu(t: TFunction): MenuItem[] {
         { id: uid(), title: 'Print Labels',                icon: IconPrinter, href: '/smartpos/products/print-labels' },
       ],
     },
-    { id: uid(), title: t('smartpos:nav.customers'),  icon: IconUsers,              href: '/smartpos/customers' },
-    { id: uid(), title: t('smartpos:nav.warehouses'), icon: IconBuildingWarehouse,  href: '/smartpos/warehouses' },
     { id: uid(), title: t('smartpos:nav.stock'),      icon: IconBox,                href: '/smartpos/stock' },
+    { id: uid(), title: t('smartpos:nav.warehouses'), icon: IconBuildingWarehouse,  href: '/smartpos/warehouses' },
 
-    // Money
-    { subheader: t('smartpos:nav.money') },
-    { id: uid(), title: t('smartpos:nav.payments'),  icon: IconCoin,                href: '/smartpos/payments' },
-    { id: uid(), title: t('smartpos:nav.accounts'),  icon: IconWallet,              href: '/smartpos/accounts' },
+    // ── Commerce ──────────────────────────────────────────────────────
+    { subheader: t('smartpos:nav.commerce') },
+    { id: uid(), title: t('smartpos:nav.customers'),  icon: IconUsers,       href: '/smartpos/customers' },
+    { id: uid(), title: t('smartpos:nav.suppliers'),  icon: IconTruck,       href: '/smartpos/suppliers' },
+    { id: uid(), title: t('smartpos:nav.purchases'),  icon: IconShoppingCart, href: '/smartpos/purchases' },
+
+    // ── Finance ───────────────────────────────────────────────────────
+    { subheader: t('smartpos:nav.finance') },
+    { id: uid(), title: t('smartpos:nav.payments'),  icon: IconCoin,     href: '/smartpos/payments' },
+    { id: uid(), title: t('smartpos:nav.accounts'),  icon: IconWallet,   href: '/smartpos/accounts' },
+    { id: uid(), title: t('smartpos:nav.expenses'),  icon: IconReceipt2, href: '/smartpos/expenses' },
     { id: uid(), title: t('smartpos:nav.transfers'), icon: IconArrowsTransferDown, href: '/smartpos/transfers' },
-    { id: uid(), title: t('smartpos:nav.expenses'),  icon: IconReceipt2,            href: '/smartpos/expenses' },
-
-    // Accounting (collapsible)
     {
       id: uid(), title: t('smartpos:nav.accounting'), icon: IconCalculator,
       children: [
@@ -134,18 +131,8 @@ export function buildSmartPosMenu(t: TFunction): MenuItem[] {
       ],
     },
 
-    // HRM (collapsible)
-    {
-      id: uid(), title: t('smartpos:nav.hrm'), icon: IconUsersGroup,
-      children: [
-        { id: uid(), title: t('smartpos:nav.employees'),       icon: IconUsersGroup, href: '/smartpos/hrm/employees' },
-        { id: uid(), title: t('smartpos:nav.attendance'),      icon: IconClock,      href: '/smartpos/hrm/attendance' },
-        { id: uid(), title: t('smartpos:nav.leave_requests'),  icon: IconBeach,      href: '/smartpos/hrm/leave' },
-        { id: uid(), title: t('smartpos:nav.payroll'),         icon: IconWallet,     href: '/smartpos/hrm/payroll' },
-      ],
-    },
-
-    // Reports (collapsible)
+    // ── Reports & Insights ────────────────────────────────────────────
+    { subheader: t('smartpos:nav.reports_group_header') },
     {
       id: uid(), title: t('smartpos:nav.reports_group'), icon: IconChartBar,
       children: [
@@ -156,19 +143,8 @@ export function buildSmartPosMenu(t: TFunction): MenuItem[] {
       ],
     },
 
-    // Notifications (collapsible)
-    {
-      id: uid(), title: t('smartpos:nav.notifications_group'), icon: IconBell,
-      children: [
-        { id: uid(), title: t('smartpos:nav.notification_templates'),  icon: IconBookmarks, href: '/smartpos/notifications/templates' },
-        { id: uid(), title: t('smartpos:nav.notification_deliveries'), icon: IconBell,      href: '/smartpos/notifications/deliveries' },
-      ],
-    },
-
-    // Integrations
-    { id: uid(), title: t('smartpos:nav.integrations'), icon: IconPlug, href: '/smartpos/integrations' },
-
-    // Settings (collapsible)
+    // ── Administration ────────────────────────────────────────────────
+    { subheader: t('smartpos:nav.administration') },
     {
       id: uid(), title: t('smartpos:nav.settings'), icon: IconSettings,
       children: [
@@ -184,6 +160,24 @@ export function buildSmartPosMenu(t: TFunction): MenuItem[] {
         { id: uid(), title: t('smartpos:nav.languages_admin'),    icon: IconLanguage,        href: '/smartpos/settings/i18n' },
       ],
     },
+    {
+      id: uid(), title: t('smartpos:nav.hrm'), icon: IconUsersGroup,
+      children: [
+        { id: uid(), title: t('smartpos:nav.employees'),       icon: IconUsersGroup, href: '/smartpos/hrm/employees' },
+        { id: uid(), title: t('smartpos:nav.attendance'),      icon: IconClock,      href: '/smartpos/hrm/attendance' },
+        { id: uid(), title: t('smartpos:nav.leave_requests'),  icon: IconBeach,      href: '/smartpos/hrm/leave' },
+        { id: uid(), title: t('smartpos:nav.payroll'),         icon: IconWallet,     href: '/smartpos/hrm/payroll' },
+      ],
+    },
+    {
+      id: uid(), title: t('smartpos:nav.notifications_group'), icon: IconBell,
+      children: [
+        { id: uid(), title: t('smartpos:nav.notification_templates'),  icon: IconBookmarks, href: '/smartpos/notifications/templates' },
+        { id: uid(), title: t('smartpos:nav.notification_deliveries'), icon: IconBell,      href: '/smartpos/notifications/deliveries' },
+      ],
+    },
+    { id: uid(), title: t('smartpos:nav.integrations'), icon: IconPlug, href: '/smartpos/integrations' },
+    { id: uid(), title: t('smartpos:nav.pos_terminals'), icon: IconDeviceDesktop, href: '/smartpos/pos/terminals' },
   ];
 }
 

@@ -21,9 +21,7 @@ interface CustomizerContextState {
     setIsBorderRadius: (radius: number) => void;
     isCollapse: string;
     setIsCollapse: (collapse: string) => void;
-    isSidebarHover: boolean;
-    setIsSidebarHover: (isHover: boolean) => void;
-    isMobileSidebar: boolean;  // Add this
+    isMobileSidebar: boolean;
     setIsMobileSidebar: (isMobileSidebar: boolean) => void
 }
 
@@ -47,7 +45,6 @@ export const CustomizerContextProvider: React.FC<CustomizerContextProps> = ({ ch
     const [isBorderRadius, setIsBorderRadius] = useState<number>(config.isBorderRadius);
     const [isCollapse, setIsCollapse] = useState<string>(config.isCollapse);
     const [isLanguage, setIsLanguage] = useState<string>(config.isLanguage);
-    const [isSidebarHover, setIsSidebarHover] = useState<boolean>(false);
     const [isMobileSidebar, setIsMobileSidebar] = useState<boolean>(false);
     // Set attributes immediately
     useEffect(() => {
@@ -82,8 +79,6 @@ export const CustomizerContextProvider: React.FC<CustomizerContextProps> = ({ ch
                 setIsCollapse,
                 isLanguage,
                 setIsLanguage,
-                isSidebarHover,
-                setIsSidebarHover,
                 isMobileSidebar,
                 setIsMobileSidebar
             }}

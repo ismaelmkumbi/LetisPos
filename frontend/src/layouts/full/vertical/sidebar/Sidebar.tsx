@@ -1,4 +1,4 @@
-import { useMediaQuery, Box, Drawer, useTheme } from '@mui/material';
+import { useMediaQuery, Box, Drawer, SwipeableDrawer, useTheme } from '@mui/material';
 import SidebarItems from './SidebarItems';
 import Logo from '../../shared/logo/Logo';
 import Scrollbar from 'src/components/custom-scroll/Scrollbar';
@@ -12,8 +12,6 @@ const Sidebar = () => {
   const lgUp = useMediaQuery((theme: any) => theme.breakpoints.up('lg'));
   const {
     isCollapse,
-    isSidebarHover,
-    setIsSidebarHover,
     isMobileSidebar,
     setIsMobileSidebar,
     activeMode,
@@ -24,14 +22,7 @@ const Sidebar = () => {
   const isDark = activeMode === 'dark';
 
   const toggleWidth =
-    isCollapse === 'mini-sidebar' && !isSidebarHover
-      ? MiniSidebarWidth
-      : SidebarWidth;
-
-  const onHoverEnter = () => {
-    if (isCollapse === 'mini-sidebar') setIsSidebarHover(true);
-  };
-  const onHoverLeave = () => setIsSidebarHover(false);
+    isCollapse === 'mini-sidebar' ? MiniSidebarWidth : SidebarWidth;
 
   const sidebarBg = isDark ? brand.neutral[900] : '#ffffff';
   const borderColor = isDark ? brand.neutral[700] : brand.neutral[200];
@@ -63,8 +54,6 @@ const Sidebar = () => {
         <Drawer
           anchor="left"
           open
-          onMouseEnter={onHoverEnter}
-          onMouseLeave={onHoverLeave}
           variant="permanent"
           slotProps={{ paper: { sx: paperSx } }}
         >
@@ -72,7 +61,7 @@ const Sidebar = () => {
             {/* Logo area */}
             <Box
               sx={{
-                px: isCollapse === 'mini-sidebar' && !isSidebarHover ? 1 : 2.5,
+                px: isCollapse === 'mini-sidebar' ? 1 : 2.5,
                 py: 0,
                 height: config.topbarHeight,
                 display: 'flex',
@@ -89,9 +78,6 @@ const Sidebar = () => {
               sx={{
                 flex: 1,
                 minHeight: 0,
-                // minHeight (not height) so the content can grow taller than the
-                // visible area and SimpleBar actually scrolls. With height:100%
-                // the bottom items (e.g. Settings) get clipped.
                 '& .simplebar-content': { minHeight: '100%', display: 'flex', flexDirection: 'column' },
               }}
             >
@@ -109,17 +95,27 @@ const Sidebar = () => {
   }
 
   return (
-    <Drawer
+    <SwipeableDrawer
       anchor="left"
       open={isMobileSidebar}
       onClose={() => setIsMobileSidebar(false)}
-      variant="temporary"
+      onOpen={() => setIsMobileSidebar(true)}
+      disableSwipeToOpen={false}
+      swipeAreaWidth={20}
+      hysteresis={0.3}
+      transitionDuration={300}
       slotProps={{
         paper: {
           sx: {
             ...paperSx,
             width: SidebarWidth,
             boxShadow: theme.shadows[16],
+          },
+        },
+        backdrop: {
+          sx: {
+            backgroundColor: 'rgba(0,0,0,0.4)',
+            transition: 'opacity 300ms ease !important',
           },
         },
       }}
@@ -144,7 +140,7 @@ const Sidebar = () => {
           <Profile />
         </Box>
       </Box>
-    </Drawer>
+    </SwipeableDrawer>
   );
 };
 

@@ -18,8 +18,13 @@
     "signing_in": "Signing in…"
   },
   "nav": {
-    "overview": "Overview",
+    "daily_ops": "Daily Operations",
     "dashboard": "Dashboard",
+    "catalog": "Catalog & Inventory",
+    "commerce": "Commerce",
+    "finance": "Finance",
+    "reports_group_header": "Reports & Insights",
+    "administration": "Administration",
     "pos_terminal": "POS Terminal",
     "sales_group": "Sales",
     "sales": "Sales",

@@ -13,10 +13,10 @@ const NavListing = () => {
   const pathDirect = pathname;
   const pathWithoutLastPart = pathname.slice(0, pathname.lastIndexOf('/'));
 
-  const { isCollapse, isSidebarHover } = useContext(CustomizerContext);
+  const { isCollapse } = useContext(CustomizerContext);
 
   const lgUp = useMediaQuery((theme: Theme) => theme.breakpoints.up('lg'));
-  const hideMenu = lgUp ? isCollapse == "mini-sidebar" && !isSidebarHover : '';
+  const hideMenu = lgUp ? isCollapse == "mini-sidebar" : '';
 
   return (
     <Box>
