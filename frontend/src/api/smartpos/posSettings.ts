@@ -1,5 +1,6 @@
 /**
- * POS Settings API — receipt layout, tax defaults, currency, store info.
+ * POS Settings API — receipt layout, tax defaults, currency, store info,
+ * loyalty programme, discount rules, locale, notifications, and more.
  * Backed by /api/v1/pos-settings (sales-service).
  */
 import { api } from './client';
@@ -43,19 +44,54 @@ export interface PosSettings {
   storeTaxId: string;
   footerMessage: string;
 
+  // Store branding
+  logoUrl: string;
+  storeWebsite: string;
+
   // Printing
   autoPrint: boolean;
 
   // POS behaviour
   productsPerPage: number;
+  allowNegativeStock: boolean;
+  requireCustomerOnSale: boolean;
+  requireNoteOnSale: boolean;
+  lowStockThreshold: number;
+  enableSound: boolean;
+  kioskIdleTimeoutSec: number;
+
+  // Sale reference numbering
+  saleRefPrefix: string;
+  saleRefPadding: number;
 
   // Tax defaults
   defaultTaxRate: number;
   defaultTaxMethod: 'EXCLUSIVE' | 'INCLUSIVE';
 
+  // Discount & approval rules
+  maxDiscountPercent: number;
+  requirePinForDiscount: boolean;
+  managerApprovalAbove: number | null;
+
   // Currency
   currencyCode: string;
   currencySymbol: string;
+
+  // Locale / regional
+  timezone: string;
+  dateFormat: string;
+  timeFormat: string;
+
+  // Loyalty programme
+  enableLoyalty: boolean;
+  loyaltyPointsPerUnit: number;
+  loyaltyValuePerPoint: number;
+  loyaltyMinRedeemPoints: number;
+
+  // Notifications / alerts
+  lowStockAlertEnabled: boolean;
+  dailySummaryEnabled: boolean;
+  alertEmail: string;
 
   createdAt: string;
   updatedAt: string;
@@ -72,12 +108,23 @@ export async function getPosSettings(warehouseId: UUID): Promise<PosSettings> {
   return data;
 }
 
+/** Partial update — only provided fields are applied on the server. */
 export async function updatePosSettings(
   warehouseId: UUID,
   body: PosSettingsUpdate,
 ): Promise<PosSettings> {
-  const { data } = await api.put<PosSettings>('/api/v1/pos-settings', body, {
+  const { data } = await api.patch<PosSettings>('/api/v1/pos-settings', body, {
     params: { warehouseId },
   });
+  return data;
+}
+
+/** Restore factory defaults for the given warehouse. */
+export async function resetPosSettings(warehouseId: UUID): Promise<PosSettings> {
+  const { data } = await api.post<PosSettings>(
+    '/api/v1/pos-settings/reset',
+    null,
+    { params: { warehouseId } },
+  );
   return data;
 }

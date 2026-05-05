@@ -85,6 +85,18 @@ const SmartPosI18nAdmin = Loadable(lazy(() => import('../views/smartpos/settings
 const SmartPosReceiptSettings = Loadable(
   lazy(() => import('../views/smartpos/settings/ReceiptSettingsPage')),
 );
+const SmartPosTaxPricing = Loadable(
+  lazy(() => import('../views/smartpos/settings/TaxPricingPage')),
+);
+const SmartPosPosBehaviour = Loadable(
+  lazy(() => import('../views/smartpos/settings/PosSettingsPage')),
+);
+const SmartPosLoyalty = Loadable(
+  lazy(() => import('../views/smartpos/settings/LoyaltySettingsPage')),
+);
+const SmartPosNotifications = Loadable(
+  lazy(() => import('../views/smartpos/settings/NotificationsSettingsPage')),
+);
 const SmartPosCustomers = Loadable(
   lazy(() => import('../views/smartpos/customers/CustomersListPage')),
 );
@@ -377,6 +389,10 @@ const Router = [
       // Settings
       { path: 'settings/i18n', element: <SmartPosI18nAdmin /> },
       { path: 'settings/receipt', element: <SmartPosReceiptSettings /> },
+      { path: 'settings/tax-pricing', element: <SmartPosTaxPricing /> },
+      { path: 'settings/pos-behaviour', element: <SmartPosPosBehaviour /> },
+      { path: 'settings/loyalty', element: <SmartPosLoyalty /> },
+      { path: 'settings/notifications', element: <SmartPosNotifications /> },
       { path: 'customers', element: <SmartPosCustomers /> },
       { path: 'suppliers', element: <SmartPosSuppliers /> },
       { path: 'warehouses', element: <SmartPosWarehouses /> },

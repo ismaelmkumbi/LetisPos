@@ -50,6 +50,11 @@ import {
   IconBuildingStore,
   IconRuler,
   IconUpload,
+
+  IconPercentage,
+  IconGift,
+  IconBellRinging,
+  IconAdjustmentsAlt,
 } from '@tabler/icons-react';
 
 export interface MenuItem {
@@ -167,12 +172,16 @@ export function buildSmartPosMenu(t: TFunction): MenuItem[] {
     {
       id: uid(), title: t('smartpos:nav.settings'), icon: IconSettings,
       children: [
-        { id: uid(), title: t('smartpos:nav.users_roles'),     icon: IconUserShield, href: '/smartpos/settings/users' },
-        { id: uid(), title: t('smartpos:nav.tenants'),         icon: IconBuilding,   href: '/smartpos/settings/tenants' },
-        { id: uid(), title: t('smartpos:nav.languages_admin'), icon: IconLanguage,   href: '/smartpos/settings/i18n' },
-        { id: uid(), title: t('smartpos:nav.localization'),    icon: IconWorld,      href: '/smartpos/settings/locale' },
-        { id: uid(), title: t('smartpos:nav.preferences'),     icon: IconSettings,   href: '/smartpos/settings' },
-        { id: uid(), title: t('smartpos:nav.receipt_settings'), icon: IconReceipt,   href: '/smartpos/settings/receipt' },
+        { id: uid(), title: t('smartpos:nav.preferences'),        icon: IconSettings,        href: '/smartpos/settings' },
+        { id: uid(), title: t('smartpos:nav.receipt_settings'),   icon: IconReceipt,         href: '/smartpos/settings/receipt' },
+        { id: uid(), title: 'POS Behaviour',                      icon: IconAdjustmentsAlt,  href: '/smartpos/settings/pos-behaviour' },
+        { id: uid(), title: 'Tax & Pricing',                      icon: IconPercentage,      href: '/smartpos/settings/tax-pricing' },
+        { id: uid(), title: 'Loyalty Programme',                  icon: IconGift,            href: '/smartpos/settings/loyalty', chip: 'NEW', chipColor: 'success' },
+        { id: uid(), title: 'Notifications',                      icon: IconBellRinging,     href: '/smartpos/settings/notifications' },
+        { id: uid(), title: t('smartpos:nav.users_roles'),        icon: IconUserShield,      href: '/smartpos/settings/users' },
+        { id: uid(), title: t('smartpos:nav.tenants'),            icon: IconBuilding,        href: '/smartpos/settings/tenants' },
+        { id: uid(), title: t('smartpos:nav.localization'),       icon: IconWorld,           href: '/smartpos/settings/locale' },
+        { id: uid(), title: t('smartpos:nav.languages_admin'),    icon: IconLanguage,        href: '/smartpos/settings/i18n' },
       ],
     },
   ];

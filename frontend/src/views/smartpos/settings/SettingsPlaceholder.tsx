@@ -16,11 +16,8 @@ import {
   Autocomplete,
   Box,
   Button,
-  Card,
-  CardContent,
   Checkbox,
   Chip,
-  CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
@@ -29,15 +26,9 @@ import {
   IconButton,
   InputAdornment,
   MenuItem,
-  Skeleton,
   Stack,
   Switch,
   Tab,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
   Tabs,
   TextField,
   ToggleButton,
@@ -46,7 +37,6 @@ import {
   Typography,
 } from '@mui/material';
 import {
-  IconCheck,
   IconEdit,
   IconPlus,
   IconSearch,
@@ -60,6 +50,9 @@ import {
   IconArrowUpRight,
   IconCreditCard,
   IconBuildingStore,
+  IconLayoutGrid,
+  IconPercentage,
+  IconCash,
 } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import PageHeader from 'src/components/smartpos/PageHeader';
@@ -69,7 +62,7 @@ import {
 import { brand } from 'src/theme/smartpos/brand';
 import { premiumFieldSx } from 'src/components/smartpos/PosLayouts/shared';
 import { useAuth } from 'src/context/smartpos/AuthContext';
-import { getPosSettings, updatePosSettings, type PosSettings } from 'src/api/smartpos/posSettings';
+import { getPosSettings, updatePosSettings, resetPosSettings, type PosSettings } from 'src/api/smartpos/posSettings';
 import { listWarehouses, type Warehouse } from 'src/api/smartpos/inventory';
 import {
   listUsers,
@@ -87,33 +80,18 @@ import {
   type PermissionDto,
 } from 'src/api/smartpos/users';
 import type { UUID } from 'src/api/smartpos/types';
+import {
+  cardSx, SectionTitle, FloatingSaveBar, CardSkeletonGroup,
+} from 'src/components/smartpos/SettingsHelpers';
+import DataTable, { type Column, StatusBadge } from 'src/components/smartpos/DataTable';
 
 const t_brand = brand;
 
-/* ──────────────────────────────────────────────────────────────────────────
-   Shared helpers
-   ────────────────────────────────────────────────────────────────────────── */
-
-function SectionLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <Typography
-      variant="caption"
-      sx={{
-        fontWeight: 700, color: t_brand.neutral[500], mb: 0.5,
-        display: 'block', textTransform: 'uppercase', letterSpacing: '0.03em',
-      }}
-    >
-      {children}
-    </Typography>
-  );
-}
+const fieldSx = { ...premiumFieldSx, '& .MuiOutlinedInput-root': { ...premiumFieldSx['& .MuiOutlinedInput-root'], borderRadius: '10px' } };
 
 const toggleGroupSx = {
   '& .MuiToggleButton-root': {
-    textTransform: 'none',
-    fontWeight: 700,
-    fontSize: '0.78rem',
-    py: 0.8,
+    textTransform: 'none', fontWeight: 700, fontSize: '0.82rem', py: 0.8, px: 2, borderRadius: '8px',
   },
 };
 
@@ -172,6 +150,8 @@ export function SettingsHome() {
     setSettings((prev) => (prev ? { ...prev, ...patch } : prev));
   }, []);
 
+  const [resetting, setResetting] = useState(false);
+
   const handleSave = async () => {
     if (!warehouseId || !settings) return;
     setSaving(true);
@@ -184,6 +164,9 @@ export function SettingsHome() {
         storePhone: settings.storePhone,
         storeEmail: settings.storeEmail,
         storeTaxId: settings.storeTaxId,
+        footerMessage: settings.footerMessage,
+        logoUrl: settings.logoUrl,
+        storeWebsite: settings.storeWebsite,
         productsPerPage: settings.productsPerPage,
         defaultTaxRate: settings.defaultTaxRate,
         defaultTaxMethod: settings.defaultTaxMethod,
@@ -200,6 +183,22 @@ export function SettingsHome() {
     }
   };
 
+  const handleReset = async () => {
+    if (!warehouseId) return;
+    setResetting(true);
+    setError(null);
+    try {
+      const defaults = await resetPosSettings(warehouseId);
+      setSettings(defaults);
+      setInfo('Settings reset to factory defaults.');
+      setTimeout(() => setInfo(null), 4000);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Reset failed');
+    } finally {
+      setResetting(false);
+    }
+  };
+
   const selWarehouse = warehouses.find((w) => w.id === warehouseId);
 
   return (
@@ -207,6 +206,7 @@ export function SettingsHome() {
       <PageHeader
         title={t('settings:preferences.title')}
         subtitle={t('settings:preferences.subtitle')}
+        badge={{ label: 'Enterprise', tone: 'primary' }}
       />
 
       {error && (
@@ -217,107 +217,93 @@ export function SettingsHome() {
       )}
 
       {/* Warehouse selector */}
-      <Card
-        elevation={0}
-        sx={{ border: `1px solid ${t_brand.neutral[200]}`, borderRadius: 3, mb: 2.5 }}
-      >
-        <CardContent>
-          <SectionLabel>{t('settings:preferences.warehouse')}</SectionLabel>
-          <Typography variant="body2" sx={{ color: t_brand.neutral[500], mb: 1.5 }}>
-            {t('settings:preferences.warehouse_hint')}
-          </Typography>
-          <Autocomplete
-            value={selWarehouse ?? null}
-            options={warehouses}
-            getOptionLabel={(w) => `${w.name}${w.city ? ` — ${w.city}` : ''}`}
-            onChange={(_, v) => v && setWarehouseId(v.id)}
-            renderInput={(p) => (
-              <TextField {...p} size="small" sx={premiumFieldSx} />
-            )}
-            sx={{ maxWidth: 420 }}
-          />
-        </CardContent>
-      </Card>
+      <Box sx={{ ...cardSx, p: 2.5, mb: 2.5 }}>
+        <SectionTitle icon={<IconBuildingStore size={20} />} title={t('settings:preferences.warehouse')} />
+        <Typography variant="body2" sx={{ color: t_brand.neutral[500], mb: 1.5 }}>
+          {t('settings:preferences.warehouse_hint')}
+        </Typography>
+        <Autocomplete
+          value={selWarehouse ?? null}
+          options={warehouses}
+          getOptionLabel={(w) => `${w.name}${w.city ? ` — ${w.city}` : ''}`}
+          onChange={(_, v) => v && setWarehouseId(v.id)}
+          renderInput={(p) => (
+            <TextField {...p} size="small" sx={{ ...fieldSx, minWidth: 360 }} />
+          )}
+          sx={{ maxWidth: 480 }}
+        />
+      </Box>
 
       {!warehouseId && !loading && (
         <Alert severity="info">{t('settings:preferences.no_warehouse')}</Alert>
       )}
 
-      {loading && warehouseId && (
-        <Stack spacing={2.5} sx={{ maxWidth: 720 }}>
-          <Skeleton variant="rounded" height={180} sx={{ borderRadius: 3 }} />
-          <Skeleton variant="rounded" height={120} sx={{ borderRadius: 3 }} />
-          <Skeleton variant="rounded" height={140} sx={{ borderRadius: 3 }} />
-          <Skeleton variant="rounded" height={120} sx={{ borderRadius: 3 }} />
-        </Stack>
-      )}
+      {loading && warehouseId && <CardSkeletonGroup heights={[220, 160, 180, 140]} count={4} />}
 
       {!loading && settings && warehouseId && (
-        <Stack spacing={2.5} sx={{ maxWidth: 720 }}>
-          {/* Store Information */}
-          <Card elevation={0} sx={{ border: `1px solid ${t_brand.neutral[200]}`, borderRadius: 3 }}>
-            <CardContent>
-              <SectionLabel>{t('settings:preferences.store_info')}</SectionLabel>
+        <Stack spacing={2.5} sx={{ maxWidth: 1680, mx: 'auto' }}>
+          {/* Row: Store Information + POS Behaviour */}
+          <Stack direction={{ xs: 'column', lg: 'row' }} spacing={2.5}>
+            <Box sx={{ ...cardSx, p: 2.5, flex: 1 }}>
+              <SectionTitle icon={<IconBuildingStore size={20} />} title={t('settings:preferences.store_info')} />
               <Stack spacing={1.5}>
                 <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
                   <TextField
                     label={t('settings:preferences.store_name')}
                     value={settings.storeName}
                     onChange={(e) => update({ storeName: e.target.value })}
-                    size="small"
-                    fullWidth
-                    sx={premiumFieldSx}
+                    size="small" fullWidth sx={fieldSx}
                   />
                   <TextField
                     label={t('settings:preferences.store_tax_id')}
                     value={settings.storeTaxId}
                     onChange={(e) => update({ storeTaxId: e.target.value })}
-                    size="small"
-                    fullWidth
-                    sx={premiumFieldSx}
+                    size="small" fullWidth sx={fieldSx}
                   />
                 </Stack>
                 <TextField
                   label={t('settings:preferences.store_address')}
                   value={settings.storeAddress}
                   onChange={(e) => update({ storeAddress: e.target.value })}
-                  size="small"
-                  fullWidth
-                  sx={premiumFieldSx}
+                  size="small" fullWidth sx={fieldSx}
                 />
                 <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
                   <TextField
                     label={t('settings:preferences.store_phone')}
                     value={settings.storePhone}
                     onChange={(e) => update({ storePhone: e.target.value })}
-                    size="small"
-                    fullWidth
-                    sx={premiumFieldSx}
+                    size="small" fullWidth sx={fieldSx}
                   />
                   <TextField
                     label={t('settings:preferences.store_email')}
                     value={settings.storeEmail}
                     onChange={(e) => update({ storeEmail: e.target.value })}
-                    size="small"
-                    fullWidth
-                    sx={premiumFieldSx}
+                    size="small" fullWidth sx={fieldSx}
                   />
                 </Stack>
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
+                  <TextField label="Website" value={settings.storeWebsite}
+                    onChange={(e) => update({ storeWebsite: e.target.value })}
+                    size="small" fullWidth sx={fieldSx} placeholder="https://example.com" />
+                  <TextField label="Logo URL" value={settings.logoUrl}
+                    onChange={(e) => update({ logoUrl: e.target.value })}
+                    size="small" fullWidth sx={fieldSx} placeholder="https://cdn.example.com/logo.png" />
+                </Stack>
+                <TextField label="Footer message" value={settings.footerMessage}
+                  onChange={(e) => update({ footerMessage: e.target.value })}
+                  size="small" fullWidth sx={fieldSx}
+                  helperText="Shown at the bottom of every receipt" />
               </Stack>
-            </CardContent>
-          </Card>
+            </Box>
 
-          {/* POS Behaviour */}
-          <Card elevation={0} sx={{ border: `1px solid ${t_brand.neutral[200]}`, borderRadius: 3 }}>
-            <CardContent>
-              <SectionLabel>{t('settings:preferences.pos_behaviour')}</SectionLabel>
-              <Typography variant="body2" sx={{ color: t_brand.neutral[500], mb: 1 }}>
+            <Box sx={{ ...cardSx, p: 2.5, flex: 1 }}>
+              <SectionTitle icon={<IconLayoutGrid size={20} />} title={t('settings:preferences.pos_behaviour')} />
+              <Typography variant="body2" sx={{ color: t_brand.neutral[500], mb: 1.5 }}>
                 {t('settings:preferences.products_per_page_hint')}
               </Typography>
               <ToggleButtonGroup
                 value={settings.productsPerPage}
-                exclusive
-                size="small"
+                exclusive size="small"
                 onChange={(_, v) => v && update({ productsPerPage: v })}
                 sx={toggleGroupSx}
               >
@@ -325,13 +311,13 @@ export function SettingsHome() {
                   <ToggleButton key={n} value={n}>{n}</ToggleButton>
                 ))}
               </ToggleButtonGroup>
-            </CardContent>
-          </Card>
+            </Box>
+          </Stack>
 
-          {/* Tax Defaults */}
-          <Card elevation={0} sx={{ border: `1px solid ${t_brand.neutral[200]}`, borderRadius: 3 }}>
-            <CardContent>
-              <SectionLabel>{t('settings:preferences.tax_defaults')}</SectionLabel>
+          {/* Row: Tax Defaults + Currency */}
+          <Stack direction={{ xs: 'column', lg: 'row' }} spacing={2.5}>
+            <Box sx={{ ...cardSx, p: 2.5, flex: 1 }}>
+              <SectionTitle icon={<IconPercentage size={20} />} title={t('settings:preferences.tax_defaults')} />
               <Stack spacing={1.5}>
                 <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
                   <TextField
@@ -341,20 +327,16 @@ export function SettingsHome() {
                       const v = parseFloat(e.target.value);
                       if (!isNaN(v)) update({ defaultTaxRate: v });
                     }}
-                    type="number"
-                    size="small"
-                    sx={{ maxWidth: 200, ...premiumFieldSx }}
-                    InputProps={{
-                      endAdornment: <InputAdornment position="end">%</InputAdornment>,
-                    }}
+                    type="number" size="small"
+                    sx={{ maxWidth: 200, ...fieldSx }}
+                    InputProps={{ endAdornment: <InputAdornment position="end">%</InputAdornment> }}
                     helperText={t('settings:preferences.default_tax_rate_hint')}
                   />
                 </Stack>
                 <Box>
                   <ToggleButtonGroup
                     value={settings.defaultTaxMethod}
-                    exclusive
-                    size="small"
+                    exclusive size="small"
                     onChange={(_, v) => v && update({ defaultTaxMethod: v })}
                     sx={toggleGroupSx}
                   >
@@ -367,13 +349,10 @@ export function SettingsHome() {
                   </ToggleButtonGroup>
                 </Box>
               </Stack>
-            </CardContent>
-          </Card>
+            </Box>
 
-          {/* Currency */}
-          <Card elevation={0} sx={{ border: `1px solid ${t_brand.neutral[200]}`, borderRadius: 3 }}>
-            <CardContent>
-              <SectionLabel>{t('settings:preferences.currency')}</SectionLabel>
+            <Box sx={{ ...cardSx, p: 2.5, flex: 1 }}>
+              <SectionTitle icon={<IconCash size={20} />} title={t('settings:preferences.currency')} />
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
                 <TextField
                   select
@@ -381,7 +360,7 @@ export function SettingsHome() {
                   value={settings.currencyCode}
                   onChange={(e) => update({ currencyCode: e.target.value })}
                   size="small"
-                  sx={{ minWidth: 140, ...premiumFieldSx }}
+                  sx={{ minWidth: 140, ...fieldSx }}
                   helperText={t('settings:preferences.currency_code_hint')}
                 >
                   {CURRENCY_CODES.map((c) => (
@@ -393,37 +372,22 @@ export function SettingsHome() {
                   value={settings.currencySymbol}
                   onChange={(e) => update({ currencySymbol: e.target.value })}
                   size="small"
-                  sx={{ maxWidth: 140, ...premiumFieldSx }}
+                  sx={{ maxWidth: 140, ...fieldSx }}
                   helperText={t('settings:preferences.currency_symbol_hint')}
                 />
               </Stack>
-            </CardContent>
-          </Card>
+            </Box>
+          </Stack>
 
-          {/* Save bar */}
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 4 }}>
-            <Typography variant="caption" sx={{ color: t_brand.neutral[400] }}>
-              {settings.updatedAt
-                ? t('settings:preferences.last_saved', {
-                  when: new Date(settings.updatedAt).toLocaleString(),
-                })
-                : ''}
-            </Typography>
-            <Button
-              variant="contained"
-              onClick={handleSave}
-              disabled={saving}
-              startIcon={saving ? <CircularProgress size={16} color="inherit" /> : <IconCheck size={18} />}
-              sx={{
-                textTransform: 'none',
-                fontWeight: 800,
-                borderRadius: '10px',
-                px: 3,
-              }}
-            >
-              {saving ? t('settings:preferences.saving') : t('settings:preferences.save')}
-            </Button>
-          </Box>
+          {/* Floating save bar */}
+          <FloatingSaveBar
+            saving={saving}
+            onSave={handleSave}
+            onReset={handleReset}
+            resetting={resetting}
+            saveLabel={t('settings:preferences.save')}
+            lastSavedAt={settings.updatedAt ? new Date(settings.updatedAt).toLocaleString() : undefined}
+          />
         </Stack>
       )}
     </Box>
@@ -537,157 +501,139 @@ function UsersTab() {
     }
   };
 
+  const userColumns = useMemo<Column<UserDto>[]>(() => [
+    {
+      key: 'name', label: 'Name', width: 240,
+      sortable: true,
+      exportValue: (u) => [u.firstName, u.lastName].filter(Boolean).join(' ') || u.email,
+      render: (u) => (
+        <Stack direction="row" spacing={1} alignItems="center">
+          <Box
+            sx={{
+              width: 32, height: 32, borderRadius: 2,
+              bgcolor: t_brand.primary[100],
+              color: t_brand.primary[700],
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontWeight: 800, fontSize: '0.75rem',
+            }}
+          >
+            {(u.firstName?.[0] ?? u.email[0]).toUpperCase()}
+          </Box>
+          <Typography sx={{ fontWeight: 700, fontSize: '0.82rem' }}>
+            {[u.firstName, u.lastName].filter(Boolean).join(' ') || u.email}
+          </Typography>
+        </Stack>
+      ),
+    },
+    {
+      key: 'email', label: 'Email', width: 220,
+      sortable: true,
+      exportValue: (u) => u.email,
+      render: (u) => (
+        <Typography sx={{ fontSize: '0.8rem', color: t_brand.neutral[600] }}>
+          {u.email}
+        </Typography>
+      ),
+    },
+    {
+      key: 'roles', label: 'Roles', width: 200,
+      exportValue: (u) => u.roles.join(', '),
+      render: (u) => (
+        <Stack direction="row" spacing={0.5} flexWrap="wrap" rowGap={0.5}>
+          {u.roles.slice(0, 3).map((r) => (
+            <Chip key={r} label={r} size="small"
+              sx={{ fontSize: '0.7rem', fontWeight: 600,
+                bgcolor: t_brand.primary[50], color: t_brand.primary[700] }} />
+          ))}
+          {u.roles.length > 3 && (
+            <Tooltip title={u.roles.slice(3).join(', ')}>
+              <Chip label={`+${u.roles.length - 3}`} size="small"
+                sx={{ fontSize: '0.7rem', fontWeight: 600,
+                  bgcolor: t_brand.neutral[100], color: t_brand.neutral[600] }} />
+            </Tooltip>
+          )}
+        </Stack>
+      ),
+    },
+    {
+      key: 'active', label: 'Status', align: 'center', width: 100,
+      sortable: true,
+      exportValue: (u) => u.active ? 'Active' : 'Inactive',
+      render: (u) => (
+        <StatusBadge
+          label={u.active ? t('settings:users.active') : t('settings:users.inactive')}
+          tone={u.active ? 'success' : 'neutral'}
+        />
+      ),
+    },
+    {
+      key: 'actions', label: '', align: 'right', width: 140,
+      enableHiding: false,
+      render: (u) => (
+        <Stack direction="row" spacing={0.5} justifyContent="flex-end">
+          <Tooltip title="Edit user">
+            <IconButton size="small"
+              onClick={() => { setEditingUser(u); setEditOpen(true); }}>
+              <IconEdit size={16} />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Assign warehouses">
+            <IconButton size="small"
+              onClick={() => { setWarehouseUser(u); setWarehouseOpen(true); }}>
+              <IconBuildingWarehouse size={16} />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title={u.active ? 'Deactivate' : 'Activate'}>
+            <IconButton size="small"
+              onClick={() => setStatusConfirm(u)}>
+              <IconLock size={16}
+                color={u.active ? t_brand.warning.dark : t_brand.success.dark} />
+            </IconButton>
+          </Tooltip>
+        </Stack>
+      ),
+    },
+  ], [t]);
+
   return (
     <Box>
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
       {info && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setInfo(null)}>{info}</Alert>}
 
-      <Stack direction="row" spacing={1.5} sx={{ mb: 2 }}>
-        <TextField
-          size="small"
-          placeholder={t('settings:users.search_users')}
-          value={search}
-          onChange={(e) => { setSearch(e.target.value); setPage(0); }}
-          sx={{ flex: 1, maxWidth: 360, ...premiumFieldSx }}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <IconSearch size={18} color={t_brand.neutral[400]} />
-              </InputAdornment>
-            ),
-          }}
-        />
-        <Box sx={{ flex: 1 }} />
-      </Stack>
-
-      <Card variant="outlined" sx={{ border: `1px solid ${t_brand.neutral[200]}`, borderRadius: 3 }}>
-        <Table size="small">
-          <TableHead sx={{ bgcolor: t_brand.neutral[50] }}>
-            <TableRow>
-              <TableCell>Name</TableCell>
-              <TableCell>Email</TableCell>
-              <TableCell>Roles</TableCell>
-              <TableCell align="center">Status</TableCell>
-              <TableCell align="right" sx={{ width: 140 }}>Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {loading && (
-              <TableRow>
-                <TableCell colSpan={5}>
-                  <Typography variant="body2" sx={{ color: t_brand.neutral[400] }}>
-                    {t('settings:users.loading_users')}
-                  </Typography>
-                </TableCell>
-              </TableRow>
-            )}
-            {!loading && users.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={5}>
-                  <Typography variant="body2" sx={{ color: t_brand.neutral[500] }}>
-                    {t('settings:users.no_users')}
-                  </Typography>
-                </TableCell>
-              </TableRow>
-            )}
-            {!loading && users.map((u) => (
-              <TableRow key={u.id} hover>
-                <TableCell>
-                  <Stack direction="row" spacing={1} alignItems="center">
-                    <Box
-                      sx={{
-                        width: 32, height: 32, borderRadius: 2,
-                        bgcolor: t_brand.primary[100],
-                        color: t_brand.primary[700],
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontWeight: 800, fontSize: '0.75rem',
-                      }}
-                    >
-                      {(u.firstName?.[0] ?? u.email[0]).toUpperCase()}
-                    </Box>
-                    <Typography sx={{ fontWeight: 700, fontSize: '0.82rem' }}>
-                      {[u.firstName, u.lastName].filter(Boolean).join(' ') || u.email}
-                    </Typography>
-                  </Stack>
-                </TableCell>
-                <TableCell sx={{ fontSize: '0.8rem', color: t_brand.neutral[600] }}>
-                  {u.email}
-                </TableCell>
-                <TableCell>
-                  <Stack direction="row" spacing={0.5} flexWrap="wrap" rowGap={0.5}>
-                    {u.roles.slice(0, 3).map((r) => (
-                      <Chip key={r} label={r} size="small"
-                        sx={{ fontSize: '0.7rem', fontWeight: 600,
-                          bgcolor: t_brand.primary[50], color: t_brand.primary[700] }} />
-                    ))}
-                    {u.roles.length > 3 && (
-                      <Tooltip title={u.roles.slice(3).join(', ')}>
-                        <Chip label={`+${u.roles.length - 3}`} size="small"
-                          sx={{ fontSize: '0.7rem', fontWeight: 600,
-                            bgcolor: t_brand.neutral[100], color: t_brand.neutral[600] }} />
-                      </Tooltip>
-                    )}
-                  </Stack>
-                </TableCell>
-                <TableCell align="center">
-                  <Chip
-                    label={u.active ? t('settings:users.active') : t('settings:users.inactive')}
-                    size="small"
-                    sx={{
-                      fontWeight: 600, fontSize: '0.72rem',
-                      bgcolor: u.active ? t_brand.success.light : t_brand.neutral[100],
-                      color: u.active ? t_brand.success.dark : t_brand.neutral[500],
-                    }}
-                  />
-                </TableCell>
-                <TableCell align="right">
-                  <Stack direction="row" spacing={0.5} justifyContent="flex-end">
-                    <Tooltip title="Edit user">
-                      <IconButton size="small"
-                        onClick={() => { setEditingUser(u); setEditOpen(true); }}>
-                        <IconEdit size={16} />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Assign warehouses">
-                      <IconButton size="small"
-                        onClick={() => { setWarehouseUser(u); setWarehouseOpen(true); }}>
-                        <IconBuildingWarehouse size={16} />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title={u.active ? 'Deactivate' : 'Activate'}>
-                      <IconButton size="small"
-                        onClick={() => setStatusConfirm(u)}>
-                        <IconLock size={16}
-                          color={u.active ? t_brand.warning.dark : t_brand.success.dark} />
-                      </IconButton>
-                    </Tooltip>
-                  </Stack>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </Card>
-
-      {/* Pagination */}
-      {total > PAGE_SIZE && (
-        <Stack direction="row" justifyContent="center" spacing={1.5} sx={{ mt: 2 }}>
-          <Button size="small" variant="outlined" disabled={page === 0}
-            onClick={() => setPage(page - 1)}
-            sx={{ textTransform: 'none', fontWeight: 600 }}>
-            Previous
-          </Button>
-          <Typography variant="body2" sx={{ color: t_brand.neutral[500], alignSelf: 'center' }}>
-            Page {page + 1} of {Math.ceil(total / PAGE_SIZE)}
-          </Typography>
-          <Button size="small" variant="outlined"
-            disabled={(page + 1) * PAGE_SIZE >= total}
-            onClick={() => setPage(page + 1)}
-            sx={{ textTransform: 'none', fontWeight: 600 }}>
-            Next
-          </Button>
-        </Stack>
-      )}
+      <DataTable
+        columns={userColumns}
+        rows={users}
+        loading={loading}
+        emptyText={t('settings:users.no_users')}
+        getRowKey={(u) => u.id}
+        tableKey="users"
+        enableSorting
+        enableExport
+        enableColumnVisibility
+        exportFileName="users-export"
+        page={page}
+        totalPages={Math.ceil(total / PAGE_SIZE)}
+        totalElements={total}
+        pageSize={PAGE_SIZE}
+        onPageChange={setPage}
+        toolbarTitle={total > 0 ? `${total.toLocaleString()} users` : undefined}
+        toolbar={
+          <TextField
+            size="small"
+            placeholder={t('settings:users.search_users')}
+            value={search}
+            onChange={(e) => { setSearch(e.target.value); setPage(0); }}
+            sx={{ minWidth: 280, ...fieldSx }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <IconSearch size={18} color={t_brand.neutral[400]} />
+                </InputAdornment>
+              ),
+            }}
+          />
+        }
+      />
 
       {/* Edit User Dialog */}
       <Dialog open={editOpen} onClose={() => setEditOpen(false)} maxWidth="sm" fullWidth>
@@ -948,117 +894,118 @@ function RolesTab() {
     }
   };
 
+  const roleColumns = useMemo<Column<RoleDto>[]>(() => [
+    {
+      key: 'name', label: 'Name', width: 180,
+      sortable: true,
+      exportValue: (r) => r.name,
+      render: (r) => (
+        <Typography sx={{ fontWeight: 700, fontSize: '0.82rem', fontFamily: 'monospace' }}>
+          {r.name}
+        </Typography>
+      ),
+    },
+    {
+      key: 'label', label: 'Label', width: 180,
+      sortable: true,
+      exportValue: (r) => r.label ?? '',
+      render: (r) => (
+        <Typography sx={{ fontSize: '0.82rem' }}>
+          {r.label || '—'}
+        </Typography>
+      ),
+    },
+    {
+      key: 'permissions', label: 'Permissions', width: 160,
+      exportValue: (r) => r.permissions.join(', '),
+      render: (r) => (
+        <Tooltip title={r.permissions.join(', ') || 'None'}>
+          <Chip
+            label={t('settings:users.permissions_count', { count: r.permissions.length })}
+            size="small"
+            sx={{
+              fontSize: '0.7rem', fontWeight: 600,
+              bgcolor: t_brand.primary[50], color: t_brand.primary[700],
+              cursor: 'pointer',
+            }}
+          />
+        </Tooltip>
+      ),
+    },
+    {
+      key: 'isSystem', label: 'Type', align: 'center', width: 100,
+      sortable: true,
+      exportValue: (r) => r.isSystem ? 'System' : 'Custom',
+      render: (r) =>
+        r.isSystem ? (
+          <StatusBadge label={t('settings:users.system_role')} tone="warning" />
+        ) : (
+          <Typography sx={{ fontSize: '0.78rem', color: t_brand.neutral[400] }}>Custom</Typography>
+        ),
+    },
+    {
+      key: 'actions', label: '', align: 'right', width: 150,
+      enableHiding: false,
+      render: (r) => (
+        <Stack direction="row" spacing={0.5} justifyContent="flex-end">
+          <Tooltip title="Manage Permissions">
+            <IconButton size="small"
+              onClick={() => { setPermRole(r); setPermOpen(true); }}>
+              <IconLock size={16} />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Edit">
+            <IconButton size="small" onClick={() => handleEdit(r)}>
+              <IconEdit size={16} />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title={r.isSystem ? t('settings:users.system_role_warning') : 'Delete'}>
+            <span>
+              <IconButton size="small"
+                disabled={r.isSystem}
+                onClick={() => setDeleteConfirm(r)}>
+                <IconTrash size={16}
+                  color={r.isSystem ? t_brand.neutral[300] : t_brand.error.main} />
+              </IconButton>
+            </span>
+          </Tooltip>
+        </Stack>
+      ),
+    },
+  ], [t]);
+
   return (
     <Box>
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
       {info && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setInfo(null)}>{info}</Alert>}
 
-      <Stack direction="row" justifyContent="flex-end" sx={{ mb: 2 }}>
-        <Button
-          variant="contained"
-          startIcon={<IconPlus size={16} />}
-          onClick={handleCreate}
-          sx={{
-            bgcolor: t_brand.accent[500],
-            '&:hover': { bgcolor: t_brand.accent[600] },
-            textTransform: 'none', fontWeight: 700, borderRadius: '10px',
-          }}
-        >
-          {t('settings:users.create_role')}
-        </Button>
-      </Stack>
-
-      <Card variant="outlined" sx={{ border: `1px solid ${t_brand.neutral[200]}`, borderRadius: 3 }}>
-        <Table size="small">
-          <TableHead sx={{ bgcolor: t_brand.neutral[50] }}>
-            <TableRow>
-              <TableCell>Name</TableCell>
-              <TableCell>Label</TableCell>
-              <TableCell>Permissions</TableCell>
-              <TableCell align="center">Type</TableCell>
-              <TableCell align="right" sx={{ width: 160 }}>Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {loading && (
-              <TableRow>
-                <TableCell colSpan={5}>
-                  <Typography variant="body2" sx={{ color: t_brand.neutral[400] }}>
-                    {t('common:loading')}
-                  </Typography>
-                </TableCell>
-              </TableRow>
-            )}
-            {!loading && roles.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={5}>
-                  <Typography variant="body2" sx={{ color: t_brand.neutral[500] }}>
-                    {t('settings:users.no_roles')}
-                  </Typography>
-                </TableCell>
-              </TableRow>
-            )}
-            {!loading && roles.map((r) => (
-              <TableRow key={r.id} hover>
-                <TableCell sx={{ fontWeight: 700, fontSize: '0.82rem', fontFamily: 'monospace' }}>
-                  {r.name}
-                </TableCell>
-                <TableCell>{r.label || '—'}</TableCell>
-                <TableCell>
-                  <Tooltip title={r.permissions.join(', ') || 'None'}>
-                    <Chip
-                      label={t('settings:users.permissions_count', { count: r.permissions.length })}
-                      size="small"
-                      sx={{
-                        fontSize: '0.7rem', fontWeight: 600,
-                        bgcolor: t_brand.primary[50], color: t_brand.primary[700],
-                        cursor: 'pointer',
-                      }}
-                    />
-                  </Tooltip>
-                </TableCell>
-                <TableCell align="center">
-                  {r.isSystem && (
-                    <Chip
-                      label={t('settings:users.system_role')}
-                      size="small"
-                      sx={{
-                        fontSize: '0.7rem', fontWeight: 600,
-                        bgcolor: t_brand.warning.light, color: t_brand.warning.dark,
-                      }}
-                    />
-                  )}
-                </TableCell>
-                <TableCell align="right">
-                  <Stack direction="row" spacing={0.5} justifyContent="flex-end">
-                    <Tooltip title="Manage Permissions">
-                      <IconButton size="small"
-                        onClick={() => { setPermRole(r); setPermOpen(true); }}>
-                        <IconLock size={16} />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Edit">
-                      <IconButton size="small" onClick={() => handleEdit(r)}>
-                        <IconEdit size={16} />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title={r.isSystem ? t('settings:users.system_role_warning') : 'Delete'}>
-                      <span>
-                        <IconButton size="small"
-                          disabled={r.isSystem}
-                          onClick={() => setDeleteConfirm(r)}>
-                          <IconTrash size={16}
-                            color={r.isSystem ? t_brand.neutral[300] : t_brand.error.main} />
-                        </IconButton>
-                      </span>
-                    </Tooltip>
-                  </Stack>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </Card>
+      <DataTable
+        columns={roleColumns}
+        rows={roles}
+        loading={loading}
+        emptyText={t('settings:users.no_roles')}
+        getRowKey={(r) => r.id}
+        tableKey="roles"
+        enableSorting
+        enableExport
+        enableColumnVisibility
+        exportFileName="roles-export"
+        toolbarTitle={roles.length > 0 ? `${roles.length} roles` : undefined}
+        toolbar={
+          <Button
+            variant="contained"
+            startIcon={<IconPlus size={16} />}
+            onClick={handleCreate}
+            sx={{
+              bgcolor: t_brand.accent[500],
+              '&:hover': { bgcolor: t_brand.accent[600] },
+              textTransform: 'none', fontWeight: 700, borderRadius: '10px',
+            }}
+          >
+            {t('settings:users.create_role')}
+          </Button>
+        }
+      />
 
       {/* Create / Edit Role Dialog */}
       <Dialog open={editOpen} onClose={() => setEditOpen(false)} maxWidth="sm" fullWidth>
@@ -1265,79 +1212,51 @@ export function TenantsSettings() {
         badge={{ label: 'Coming Q3', tone: 'warning' }}
       />
 
-      <Stack spacing={2.5} sx={{ maxWidth: 720 }}>
+      <Stack spacing={2.5} sx={{ maxWidth: 1680, mx: 'auto' }}>
         {/* Current tenant info */}
-        <Card elevation={0} sx={{ border: `1px solid ${t_brand.neutral[200]}`, borderRadius: 3 }}>
-          <CardContent>
-            <SectionLabel>{t('settings:tenants.current_tenant')}</SectionLabel>
-            <Stack direction="row" spacing={2} sx={{ mt: 1 }}>
-              <Box sx={{ flex: 1 }}>
-                <Typography variant="caption" sx={{ color: t_brand.neutral[500] }}>
-                  {t('settings:tenants.tenant_id')}
-                </Typography>
-                <Typography sx={{ fontWeight: 700, fontFamily: 'monospace', fontSize: '0.88rem', color: t_brand.neutral[900] }}>
-                  {user?.tenantId ?? '—'}
-                </Typography>
-              </Box>
-              <Chip label="Active" size="small"
-                sx={{ fontWeight: 600, bgcolor: t_brand.success.light, color: t_brand.success.dark }} />
-            </Stack>
-          </CardContent>
-        </Card>
+        <Box sx={{ ...cardSx, p: 2.5 }}>
+          <SectionTitle icon={<IconBuilding size={20} />} title={t('settings:tenants.current_tenant')} />
+          <Stack direction="row" spacing={2} sx={{ mt: 1 }}>
+            <Box sx={{ flex: 1 }}>
+              <Typography variant="caption" sx={{ color: t_brand.neutral[500] }}>
+                {t('settings:tenants.tenant_id')}
+              </Typography>
+              <Typography sx={{ fontWeight: 700, fontFamily: 'monospace', fontSize: '0.88rem', color: t_brand.neutral[900] }}>
+                {user?.tenantId ?? '—'}
+              </Typography>
+            </Box>
+            <Chip label="Active" size="small"
+              sx={{ fontWeight: 600, bgcolor: t_brand.success.light, color: t_brand.success.dark }} />
+          </Stack>
+        </Box>
 
         {/* What are tenants */}
-        <Card elevation={0} sx={{ border: `1px solid ${t_brand.neutral[200]}`, borderRadius: 3 }}>
-          <CardContent>
-            <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 1 }}>
-              <Box sx={{
-                width: 40, height: 40, borderRadius: 2,
-                bgcolor: t_brand.primary[50], display: 'flex',
-                alignItems: 'center', justifyContent: 'center',
-              }}>
-                <IconBuilding size={22} color={t_brand.primary[600]} />
-              </Box>
-              <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                {t('settings:tenants.what_are_tenants')}
-              </Typography>
-            </Stack>
-            <Typography variant="body2" sx={{ color: t_brand.neutral[600], lineHeight: 1.7 }}>
-              {t('settings:tenants.tenant_description')}
-            </Typography>
-          </CardContent>
-        </Card>
+        <Box sx={{ ...cardSx, p: 2.5 }}>
+          <SectionTitle icon={<IconBuilding size={20} />} title={t('settings:tenants.what_are_tenants')} />
+          <Typography variant="body2" sx={{ color: t_brand.neutral[600], lineHeight: 1.7 }}>
+            {t('settings:tenants.tenant_description')}
+          </Typography>
+        </Box>
 
         {/* Planned features */}
-        <Card elevation={0} sx={{ border: `1px solid ${t_brand.neutral[200]}`, borderRadius: 3 }}>
-          <CardContent>
-            <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 2 }}>
-              <Box sx={{
-                width: 40, height: 40, borderRadius: 2,
-                bgcolor: t_brand.accent[50], display: 'flex',
-                alignItems: 'center', justifyContent: 'center',
-              }}>
-                <IconChartBar size={22} color={t_brand.accent[500]} />
-              </Box>
-              <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                {t('settings:tenants.features_title')}
-              </Typography>
-            </Stack>
-            <Stack spacing={1.25}>
-              {FEATURES.map((f, i) => (
-                <Stack key={i} direction="row" spacing={1.5} alignItems="center"
-                  sx={{
-                    p: 1.5, borderRadius: 2,
-                    bgcolor: t_brand.neutral[50],
-                    border: `1px solid ${t_brand.neutral[100]}`,
-                  }}>
-                  <Box sx={{ color: t_brand.primary[500] }}>{f.icon}</Box>
-                  <Typography variant="body2" sx={{ fontWeight: 600, color: t_brand.neutral[800] }}>
-                    {f.text}
-                  </Typography>
-                </Stack>
-              ))}
-            </Stack>
-          </CardContent>
-        </Card>
+        <Box sx={{ ...cardSx, p: 2.5 }}>
+          <SectionTitle icon={<IconChartBar size={20} />} title={t('settings:tenants.features_title')} />
+          <Stack spacing={1.25}>
+            {FEATURES.map((f, i) => (
+              <Stack key={i} direction="row" spacing={1.5} alignItems="center"
+                sx={{
+                  p: 1.5, borderRadius: 2,
+                  bgcolor: t_brand.neutral[50],
+                  border: `1px solid ${t_brand.neutral[100]}`,
+                }}>
+                <Box sx={{ color: t_brand.primary[500] }}>{f.icon}</Box>
+                <Typography variant="body2" sx={{ fontWeight: 600, color: t_brand.neutral[800] }}>
+                  {f.text}
+                </Typography>
+              </Stack>
+            ))}
+          </Stack>
+        </Box>
       </Stack>
     </Box>
   );
@@ -1358,53 +1277,49 @@ export function LocaleSettings() {
         title="Localization"
         subtitle="Language, currency format, tax rules"
       />
-      <Card elevation={0} sx={{ border: `1px solid ${t_brand.neutral[200]}`, borderRadius: 3, maxWidth: 560 }}>
-        <CardContent>
-          <Typography variant="h6" sx={{ fontWeight: 700, mb: 0.5 }}>
-            Display language
-          </Typography>
-          <Typography variant="body2" sx={{ color: t_brand.neutral[500], mb: 2 }}>
-            Applies to every page in this browser. Saved to local storage.
-          </Typography>
+      <Box sx={{ ...cardSx, p: 2.5, maxWidth: 640 }}>
+        <SectionTitle icon={<IconBuilding size={20} />} title="Display language" />
+        <Typography variant="body2" sx={{ color: t_brand.neutral[500], mb: 2 }}>
+          Applies to every page in this browser. Saved to local storage.
+        </Typography>
 
-          <Stack spacing={1.5}>
-            {SMARTPOS_LOCALES.map((l) => {
-              const selected = l.code === current;
-              return (
-                <Box
-                  key={l.code}
-                  onClick={() => pick(l.code)}
-                  sx={{
-                    display: 'flex', alignItems: 'center', gap: 2,
-                    p: 2, borderRadius: 2, cursor: 'pointer',
-                    border: `1px solid ${selected ? t_brand.primary[500] : t_brand.neutral[200]}`,
-                    bgcolor: selected ? t_brand.primary[50] : 'transparent',
-                    transition: 'all 0.15s',
-                    '&:hover': { borderColor: t_brand.primary[500] },
-                  }}
-                >
-                  <Typography component="span" sx={{ fontSize: 28 }}>{l.flag}</Typography>
-                  <Box sx={{ flex: 1 }}>
-                    <Typography sx={{ fontWeight: 700 }}>{l.label}</Typography>
-                    <Typography variant="caption" sx={{ color: t_brand.neutral[500] }}>
-                      {l.code.toUpperCase()}
-                    </Typography>
-                  </Box>
-                  {selected && (
-                    <Typography
-                      variant="caption"
-                      sx={{ color: t_brand.primary[700], fontWeight: 700, letterSpacing: '0.08em' }}
-                    >
-                      ACTIVE
-                    </Typography>
-                  )}
+        <Stack spacing={1.5}>
+          {SMARTPOS_LOCALES.map((l) => {
+            const selected = l.code === current;
+            return (
+              <Box
+                key={l.code}
+                onClick={() => pick(l.code)}
+                sx={{
+                  display: 'flex', alignItems: 'center', gap: 2,
+                  p: 2, borderRadius: 2, cursor: 'pointer',
+                  border: `1px solid ${selected ? t_brand.primary[500] : t_brand.neutral[200]}`,
+                  bgcolor: selected ? t_brand.primary[50] : 'transparent',
+                  transition: 'all 0.15s',
+                  '&:hover': { borderColor: t_brand.primary[500] },
+                }}
+              >
+                <Typography component="span" sx={{ fontSize: 28 }}>{l.flag}</Typography>
+                <Box sx={{ flex: 1 }}>
+                  <Typography sx={{ fontWeight: 700 }}>{l.label}</Typography>
+                  <Typography variant="caption" sx={{ color: t_brand.neutral[500] }}>
+                    {l.code.toUpperCase()}
+                  </Typography>
                 </Box>
-              );
-            })}
-          </Stack>
-        </CardContent>
-      </Card>
-      <Alert severity="info" sx={{ mt: 2, maxWidth: 560 }}>
+                {selected && (
+                  <Typography
+                    variant="caption"
+                    sx={{ color: t_brand.primary[700], fontWeight: 700, letterSpacing: '0.08em' }}
+                  >
+                    ACTIVE
+                  </Typography>
+                )}
+              </Box>
+            );
+          })}
+        </Stack>
+      </Box>
+      <Alert severity="info" sx={{ mt: 2, maxWidth: 640 }}>
         Per-user persistence, currency formatting, and tax-rule presets land in a later phase.
       </Alert>
     </Box>

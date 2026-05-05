@@ -32,17 +32,16 @@ export const posSurface = {
 
 export const premiumFieldSx = {
   '& .MuiOutlinedInput-root': {
-    borderRadius: '12px',
+    borderRadius: '10px',
     bgcolor: '#fff',
     fontSize: '0.86rem',
-    transition: 'box-shadow 0.18s ease, border-color 0.18s ease, background 0.18s ease',
+    transition: 'border-color 0.18s ease, background 0.18s ease',
     '& fieldset': { borderColor: brand.neutral[200] },
     '&:hover fieldset': { borderColor: brand.primary[300] },
     '&.Mui-focused': {
       bgcolor: '#fff',
-      boxShadow: `0 0 0 4px ${brand.primary[100]}99`,
     },
-    '&.Mui-focused fieldset': { borderColor: brand.primary[500] },
+    '&.Mui-focused fieldset': { borderColor: brand.primary[500], borderWidth: '2px' },
   },
   '& .MuiInputLabel-root': {
     fontSize: '0.78rem',

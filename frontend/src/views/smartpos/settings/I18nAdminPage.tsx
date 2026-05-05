@@ -7,7 +7,7 @@
  */
 import { useEffect, useMemo, useState } from 'react';
 import {
-  Alert, Button, Card, Chip, Dialog, DialogActions, DialogContent, DialogTitle,
+  Alert, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle,
   IconButton, MenuItem, Stack, Tab, Table, TableBody, TableCell, TableHead, TableRow, Tabs, TextField, Typography,
 } from '@mui/material';
 import { IconCheck, IconLanguage, IconPlus, IconUpload } from '@tabler/icons-react';
@@ -17,6 +17,8 @@ import {
   type Language,
 } from 'src/api/smartpos/i18n';
 import PageHeader from 'src/components/smartpos/PageHeader';
+import DataTable, { type Column } from 'src/components/smartpos/DataTable';
+import { cardSx } from 'src/components/smartpos/SettingsHelpers';
 import { brand } from 'src/theme/smartpos/brand';
 
 export default function I18nAdminPage() {
@@ -72,50 +74,81 @@ function LanguagesTab() {
     }
   };
 
+  const columns = useMemo<Column<Language>[]>(() => [
+    {
+      key: 'code', label: 'Code', width: 120,
+      sortable: true,
+      exportValue: (l) => l.code,
+      render: (l) => (
+        <Typography sx={{ fontFamily: 'monospace', fontWeight: 600, fontSize: '0.82rem' }}>
+          {l.code}
+        </Typography>
+      ),
+    },
+    {
+      key: 'name', label: 'Name', width: 200,
+      sortable: true,
+      exportValue: (l) => l.name,
+      render: (l) => <Typography sx={{ fontSize: '0.82rem' }}>{l.name}</Typography>,
+    },
+    {
+      key: 'rtl', label: 'RTL', align: 'center', width: 70,
+      sortable: true,
+      exportValue: (l) => l.rtl ? 'Yes' : 'No',
+      render: (l) => (
+        <Typography sx={{ fontSize: '0.82rem' }}>{l.rtl ? '✓' : '—'}</Typography>
+      ),
+    },
+    {
+      key: 'isDefault', label: 'Default', align: 'center', width: 120,
+      sortable: true,
+      exportValue: (l) => l.isDefault ? 'Default' : '',
+      render: (l) =>
+        l.isDefault ? (
+          <Chip icon={<IconCheck size={14} />} label="Default" size="small"
+            sx={{ bgcolor: brand.accent[50], color: brand.accent[700], fontWeight: 600 }} />
+        ) : <Typography sx={{ fontSize: '0.8rem', color: brand.neutral[400] }}>—</Typography>,
+    },
+    {
+      key: 'enabled', label: 'Enabled', align: 'center', width: 100,
+      sortable: true,
+      exportValue: (l) => l.enabled ? 'Yes' : 'No',
+      render: (l) => (
+        <Chip
+          label={l.enabled ? 'On' : 'Off'} size="small"
+          sx={{
+            fontWeight: 600, fontSize: '0.72rem',
+            bgcolor: l.enabled ? brand.success.light : brand.neutral[100],
+            color: l.enabled ? brand.success.dark : brand.neutral[500],
+          }}
+        />
+      ),
+    },
+  ], []);
+
   return (
     <>
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
-      <Stack direction="row" justifyContent="flex-end" sx={{ mb: 2 }}>
-        <Button variant="contained" startIcon={<IconPlus size={16} />} onClick={() => setOpen(true)}
-          sx={{ bgcolor: brand.accent[500], '&:hover': { bgcolor: brand.accent[600] } }}>
-          Add language
-        </Button>
-      </Stack>
 
-      <Card variant="outlined">
-        <Table size="small">
-          <TableHead sx={{ bgcolor: brand.neutral[50] }}>
-            <TableRow>
-              <TableCell>Code</TableCell>
-              <TableCell>Name</TableCell>
-              <TableCell align="center">RTL</TableCell>
-              <TableCell align="center">Default</TableCell>
-              <TableCell align="center">Enabled</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {loading && <TableRow><TableCell colSpan={5}>Loading…</TableCell></TableRow>}
-            {!loading && rows.map((l) => (
-              <TableRow key={l.id}>
-                <TableCell sx={{ fontFamily: 'monospace', fontWeight: 600 }}>{l.code}</TableCell>
-                <TableCell>{l.name}</TableCell>
-                <TableCell align="center">{l.rtl ? '✓' : ''}</TableCell>
-                <TableCell align="center">
-                  {l.isDefault && <Chip icon={<IconCheck size={14} />} label="Default" size="small"
-                    sx={{ bgcolor: brand.accent[50], color: brand.accent[700], fontWeight: 600 }} />}
-                </TableCell>
-                <TableCell align="center">
-                  <Chip label={l.enabled ? 'On' : 'Off'} size="small"
-                    sx={{
-                      bgcolor: l.enabled ? brand.success.light : brand.neutral[100],
-                      color:   l.enabled ? brand.success.dark  : brand.neutral[500],
-                    }} />
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </Card>
+      <DataTable
+        columns={columns}
+        rows={rows}
+        loading={loading}
+        emptyText="No languages installed."
+        getRowKey={(l) => l.id}
+        tableKey="i18n-languages"
+        enableSorting
+        enableExport
+        enableColumnVisibility
+        exportFileName="languages-export"
+        toolbarTitle={rows.length > 0 ? `${rows.length} languages` : undefined}
+        toolbar={
+          <Button variant="contained" startIcon={<IconPlus size={16} />} onClick={() => setOpen(true)}
+            sx={{ bgcolor: brand.accent[500], '&:hover': { bgcolor: brand.accent[600] }, borderRadius: '10px', textTransform: 'none', fontWeight: 700 }}>
+            Add language
+          </Button>
+        }
+      />
 
       <Dialog open={open} onClose={() => setOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>Add language</DialogTitle>
@@ -233,13 +266,13 @@ function TranslationsTab() {
         </Button>
       </Stack>
 
-      <Card variant="outlined">
+      <Box sx={{ ...cardSx, overflow: 'hidden' }}>
         <Table size="small">
           <TableHead sx={{ bgcolor: brand.neutral[50] }}>
             <TableRow>
-              <TableCell sx={{ width: 280 }}>Key</TableCell>
-              <TableCell>Value</TableCell>
-              <TableCell sx={{ width: 100 }} align="right" />
+              <TableCell sx={{ width: 280, fontWeight: 700 }}>Key</TableCell>
+              <TableCell sx={{ fontWeight: 700 }}>Value</TableCell>
+              <TableCell sx={{ width: 100, fontWeight: 700 }} align="right" />
             </TableRow>
           </TableHead>
           <TableBody>
@@ -256,7 +289,7 @@ function TranslationsTab() {
             )}
           </TableBody>
         </Table>
-      </Card>
+      </Box>
 
       <Dialog open={bulkOpen} onClose={() => setBulkOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>Bulk import — {language} / {namespace}</DialogTitle>
