@@ -24,7 +24,8 @@ public record AiProperties(
 
     public record OpenAi(
             String apiKey,
-            @DefaultValue("gpt-4o-mini") String model) {}
+            @DefaultValue("gpt-4o-mini") String model,
+            @DefaultValue("https://api.openai.com/v1") String baseUrl) {}
 
     /**
      * DeepSeek uses an OpenAI-compatible Chat Completions API, so we only

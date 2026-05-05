@@ -312,6 +312,18 @@ export async function importOpeningStock(
 // Re-export types so consumers can just import from 'src/api/smartpos/products'
 export type { Product, Category, Brand, Unit, Customer, Supplier, Page, Barcode, ComboItem };
 
+// ---------- Image upload ----------
+
+/** Upload a product image to MinIO via the backend. Returns a presigned URL. */
+export async function uploadProductImage(file: File): Promise<{ url: string }> {
+  const formData = new FormData();
+  formData.append('file', file);
+  const { data } = await api.post<{ url: string }>('/api/v1/products/images', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return data;
+}
+
 // ---------- Barcodes (dedicated search endpoint) ----------
 
 export interface BarcodeSearchParams {

@@ -247,13 +247,13 @@ function ReceiptStyles({ config }: { config: ReceiptConfig }) {
       .receipt-thermal { width: ${paperWidth}; padding: ${paperPad}; margin: 0 auto; }
 
       /* Logo block — centered */
-      .brand-mark { display: flex; justify-content: center; align-items: center; margin: 0 auto 8px; }
+      .brand-mark { display: flex; justify-content: center; align-items: center; margin: 0 auto 10px; }
       .brand-mark svg { width: ${logoSize}px; height: ${logoSize}px; }
 
       /* Centered info block — store name + meta */
       .info { text-align: center; margin-bottom: 10px; }
-      .store-name { font-size: ${compact ? 16 : 20}px; font-weight: 800; margin: 0 0 6px; line-height: 1.2; color: #05070b; }
-      .meta { font-size: 12px; line-height: 18px; }
+      .store-name { font-size: ${compact ? 16 : 18}px; font-weight: 900; margin: 0 0 6px; line-height: 1.2; color: #05070b; }
+      .meta { font-size: 11px; line-height: 16px; font-weight: 650; }
       .meta div { margin: 0; }
       .meta-label { font-weight: 700; }
 
@@ -269,14 +269,10 @@ function ReceiptStyles({ config }: { config: ReceiptConfig }) {
       .item-name { font-weight: 700; font-size: 12px; line-height: 1.3; color: #05070b; }
       .item-qty { font-size: 11px; color: #05070b; margin-top: 1px; }
 
-      /* Items header row — top border above "Product | Total" */
-      .items .items-head td { font-weight: 700; font-size: 11px; text-transform: uppercase; border-top: 2px dotted #05070b; border-bottom: 2px dotted #05070b; padding: 4px 2px; }
-      .items .items-head .td-total { text-align: right; }
-
       /* Totals — dotted rows on td (not tr), no background tint on grand total */
       .totals { width: 100%; border-collapse: collapse; margin-top: 0; table-layout: fixed; }
       .totals td { padding: 5px 2px; border-bottom: 2px dotted #05070b; }
-      .totals tr:first-child td { border-top: 2px dotted #05070b; }
+      .totals tr:first-child td { border-top: none; }
       .totals .label { font-weight: 700; text-align: left; width: 70%; }
       .totals .value { text-align: right; font-weight: 700; width: 30%; }
       .totals .grand td { font-size: 13px; font-weight: 900; color: #05070b; }
@@ -358,6 +354,13 @@ function ReceiptLogo() {
   );
 }
 
+function lineUnit(line: SaleLine): string {
+  const value = (line as SaleLine & { unitName?: string; unitCode?: string; unit?: string }).unitName
+    || (line as SaleLine & { unitName?: string; unitCode?: string; unit?: string }).unitCode
+    || (line as SaleLine & { unitName?: string; unitCode?: string; unit?: string }).unit;
+  return value || 'Pc';
+}
+
 function ThermalReceipt({
   sale,
   config,
@@ -371,11 +374,8 @@ function ThermalReceipt({
 }) {
   const paidDisplay = sale.paidTotal || sale.grandTotal;
   const change = Math.max(0, paidDisplay - sale.grandTotal);
-  // Plain number for most rows; currency code only on the Grand Total row (legacy style)
-  const fmtNum = (v: number) =>
-    Number(v || 0).toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  const fmtThermal = (v: number) => fmtNum(v);
-  const fmtGrand = (v: number) => money(v, sale.currency, true);
+  // Summary rows in the original sample carry the currency code.
+  const fmtSummary = (v: number) => money(v, sale.currency, true);
   return (
     <>
       {config.showLogo && (
@@ -446,17 +446,13 @@ function ThermalReceipt({
       {/* Items — 2-column layout: name+qty left, total right (matches legacy pos.vue) */}
       <table className="items">
         <tbody>
-          <tr className="items-head">
-            <td className="td-info">Product</td>
-            <td className="td-total">Total</td>
-          </tr>
           {sale.lines.map((line) => (
             <tr key={line.id}>
               {/* Left: name on line 1, qty×price on line 2 — exactly like legacy pos.vue */}
               <td className="td-info">
                 <div className="item-name">{productLabel(line, lookups)}</div>
                 <div className="item-qty">
-                  {Number(line.qty).toFixed(2)} unit &times;{' '}
+                  {Number(line.qty).toFixed(2)} {lineUnit(line)} X{' '}
                   {Number(line.unitPrice || 0).toLocaleString('en', {
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2,
@@ -479,42 +475,42 @@ function ThermalReceipt({
         <tbody>
           <tr>
             <td className="label">Subtotal</td>
-            <td className="value">{fmtThermal(sale.subtotal)}</td>
+            <td className="value">{fmtSummary(sale.subtotal)}</td>
           </tr>
           {config.showTax && (
             <tr>
               <td className="label">Order Tax</td>
               <td className="value">
-                {fmtThermal(sale.taxTotal)} ({Number(sale.taxRate || 0).toFixed(2)} %)
+                {fmtSummary(sale.taxTotal)} ({Number(sale.taxRate || 0).toFixed(2)} %)
               </td>
             </tr>
           )}
           {config.showDiscount && (
             <tr>
               <td className="label">Discount</td>
-              <td className="value">{fmtThermal(sale.discountTotal)}</td>
+              <td className="value">{fmtSummary(sale.discountTotal)}</td>
             </tr>
           )}
           {config.showShipping && (
             <tr>
               <td className="label">Shipping</td>
-              <td className="value">{fmtThermal(sale.shipping)}</td>
+              <td className="value">{fmtSummary(sale.shipping)}</td>
             </tr>
           )}
           <tr className="grand">
             <td className="label">Total</td>
-            <td className="value">{fmtGrand(sale.grandTotal)}</td>
+            <td className="value">{fmtSummary(sale.grandTotal)}</td>
           </tr>
           {config.showPaid && (
             <tr>
               <td className="label">Paid</td>
-              <td className="value">{fmtThermal(paidDisplay)}</td>
+              <td className="value">{fmtSummary(paidDisplay)}</td>
             </tr>
           )}
           {config.showDue && (
             <tr>
               <td className="label">Due</td>
-              <td className="value">{fmtThermal(sale.dueTotal)}</td>
+              <td className="value">{fmtSummary(sale.dueTotal)}</td>
             </tr>
           )}
         </tbody>

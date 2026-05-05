@@ -1,28 +1,27 @@
 /**
- * ProductsImportDialog — AI-assisted bulk import of products from Excel/CSV.
+ * ProductsImportDialog — AI-assisted bulk import of products.
  *
- * Four-step wizard (kept inside one MUI <Dialog>):
+ * Four-step wizard supporting three input methods:
+ *   - Spreadsheet (.xlsx, .xls, .csv) → SheetJS parse → AI import-map
+ *   - PDF (.pdf) → pdfjs extract text → heuristic parse → AI import-map
+ *   - Photos (.jpg, .png, camera) → resize → AI import-from-images (vision)
  *
- *   1. Upload   — drop an .xlsx / .xls / .csv file (≤ 5 MB, ≤ 500 rows)
- *   2. Mapping  — POST parsed rows to /api/v1/ai/products/import-map; AI
- *                 returns one structured product per row with confidence
- *   3. Review   — editable preview table; user fixes any mistakes the AI
- *                 didn't catch (unknown category, blank price, etc.)
- *   4. Result   — calls /api/v1/products/bulk and shows per-row outcome
- *
- * Parsing happens client-side with the `xlsx` (SheetJS) library so we can
- * limit upload size and never ship raw spreadsheets to the AI provider —
- * we only send a compact JSON of header → string-cell rows.
+ * Steps:
+ *   1. Upload   — drop a file or capture photos based on selected input mode
+ *   2. Mapping  — AI returns structured product rows with confidence scores
+ *   3. Review   — editable preview table; user fixes AI mistakes
+ *   4. Result   — bulk-create products and show per-row outcome
  */
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import {
   Alert, Box, Button, Chip, Dialog, DialogActions, DialogContent,
   DialogTitle, IconButton, LinearProgress, MenuItem, Stack, Step,
-  StepLabel, Stepper, Table, TableBody, TableCell, TableHead, TableRow,
-  TextField, Tooltip, Typography,
+  StepLabel, Stepper, Tab, Table, TableBody, TableCell, TableHead, TableRow,
+  Tabs, TextField, Tooltip, Typography,
 } from '@mui/material';
 import {
-  IconAlertCircle, IconCheck, IconCloudUpload, IconFile, IconFileSpreadsheet,
+  IconAlertCircle, IconCamera, IconCheck, IconCloudUpload,
+  IconFile, IconFileSpreadsheet, IconFileTypePdf, IconPhoto,
   IconRefresh, IconSparkles, IconTrash, IconX,
 } from '@tabler/icons-react';
 import { useDropzone } from 'react-dropzone';
@@ -32,13 +31,21 @@ import {
   bulkCreateProducts, listBrands, listCategories, listUnits,
   type BulkCreateProductsResponse, type CreateProductBody,
 } from 'src/api/smartpos/products';
-import { aiImportMap, type MappedRow, type ImportRow } from 'src/api/smartpos/aiProducts';
+import {
+  aiImportMap, aiImportFromImages,
+  type MappedRow, type ImportRow,
+} from 'src/api/smartpos/aiProducts';
 import type { Brand, Category, Unit } from 'src/api/smartpos/types';
 import { brand } from 'src/theme/smartpos/brand';
+import { extractPdfText, parsePdfRows } from 'src/utils/smartpos/pdfExtract';
 
 // ── constants ────────────────────────────────────────────────────────────────
 const MAX_FILE_BYTES = 5 * 1024 * 1024;   // 5 MB
 const MAX_ROWS       = 500;
+const MAX_IMAGES     = 5;
+const MAX_IMAGE_BYTES = 1_200_000;        // 1.2 MB per image
+
+type InputMode = 'spreadsheet' | 'pdf' | 'photos';
 
 const STEPS = ['Upload file', 'AI mapping', 'Review & edit', 'Save & finish'] as const;
 
@@ -55,7 +62,6 @@ interface DraftRow extends Omit<MappedRow, 'cost' | 'price' | 'wholesalePrice' |
   wholesalePrice: string;
   minPrice: string;
   taxRate: string;
-  /** Local checkbox: should this row be saved? Defaults to true. */
   include: boolean;
 }
 
@@ -74,12 +80,19 @@ const toDraft = (m: MappedRow): DraftRow => ({
 export default function ProductsImportDialog({ open, onClose, onImported }: ProductsImportDialogProps) {
   const [step, setStep]               = useState(0);
   const [error, setError]             = useState<string | null>(null);
-  const [busy, setBusy]                = useState(false);
+  const [busy, setBusy]               = useState(false);
+
+  // input mode
+  const [inputMode, setInputMode]     = useState<InputMode>('spreadsheet');
 
   // step 1 — upload
   const [file, setFile]               = useState<File | null>(null);
   const [headers, setHeaders]         = useState<string[]>([]);
   const [parsedRows, setParsedRows]   = useState<ImportRow[]>([]);
+
+  // photos mode
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [imageDataUrls, setImageDataUrls] = useState<string[]>([]);
 
   // step 2-3 — AI mapping + review
   const [drafts, setDrafts]           = useState<DraftRow[]>([]);
@@ -90,14 +103,17 @@ export default function ProductsImportDialog({ open, onClose, onImported }: Prod
   // step 4 — bulk save result
   const [result, setResult]           = useState<BulkCreateProductsResponse | null>(null);
 
-  // lookup data (for editable selects in the review table)
+  // lookup data
   const [categories, setCategories]   = useState<Category[]>([]);
   const [brands, setBrands]           = useState<Brand[]>([]);
   const [units, setUnits]             = useState<Unit[]>([]);
 
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+
   const reset = () => {
-    setStep(0); setError(null); setBusy(false);
+    setStep(0); setError(null); setBusy(false); setInputMode('spreadsheet');
     setFile(null); setHeaders([]); setParsedRows([]);
+    setImagePreviews([]); setImageDataUrls([]);
     setDrafts([]); setWarnings([]); setAiProvider(''); setAiModel('');
     setResult(null);
   };
@@ -115,11 +131,39 @@ export default function ProductsImportDialog({ open, onClose, onImported }: Prod
     if (units.length === 0)      listUnits()     .then(setUnits)     .catch(() => {});
   }, [categories.length, brands.length, units.length]);
 
-  // ── Step 1 · file parse ────────────────────────────────────────────────
-  const onDrop = useCallback(async (accepted: File[]) => {
-    setError(null);
-    const f = accepted[0];
-    if (!f) return;
+  // ── Image resize helper ─────────────────────────────────────────────────
+  const resizeImage = useCallback((dataUrl: string): Promise<string> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const maxDim = 2048;
+        let { width, height } = img;
+        if (width > maxDim || height > maxDim) {
+          const ratio = maxDim / Math.max(width, height);
+          width = Math.round(width * ratio);
+          height = Math.round(height * ratio);
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d')!;
+        ctx.drawImage(img, 0, 0, width, height);
+        // Start with jpeg quality 0.8 and reduce until under MAX_IMAGE_BYTES.
+        // Don't go below 0.6 — below that JPEG artifacts make text illegible.
+        let quality = 0.8;
+        let result = canvas.toDataURL('image/jpeg', quality);
+        while (result.length > MAX_IMAGE_BYTES && quality > 0.6) {
+          quality -= 0.05;
+          result = canvas.toDataURL('image/jpeg', quality);
+        }
+        resolve(result);
+      };
+      img.src = dataUrl;
+    });
+  }, []);
+
+  // ── Step 1 · spreadsheet parse ────────────────────────────────────────
+  const parseSpreadsheet = useCallback(async (f: File) => {
     if (f.size > MAX_FILE_BYTES) {
       setError(`File too large — max ${(MAX_FILE_BYTES / 1024 / 1024).toFixed(0)} MB`);
       return;
@@ -130,10 +174,7 @@ export default function ProductsImportDialog({ open, onClose, onImported }: Prod
       const wb  = XLSX.read(buf, { type: 'array' });
       const ws  = wb.Sheets[wb.SheetNames[0]];
       const json = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws, { defval: '', raw: false });
-      if (json.length === 0) {
-        setError('The file is empty.');
-        return;
-      }
+      if (json.length === 0) { setError('The file is empty.'); return; }
       if (json.length > MAX_ROWS) {
         setError(`Too many rows — please split the file (max ${MAX_ROWS} rows).`);
         return;
@@ -151,15 +192,107 @@ export default function ProductsImportDialog({ open, onClose, onImported }: Prod
     }
   }, [ensureLookups]);
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop,
+  // ── Step 1 · PDF parse ─────────────────────────────────────────────────
+  const parsePdf = useCallback(async (f: File) => {
+    if (f.size > MAX_FILE_BYTES) {
+      setError(`File too large — max ${(MAX_FILE_BYTES / 1024 / 1024).toFixed(0)} MB`);
+      return;
+    }
+    setFile(f);
+    setBusy(true);
+    setError(null);
+    try {
+      const extracted = await extractPdfText(f);
+      if (!extracted || !extracted.text) {
+        setError('Could not extract text from this PDF. It may be image-only — try the Photos mode instead.');
+        setBusy(false);
+        return;
+      }
+      const parsed = parsePdfRows(extracted.text);
+      if (parsed.rows.length === 0) {
+        setError('No data rows could be detected in the PDF text. Check the file content.');
+        setBusy(false);
+        return;
+      }
+      if (parsed.rows.length > MAX_ROWS) {
+        setError(`Too many rows — please split the file (max ${MAX_ROWS} rows).`);
+        setBusy(false);
+        return;
+      }
+      setHeaders(parsed.headers);
+      setParsedRows(parsed.rows);
+      ensureLookups();
+    } catch (err: unknown) {
+      const e = err as { message?: string };
+      setError(e.message ?? 'Failed to read PDF');
+    } finally {
+      setBusy(false);
+    }
+  }, [ensureLookups]);
+
+  // ── Step 1 · photos process ────────────────────────────────────────────
+  const processPhotos = useCallback(async (files: File[]) => {
+    if (files.length + imagePreviews.length > MAX_IMAGES) {
+      setError(`Max ${MAX_IMAGES} images allowed.`);
+      return;
+    }
+    setError(null);
+    setBusy(true);
+    try {
+      const previews: string[] = [];
+      const dataUrls: string[] = [];
+      for (const f of files) {
+        if (f.size > 10 * 1024 * 1024) {
+          setError(`Image "${f.name}" is too large (max 10 MB).`);
+          continue;
+        }
+        const dataUrl = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.readAsDataURL(f);
+        });
+        const resized = await resizeImage(dataUrl);
+        previews.push(resized);
+        dataUrls.push(resized);
+      }
+      setImagePreviews((prev) => [...prev, ...previews]);
+      setImageDataUrls((prev) => [...prev, ...dataUrls]);
+      ensureLookups();
+    } catch (err: unknown) {
+      const e = err as { message?: string };
+      setError(e.message ?? 'Failed to process image');
+    } finally {
+      setBusy(false);
+    }
+  }, [imagePreviews.length, ensureLookups, resizeImage]);
+
+  const removeImage = (idx: number) => {
+    setImagePreviews((prev) => prev.filter((_, i) => i !== idx));
+    setImageDataUrls((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  // ── Dropzones ──────────────────────────────────────────────────────────
+
+  const spreadsheetDropzone = useDropzone({
+    onDrop: (accepted) => { if (accepted[0]) parseSpreadsheet(accepted[0]); },
     accept: {
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
       'application/vnd.ms-excel': ['.xls'],
       'text/csv': ['.csv'],
     },
-    maxFiles: 1,
-    multiple: false,
+    maxFiles: 1, multiple: false,
+  });
+
+  const pdfDropzone = useDropzone({
+    onDrop: (accepted) => { if (accepted[0]) parsePdf(accepted[0]); },
+    accept: { 'application/pdf': ['.pdf'] },
+    maxFiles: 1, multiple: false,
+  });
+
+  const photoDropzone = useDropzone({
+    onDrop: (accepted) => { if (accepted.length > 0) processPhotos(accepted); },
+    accept: { 'image/jpeg': ['.jpg', '.jpeg'], 'image/png': ['.png'], 'image/webp': ['.webp'] },
+    maxFiles: MAX_IMAGES, multiple: true, maxSize: 10 * 1024 * 1024,
   });
 
   // ── Step 2 · AI mapping ────────────────────────────────────────────────
@@ -177,13 +310,11 @@ export default function ProductsImportDialog({ open, onClose, onImported }: Prod
           defaultTaxRate: 18,
         },
       });
-      // Fallback: if the model returned 0 rows but we have rows, build dumb drafts
-      // from the parsed data so the user can still edit & save manually.
       const mapped: MappedRow[] = resp.rows.length > 0
         ? resp.rows
         : parsedRows.map((r) => ({
             row: r.row,
-            name: pickFirst(r.values, ['name', 'product', 'item']) ?? '',
+            name: pickFirst(r.values, ['name', 'product', 'item', 'text']) ?? '',
             description: pickFirst(r.values, ['description', 'desc']) ?? null,
             categoryId: null, brandId: null, unitId: null,
             code: pickFirst(r.values, ['sku', 'code', 'barcode']) ?? null,
@@ -204,6 +335,41 @@ export default function ProductsImportDialog({ open, onClose, onImported }: Prod
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } }; message?: string };
       setError(e.response?.data?.message ?? e.message ?? 'AI mapping failed');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // ── Step 2 · AI mapping from images ────────────────────────────────────
+  const runAiImportFromImages = async () => {
+    if (imageDataUrls.length === 0) { setError('Please add at least one image.'); return; }
+    setBusy(true); setError(null);
+    try {
+      const resp = await aiImportFromImages({
+        imageDataUrls,
+        context: {
+          categories: categories.map((c) => ({ id: c.id, name: c.name })),
+          brands:     brands.map((b) => ({ id: b.id, name: b.name })),
+          units:      units.map((u) => ({ id: u.id, name: u.name })),
+          currency: 'TZS',
+          defaultTaxRate: 18,
+        },
+      });
+      const mapped: MappedRow[] = resp.rows.length > 0
+        ? resp.rows
+        : [{ row: 0, name: '', description: null, categoryId: null, brandId: null,
+             unitId: null, code: null, barcodeSymbology: 'CODE128',
+             cost: undefined, price: undefined, wholesalePrice: undefined,
+             minPrice: undefined, taxRate: undefined, confidence: 0,
+             warnings: ['AI could not identify any products in the images.'] }];
+      setDrafts(mapped.map(toDraft));
+      setWarnings(resp.warnings ?? []);
+      setAiProvider(resp.provider);
+      setAiModel(resp.model);
+      setStep(2);
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { message?: string } }; message?: string };
+      setError(e.response?.data?.message ?? e.message ?? 'AI image import failed');
     } finally {
       setBusy(false);
     }
@@ -260,6 +426,16 @@ export default function ProductsImportDialog({ open, onClose, onImported }: Prod
   };
 
   // ── render ─────────────────────────────────────────────────────────────
+  const showUploadStep = step === 0;
+  const hasUploadData = inputMode === 'photos'
+    ? imageDataUrls.length > 0
+    : parsedRows.length > 0;
+  const dropzone = inputMode === 'spreadsheet' ? spreadsheetDropzone
+    : inputMode === 'pdf' ? pdfDropzone : photoDropzone;
+
+  const modeLabel = inputMode === 'spreadsheet' ? 'Spreadsheet'
+    : inputMode === 'pdf' ? 'PDF' : 'Photos';
+
   return (
     <Dialog
       open={open}
@@ -289,7 +465,7 @@ export default function ProductsImportDialog({ open, onClose, onImported }: Prod
               Smart import
             </Typography>
             <Typography variant="caption" sx={{ color: brand.neutral[500] }}>
-              Upload Excel or CSV — AI maps the columns, you review, we save
+              Upload {modeLabel} — AI maps the fields, you review, we save
             </Typography>
           </Box>
           <IconButton size="small" onClick={handleClose} disabled={busy}>
@@ -314,48 +490,116 @@ export default function ProductsImportDialog({ open, onClose, onImported }: Prod
         {/* ── Step 1 · upload ───────────────────────────────── */}
         {step === 0 && (
           <Stack spacing={2}>
+            {/* Input mode tabs */}
+            <Tabs
+              value={inputMode}
+              onChange={(_, v) => {
+                setInputMode(v);
+                setFile(null); setHeaders([]); setParsedRows([]);
+                setImagePreviews([]); setImageDataUrls([]); setError(null);
+              }}
+              sx={{ borderBottom: `1px solid ${brand.neutral[200]}` }}
+            >
+              <Tab
+                value="spreadsheet"
+                icon={<IconFileSpreadsheet size={16} />}
+                iconPosition="start"
+                label="Spreadsheet"
+                sx={{ textTransform: 'none', fontWeight: 700, fontSize: '0.78rem', minHeight: 42 }}
+              />
+              <Tab
+                value="pdf"
+                icon={<IconFileTypePdf size={16} />}
+                iconPosition="start"
+                label="PDF"
+                sx={{ textTransform: 'none', fontWeight: 700, fontSize: '0.78rem', minHeight: 42 }}
+              />
+              <Tab
+                value="photos"
+                icon={<IconPhoto size={16} />}
+                iconPosition="start"
+                label="Photos"
+                sx={{ textTransform: 'none', fontWeight: 700, fontSize: '0.78rem', minHeight: 42 }}
+              />
+            </Tabs>
+
+            {/* ── Drop zone ── */}
             <Box
-              {...getRootProps()}
+              {...(showUploadStep ? dropzone.getRootProps() : {})}
               sx={{
-                p: 4,
-                borderRadius: '14px',
-                border: `2px dashed ${isDragActive ? brand.primary[400] : brand.neutral[300]}`,
-                bgcolor: isDragActive ? brand.primary[50] : brand.neutral[50],
-                textAlign: 'center',
-                cursor: 'pointer',
+                p: 4, borderRadius: '14px',
+                border: `2px dashed ${dropzone.isDragActive ? brand.primary[400] : brand.neutral[300]}`,
+                bgcolor: dropzone.isDragActive ? brand.primary[50] : brand.neutral[50],
+                textAlign: 'center', cursor: 'pointer',
                 transition: 'all 0.2s',
                 '&:hover': { bgcolor: brand.primary[50], borderColor: brand.primary[300] },
               }}
             >
-              <input {...getInputProps()} />
+              {showUploadStep && <input {...dropzone.getInputProps()} />}
               <Box sx={{
                 width: 56, height: 56, borderRadius: '14px',
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                 background: `linear-gradient(135deg, ${brand.primary[100]} 0%, ${brand.primary[50]} 100%)`,
                 color: brand.primary[700], mb: 1.5,
               }}>
-                <IconCloudUpload size={26} />
+                {inputMode === 'photos' ? <IconCamera size={26} />
+                  : inputMode === 'pdf' ? <IconFileTypePdf size={26} />
+                  : <IconCloudUpload size={26} />}
               </Box>
               <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 0.5 }}>
-                {file ? file.name : (isDragActive ? 'Drop the file here' : 'Drop Excel or CSV here')}
+                {file ? file.name
+                  : dropzone.isDragActive ? 'Drop the file here'
+                  : inputMode === 'photos' ? 'Drop photos or click to browse'
+                  : inputMode === 'pdf' ? 'Drop PDF here'
+                  : 'Drop Excel or CSV here'}
               </Typography>
               <Typography variant="caption" sx={{ color: brand.neutral[500], display: 'block' }}>
-                .xlsx, .xls, .csv · max {(MAX_FILE_BYTES / 1024 / 1024).toFixed(0)} MB · max {MAX_ROWS} rows
+                {inputMode === 'spreadsheet' && `.xlsx, .xls, .csv · max ${(MAX_FILE_BYTES / 1024 / 1024).toFixed(0)} MB · max ${MAX_ROWS} rows`}
+                {inputMode === 'pdf' && `.pdf · max ${(MAX_FILE_BYTES / 1024 / 1024).toFixed(0)} MB · text-based PDFs only`}
+                {inputMode === 'photos' && `.jpg, .png, .webp · max ${MAX_IMAGES} images · resized to <1.2 MB each`}
               </Typography>
-              {!file && (
-                <Button
-                  variant="outlined"
-                  startIcon={<IconFile size={14} />}
-                  size="small"
-                  sx={{ mt: 2, borderRadius: '8px', textTransform: 'none' }}
-                  onClick={(e) => { e.stopPropagation(); }}
-                >
-                  Browse files
-                </Button>
+
+              {inputMode === 'photos' && (
+                <Stack direction="row" spacing={1} justifyContent="center" sx={{ mt: 2 }}>
+                  <Button
+                    variant="outlined"
+                    startIcon={<IconCamera size={14} />}
+                    size="small"
+                    sx={{ borderRadius: '8px', textTransform: 'none' }}
+                    onClick={(e) => { e.stopPropagation(); cameraInputRef.current?.click(); }}
+                  >
+                    Take photo
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    startIcon={<IconFile size={14} />}
+                    size="small"
+                    sx={{ borderRadius: '8px', textTransform: 'none' }}
+                    onClick={(e) => { e.stopPropagation(); }}
+                  >
+                    Browse files
+                  </Button>
+                </Stack>
+              )}
+              {/* Hidden camera input */}
+              {inputMode === 'photos' && (
+                <Box
+                  component="input"
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  ref={cameraInputRef}
+                  sx={{ display: 'none' }}
+                  onChange={(e) => {
+                    const files = Array.from((e.target as HTMLInputElement).files ?? []);
+                    if (files.length > 0) processPhotos(files);
+                  }}
+                />
               )}
             </Box>
 
-            {file && parsedRows.length > 0 && (
+            {/* ── Spreadsheet success indicator ── */}
+            {inputMode === 'spreadsheet' && file && parsedRows.length > 0 && (
               <Box sx={{
                 p: 1.5, borderRadius: '10px',
                 border: `1px solid ${brand.success.main}`,
@@ -378,10 +622,93 @@ export default function ProductsImportDialog({ open, onClose, onImported }: Prod
               </Box>
             )}
 
-            <Alert severity="info" icon={<IconAlertCircle size={18} />} sx={{ borderRadius: '10px' }}>
-              Recommended columns: <strong>name, code, category, brand, unit, cost, price, wholesale, tax</strong>.
-              Don't worry about exact spelling — the AI figures it out.
-            </Alert>
+            {/* ── PDF success indicator ── */}
+            {inputMode === 'pdf' && file && parsedRows.length > 0 && (
+              <Box sx={{
+                p: 1.5, borderRadius: '10px',
+                border: `1px solid ${brand.success.main}`,
+                bgcolor: brand.success.light,
+              }}>
+                <Stack direction="row" spacing={1.5} alignItems="center">
+                  <IconFileTypePdf size={20} color={brand.success.dark} />
+                  <Box sx={{ flex: 1 }}>
+                    <Typography variant="body2" sx={{ fontWeight: 700, color: brand.success.dark }}>
+                      Extracted {parsedRows.length} rows · {headers.length} columns
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: brand.neutral[600] }} noWrap>
+                      Columns: {headers.join(', ')}
+                    </Typography>
+                  </Box>
+                  <IconButton size="small" onClick={() => { setFile(null); setHeaders([]); setParsedRows([]); }}>
+                    <IconTrash size={14} />
+                  </IconButton>
+                </Stack>
+              </Box>
+            )}
+
+            {/* ── Image previews ── */}
+            {inputMode === 'photos' && imagePreviews.length > 0 && (
+              <Box sx={{
+                p: 1.5, borderRadius: '10px',
+                border: `1px solid ${brand.neutral[200]}`,
+                bgcolor: '#fff',
+              }}>
+                <Stack direction="row" spacing={1} flexWrap="wrap" rowGap={1}>
+                  {imagePreviews.map((src, i) => (
+                    <Box key={i} sx={{ position: 'relative', flexShrink: 0 }}>
+                      <Box
+                        component="img"
+                        src={src}
+                        alt={`Photo ${i + 1}`}
+                        sx={{
+                          width: 80, height: 80, objectFit: 'cover',
+                          borderRadius: '8px', border: `1px solid ${brand.neutral[200]}`,
+                        }}
+                      />
+                      <IconButton
+                        size="small"
+                        onClick={() => removeImage(i)}
+                        sx={{
+                          position: 'absolute', top: -6, right: -6,
+                          bgcolor: brand.error.main, color: '#fff',
+                          width: 20, height: 20,
+                          '&:hover': { bgcolor: brand.error.dark },
+                        }}
+                      >
+                        <IconX size={10} />
+                      </IconButton>
+                    </Box>
+                  ))}
+                  <Stack justifyContent="center" sx={{ ml: 1 }}>
+                    <Typography variant="caption" sx={{ fontWeight: 600, color: brand.neutral[600] }}>
+                      {imagePreviews.length} image{imagePreviews.length !== 1 ? 's' : ''} ready
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: brand.neutral[400] }}>
+                      Add more or proceed to AI mapping
+                    </Typography>
+                  </Stack>
+                </Stack>
+              </Box>
+            )}
+
+            {inputMode === 'spreadsheet' && (
+              <Alert severity="info" icon={<IconAlertCircle size={18} />} sx={{ borderRadius: '10px' }}>
+                Recommended columns: <strong>name, code, category, brand, unit, cost, price, wholesale, tax</strong>.
+                Don't worry about exact spelling — the AI figures it out.
+              </Alert>
+            )}
+            {inputMode === 'pdf' && (
+              <Alert severity="info" icon={<IconAlertCircle size={18} />} sx={{ borderRadius: '10px' }}>
+                Text-based PDFs work best. If your PDF is image-only (scanned), use the <strong>Photos</strong> tab
+                instead — screenshot or photograph each page.
+              </Alert>
+            )}
+            {inputMode === 'photos' && (
+              <Alert severity="info" icon={<IconAlertCircle size={18} />} sx={{ borderRadius: '10px' }}>
+                Take clear photos of product lists, supplier price sheets, or inventory records.
+                The AI will read all visible items. Good lighting and straight angles help.
+              </Alert>
+            )}
           </Stack>
         )}
 
@@ -403,19 +730,19 @@ export default function ProductsImportDialog({ open, onClose, onImported }: Prod
             </Box>
             <Box sx={{ textAlign: 'center', maxWidth: 480 }}>
               <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
-                {busy ? 'AI is mapping your spreadsheet…' : 'Ready to ask the AI'}
+                {busy ? 'AI is mapping your data…' : 'Ready to ask the AI'}
               </Typography>
               <Typography variant="body2" sx={{ color: brand.neutral[600] }}>
-                We'll send your <strong>{parsedRows.length} rows</strong> and column headers to the AI service
-                along with your existing categories, brands, and units. The AI will return a structured product
-                per row plus warnings for anything it couldn't match.
+                {inputMode === 'photos'
+                  ? `We'll send your ${imageDataUrls.length} image(s) to the AI vision model along with your existing categories, brands, and units. The AI will read every product visible and return structured rows.`
+                  : `We'll send your ${parsedRows.length} rows and column headers to the AI service along with your existing categories, brands, and units. The AI will return a structured product per row plus warnings for anything it couldn't match.`}
               </Typography>
             </Box>
             <Button
               size="large" variant="contained"
               startIcon={<IconSparkles size={18} />}
               disabled={busy}
-              onClick={runAiMap}
+              onClick={inputMode === 'photos' ? runAiImportFromImages : runAiMap}
               sx={{
                 bgcolor: brand.primary[600], color: '#fff',
                 textTransform: 'none', fontWeight: 700,
@@ -576,7 +903,7 @@ export default function ProductsImportDialog({ open, onClose, onImported }: Prod
             <Button onClick={handleClose} disabled={busy} sx={{ textTransform: 'none', fontWeight: 600 }}>Cancel</Button>
             <Button
               variant="contained"
-              disabled={busy || parsedRows.length === 0}
+              disabled={busy || !hasUploadData}
               onClick={() => setStep(1)}
               sx={{
                 bgcolor: brand.primary[600], color: '#fff',

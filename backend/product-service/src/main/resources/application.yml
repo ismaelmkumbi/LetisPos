@@ -61,6 +61,11 @@ spring:
         jwt:
           jwk-set-uri: ${AUTH_JWKS_URI:http://localhost:8081/.well-known/jwks.json}
 
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 6MB
+
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:9094}
     producer:
@@ -75,6 +80,12 @@ smartpos:
   outbox:
     enabled: ${SMARTPOS_OUTBOX_ENABLED:true}
     topic-prefix: smartpos.product
+  minio:
+    endpoint: ${MINIO_ENDPOINT:http://localhost:9000}
+    access-key: ${MINIO_ACCESS_KEY:smartpos}
+    secret-key: ${MINIO_SECRET_KEY:smartpos-secret}
+    bucket: ${MINIO_BUCKET:smartpos-product-images}
+    presigned-ttl-seconds: ${MINIO_PRESIGNED_TTL:3600}
 
 management:
   endpoints:

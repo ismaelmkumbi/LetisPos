@@ -409,6 +409,7 @@ export function UsersRolesSettings() {
       <PageHeader
         title={t('settings:users.title')}
         subtitle={t('settings:users.subtitle')}
+        badge={{ label: 'Enterprise', tone: 'primary' }}
       />
       <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 2.5 }}>
         <Tab

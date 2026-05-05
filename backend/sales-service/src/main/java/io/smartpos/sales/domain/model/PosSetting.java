@@ -22,59 +22,99 @@ public class PosSetting {
     @Column(name = "warehouse_id", unique = true, nullable = false)
     private UUID warehouseId;
 
-    // Receipt layout
-    @Builder.Default private int receiptLayout = 1;
+    // ── Receipt layout ───────────────────────────────────────────────────────
+    @Builder.Default private int receiptLayout    = 1;
     @Builder.Default private int receiptPaperSize = 80;
 
-    // Receipt display toggles
-    @Builder.Default private boolean showLogo = true;
-    @Builder.Default private int logoSize = 60;
-    @Builder.Default private boolean showStoreName = true;
+    // ── Receipt display toggles ──────────────────────────────────────────────
+    @Builder.Default private boolean showLogo         = true;
+    @Builder.Default private int     logoSize         = 60;
+    @Builder.Default private boolean showStoreName    = true;
     @Builder.Default private boolean showStoreAddress = true;
-    @Builder.Default private boolean showStorePhone = true;
-    @Builder.Default private boolean showStoreEmail = false;
-    @Builder.Default private boolean showReference = true;
-    @Builder.Default private boolean showDate = true;
-    @Builder.Default private boolean showSeller = false;
-    @Builder.Default private boolean showCustomer = true;
-    @Builder.Default private boolean showWarehouse = false;
-    @Builder.Default private boolean showTax = true;
-    @Builder.Default private boolean showDiscount = true;
-    @Builder.Default private boolean showShipping = false;
-    @Builder.Default private boolean showBarcode = false;
-    @Builder.Default private boolean showNote = false;
-    @Builder.Default private boolean showPaid = true;
-    @Builder.Default private boolean showDue = true;
-    @Builder.Default private boolean showPayments = true;
-    @Builder.Default private boolean showFooter = true;
+    @Builder.Default private boolean showStorePhone   = true;
+    @Builder.Default private boolean showStoreEmail   = false;
+    @Builder.Default private boolean showReference    = true;
+    @Builder.Default private boolean showDate         = true;
+    @Builder.Default private boolean showSeller       = false;
+    @Builder.Default private boolean showCustomer     = true;
+    @Builder.Default private boolean showWarehouse    = false;
+    @Builder.Default private boolean showTax          = true;
+    @Builder.Default private boolean showDiscount     = true;
+    @Builder.Default private boolean showShipping     = false;
+    @Builder.Default private boolean showBarcode      = false;
+    @Builder.Default private boolean showNote         = false;
+    @Builder.Default private boolean showPaid         = true;
+    @Builder.Default private boolean showDue          = true;
+    @Builder.Default private boolean showPayments     = true;
+    @Builder.Default private boolean showFooter       = true;
 
-    // Store info
-    @Builder.Default private String storeName = "LetisPOS";
+    // ── Store info ───────────────────────────────────────────────────────────
+    @Builder.Default private String storeName    = "LetisPOS";
     @Builder.Default private String storeAddress = "";
-    @Builder.Default private String storePhone = "";
-    @Builder.Default private String storeEmail = "";
-    @Builder.Default private String storeTaxId = "";
+    @Builder.Default private String storePhone   = "";
+    @Builder.Default private String storeEmail   = "";
+    @Builder.Default private String storeTaxId   = "";
     @Builder.Default private String footerMessage = "Thank you for your business.";
 
-    // Printing
+    // ── Store branding (V8) ──────────────────────────────────────────────────
+    @Builder.Default private String logoUrl      = "";
+    @Builder.Default private String storeWebsite = "";
+
+    // ── Printing ─────────────────────────────────────────────────────────────
     @Builder.Default private boolean autoPrint = true;
 
-    // POS behaviour
-    @Builder.Default private int productsPerPage = 24;
+    // ── POS behaviour ────────────────────────────────────────────────────────
+    @Builder.Default private int     productsPerPage       = 24;
+    @Builder.Default private boolean allowNegativeStock    = false;
+    @Builder.Default private boolean requireCustomerOnSale = false;
+    @Builder.Default private boolean requireNoteOnSale     = false;
+    @Builder.Default private int     lowStockThreshold     = 10;
+    @Builder.Default private boolean enableSound           = true;
+    @Builder.Default private int     kioskIdleTimeoutSec   = 120;
 
-    // Tax defaults
+    // ── Sale reference numbering (V8) ────────────────────────────────────────
+    @Builder.Default private String  saleRefPrefix  = "INV-";
+    @Builder.Default private short   saleRefPadding = 4;
+
+    // ── Tax defaults ─────────────────────────────────────────────────────────
     @Column(precision = 5, scale = 2)
-    @Builder.Default private BigDecimal defaultTaxRate = BigDecimal.ZERO;
+    @Builder.Default private BigDecimal defaultTaxRate   = BigDecimal.ZERO;
+    @Builder.Default private String     defaultTaxMethod = "EXCLUSIVE";
 
-    @Builder.Default private String defaultTaxMethod = "EXCLUSIVE";
+    // ── Discount & approval rules (V8) ───────────────────────────────────────
+    @Column(precision = 5, scale = 2)
+    @Builder.Default private BigDecimal maxDiscountPercent    = new BigDecimal("100.00");
+    @Builder.Default private boolean    requirePinForDiscount = false;
 
-    // Currency
-    @Builder.Default private String currencyCode = "TZS";
+    /** Amount threshold above which manager PIN is required. NULL = disabled. */
+    @Column(precision = 12, scale = 2)
+    private BigDecimal managerApprovalAbove;
+
+    // ── Currency ─────────────────────────────────────────────────────────────
+    @Builder.Default private String currencyCode   = "TZS";
     @Builder.Default private String currencySymbol = "";
 
+    // ── Locale / regional (V8) ───────────────────────────────────────────────
+    @Builder.Default private String timezone   = "Africa/Dar_es_Salaam";
+    @Builder.Default private String dateFormat = "dd/MM/yyyy";
+    @Builder.Default private String timeFormat = "HH:mm";
+
+    // ── Loyalty programme (V8) ───────────────────────────────────────────────
+    @Builder.Default private boolean    enableLoyalty          = false;
+    @Column(precision = 8, scale = 4)
+    @Builder.Default private BigDecimal loyaltyPointsPerUnit   = BigDecimal.ONE;
+    @Column(precision = 8, scale = 4)
+    @Builder.Default private BigDecimal loyaltyValuePerPoint   = new BigDecimal("0.0100");
+    @Builder.Default private int        loyaltyMinRedeemPoints = 100;
+
+    // ── Notifications / alerts (V8) ──────────────────────────────────────────
+    @Builder.Default private boolean lowStockAlertEnabled = true;
+    @Builder.Default private boolean dailySummaryEnabled  = false;
+    @Builder.Default private String  alertEmail           = "";
+
+    // ── Audit ────────────────────────────────────────────────────────────────
     @Column(updatable = false)
     private Instant createdAt;
-
     private Instant updatedAt;
 
     @PrePersist

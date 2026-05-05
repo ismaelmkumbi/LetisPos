@@ -16,17 +16,17 @@
  * Quick-add: each of Category / Brand / Unit has a `+` button that opens a tiny
  * inline dialog so the user never has to leave this drawer.
  */
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Accordion, AccordionDetails, AccordionSummary,
-  Alert, Avatar, Box, Button, Chip, Dialog, DialogActions, DialogContent,
+  Alert, Box, Button, Chip, Dialog, DialogActions, DialogContent,
   DialogTitle, Divider, FormControlLabel, IconButton, InputAdornment,
   MenuItem, Stack, Switch, TextField, Tooltip, Typography,
 } from '@mui/material';
 import {
   IconBarcode, IconBox, IconChevronDown, IconCoin, IconCopy, IconEye, IconPackage,
   IconPlus, IconPrinter, IconRefresh, IconShield, IconSparkles, IconStar,
-  IconTag, IconTrash, IconUpload, IconX,
+  IconTag, IconTrash, IconX,
 } from '@tabler/icons-react';
 
 import {
@@ -40,6 +40,7 @@ import { aiSuggestProduct, aiDescribeProduct, type ProductSuggestion, type Produ
 import type { BarcodeSymbology, Brand, Category, Unit } from 'src/api/smartpos/types';
 import EditDrawer from 'src/components/smartpos/EditDrawer';
 import ComboItemsEditor from './ComboItemsEditor';
+import ProductImageDropzone from './ProductImageDropzone';
 import { brand } from 'src/theme/smartpos/brand';
 import { formatMoney } from 'src/utils/smartpos/currency';
 
@@ -246,21 +247,6 @@ export default function ProductEditDrawer({ open, initial, onClose, onSaved, onD
   });
   const toggle = (key: string) =>
     setOpenSections((s) => ({ ...s, [key]: !s[key] }));
-
-  // ── Image upload (FileReader → data URL, no backend endpoint needed) ────
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (!file.type.startsWith('image/')) { setError('Only image files are supported.'); return; }
-    const reader = new FileReader();
-    reader.onload = () => {
-      setForm((f) => ({ ...f, imageUrl: reader.result as string }));
-    };
-    reader.readAsDataURL(file);
-    // Reset input so the same file can be re-selected
-    e.target.value = '';
-  };
 
   // ── Barcode label print ─────────────────────────────────────────────────
   const handlePrintLabel = () => {
@@ -982,50 +968,22 @@ export default function ProductEditDrawer({ open, initial, onClose, onSaved, onD
               />
 
               <Box>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                  style={{ display: 'none' }}
+                <ProductImageDropzone
+                  imageUrl={form.imageUrl}
+                  onImageChange={(url) => patch('imageUrl', url)}
+                  disabled={submitting}
                 />
+
                 <TextField
-                  label="Image URL" value={form.imageUrl ?? ''}
+                  label="Image URL"
+                  value={form.imageUrl ?? ''}
                   onChange={(e) => patch('imageUrl', e.target.value || undefined)}
-                  size="small" fullWidth
-                  helperText="Paste a public image URL or upload from your device"
-                  InputProps={{
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <Tooltip title="Upload image">
-                          <IconButton size="small" onClick={() => fileInputRef.current?.click()} sx={{ p: 0.5 }}>
-                            <IconUpload size={16} />
-                          </IconButton>
-                        </Tooltip>
-                      </InputAdornment>
-                    ),
-                  }}
+                  size="small"
+                  fullWidth
+                  sx={{ mt: 1.5 }}
+                  placeholder="https://..."
+                  helperText="Paste a public image URL — or use the upload area above"
                 />
-                {form.imageUrl && (
-                  <Box sx={{
-                    mt: 1.25, display: 'flex', alignItems: 'center', gap: 1.5,
-                    p: 1.25, borderRadius: '10px', bgcolor: brand.neutral[50],
-                    border: `1px solid ${brand.neutral[200]}`,
-                  }}>
-                    <Avatar
-                      src={form.imageUrl} variant="rounded"
-                      sx={{ width: 56, height: 56, bgcolor: brand.neutral[100] }}
-                    />
-                    <Box>
-                      <Typography variant="caption" sx={{ color: brand.neutral[600], fontWeight: 600 }}>
-                        Preview
-                      </Typography>
-                      <Typography variant="caption" sx={{ color: brand.neutral[400], display: 'block' }}>
-                        Storefront thumbnail will use this image
-                      </Typography>
-                    </Box>
-                  </Box>
-                )}
               </Box>
             </Stack>
           </AccordionDetails>
