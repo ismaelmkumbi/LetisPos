@@ -75,6 +75,18 @@ public class ProductAiController {
         return service.suggestCandidates(req, principal(jwt));
     }
 
+    /**
+     * Batch image import — takes one or more photos of a product list / catalogue
+     * page and returns mapped product rows via the vision model, same shape as
+     * {@code /import-map} so the UI can reuse the review → bulk-save pipeline.
+     */
+    @PostMapping("/import-from-images")
+    @PreAuthorize("hasAuthority('product.create')")
+    public AiDtos.ProductImportMapResponse importFromImages(@Valid @RequestBody AiDtos.ProductImportFromImagesRequest req,
+                                                            @AuthenticationPrincipal Jwt jwt) {
+        return service.importFromImages(req, principal(jwt));
+    }
+
     private UUID principal(Jwt jwt) {
         if (jwt == null) return null;
         try { return UUID.fromString(jwt.getSubject()); } catch (Exception ignored) { return null; }

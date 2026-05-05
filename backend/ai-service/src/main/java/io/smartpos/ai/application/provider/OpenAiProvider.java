@@ -21,9 +21,10 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class OpenAiProvider implements AiProvider {
 
-    private static final String URL = "https://api.openai.com/v1/chat/completions";
     private final AiProperties props;
     private final WebClient http = WebClient.builder().build();
+
+    private String url() { return props.openai().baseUrl() + "/chat/completions"; }
 
     @Override public String name()  { return "openai"; }
     @Override public String model() { return props.openai().model(); }
@@ -53,10 +54,9 @@ public class OpenAiProvider implements AiProvider {
         java.util.List<Map<String, Object>> userContent = new java.util.ArrayList<>();
         userContent.add(Map.of("type", "text", "text", userPrompt));
         for (String url : imageDataUrls) {
-            // "low" detail keeps the prompt cost down; the model still recognises
-            // typical product photos at this resolution.
+            // "high" detail needed for OCR of product lists, price sheets, etc.
             userContent.add(Map.of("type", "image_url",
-                    "image_url", Map.of("url", url, "detail", "low")));
+                    "image_url", Map.of("url", url, "detail", "high")));
         }
 
         Map<String, Object> body = new java.util.HashMap<>();
@@ -89,7 +89,7 @@ public class OpenAiProvider implements AiProvider {
     private Result execute(Map<String, Object> body) {
         @SuppressWarnings("unchecked")
         Map<String, Object> resp = http.post()
-                .uri(URL)
+                .uri(url())
                 .header("Authorization", "Bearer " + props.openai().apiKey())
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(body)

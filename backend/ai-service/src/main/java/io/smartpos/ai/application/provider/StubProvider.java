@@ -46,17 +46,24 @@ public class StubProvider implements AiProvider {
                   "minPrice": null,
                   "taxRate": 0,
                   "confidence": 0.0,
-                  "rationale": "Stub provider — configure OPENAI_API_KEY for real suggestions."
+                  "rationale": "Stub provider — configure AI_PROVIDER and API key for real suggestions."
                 }
                 """.formatted(jsonString(name));
             return new Result(json, 0, 0);
         }
 
-        if (sys.contains("PRODUCT_IMPORT_MAP")) {
-            return new Result("{\"rows\":[],\"warnings\":[\"Stub provider — configure OPENAI_API_KEY to enable AI mapping.\"]}", 0, 0);
+        if (sys.contains("PRODUCT_IMPORT_MAP") || sys.contains("PRODUCT_IMPORT_FROM_IMAGE")) {
+            return new Result("{\"rows\":[],\"warnings\":[\"Stub provider — configure AI_PROVIDER and API key to enable AI mapping.\"]}", 0, 0);
         }
 
         return new Result("{}", 0, 0);
+    }
+
+    @Override
+    public Result completeJsonWithImages(String systemPrompt, String userPrompt,
+                                          java.util.List<String> imageDataUrls) {
+        // Stub: returns empty rows so the UI flow works end-to-end without a real API key.
+        return new Result("{\"rows\":[],\"warnings\":[\"Stub provider — configure AI_PROVIDER and API key for vision.\"]}", 0, 0);
     }
 
     private static String extractAfter(String haystack, String needle) {

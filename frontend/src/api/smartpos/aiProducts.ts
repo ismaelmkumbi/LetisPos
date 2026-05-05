@@ -159,6 +159,24 @@ export async function aiProductFromImage(body: ProductFromImageBody): Promise<Pr
   return data;
 }
 
+// ── Vision: batch image import → mapped product rows ──────────────────────
+
+export interface ProductImportFromImagesBody {
+  imageDataUrls: string[];
+  hint?: string;
+  context?: WorkspaceContext;
+}
+
+export async function aiImportFromImages(
+  body: ProductImportFromImagesBody,
+): Promise<ProductImportMapResponse> {
+  const { data } = await api.post<ProductImportMapResponse>(
+    '/api/v1/ai/products/import-from-images',
+    body,
+  );
+  return data;
+}
+
 // ── Disambiguation: vague seed → up to 4 candidate variants ───────────────
 
 export interface ProductCandidatesResponse {

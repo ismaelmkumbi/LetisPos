@@ -237,7 +237,12 @@ export default function TaxPricingPage() {
           </Stack>
 
           {/* Discount rules — full width */}
-          <Box sx={{ ...cardSx, p: 2.5 }}>
+          <Box sx={{
+            ...cardSx, p: 2.5,
+            borderColor: settings.requirePinForDiscount ? brand.warning.main + '40' : brand.neutral[200],
+            bgcolor: settings.requirePinForDiscount ? brand.warning.main + '08' : '#fff',
+            transition: 'all 0.2s',
+          }}>
             <SectionTitle icon={<IconDiscount size={20} />} title="Discount rules" />
             <Stack spacing={2.5}>
               <Box>

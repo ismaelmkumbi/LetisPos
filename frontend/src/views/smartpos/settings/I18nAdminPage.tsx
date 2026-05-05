@@ -28,6 +28,7 @@ export default function I18nAdminPage() {
       <PageHeader
         title="Languages &amp; translations"
         subtitle="24+ locales · admin can add new languages and edit strings"
+        badge={{ label: 'Enterprise', tone: 'primary' }}
       />
       <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 2 }}>
         <Tab value="languages"    label="Languages" />

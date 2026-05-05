@@ -8,7 +8,7 @@ import {
 } from '@mui/material';
 import {
   IconAlertTriangle, IconCopy,
-  IconDotsVertical, IconEyeOff, IconPlus, IconStar,
+  IconDotsVertical, IconEyeOff, IconPlus, IconSparkles, IconStar,
   IconTrash,
 } from '@tabler/icons-react';
 
@@ -624,6 +624,7 @@ export default function ProductsListPage() {
         title={t('nav.products')}
         subtitle="Manage your inventory, pricing and stock in one place."
         actions={[
+          { label: 'Smart import', icon: <IconSparkles size={18} />, onClick: () => setAiImportOpen(true) },
           { label: 'Add Product', icon: <IconPlus size={18} />, onClick: () => navigate('/smartpos/products/new') },
         ]}
       />

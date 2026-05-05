@@ -50,6 +50,7 @@
     "moment": "^2.30.1",
     "msw": "^2.7.6",
     "mui-tiptap": "^1.18.1",
+    "pdfjs-dist": "^4.10.38",
     "prop-types": "^15.8.1",
     "react": "19.0.0-rc-02c0e824-20241028",
     "react-apexcharts": "^1.7.0",

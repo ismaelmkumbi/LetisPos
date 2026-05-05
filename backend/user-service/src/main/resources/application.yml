@@ -8,7 +8,7 @@ spring:
     name: user-service
 
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/user_db}
+    url: ${DB_URL:jdbc:postgresql://localhost:5434/user_db?preferQueryMode=simple}
     username: ${DB_USER:user_user}
     password: ${DB_PASSWORD:user_pass}
     hikari:

@@ -3,6 +3,7 @@ package io.smartpos.product.api;
 import io.smartpos.product.api.dto.BulkCreateProductsRequest;
 import io.smartpos.product.api.dto.BulkCreateProductsResponse;
 import io.smartpos.product.api.dto.CreateProductRequest;
+import io.smartpos.product.api.dto.ImageUploadResponse;
 import io.smartpos.product.api.dto.ImportOpeningStockRequest;
 import io.smartpos.product.api.dto.ImportOpeningStockResponse;
 import io.smartpos.product.api.dto.ImportUpdateOnlyRequest;
@@ -10,23 +11,29 @@ import io.smartpos.product.api.dto.ImportUpdateOnlyResponse;
 import io.smartpos.product.api.dto.ProductDto;
 import io.smartpos.product.api.dto.UpdateProductRequest;
 import io.smartpos.product.application.ProductService;
+import io.smartpos.product.infrastructure.storage.ImageUploadService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.UUID;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/v1/products")
 @RequiredArgsConstructor
 public class ProductController {
 
     private final ProductService productService;
+    private final ImageUploadService imageUploadService;
 
     @GetMapping
     @PreAuthorize("hasAuthority('product.view')")
@@ -102,5 +109,41 @@ public class ProductController {
     @PreAuthorize("hasAuthority('stock.count')")
     public ImportOpeningStockResponse importOpeningStock(@Valid @RequestBody ImportOpeningStockRequest req) {
         return productService.importOpeningStock(req);
+    }
+
+    @PostMapping(value = "/images", consumes = "multipart/form-data")
+    @PreAuthorize("hasAuthority('product.create')")
+    public ResponseEntity<ImageUploadResponse> uploadImage(@RequestParam("file") MultipartFile file) {
+        if (file.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "File is empty");
+        }
+        String contentType = file.getContentType();
+        if (contentType == null || !contentType.startsWith("image/")) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Only image files are accepted. Got: " + contentType);
+        }
+        if (file.getSize() > 5 * 1024 * 1024) {
+            throw new ResponseStatusException(HttpStatus.PAYLOAD_TOO_LARGE,
+                    "Image must be under 5 MB");
+        }
+        String originalName = file.getOriginalFilename();
+        String ext = "jpg";
+        if (originalName != null && originalName.contains(".")) {
+            ext = originalName.substring(originalName.lastIndexOf('.') + 1).toLowerCase();
+        } else if ("image/png".equals(contentType)) {
+            ext = "png";
+        } else if ("image/webp".equals(contentType)) {
+            ext = "webp";
+        } else if ("image/gif".equals(contentType)) {
+            ext = "gif";
+        }
+        try {
+            String url = imageUploadService.upload(file.getBytes(), ext, contentType);
+            return ResponseEntity.status(HttpStatus.CREATED).body(new ImageUploadResponse(url));
+        } catch (Exception e) {
+            log.error("Image upload failed", e);
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Failed to upload image: " + e.getMessage());
+        }
     }
 }

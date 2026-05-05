@@ -217,7 +217,14 @@ export default function PosSettingsPage() {
           </Stack>
 
           {/* Stock & sale rules — full width */}
-          <Box sx={{ ...cardSx, p: 2.5 }}>
+          <Box sx={{
+            ...cardSx, p: 2.5,
+            borderColor: (settings.allowNegativeStock || settings.requireCustomerOnSale || settings.requireNoteOnSale)
+              ? brand.primary[300] : brand.neutral[200],
+            bgcolor: (settings.allowNegativeStock || settings.requireCustomerOnSale || settings.requireNoteOnSale)
+              ? brand.primary[50] + 'CC' : '#fff',
+            transition: 'all 0.2s',
+          }}>
             <SectionTitle icon={<IconPackage size={20} />} title="Stock & sale rules" />
             <Stack spacing={0.5}>
               <FormControlLabel

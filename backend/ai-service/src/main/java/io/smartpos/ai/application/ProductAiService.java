@@ -234,6 +234,67 @@ public class ProductAiService {
               - Output ONLY the JSON object — no commentary, no markdown.
             """;
 
+    private static final String SYS_IMPORT_FROM_IMAGE = """
+            PRODUCT_IMPORT_FROM_IMAGE
+            You help a retail operator bulk-import products from photos of product
+            lists, supplier catalogues, price sheets, or inventory records. The user
+            has uploaded one or more images. Read ALL product items visible in every
+            image and return them as structured product rows in the same format as
+            the spreadsheet import mapper.
+
+            Return JSON matching this schema EXACTLY:
+
+            {
+              "rows": [
+                {
+                  "row":              int,           // row number (1-based, in reading order)
+                  "name":             string,        // cleaned product name — required
+                  "description":      string|null,
+                  "categoryId":       uuid|null,     // from provided categories, or null
+                  "brandId":          uuid|null,     // from provided brands, or null
+                  "unitId":           uuid|null,     // from provided units, or null
+                  "code":             string|null,   // SKU / product code if visible
+                  "barcodeSymbology": "CODE128"|"EAN13"|"EAN8"|"UPC"|"CODE39",
+                  "cost":             number|null,   // buying / wholesale cost
+                  "price":            number|null,   // retail selling price
+                  "wholesalePrice":   number|null,
+                  "minPrice":         number|null,
+                  "taxRate":          number|null,   // 0-100 (percent)
+                  "confidence":       number,        // 0.0 - 1.0 for this row
+                  "warnings":         string[]       // e.g. ["price column blurred — guessed"]
+                }
+              ],
+              "warnings": string[]                   // global notes (e.g. "image 2 is blurry")
+            }
+
+            Rules:
+              - OCR EVERY visible product line — do not skip items because they are
+                "hard to read". If a field is illegible, set it to null and add a
+                warning.
+              - Parse tabular layouts: if the image shows columns (name, price, code,
+                etc.), match each row to the correct field. Use column headers or
+                positional heuristics to determine which column is which.
+              - Parse free-text lists: if it's a list like "• Product A — TZS 5000"
+                or "1. Rice 25kg @ 80,000", extract name, price, and unit clues.
+              - Unit size in name: if the item shows a weight/volume (500ml, 25kg,
+                1L, 250g), keep it in the product NAME.
+              - Price column: look for currency symbols (TSh, TZS, KES, UGX, $, /=)
+                or obvious price patterns. Remove currency symbols and parse the
+                numeric value. If the price is clearly wholesale/cost, use the
+                "cost" field instead.
+              - Only use category/brand/unit IDs from the provided lists. Match by
+                name similarity if the image text is close to an existing category
+                (e.g. "BEVERAGES" ≈ provided category "Beverages"). If none fits,
+                return null AND add a warning.
+              - NAME EXPANSION: if the image shows a short name like "Coca-Cola",
+                expand to "Coca-Cola 500ml" if the volume is visible elsewhere.
+              - Pricing: produce realistic East-African prices (TZS / KES / UGX).
+                If the image shows prices in a different currency, convert using
+                approximate rates (1 USD ≈ 2500 TZS, 1 EUR ≈ 2800 TZS).
+              - SKIP rows that are clearly headers, totals, or blank lines.
+              - Output ONLY the JSON object — no commentary, no markdown.
+            """;
+
     private final AiRouter aiRouter;
     private final AiInvocationRepository invocations;
 
@@ -421,6 +482,91 @@ public class ProductAiService {
                 .durationMs(duration).build());
 
         return mapDescribeResponse(parseJson(result.text()), provider, "(image input)");
+    }
+
+    /**
+     * Batch image import: accept one or more photos of a product list / catalogue
+     * page, OCR-read all items via the vision provider, and return mapped product
+     * rows (same shape as {@link #importMap}) so the user can review and bulk-create.
+     */
+    public AiDtos.ProductImportMapResponse importFromImages(AiDtos.ProductImportFromImagesRequest req, UUID userId) {
+        if (req.imageDataUrls() == null || req.imageDataUrls().isEmpty() || req.imageDataUrls().size() > 5) {
+            throw new IllegalArgumentException("Upload 1 to 5 images of the product list.");
+        }
+        for (String image : req.imageDataUrls()) {
+            if (image == null || image.isBlank() || image.length() > 1_200_000) {
+                throw new IllegalArgumentException("Each image must be a non-empty data URL or HTTPS URL under 1.2 MB.");
+            }
+            boolean isDataImage = image.startsWith("data:image/");
+            boolean isHttpsImage = image.startsWith("https://");
+            if (!isDataImage && !isHttpsImage) {
+                throw new IllegalArgumentException("Images must be data:image URLs or HTTPS URLs.");
+            }
+        }
+
+        StringBuilder userPrompt = new StringBuilder();
+        userPrompt.append("Read ALL product items from the uploaded image(s) and return them as structured rows.\n");
+        if (req.hint() != null && !req.hint().isBlank()) {
+            userPrompt.append("Operator hint: ").append(req.hint().trim()).append('\n');
+        }
+        if (req.context() != null) appendContext(userPrompt, req.context());
+
+        AiProvider provider = aiRouter.active();
+        long t0 = System.currentTimeMillis();
+        AiProvider.Result result;
+        String error = null;
+        try {
+            result = provider.completeJsonWithImages(SYS_IMPORT_FROM_IMAGE, userPrompt.toString(), req.imageDataUrls());
+        } catch (Exception e) {
+            error = e.getMessage();
+            log.warn("AI provider {} import-from-images failed: {}", provider.name(), error);
+            result = new AiProvider.Result("{\"rows\":[],\"warnings\":[\"" + safe(error) + "\"]}", 0, 0);
+        }
+        int duration = (int) (System.currentTimeMillis() - t0);
+
+        invocations.save(AiInvocation.builder()
+                .kind("PRODUCT_IMPORT_FROM_IMAGE").provider(provider.name()).model(provider.model())
+                .promptTokens(result.promptTokens()).completionTokens(result.completionTokens())
+                .inputSummary("import-from-images (" + req.imageDataUrls().size() + " img)")
+                .output(truncate(result.text(), 4000)).error(error).userId(userId)
+                .durationMs(duration).build());
+
+        // Reuse the same response parsing as importMap
+        JsonNode root = parseJson(result.text());
+        List<AiDtos.MappedRow> mapped = new ArrayList<>();
+        if (root.has("rows") && root.get("rows").isArray()) {
+            for (JsonNode r : root.get("rows")) {
+                List<String> wlist = new ArrayList<>();
+                if (r.has("warnings") && r.get("warnings").isArray()) {
+                    r.get("warnings").forEach(w -> wlist.add(w.asText()));
+                }
+                mapped.add(new AiDtos.MappedRow(
+                        r.path("row").asInt(0),
+                        str(r, "name", ""),
+                        str(r, "description", null),
+                        uuid(r, "categoryId"),
+                        uuid(r, "brandId"),
+                        uuid(r, "unitId"),
+                        str(r, "code", null),
+                        str(r, "barcodeSymbology", "CODE128"),
+                        bd(r, "cost"),
+                        bd(r, "price"),
+                        bd(r, "wholesalePrice"),
+                        bd(r, "minPrice"),
+                        bd(r, "taxRate"),
+                        num(r, "confidence", 0.0),
+                        wlist
+                ));
+            }
+        }
+        List<String> globalWarnings = new ArrayList<>();
+        if (root.has("warnings") && root.get("warnings").isArray()) {
+            root.get("warnings").forEach(w -> globalWarnings.add(w.asText()));
+        }
+        return new AiDtos.ProductImportMapResponse(
+                mapped, globalWarnings, provider.name(), provider.model(),
+                result.promptTokens(), result.completionTokens(), Instant.now()
+        );
     }
 
     /**

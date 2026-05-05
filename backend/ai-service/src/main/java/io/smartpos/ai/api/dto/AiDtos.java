@@ -173,6 +173,21 @@ public final class AiDtos {
 
     // Reuses ProductDescribeResponse — vision returns the same field set.
 
+    // ── Product AI: batch image import (vision → product list) ──────────────
+    //
+    // Accepts one or more photos of a product list / catalogue page and returns
+    // mapped product rows (same shape as /import-map) so the user can review and
+    // bulk-create. The vision model is asked to OCR all items from the image(s)
+    // and structure them as product rows.
+
+    public record ProductImportFromImagesRequest(
+            @NotNull @Size(min = 1, max = 5) List<@NotBlank @Size(max = 1_200_000) String> imageDataUrls,
+            String hint,                    // e.g. "This is a supplier price list"
+            WorkspaceContext context
+    ) {}
+
+    // Reuses ProductImportMapResponse — same shape as /import-map.
+
     // ── Product AI: disambiguation candidates ──────────────────────────────
     //
     // When the user types something vague ("Samsung phone"), suggest() may
