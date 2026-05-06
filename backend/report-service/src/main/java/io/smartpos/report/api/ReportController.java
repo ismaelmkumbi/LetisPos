@@ -1,16 +1,26 @@
 package io.smartpos.report.api;
 
 import io.smartpos.report.api.dto.AdvancedReports.*;
+import io.smartpos.report.api.dto.CustomerSummaryDto;
 import io.smartpos.report.api.dto.DashboardDto;
+import io.smartpos.report.api.dto.EmployeeSalesDto;
+import io.smartpos.report.api.dto.PaymentSummaryDto;
 import io.smartpos.report.api.dto.Period;
 import io.smartpos.report.api.dto.ProfitLossDto;
+import io.smartpos.report.api.dto.PurchaseSummaryDto;
 import io.smartpos.report.api.dto.SalesSummaryDto;
+import io.smartpos.report.api.dto.TaxSummaryDto;
 import io.smartpos.report.application.AdvancedReportService;
+import io.smartpos.report.application.CustomerReportService;
 import io.smartpos.report.application.DashboardService;
 import io.smartpos.report.application.InventoryReportService;
+import io.smartpos.report.application.PaymentReportService;
 import io.smartpos.report.application.ProfitLossService;
+import io.smartpos.report.application.PurchaseReportService;
 import io.smartpos.report.application.SalesReportService;
+import io.smartpos.report.application.TaxReportService;
 import io.smartpos.report.infrastructure.feign.InventoryFeign;
+import io.smartpos.report.infrastructure.feign.PaymentFeign;
 import io.smartpos.report.infrastructure.feign.SalesFeign;
 import org.springframework.format.annotation.DateTimeFormat;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +41,10 @@ public class ReportController {
     private final InventoryReportService  inventoryReports;
     private final ProfitLossService       profitLoss;
     private final AdvancedReportService   advanced;
+    private final TaxReportService        taxReports;
+    private final PurchaseReportService   purchaseReports;
+    private final PaymentReportService    paymentReports;
+    private final CustomerReportService   customerReports;
 
     @GetMapping("/dashboard")
     @PreAuthorize("hasAuthority('report.sales') or hasAuthority('report.financial') " +
@@ -118,6 +132,59 @@ public class ReportController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateTo,
             @RequestParam(defaultValue = "CATEGORY") String dimension) {
         return advanced.salesByDimension(defaultFrom(dateFrom), defaultTo(dateTo), dimension);
+    }
+
+    // ---- Tax report ----
+
+    @GetMapping("/tax-summary")
+    @PreAuthorize("hasAuthority('report.financial')")
+    public TaxSummaryDto taxSummary(@RequestParam(required = false) LocalDate dateFrom,
+                                     @RequestParam(required = false) LocalDate dateTo) {
+        return taxReports.summary(defaultFrom(dateFrom), defaultTo(dateTo));
+    }
+
+    // ---- Purchase report ----
+
+    @GetMapping("/purchases/summary")
+    @PreAuthorize("hasAuthority('report.financial')")
+    public PurchaseSummaryDto purchaseSummary(@RequestParam(required = false) LocalDate dateFrom,
+                                               @RequestParam(required = false) LocalDate dateTo,
+                                               @RequestParam(required = false) UUID warehouseId) {
+        return purchaseReports.summary(defaultFrom(dateFrom), defaultTo(dateTo), warehouseId);
+    }
+
+    // ---- Payment report ----
+
+    @GetMapping("/payments/summary")
+    @PreAuthorize("hasAuthority('report.financial')")
+    public PaymentSummaryDto paymentSummary(@RequestParam(required = false) LocalDate dateFrom,
+                                             @RequestParam(required = false) LocalDate dateTo) {
+        return paymentReports.summary(defaultFrom(dateFrom), defaultTo(dateTo));
+    }
+
+    @GetMapping("/payments/by-method")
+    @PreAuthorize("hasAuthority('report.financial')")
+    public List<PaymentFeign.ByMethodRow> paymentsByMethod(@RequestParam(required = false) LocalDate dateFrom,
+                                                            @RequestParam(required = false) LocalDate dateTo) {
+        return paymentReports.byMethod(defaultFrom(dateFrom), defaultTo(dateTo));
+    }
+
+    // ---- Customer report ----
+
+    @GetMapping("/customers/summary")
+    @PreAuthorize("hasAuthority('report.sales')")
+    public CustomerSummaryDto customerSummary(@RequestParam(required = false) LocalDate dateFrom,
+                                               @RequestParam(required = false) LocalDate dateTo) {
+        return customerReports.summary(defaultFrom(dateFrom), defaultTo(dateTo));
+    }
+
+    // ---- Employee sales ----
+
+    @GetMapping("/sales/by-employee")
+    @PreAuthorize("hasAuthority('report.sales')")
+    public EmployeeSalesDto salesByEmployee(@RequestParam(required = false) LocalDate dateFrom,
+                                             @RequestParam(required = false) LocalDate dateTo) {
+        return new EmployeeSalesDto(defaultFrom(dateFrom), defaultTo(dateTo), List.of());
     }
 
     // ---- helpers ----

@@ -1,6 +1,10 @@
 package io.smartpos.report.application;
 
+import io.smartpos.report.api.dto.CustomerSummaryDto;
 import io.smartpos.report.api.dto.DashboardDto;
+import io.smartpos.report.api.dto.PaymentSummaryDto;
+import io.smartpos.report.api.dto.PurchaseSummaryDto;
+import io.smartpos.report.api.dto.TaxSummaryDto;
 import io.smartpos.report.domain.model.ExportJob;
 import io.smartpos.report.infrastructure.export.CsvExporter;
 import io.smartpos.report.infrastructure.export.PdfExporter;
@@ -30,6 +34,10 @@ import java.util.UUID;
 public class ExportService {
 
     private final SalesReportService salesReports;
+    private final TaxReportService taxReports;
+    private final PurchaseReportService purchaseReports;
+    private final PaymentReportService paymentReports;
+    private final CustomerReportService customerReports;
 
     private final CsvExporter csv;
     private final XlsxExporter xlsx;
@@ -43,6 +51,10 @@ public class ExportService {
             case "sales-summary-series" -> salesSeriesExport(format, from, to, warehouseId);
             case "sales-top-products"   -> topProductsExport(format, from, to, warehouseId, limit);
             case "sales-top-customers"  -> topCustomersExport(format, from, to, limit);
+            case "tax-summary"       -> taxExport(format, from, to);
+            case "purchases-summary" -> purchaseExport(format, from, to, warehouseId);
+            case "payments-summary"  -> paymentExport(format, from, to);
+            case "customers-summary" -> customerExport(format, from, to);
             default -> throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Unknown report key: " + reportKey);
         };
@@ -82,6 +94,48 @@ public class ExportService {
         }
         return render(fmt, "sales-top-customers", "Top customers",
                 "From " + from + " to " + to, headers, rows);
+    }
+
+    private RenderedExport taxExport(ExportJob.Format fmt, LocalDate from, LocalDate to) {
+        TaxSummaryDto dto = taxReports.summary(from, to);
+        List<String> headers = List.of("Tax Rate %", "Tax Amount", "Taxable Amount", "Transactions");
+        List<List<Object>> rows = new ArrayList<>();
+        for (TaxSummaryDto.TaxByRate r : dto.byRate()) {
+            rows.add(List.of(r.rate(), r.taxAmount(), r.taxableAmount(), r.count()));
+        }
+        return render(fmt, "tax-summary", "Tax Summary", "From " + from + " to " + to, headers, rows);
+    }
+
+    private RenderedExport purchaseExport(ExportJob.Format fmt, LocalDate from, LocalDate to, UUID warehouseId) {
+        PurchaseSummaryDto dto = purchaseReports.summary(from, to, warehouseId);
+        List<String> headers = List.of("Metric", "Value");
+        List<List<Object>> rows = new ArrayList<>();
+        rows.add(List.of("Count", dto.count()));
+        rows.add(List.of("Gross", dto.gross()));
+        rows.add(List.of("Paid", dto.paid()));
+        rows.add(List.of("Due", dto.due()));
+        rows.add(List.of("Avg Purchase", dto.avgPurchase()));
+        return render(fmt, "purchases-summary", "Purchase Summary", "From " + from + " to " + to, headers, rows);
+    }
+
+    private RenderedExport paymentExport(ExportJob.Format fmt, LocalDate from, LocalDate to) {
+        PaymentSummaryDto dto = paymentReports.summary(from, to);
+        List<String> headers = List.of("Method", "Total", "Count");
+        List<List<Object>> rows = new ArrayList<>();
+        for (PaymentSummaryDto.ByMethod r : dto.byMethod()) {
+            rows.add(List.of(r.method(), r.total(), r.count()));
+        }
+        return render(fmt, "payments-summary", "Payment Summary", "From " + from + " to " + to, headers, rows);
+    }
+
+    private RenderedExport customerExport(ExportJob.Format fmt, LocalDate from, LocalDate to) {
+        CustomerSummaryDto dto = customerReports.summary(from, to);
+        List<String> headers = List.of("Customer ID", "Name", "Orders", "Total Spent");
+        List<List<Object>> rows = new ArrayList<>();
+        for (CustomerSummaryDto.TopCustomer r : dto.topCustomers()) {
+            rows.add(List.of(r.customerId(), r.customerName() != null ? r.customerName() : "—", r.orderCount(), r.totalSpent()));
+        }
+        return render(fmt, "customers-summary", "Customer Summary", "From " + from + " to " + to, headers, rows);
     }
 
     // ---- dispatch on format ----
