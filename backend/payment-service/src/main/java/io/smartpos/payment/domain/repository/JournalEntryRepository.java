@@ -15,7 +15,7 @@ import java.util.UUID;
 
 public interface JournalEntryRepository extends JpaRepository<JournalEntry, UUID> {
 
-    boolean existsByRefIgnoreCase(String ref);
+    boolean existsByRefIgnoreCaseAndTenantId(String ref, UUID tenantId);
 
     @Query("""
            SELECT j FROM JournalEntry j
@@ -23,12 +23,14 @@ public interface JournalEntryRepository extends JpaRepository<JournalEntry, UUID
              AND (:from   IS NULL OR j.entryDate >= :from)
              AND (:to     IS NULL OR j.entryDate <= :to)
              AND (:source IS NULL OR j.source = :source)
+             AND j.tenantId = :tenantId
            ORDER BY j.entryDate DESC, j.createdAt DESC
            """)
     Page<JournalEntry> search(@Param("status") JournalStatus status,
                               @Param("from")   LocalDate from,
                               @Param("to")     LocalDate to,
                               @Param("source") String source,
+                              @Param("tenantId") UUID tenantId,
                               Pageable pageable);
 
     /**
@@ -44,8 +46,10 @@ public interface JournalEntryRepository extends JpaRepository<JournalEntry, UUID
            WHERE j.status = io.smartpos.payment.domain.model.JournalStatus.POSTED
              AND (:from IS NULL OR j.entryDate >= :from)
              AND (:to   IS NULL OR j.entryDate <= :to)
+             AND j.tenantId = :tenantId
            GROUP BY l.accountId
            """)
     List<Object[]> sumByAccount(@Param("from") LocalDate from,
-                                @Param("to")   LocalDate to);
+                                @Param("to")   LocalDate to,
+                                @Param("tenantId") UUID tenantId);
 }

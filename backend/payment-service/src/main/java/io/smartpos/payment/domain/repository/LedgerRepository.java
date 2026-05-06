@@ -17,10 +17,12 @@ public interface LedgerRepository extends JpaRepository<LedgerEntry, UUID> {
            WHERE l.accountId = :accountId
              AND (:dateFrom IS NULL OR l.txnDate >= :dateFrom)
              AND (:dateTo   IS NULL OR l.txnDate <= :dateTo)
+             AND l.tenantId = :tenantId
            ORDER BY l.txnDate DESC, l.createdAt DESC
            """)
     Page<LedgerEntry> ledgerFor(@Param("accountId") UUID accountId,
                                 @Param("dateFrom")  LocalDate dateFrom,
                                 @Param("dateTo")    LocalDate dateTo,
+                                @Param("tenantId")  UUID tenantId,
                                 Pageable pageable);
 }

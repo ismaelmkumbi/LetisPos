@@ -12,5 +12,7 @@ public record RegisterRequest(
         @NotBlank @Size(min = 8, max = 255) String password,
         String firstName,
         String lastName,
-        UUID tenantId
+        UUID tenantId,
+        String tenantName,
+        String tenantSlug
 ) {}

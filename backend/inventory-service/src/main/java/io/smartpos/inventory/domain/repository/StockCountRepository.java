@@ -19,6 +19,12 @@ public interface StockCountRepository extends JpaRepository<StockCount, UUID> {
 
     long countByRefStartingWith(String prefix);
 
-    @Query("SELECT c FROM StockCount c WHERE :search IS NULL OR :search = '' OR LOWER(c.ref) LIKE LOWER(CONCAT('%', :search, '%'))")
-    Page<StockCount> search(@Param("search") String search, Pageable pageable);
+    @Query("""
+           SELECT c FROM StockCount c
+           WHERE (COALESCE(:search, '') = '' OR LOWER(c.ref) LIKE LOWER(CONCAT('%', :search, '%')))
+             AND c.tenantId = :tenantId
+           """)
+    Page<StockCount> search(@Param("search") String search,
+                            @Param("tenantId") UUID tenantId,
+                            Pageable pageable);
 }

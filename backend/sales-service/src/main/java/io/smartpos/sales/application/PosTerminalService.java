@@ -3,6 +3,7 @@ package io.smartpos.sales.application;
 import io.smartpos.sales.api.dto.PosTerminalDto;
 import io.smartpos.sales.domain.model.PosTerminal;
 import io.smartpos.sales.domain.repository.PosTerminalRepository;
+import io.smartpos.common.context.TenantContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -21,7 +22,7 @@ public class PosTerminalService {
 
     @Transactional(readOnly = true)
     public List<PosTerminalDto> list(UUID warehouseId) {
-        return (warehouseId == null ? repo.findAll() : repo.findByWarehouseId(warehouseId))
+        return (warehouseId == null ? repo.findAll() : repo.findByWarehouseId(warehouseId, TenantContext.require()))
                 .stream().map(PosTerminalDto::from).toList();
     }
 
@@ -39,6 +40,7 @@ public class PosTerminalService {
         return PosTerminalDto.from(repo.save(PosTerminal.builder()
                 .name(req.name()).code(req.code()).warehouseId(req.warehouseId())
                 .notes(req.notes())
+                .tenantId(TenantContext.require())
                 .build()));
     }
 

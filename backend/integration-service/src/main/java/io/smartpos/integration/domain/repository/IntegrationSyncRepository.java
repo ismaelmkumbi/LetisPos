@@ -15,12 +15,14 @@ public interface IntegrationSyncRepository extends JpaRepository<IntegrationSync
 
     @Query("""
            SELECT s FROM IntegrationSync s
-           WHERE (:provider IS NULL OR s.provider = :provider)
+           WHERE s.tenantId = :tenantId
+             AND (:provider IS NULL OR s.provider = :provider)
              AND (:status   IS NULL OR s.status   = :status)
            ORDER BY s.createdAt DESC
            """)
     Page<IntegrationSync> search(@Param("provider") String provider,
                                  @Param("status")   String status,
+                                 @Param("tenantId") UUID tenantId,
                                  Pageable pageable);
 
     @Query("""

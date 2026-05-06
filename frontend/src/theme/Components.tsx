@@ -64,7 +64,6 @@ const components: any = (theme: Theme) => {
         '.MuiTimelineConnector-root': { width: '1px !important' },
         '.theme-timeline .MuiTimelineOppositeContent-root': { minWidth: '90px' },
 
-        // Animations
         '@keyframes gradient': {
           '0%': { backgroundPosition: '0% 50%' },
           '50%': { backgroundPosition: '100% 50%' },

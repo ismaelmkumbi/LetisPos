@@ -1,5 +1,6 @@
 package io.smartpos.payment.application;
 
+import io.smartpos.common.context.TenantContext;
 import io.smartpos.payment.api.dto.DepositDto;
 import io.smartpos.payment.domain.model.*;
 import io.smartpos.payment.domain.repository.AccountRepository;
@@ -33,21 +34,26 @@ public class DepositService {
     @Transactional(readOnly = true)
     public Page<DepositDto> search(UUID accountId, UUID categoryId,
                                    LocalDate from, LocalDate to, Pageable p) {
-        return depositRepo.search(accountId, categoryId, from, to, p).map(DepositDto::from);
+        return depositRepo.search(accountId, categoryId, from, to, TenantContext.require(), p).map(DepositDto::from);
     }
 
     @Transactional(readOnly = true)
-    public List<DepositCategory> listCategories() { return catRepo.findAll(); }
+    public List<DepositCategory> listCategories() { return catRepo.findByTenantId(TenantContext.require()); }
 
     @Transactional
     public DepositCategory createCategory(DepositDto.CategoryRequest req) {
-        DepositCategory c = DepositCategory.builder().name(req.name()).description(req.description()).build();
+        DepositCategory c = DepositCategory.builder()
+                .name(req.name())
+                .description(req.description())
+                .tenantId(TenantContext.require())
+                .build();
         return catRepo.save(c);
     }
 
     @Transactional
     public DepositDto create(DepositDto.CreateRequest req, UUID userId) {
-        Account account = accountRepo.findByIdForUpdate(req.accountId())
+        UUID tenantId = TenantContext.require();
+        Account account = accountRepo.findByIdForUpdate(req.accountId(), tenantId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Account not found"));
 
         Deposit d = Deposit.builder()
@@ -60,6 +66,7 @@ public class DepositService {
                 .description(req.description())
                 .notes(req.notes())
                 .userId(userId)
+                .tenantId(tenantId)
                 .build();
         Deposit saved = depositRepo.save(d);
 
@@ -72,17 +79,19 @@ public class DepositService {
                 .description("Deposit " + saved.getRef() + (saved.getDescription() == null ? "" : " — " + saved.getDescription()))
                 .debit(req.amount()).credit(BigDecimal.ZERO)
                 .balanceAfter(newBalance)
+                .tenantId(tenantId)
                 .build());
 
         outbox.publish("Deposit", saved.getId(), "DepositRecorded",
                 java.util.Map.of("depositId", saved.getId(), "amount", saved.getAmount(),
-                                 "accountId", saved.getAccountId()));
+                                 "accountId", saved.getAccountId()),
+                tenantId);
         return DepositDto.from(saved);
     }
 
     private String nextRef() {
         String prefix = "DEP-" + Year.now().getValue() + "-";
-        long n = depositRepo.countByRefStartingWith(prefix) + 1;
+        long n = depositRepo.countByRefStartingWithAndTenantId(prefix, TenantContext.require()) + 1;
         return prefix + String.format("%06d", n);
     }
 }

@@ -1,5 +1,6 @@
 package io.smartpos.inventory.application;
 
+import io.smartpos.common.context.TenantContext;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -38,9 +39,11 @@ public class InventoryStatsService {
                    SUM(CASE WHEN (s.onHand - s.reserved) <= s.stockAlertThreshold AND s.stockAlertThreshold > 0 THEN 1 ELSE 0 END)
             FROM StockLevel s
             WHERE (:warehouseId IS NULL OR s.warehouseId = :warehouseId)
+              AND s.tenantId = :tenantId
             """;
         Object[] row = (Object[]) em.createQuery(jpql)
                 .setParameter("warehouseId", warehouseId)
+                .setParameter("tenantId", TenantContext.require())
                 .getSingleResult();
         long   distinct  = ((Number) row[0]).longValue();
         BigDecimal onHand    = (BigDecimal) row[1];

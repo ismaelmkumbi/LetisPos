@@ -8,6 +8,7 @@ import io.smartpos.ai.application.provider.AiProvider;
 import io.smartpos.ai.application.provider.AiRouter;
 import io.smartpos.ai.domain.model.AiInvocation;
 import io.smartpos.ai.domain.repository.AiInvocationRepository;
+import io.smartpos.common.context.TenantContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -319,7 +320,7 @@ public class ProductAiService {
                 .kind("PRODUCT_SUGGEST").provider(provider.name()).model(provider.model())
                 .promptTokens(result.promptTokens()).completionTokens(result.completionTokens())
                 .inputSummary("suggest " + req.name())
-                .output(truncate(result.text(), 4000)).error(error).userId(userId)
+                .output(truncate(result.text(), 4000)).error(error).userId(userId).tenantId(TenantContext.require())
                 .durationMs(duration).build());
 
         JsonNode root = parseJson(result.text());
@@ -363,7 +364,7 @@ public class ProductAiService {
                 .kind("PRODUCT_DESCRIBE").provider(provider.name()).model(provider.model())
                 .promptTokens(result.promptTokens()).completionTokens(result.completionTokens())
                 .inputSummary("describe " + truncate(req.description(), 120))
-                .output(truncate(result.text(), 4000)).error(error).userId(userId)
+                .output(truncate(result.text(), 4000)).error(error).userId(userId).tenantId(TenantContext.require())
                 .durationMs(duration).build());
 
         return mapDescribeResponse(parseJson(result.text()), provider, req.description());
@@ -478,7 +479,7 @@ public class ProductAiService {
                 .kind("PRODUCT_FROM_IMAGE").provider(provider.name()).model(provider.model())
                 .promptTokens(result.promptTokens()).completionTokens(result.completionTokens())
                 .inputSummary("from-image (" + req.imageDataUrls().size() + " img)")
-                .output(truncate(result.text(), 4000)).error(error).userId(userId)
+                .output(truncate(result.text(), 4000)).error(error).userId(userId).tenantId(TenantContext.require())
                 .durationMs(duration).build());
 
         return mapDescribeResponse(parseJson(result.text()), provider, "(image input)");
@@ -528,7 +529,7 @@ public class ProductAiService {
                 .kind("PRODUCT_IMPORT_FROM_IMAGE").provider(provider.name()).model(provider.model())
                 .promptTokens(result.promptTokens()).completionTokens(result.completionTokens())
                 .inputSummary("import-from-images (" + req.imageDataUrls().size() + " img)")
-                .output(truncate(result.text(), 4000)).error(error).userId(userId)
+                .output(truncate(result.text(), 4000)).error(error).userId(userId).tenantId(TenantContext.require())
                 .durationMs(duration).build());
 
         // Reuse the same response parsing as importMap
@@ -593,7 +594,7 @@ public class ProductAiService {
                 .kind("PRODUCT_CANDIDATES").provider(provider.name()).model(provider.model())
                 .promptTokens(result.promptTokens()).completionTokens(result.completionTokens())
                 .inputSummary("candidates " + req.name())
-                .output(truncate(result.text(), 4000)).error(error).userId(userId)
+                .output(truncate(result.text(), 4000)).error(error).userId(userId).tenantId(TenantContext.require())
                 .durationMs(duration).build());
 
         JsonNode root = parseJson(result.text());
@@ -629,7 +630,7 @@ public class ProductAiService {
                 .kind("PRODUCT_IMPORT_MAP").provider(provider.name()).model(provider.model())
                 .promptTokens(result.promptTokens()).completionTokens(result.completionTokens())
                 .inputSummary("import-map " + req.rows().size() + " rows")
-                .output(truncate(result.text(), 4000)).error(error).userId(userId)
+                .output(truncate(result.text(), 4000)).error(error).userId(userId).tenantId(TenantContext.require())
                 .durationMs(duration).build());
 
         JsonNode root = parseJson(result.text());

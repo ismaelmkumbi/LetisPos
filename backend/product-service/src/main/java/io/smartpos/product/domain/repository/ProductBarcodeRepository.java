@@ -17,6 +17,7 @@ public interface ProductBarcodeRepository extends JpaRepository<ProductBarcode, 
     @Query("""
            SELECT pb FROM ProductBarcode pb
            WHERE (COALESCE(:search, '') = '' OR LOWER(pb.barcode) LIKE LOWER(CONCAT('%', :search, '%')))
+             AND pb.tenantId = :tenantId
            """)
-    Page<ProductBarcode> search(@Param("search") String search, Pageable pageable);
+    Page<ProductBarcode> search(@Param("search") String search, @Param("tenantId") UUID tenantId, Pageable pageable);
 }

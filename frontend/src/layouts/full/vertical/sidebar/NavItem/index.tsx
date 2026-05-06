@@ -2,7 +2,7 @@
 // @ts-ignore
 import React, { useContext, useState, useRef, useEffect } from 'react';
 import { NavLink } from 'react-router';
-import { Box, Chip, ListItemButton, ListItemIcon, ListItemText, Tooltip, Typography } from '@mui/material';
+import { Box, Chip, ListItemButton, ListItemIcon, ListItemText, Typography } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { CustomizerContext } from 'src/context/CustomizerContext';
 import { brand } from 'src/theme/smartpos/brand';
@@ -59,7 +59,16 @@ const NavItem = ({ item, level, pathDirect, hideMenu, onClick }: ItemType) => {
 
   const handleMouseLeave = () => {
     if (!hideMenu) return;
-    closeTimerRef.current = setTimeout(() => setFlyoutAnchor(null), 200);
+    closeTimerRef.current = setTimeout(() => setFlyoutAnchor(null), 260);
+  };
+
+  const keepFlyoutOpen = () => {
+    if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+  };
+
+  const closeFlyoutSoon = () => {
+    if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+    closeTimerRef.current = setTimeout(() => setFlyoutAnchor(null), 260);
   };
 
   const iconSize = level > 1 ? 16 : 18;
@@ -195,7 +204,7 @@ const NavItem = ({ item, level, pathDirect, hideMenu, onClick }: ItemType) => {
     </ListItemButton>
   );
 
-  // Collapsed sidebar: tooltip (delayed) + hover flyout
+  // Collapsed sidebar: hover flyout (no tooltip — flyout provides the label)
   if (hideMenu) {
     return (
       <Box
@@ -204,14 +213,14 @@ const NavItem = ({ item, level, pathDirect, hideMenu, onClick }: ItemType) => {
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
       >
-        <Tooltip title={t(`${item?.title}`)} placement="right" arrow enterDelay={800}>
-          {button}
-        </Tooltip>
+        {button}
         {flyoutAnchor && (
           <NavFlyout
             anchorEl={flyoutAnchor}
             open={Boolean(flyoutAnchor)}
             onClose={() => setFlyoutAnchor(null)}
+            onMouseEnter={keepFlyoutOpen}
+            onMouseLeave={closeFlyoutSoon}
             title={t(`${item?.title}`)}
             titleIcon={item?.icon}
           >

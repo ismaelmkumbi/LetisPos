@@ -19,10 +19,12 @@ public interface TransferRepository extends JpaRepository<Transfer, UUID> {
            WHERE (:status IS NULL OR t.status = :status)
              AND (:dateFrom IS NULL OR t.date >= :dateFrom)
              AND (:dateTo   IS NULL OR t.date <= :dateTo)
+             AND t.tenantId = :tenantId
            """)
     Page<Transfer> search(@Param("status") TransferStatus status,
                           @Param("dateFrom") LocalDate dateFrom,
                           @Param("dateTo")   LocalDate dateTo,
+                          @Param("tenantId") UUID tenantId,
                           Pageable pageable);
 
     @EntityGraph(attributePaths = "lines")

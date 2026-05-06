@@ -7,13 +7,13 @@ import type { Page, UUID } from './types';
 
 // ---------- shared ----------
 
-export type TaxMethod      = 'INCLUSIVE' | 'EXCLUSIVE';
-export type DiscountType   = 'FIXED' | 'PERCENT';
-export type SaleStatus     = 'DRAFT' | 'CONFIRMED' | 'CANCELLED' | 'RETURNED';
-export type PaymentStatus  = 'UNPAID' | 'PARTIAL' | 'PAID' | 'REFUNDED';
+export type TaxMethod = 'INCLUSIVE' | 'EXCLUSIVE';
+export type DiscountType = 'FIXED' | 'PERCENT';
+export type SaleStatus = 'DRAFT' | 'CONFIRMED' | 'CANCELLED' | 'RETURNED';
+export type PaymentStatus = 'UNPAID' | 'PARTIAL' | 'PAID' | 'REFUNDED';
 export type QuotationStatus = 'DRAFT' | 'SENT' | 'ACCEPTED' | 'REJECTED' | 'CONVERTED';
 export type PurchaseStatus = 'DRAFT' | 'ORDERED' | 'RECEIVED' | 'CANCELLED';
-export type ReturnStatus   = 'DRAFT' | 'CONFIRMED' | 'CANCELLED';
+export type ReturnStatus = 'DRAFT' | 'CONFIRMED' | 'CANCELLED';
 
 export interface SaleLineInput {
   productId: UUID;
@@ -88,10 +88,18 @@ export interface CreateSaleBody {
   isPos?: boolean;
 }
 
-export async function listSales(params: {
-  dateFrom?: string; dateTo?: string; customerId?: UUID; warehouseId?: UUID;
-  status?: SaleStatus; page?: number; size?: number; sort?: string;
-} = {}): Promise<Page<Sale>> {
+export async function listSales(
+  params: {
+    dateFrom?: string;
+    dateTo?: string;
+    customerId?: UUID;
+    warehouseId?: UUID;
+    status?: SaleStatus;
+    page?: number;
+    size?: number;
+    sort?: string;
+  } = {},
+): Promise<Page<Sale>> {
   const { data } = await api.get<Page<Sale>>('/api/v1/sales', { params });
   return data;
 }
@@ -171,7 +179,7 @@ export async function syncOfflineBatch(batch: OfflineBatchUpload): Promise<Offli
 // lives at /api/v1/sales/{id}/returns and /api/v1/sales/returns/{id}.
 
 export interface SaleReturnSearchParams {
-  from?: string;          // ISO date
+  from?: string; // ISO date
   to?: string;
   customerId?: UUID;
   warehouseId?: UUID;
@@ -180,7 +188,9 @@ export interface SaleReturnSearchParams {
   size?: number;
 }
 
-export async function listSaleReturns(params: SaleReturnSearchParams = {}): Promise<Page<SaleReturn>> {
+export async function listSaleReturns(
+  params: SaleReturnSearchParams = {},
+): Promise<Page<SaleReturn>> {
   const { data } = await api.get<Page<SaleReturn>>('/api/v1/returns', { params });
   return data;
 }
@@ -210,11 +220,20 @@ export interface SaleReturn {
   }[];
 }
 
-export async function createSaleReturn(saleId: UUID, body: {
-  date?: string;
-  reason?: string;
-  lines: { productId: UUID; variantId?: UUID; productName?: string; unitPrice: number; qty: number }[];
-}): Promise<SaleReturn> {
+export async function createSaleReturn(
+  saleId: UUID,
+  body: {
+    date?: string;
+    reason?: string;
+    lines: {
+      productId: UUID;
+      variantId?: UUID;
+      productName?: string;
+      unitPrice: number;
+      qty: number;
+    }[];
+  },
+): Promise<SaleReturn> {
   const { data } = await api.post<SaleReturn>(`/api/v1/sales/${saleId}/returns`, body);
   return data;
 }
@@ -236,9 +255,14 @@ export interface SaleStats {
   due: number;
 }
 
-export async function getSaleStats(params: {
-  dateFrom?: string; dateTo?: string; warehouseId?: UUID; customerId?: UUID;
-} = {}): Promise<SaleStats> {
+export async function getSaleStats(
+  params: {
+    dateFrom?: string;
+    dateTo?: string;
+    warehouseId?: UUID;
+    customerId?: UUID;
+  } = {},
+): Promise<SaleStats> {
   const { data } = await api.get<SaleStats>('/api/v1/sales/stats', { params });
   return data;
 }
@@ -250,9 +274,14 @@ export interface TopProduct {
   totalAmount: number;
 }
 
-export async function getTopProducts(params: {
-  dateFrom?: string; dateTo?: string; warehouseId?: UUID; limit?: number;
-} = {}): Promise<TopProduct[]> {
+export async function getTopProducts(
+  params: {
+    dateFrom?: string;
+    dateTo?: string;
+    warehouseId?: UUID;
+    limit?: number;
+  } = {},
+): Promise<TopProduct[]> {
   const { data } = await api.get<TopProduct[]>('/api/v1/sales/top-products', { params });
   return data;
 }
@@ -272,10 +301,19 @@ export async function posQuote(body: {
   taxMethod?: TaxMethod;
   shipping?: number;
 }): Promise<{
-  lines: { productId: UUID; unitPrice: number; qty: number;
-           lineSubtotal: number; lineTax: number; lineTotal: number }[];
-  subtotal: number; taxTotal: number; discountTotal: number;
-  shipping: number; grandTotal: number;
+  lines: {
+    productId: UUID;
+    unitPrice: number;
+    qty: number;
+    lineSubtotal: number;
+    lineTax: number;
+    lineTotal: number;
+  }[];
+  subtotal: number;
+  taxTotal: number;
+  discountTotal: number;
+  shipping: number;
+  grandTotal: number;
 }> {
   const { data } = await api.post('/api/v1/pos/quote', body);
   return data;
@@ -289,7 +327,7 @@ export interface Draft {
   warehouseId: UUID;
   customerId: UUID | null;
   label: string | null;
-  data: unknown;            // the frontend owns the shape
+  data: unknown; // the frontend owns the shape
   updatedAt: string;
 }
 
@@ -302,14 +340,23 @@ export async function getDraft(id: UUID): Promise<Draft> {
   return data;
 }
 export async function saveDraft(body: {
-  warehouseId: UUID; customerId?: UUID; label?: string; data: unknown;
+  warehouseId: UUID;
+  customerId?: UUID;
+  label?: string;
+  data: unknown;
 }): Promise<Draft> {
   const { data } = await api.post<Draft>('/api/v1/pos/drafts', body);
   return data;
 }
-export async function updateDraft(id: UUID, body: {
-  warehouseId: UUID; customerId?: UUID; label?: string; data: unknown;
-}): Promise<Draft> {
+export async function updateDraft(
+  id: UUID,
+  body: {
+    warehouseId: UUID;
+    customerId?: UUID;
+    label?: string;
+    data: unknown;
+  },
+): Promise<Draft> {
   const { data } = await api.put<Draft>(`/api/v1/pos/drafts/${id}`, body);
   return data;
 }
@@ -338,10 +385,16 @@ export interface Quotation {
   lines: SaleLine[];
 }
 
-export async function listQuotations(params: {
-  dateFrom?: string; dateTo?: string; customerId?: UUID;
-  status?: QuotationStatus; page?: number; size?: number;
-} = {}): Promise<Page<Quotation>> {
+export async function listQuotations(
+  params: {
+    dateFrom?: string;
+    dateTo?: string;
+    customerId?: UUID;
+    status?: QuotationStatus;
+    page?: number;
+    size?: number;
+  } = {},
+): Promise<Page<Quotation>> {
   const { data } = await api.get<Page<Quotation>>('/api/v1/quotations', { params });
   return data;
 }
@@ -374,7 +427,9 @@ export interface Purchase {
   id: UUID;
   ref: string;
   date: string;
+  dueDate: string | null;
   supplierId: UUID | null;
+  supplierName: string | null;
   warehouseId: UUID;
   status: PurchaseStatus;
   paymentStatus: PaymentStatus;
@@ -388,26 +443,43 @@ export interface Purchase {
   dueTotal: number;
   currency: string;
   notes: string | null;
+  attachmentUrl: string | null;
+  receivedAt: string | null;
+  createdBy: UUID | null;
+  createdAt: string;
+  updatedAt: string;
   lines: SaleLine[];
 }
 
 export interface CreatePurchaseBody {
   date?: string;
+  dueDate?: string;
   supplierId?: UUID;
   warehouseId: UUID;
-  lines: SaleLineInput[];       // unitPrice field here means unit_cost
+  lines: SaleLineInput[]; // unitPrice field here means unit_cost
   discount?: number;
   taxMethod?: TaxMethod;
   shipping?: number;
   currency?: string;
   exchangeRate?: number;
   notes?: string;
+  attachmentUrl?: string;
 }
 
-export async function listPurchases(params: {
-  dateFrom?: string; dateTo?: string; supplierId?: UUID; warehouseId?: UUID;
-  status?: PurchaseStatus; page?: number; size?: number;
-} = {}): Promise<Page<Purchase>> {
+export interface PurchaseSearchParams {
+  search?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  supplierId?: UUID;
+  warehouseId?: UUID;
+  status?: PurchaseStatus;
+  paymentStatus?: PaymentStatus;
+  page?: number;
+  size?: number;
+  sort?: string;
+}
+
+export async function listPurchases(params: PurchaseSearchParams = {}): Promise<Page<Purchase>> {
   const { data } = await api.get<Page<Purchase>>('/api/v1/purchases', { params });
   return data;
 }
@@ -422,7 +494,65 @@ export async function createPurchase(body: CreatePurchaseBody): Promise<Purchase
   return data;
 }
 
+export async function updatePurchase(id: UUID, body: CreatePurchaseBody): Promise<Purchase> {
+  const { data } = await api.put<Purchase>(`/api/v1/purchases/${id}`, body);
+  return data;
+}
+
 export async function receivePurchase(id: UUID): Promise<Purchase> {
   const { data } = await api.post<Purchase>(`/api/v1/purchases/${id}/receive`);
+  return data;
+}
+
+export async function cancelPurchase(id: UUID, reason?: string): Promise<Purchase> {
+  const { data } = await api.post<Purchase>(`/api/v1/purchases/${id}/cancel`, { reason });
+  return data;
+}
+
+export async function deletePurchase(id: UUID): Promise<void> {
+  await api.delete(`/api/v1/purchases/${id}`);
+}
+
+// ---------- Purchase Returns ----------
+
+export interface PurchaseReturn {
+  id: UUID;
+  ref: string;
+  date: string;
+  purchaseId: UUID;
+  warehouseId: UUID;
+  status: ReturnStatus;
+  subtotal: number;
+  taxTotal: number;
+  grandTotal: number;
+  notes: string | null;
+  lines: SaleLine[];
+}
+
+export interface CreatePurchaseReturnBody {
+  purchaseId: UUID;
+  warehouseId: UUID;
+  date?: string;
+  lines: { productId: UUID; variantId?: UUID; qty: number; unitPrice: number; taxRate?: number }[];
+  notes?: string;
+}
+
+export async function listPurchaseReturns(
+  params: {
+    purchaseId?: UUID;
+    dateFrom?: string;
+    dateTo?: string;
+    page?: number;
+    size?: number;
+  } = {},
+): Promise<Page<PurchaseReturn>> {
+  const { data } = await api.get<Page<PurchaseReturn>>('/api/v1/purchase-returns', { params });
+  return data;
+}
+
+export async function createPurchaseReturn(
+  body: CreatePurchaseReturnBody,
+): Promise<PurchaseReturn> {
+  const { data } = await api.post<PurchaseReturn>('/api/v1/purchase-returns', body);
   return data;
 }

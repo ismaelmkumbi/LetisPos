@@ -1,5 +1,6 @@
 package io.smartpos.product.application;
 
+import io.smartpos.common.context.TenantContext;
 import io.smartpos.product.api.dto.CategoryDto;
 import io.smartpos.product.domain.model.Category;
 import io.smartpos.product.domain.repository.CategoryRepository;
@@ -32,7 +33,7 @@ public class CategoryService {
 
     @Transactional(readOnly = true)
     public Page<CategoryDto> search(String search, Pageable pageable) {
-        return repo.search(search, pageable).map(CategoryDto::from);
+        return repo.search(search, TenantContext.require(), pageable).map(CategoryDto::from);
     }
 
     @Transactional(readOnly = true)
@@ -53,6 +54,7 @@ public class CategoryService {
                 .parentId(req.parentId())
                 .imageUrl(req.imageUrl())
                 .description(req.description())
+                .tenantId(TenantContext.require())
                 .build();
         return CategoryDto.from(repo.save(c));
     }

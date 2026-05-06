@@ -26,7 +26,7 @@ interface FloatingAction {
 // Context-aware actions based on current route
 const CONTEXT_ACTIONS: Record<string, FloatingAction[]> = {
   default: [
-    { key: 'new-sale', label: 'New Sale', icon: <IconCashRegister size={20} />, path: '/smartpos/pos', shortcut: 'N' },
+    { key: 'new-sale', label: 'New Sale', icon: <IconCashRegister size={20} />, path: '/smartpos/sales/pos', shortcut: 'N' },
     { key: 'new-product', label: 'New Product', icon: <IconPackage size={20} />, path: '/smartpos/products', shortcut: 'P' },
     { key: 'new-customer', label: 'New Customer', icon: <IconUsers size={20} />, path: '/smartpos/customers', shortcut: 'C' },
   ],
@@ -39,7 +39,7 @@ const CONTEXT_ACTIONS: Record<string, FloatingAction[]> = {
     { key: 'import', label: 'Import CSV', icon: <IconArrowUp size={20} />, path: '/smartpos/customers/import' },
   ],
   '/smartpos/sales': [
-    { key: 'new-sale', label: 'New Sale', icon: <IconCashRegister size={20} />, path: '/smartpos/pos', shortcut: 'N' },
+    { key: 'new-sale', label: 'New Sale', icon: <IconCashRegister size={20} />, path: '/smartpos/sales/pos', shortcut: 'N' },
     { key: 'new-quotation', label: 'New Quote', icon: <IconReceipt size={20} />, path: '/smartpos/quotations' },
   ],
   '/smartpos/purchases': [

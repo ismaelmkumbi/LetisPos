@@ -6,6 +6,7 @@ import io.smartpos.sales.api.dto.SaleDto;
 import io.smartpos.sales.api.dto.SaleLineInput;
 import io.smartpos.sales.domain.model.*;
 import io.smartpos.sales.domain.repository.QuotationRepository;
+import io.smartpos.common.context.TenantContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -31,7 +32,8 @@ public class QuotationService {
     @Transactional(readOnly = true)
     public Page<QuotationDto> search(LocalDate from, LocalDate to, UUID customerId,
                                      QuotationStatus status, Pageable p) {
-        return repo.search(from, to, customerId, status, p).map(QuotationDto::from);
+        return repo.search(from, to, customerId, status, TenantContext.require(), p)
+                .map(QuotationDto::from);
     }
 
     @Transactional(readOnly = true)
@@ -56,6 +58,7 @@ public class QuotationService {
                 .shipping(nz(req.shipping()))
                 .discountTotal(nz(req.discount()))
                 .notes(req.notes())
+                .tenantId(TenantContext.require())
                 .build();
 
         BigDecimal sumSub = BigDecimal.ZERO, sumTax = BigDecimal.ZERO;
@@ -131,7 +134,7 @@ public class QuotationService {
 
     private String nextRef() {
         String prefix = "QUO-" + Year.now().getValue() + "-";
-        long n = repo.countByRefStartingWith(prefix) + 1;
+        long n = repo.countByRefStartingWith(prefix, TenantContext.require()) + 1;
         return prefix + String.format("%06d", n);
     }
 

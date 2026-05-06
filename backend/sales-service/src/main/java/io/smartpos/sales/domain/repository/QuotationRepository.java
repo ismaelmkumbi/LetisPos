@@ -22,16 +22,19 @@ public interface QuotationRepository extends JpaRepository<Quotation, UUID> {
              AND (:dateTo   IS NULL OR q.date <= :dateTo)
              AND (:customerId IS NULL OR q.customerId = :customerId)
              AND (:status    IS NULL OR q.status = :status)
+             AND q.tenantId = :tenantId
            """)
     Page<Quotation> search(@Param("dateFrom") LocalDate dateFrom,
                            @Param("dateTo")   LocalDate dateTo,
                            @Param("customerId") UUID customerId,
                            @Param("status") QuotationStatus status,
+                           @Param("tenantId") UUID tenantId,
                            Pageable pageable);
 
     @EntityGraph(attributePaths = "lines")
     @Query("SELECT q FROM Quotation q WHERE q.id = :id")
     Optional<Quotation> findByIdWithLines(@Param("id") UUID id);
 
-    long countByRefStartingWith(String prefix);
+    @Query("SELECT COUNT(q) FROM Quotation q WHERE q.ref LIKE CONCAT(:prefix, '%') AND q.tenantId = :tenantId")
+    long countByRefStartingWith(@Param("prefix") String prefix, @Param("tenantId") UUID tenantId);
 }

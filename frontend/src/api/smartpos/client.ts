@@ -16,15 +16,22 @@ export const API_BASE_URL: string =
 
 export const TOKEN_KEY = 'smartpos.accessToken';
 export const REFRESH_KEY = 'smartpos.refreshToken';
+export const TENANT_ID_KEY = 'smartpos.tenantId';
 
 export const tokenStore = {
   get:         () => localStorage.getItem(TOKEN_KEY),
   set:         (t: string) => localStorage.setItem(TOKEN_KEY, t),
   getRefresh:  () => localStorage.getItem(REFRESH_KEY),
   setRefresh:  (t: string) => localStorage.setItem(REFRESH_KEY, t),
+  getTenantId: () => localStorage.getItem(TENANT_ID_KEY),
+  setTenantId: (t: string | null) => {
+    if (t) localStorage.setItem(TENANT_ID_KEY, t);
+    else localStorage.removeItem(TENANT_ID_KEY);
+  },
   clear:       () => {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(REFRESH_KEY);
+    localStorage.removeItem(TENANT_ID_KEY);
   },
 };
 

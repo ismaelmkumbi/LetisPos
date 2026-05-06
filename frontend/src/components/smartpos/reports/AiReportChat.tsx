@@ -51,7 +51,7 @@ export default function AiReportChat({ contextPrompt }: Props) {
           <Stack direction="row" justifyContent="space-between" alignItems="center"
             sx={{ px: 2, py: 1.5, bgcolor: brand.accent[500], color: '#fff' }}>
             <Typography sx={{ fontWeight: 800, fontSize: 14 }}>Ask about this report</Typography>
-            <IconX size={18} sx={{ cursor: 'pointer' }} onClick={() => setOpen(false)} />
+            <IconX size={18} style={{ cursor: 'pointer' }} onClick={() => setOpen(false)} />
           </Stack>
           <Box sx={{ flex: 1, overflowY: 'auto', p: 2, maxHeight: 320 }}>
             {messages.map((m, i) => (

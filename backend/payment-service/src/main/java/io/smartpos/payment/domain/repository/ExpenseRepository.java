@@ -18,12 +18,14 @@ public interface ExpenseRepository extends JpaRepository<Expense, UUID> {
              AND (:categoryId IS NULL OR e.categoryId = :categoryId)
              AND (:dateFrom   IS NULL OR e.date >= :dateFrom)
              AND (:dateTo     IS NULL OR e.date <= :dateTo)
+             AND e.tenantId = :tenantId
            """)
     Page<Expense> search(@Param("accountId")  UUID accountId,
                          @Param("categoryId") UUID categoryId,
                          @Param("dateFrom")   LocalDate dateFrom,
                          @Param("dateTo")     LocalDate dateTo,
+                         @Param("tenantId")   UUID tenantId,
                          Pageable pageable);
 
-    long countByRefStartingWith(String prefix);
+    long countByRefStartingWithAndTenantId(String prefix, UUID tenantId);
 }

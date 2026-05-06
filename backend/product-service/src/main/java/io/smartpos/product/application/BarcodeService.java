@@ -1,5 +1,6 @@
 package io.smartpos.product.application;
 
+import io.smartpos.common.context.TenantContext;
 import io.smartpos.product.api.dto.BarcodeWithProductDto;
 import io.smartpos.product.domain.model.Product;
 import io.smartpos.product.domain.repository.ProductBarcodeRepository;
@@ -25,7 +26,7 @@ public class BarcodeService {
 
     @Transactional(readOnly = true)
     public Page<BarcodeWithProductDto> search(String search, Pageable pageable) {
-        var barcodePage = barcodeRepo.search(search, pageable);
+        var barcodePage = barcodeRepo.search(search, TenantContext.require(), pageable);
 
         // Batch-load product names for all barcodes on this page
         var productIds = barcodePage.getContent().stream()

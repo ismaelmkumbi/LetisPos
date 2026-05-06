@@ -3,6 +3,7 @@ package io.smartpos.report.application;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.smartpos.common.context.TenantContext;
 import io.smartpos.report.domain.model.ExportJob;
 import io.smartpos.report.domain.repository.ExportJobRepository;
 import io.smartpos.report.infrastructure.export.MinioObjectStore;
@@ -73,6 +74,7 @@ public class ExportJobService {
                 .format(format)
                 .params(paramsJson)
                 .userId(userId)
+                .tenantId(TenantContext.require())
                 .build());
 
         // Fire-and-forget — Spring proxies the @Async call so it runs on the
@@ -83,8 +85,13 @@ public class ExportJobService {
 
     @Transactional(readOnly = true)
     public ExportJob get(UUID id) {
-        return jobs.findById(id).orElseThrow(() ->
+        ExportJob job = jobs.findById(id).orElseThrow(() ->
                 new ResponseStatusException(HttpStatus.NOT_FOUND, "Export job not found"));
+        UUID currentTenant = TenantContext.require();
+        if (job.getTenantId() != null && !currentTenant.equals(job.getTenantId())) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Export job not found");
+        }
+        return job;
     }
 
     /**

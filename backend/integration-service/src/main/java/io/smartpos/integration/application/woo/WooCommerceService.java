@@ -1,5 +1,6 @@
 package io.smartpos.integration.application.woo;
 
+import io.smartpos.common.context.TenantContext;
 import io.smartpos.integration.application.IntegrationProperties;
 import io.smartpos.integration.domain.model.IntegrationSync;
 import io.smartpos.integration.domain.repository.IntegrationSyncRepository;
@@ -48,6 +49,7 @@ public class WooCommerceService {
                 .provider("WOOCOMMERCE").direction("OUT")
                 .entityType("Product").entityId(productId)
                 .requestBody(payload.toString())
+                .tenantId(TenantContext.require())
                 .build());
 
         try {

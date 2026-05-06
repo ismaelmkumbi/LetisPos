@@ -1,5 +1,6 @@
 package io.smartpos.inventory.application;
 
+import io.smartpos.common.context.TenantContext;
 import io.smartpos.inventory.api.dto.AdjustmentDto;
 import io.smartpos.inventory.domain.model.*;
 import io.smartpos.inventory.domain.repository.AdjustmentRepository;
@@ -31,7 +32,7 @@ public class AdjustmentService {
 
     @Transactional(readOnly = true)
     public Page<AdjustmentDto> search(UUID warehouseId, LocalDate from, LocalDate to, Pageable p) {
-        return adjRepo.search(warehouseId, from, to, p).map(AdjustmentDto::from);
+        return adjRepo.search(warehouseId, from, to, TenantContext.require(), p).map(AdjustmentDto::from);
     }
 
     @Transactional(readOnly = true)
@@ -49,6 +50,7 @@ public class AdjustmentService {
         warehouseRepo.findById(req.warehouseId()).orElseThrow(() ->
                 new ResponseStatusException(HttpStatus.BAD_REQUEST, "warehouseId not found"));
 
+        UUID tenantId = TenantContext.require();
         Adjustment a = Adjustment.builder()
                 .ref(nextRef())
                 .date(req.date() != null ? req.date() : LocalDate.now())
@@ -56,6 +58,7 @@ public class AdjustmentService {
                 .userId(userId)
                 .reason(req.reason())
                 .notes(req.notes())
+                .tenantId(tenantId)
                 .build();
         req.lines().forEach(l -> {
             AdjustmentLine line = AdjustmentLine.builder()
@@ -83,6 +86,7 @@ public class AdjustmentService {
                     .qtyDelta(l.getQtyDelta())
                     .referenceType(ReferenceType.ADJUSTMENT).referenceId(a.getId())
                     .userId(userId).notes(a.getReason())
+                    .tenantId(tenantId)
                     .build());
         }
 

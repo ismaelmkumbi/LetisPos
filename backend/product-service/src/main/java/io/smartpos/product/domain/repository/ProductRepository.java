@@ -36,12 +36,14 @@ public interface ProductRepository extends JpaRepository<Product, UUID> {
              AND (:brandId    IS NULL OR p.brandId    = :brandId)
              AND (:status     IS NULL OR p.status     = :status)
              AND (:featured   IS NULL OR p.featured   = :featured)
+             AND p.tenantId = :tenantId
            """)
     Page<Product> search(@Param("search")     String search,
                          @Param("categoryId") UUID   categoryId,
                          @Param("brandId")    UUID   brandId,
                          @Param("status")     Boolean status,
                          @Param("featured")   Boolean featured,
+                         @Param("tenantId")   UUID   tenantId,
                          Pageable pageable);
 
     /**

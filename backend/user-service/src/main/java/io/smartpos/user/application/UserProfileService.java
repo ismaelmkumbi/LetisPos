@@ -1,10 +1,13 @@
 package io.smartpos.user.application;
 
+import io.smartpos.common.context.TenantContext;
 import io.smartpos.user.api.dto.UpdateUserRequest;
 import io.smartpos.user.api.dto.UserDto;
 import io.smartpos.user.domain.model.Role;
+import io.smartpos.user.domain.model.UserOnboardingState;
 import io.smartpos.user.domain.model.UserProfile;
 import io.smartpos.user.domain.repository.RoleRepository;
+import io.smartpos.user.domain.repository.UserOnboardingStateRepository;
 import io.smartpos.user.domain.repository.UserProfileRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -23,26 +26,34 @@ public class UserProfileService {
 
     private final UserProfileRepository userRepo;
     private final RoleRepository roleRepo;
+    private final UserOnboardingStateRepository onboardingRepo;
 
     @Transactional(readOnly = true)
     public Page<UserDto> list(String search, Boolean active, Pageable pageable) {
-        return userRepo.search(search, active, pageable).map(UserDto::from);
+        UUID tenantId = TenantContext.require();
+        return userRepo.search(search, active, tenantId, pageable).map(UserDto::from);
     }
 
     @Transactional(readOnly = true)
     public UserDto get(UUID id) {
-        return userRepo.findById(id).map(UserDto::from)
+        UserProfile u = userRepo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+        validateTenant(u);
+        return UserDto.from(u);
     }
 
     /**
      * Creates a profile row for a user that was just registered in Auth Service.
      * Idempotent — safe to call from the event consumer (UserRegistered).
+     *
+     * The first user in a tenant gets ADMIN so they can manage the workspace.
+     * Subsequent users get CASHIER as a safe default.
      */
     @Transactional
     public UserProfile createOrUpdateFromAuth(UUID userId, String email,
                                               String firstName, String lastName,
                                               UUID tenantId) {
+        boolean isNew = !userRepo.existsById(userId);
         UserProfile profile = userRepo.findById(userId).orElseGet(() ->
                 UserProfile.builder()
                         .id(userId)
@@ -55,13 +66,34 @@ public class UserProfileService {
         profile.setEmail(email);
         if (firstName != null && !firstName.isBlank()) profile.setFirstName(firstName);
         if (lastName != null && !lastName.isBlank()) profile.setLastName(lastName);
-        return userRepo.save(profile);
+
+        // Assign default role to new registrations: ADMIN for the tenant creator,
+        // CASHIER for everyone else in that workspace.
+        if (isNew && profile.getRoles().isEmpty()) {
+            boolean isFirstInTenant = tenantId != null && userRepo.countByTenantId(tenantId) == 0;
+            String roleName = isFirstInTenant ? "ADMIN" : "CASHIER";
+            roleRepo.findByNameIgnoreCase(roleName).ifPresent(role -> {
+                profile.getRoles().add(role);
+            });
+        }
+
+        UserProfile saved = userRepo.save(profile);
+
+        if (isNew && !onboardingRepo.existsById(userId)) {
+            onboardingRepo.save(UserOnboardingState.builder()
+                    .userId(userId)
+                    .workspaceCompleted(true)
+                    .build());
+        }
+
+        return saved;
     }
 
     @Transactional
     public UserDto update(UUID id, UpdateUserRequest req) {
         UserProfile u = userRepo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+        validateTenant(u);
 
         if (req.firstName() != null) u.setFirstName(req.firstName());
         if (req.lastName()  != null) u.setLastName(req.lastName());
@@ -83,6 +115,7 @@ public class UserProfileService {
     public void setStatus(UUID id, boolean active) {
         UserProfile u = userRepo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+        validateTenant(u);
         u.setActive(active);
         userRepo.save(u);
     }
@@ -91,7 +124,15 @@ public class UserProfileService {
     public void assignWarehouses(UUID id, Set<UUID> warehouseIds) {
         UserProfile u = userRepo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+        validateTenant(u);
         u.setWarehouseIds(new HashSet<>(warehouseIds));
         userRepo.save(u);
+    }
+
+    private void validateTenant(UserProfile user) {
+        UUID currentTenant = TenantContext.require();
+        if (user.getTenantId() != null && !currentTenant.equals(user.getTenantId())) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found");
+        }
     }
 }

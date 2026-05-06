@@ -5,6 +5,7 @@ import io.smartpos.sales.api.dto.SaleLineInput;
 import io.smartpos.sales.domain.model.*;
 import io.smartpos.sales.domain.repository.PurchaseRepository;
 import io.smartpos.sales.infrastructure.feign.InventoryClient;
+import io.smartpos.common.context.TenantContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -38,7 +39,8 @@ public class PurchaseService {
     @Transactional(readOnly = true)
     public Page<PurchaseDto> search(LocalDate from, LocalDate to, UUID supplierId,
                                     UUID warehouseId, PurchaseStatus status, Pageable p) {
-        return repo.search(from, to, supplierId, warehouseId, status, p).map(PurchaseDto::from);
+        return repo.search(from, to, supplierId, warehouseId, status,
+                TenantContext.require(), p).map(PurchaseDto::from);
     }
 
     @Transactional(readOnly = true)
@@ -63,6 +65,7 @@ public class PurchaseService {
                 .shipping(nz(req.shipping()))
                 .discountTotal(nz(req.discount()))
                 .notes(req.notes())
+                .tenantId(TenantContext.require())
                 .build();
 
         BigDecimal sumSub = BigDecimal.ZERO, sumTax = BigDecimal.ZERO;
@@ -138,7 +141,7 @@ public class PurchaseService {
 
     private String nextRef() {
         String prefix = "PO-" + Year.now().getValue() + "-";
-        long n = repo.countByRefStartingWith(prefix) + 1;
+        long n = repo.countByRefStartingWith(prefix, TenantContext.require()) + 1;
         return prefix + String.format("%06d", n);
     }
 

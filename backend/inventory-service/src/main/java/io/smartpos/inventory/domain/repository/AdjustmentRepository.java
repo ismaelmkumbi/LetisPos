@@ -20,10 +20,12 @@ public interface AdjustmentRepository extends JpaRepository<Adjustment, UUID> {
            WHERE (:warehouseId IS NULL OR a.warehouseId = :warehouseId)
              AND (:dateFrom IS NULL OR a.date >= :dateFrom)
              AND (:dateTo   IS NULL OR a.date <= :dateTo)
+             AND a.tenantId = :tenantId
            """)
     Page<Adjustment> search(@Param("warehouseId") UUID warehouseId,
                             @Param("dateFrom") LocalDate dateFrom,
                             @Param("dateTo")   LocalDate dateTo,
+                            @Param("tenantId") UUID tenantId,
                             Pageable pageable);
 
     @EntityGraph(attributePaths = "lines")

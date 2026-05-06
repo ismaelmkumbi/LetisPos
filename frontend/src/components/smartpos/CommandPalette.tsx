@@ -32,7 +32,7 @@ interface CommandItem {
 const COMMANDS: CommandItem[] = [
   // Navigation
   { id: 'dashboard', label: 'Dashboard', icon: <IconDashboard size={18} />, path: '/smartpos/dashboard', category: 'Navigation', keywords: ['home', 'overview', 'stats'] },
-  { id: 'pos', label: 'POS Terminal', icon: <IconCashRegister size={18} />, path: '/smartpos/pos', category: 'Navigation', keywords: ['sale', 'checkout', 'register'], badge: 'LIVE' },
+  { id: 'pos', label: 'POS Terminal', icon: <IconCashRegister size={18} />, path: '/smartpos/sales/pos', category: 'Navigation', keywords: ['sale', 'checkout', 'register'], badge: 'LIVE' },
   { id: 'products', label: 'Products', icon: <IconPackage size={18} />, path: '/smartpos/products', category: 'Navigation', keywords: ['items', 'catalog', 'inventory'] },
   { id: 'customers', label: 'Customers', icon: <IconUsers size={18} />, path: '/smartpos/customers', category: 'Navigation', keywords: ['clients', 'buyers', 'contacts'] },
   { id: 'sales', label: 'Sales Orders', icon: <IconReceipt size={18} />, path: '/smartpos/sales', category: 'Navigation', keywords: ['orders', 'transactions', 'invoices'] },
@@ -41,7 +41,7 @@ const COMMANDS: CommandItem[] = [
   { id: 'reports', label: 'Reports', icon: <IconChartBar size={18} />, path: '/smartpos/reports', category: 'Navigation', keywords: ['analytics', 'data', 'export'] },
 
   // Quick Actions
-  { id: 'new-sale', label: 'New Sale', icon: <IconCashRegister size={18} />, path: '/smartpos/pos', category: 'Actions', keywords: ['create', 'transaction', 'sell'] },
+  { id: 'new-sale', label: 'New Sale', icon: <IconCashRegister size={18} />, path: '/smartpos/sales/pos', category: 'Actions', keywords: ['create', 'transaction', 'sell'] },
   { id: 'new-product', label: 'New Product', icon: <IconPackage size={18} />, path: '/smartpos/products', category: 'Actions', keywords: ['create', 'add', 'item'] },
   { id: 'new-customer', label: 'New Customer', icon: <IconUsers size={18} />, path: '/smartpos/customers', category: 'Actions', keywords: ['create', 'add', 'client'] },
   { id: 'new-purchase', label: 'New Purchase', icon: <IconShoppingCart size={18} />, path: '/smartpos/purchases/new', category: 'Actions', keywords: ['create', 'order', 'buy'] },

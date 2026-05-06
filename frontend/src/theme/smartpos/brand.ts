@@ -1,15 +1,13 @@
 /**
  * Letis POS — brand palette.
  *
- * Single source of truth for all product and marketing colors.
+ * Single source of truth for all product and operational colors.
  *
  * Design intent:
- *  - Exact Letis color-system green primary from the supplied reference.
- *  - Cool navy/slate neutrals for the crisp dashboard shell.
- *  - Semantic colors match the alert/chart treatment in the design board.
- *
- *  Component shape (50..900) is preserved across the rebrand so any
- *  reference to `brand.primary[600]` keeps working without code changes.
+ *  - Letis green primary (#16A34A) with a full 50–900 scale.
+ *  - Slate neutrals for the enterprise shell.
+ *  - Semantic colors for universal signal states.
+ *  - Operational tokens for live status indicators across the Sales Desk.
  */
 
 export const brand = {
@@ -27,7 +25,7 @@ export const brand = {
     900: '#14532D',
   },
 
-  /** Accent — same family as primary for the exact Letis POS system */
+  /** Accent — same family as primary */
   accent: {
     50:  '#ECFDF5',
     100: '#DCFCE7',
@@ -41,7 +39,7 @@ export const brand = {
     900: '#052E16',
   },
 
-  /** Neutral slate scale (unchanged) */
+  /** Neutral slate scale */
   neutral: {
     50: '#F8FAFC',
     100: '#F1F5F9',
@@ -55,14 +53,21 @@ export const brand = {
     900: '#0F172A',
   },
 
-  /** Semantic — info shifted to sky-blue (clearly distinct from teal primary
-   *  so charts/alerts don't read as indigo conflict; success/warning/error
-   *  unchanged because they're universal signal colors). */
+  /** Semantic signals */
   success: { light: '#DCFCE7', main: '#22C55E', dark: '#15803D' },
   warning: { light: '#FEF3C7', main: '#F59E0B', dark: '#B45309' },
   error:   { light: '#FEE2E2', main: '#EF4444', dark: '#B91C1C' },
   info:    { light: '#EFF6FF', main: '#3B82F6', dark: '#1D4ED8' },
   purple:  { light: '#F3E8FF', main: '#8B5CF6', dark: '#6D28D9' },
+
+  /** Operational state tokens — used by StatusIndicator, rows, alerts */
+  operational: {
+    idle:      { bg: '#F8FAFC', dot: '#94A3B8', text: '#475569' },
+    active:    { bg: '#ECFDF5', dot: '#22C55E', text: '#065F46' },
+    attention: { bg: '#FEF3C7', dot: '#F59E0B', text: '#92400E' },
+    critical:  { bg: '#FEE2E2', dot: '#EF4444', text: '#991B1B' },
+    closed:    { bg: '#F1F5F9', dot: '#94A3B8', text: '#334155' },
+  },
 } as const;
 
 /** Convenience aliases — what 99% of components use. */
@@ -101,7 +106,8 @@ export const brandTokensDark = {
 } as const;
 
 /**
- * Gradients used for the reference cards and CTA surfaces.
+ * Brand surface colours — flat solids for enterprise consistency.
+ * Previously gradients; now flat to reduce template aesthetics.
  */
 export const brandGradients = {
   hero:     `linear-gradient(135deg, ${brand.primary[600]} 0%, ${brand.primary[700]} 100%)`,

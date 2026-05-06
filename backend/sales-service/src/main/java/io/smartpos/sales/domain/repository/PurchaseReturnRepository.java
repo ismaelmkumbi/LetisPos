@@ -13,11 +13,21 @@ import java.util.UUID;
 
 public interface PurchaseReturnRepository extends JpaRepository<PurchaseReturn, UUID> {
 
-    Page<PurchaseReturn> findByPurchaseIdOrderByDateDesc(UUID purchaseId, Pageable pageable);
+    @Query("""
+        SELECT r FROM PurchaseReturn r
+        WHERE r.purchaseId = :purchaseId
+          AND r.tenantId = :tenantId
+        ORDER BY r.date DESC
+        """)
+    Page<PurchaseReturn> findByPurchaseIdOrderByDateDesc(
+        @Param("purchaseId") UUID purchaseId,
+        @Param("tenantId") UUID tenantId,
+        Pageable pageable);
 
     @EntityGraph(attributePaths = "lines")
     @Query("SELECT r FROM PurchaseReturn r WHERE r.id = :id")
     Optional<PurchaseReturn> findByIdWithLines(@Param("id") UUID id);
 
-    long countByRefStartingWith(String prefix);
+    @Query("SELECT COUNT(r) FROM PurchaseReturn r WHERE r.ref LIKE CONCAT(:prefix, '%') AND r.tenantId = :tenantId")
+    long countByRefStartingWith(@Param("prefix") String prefix, @Param("tenantId") UUID tenantId);
 }

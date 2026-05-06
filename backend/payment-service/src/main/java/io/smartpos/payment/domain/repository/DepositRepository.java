@@ -18,12 +18,14 @@ public interface DepositRepository extends JpaRepository<Deposit, UUID> {
              AND (:categoryId IS NULL OR d.categoryId = :categoryId)
              AND (:dateFrom   IS NULL OR d.date >= :dateFrom)
              AND (:dateTo     IS NULL OR d.date <= :dateTo)
+             AND d.tenantId = :tenantId
            """)
     Page<Deposit> search(@Param("accountId")  UUID accountId,
                          @Param("categoryId") UUID categoryId,
                          @Param("dateFrom")   LocalDate dateFrom,
                          @Param("dateTo")     LocalDate dateTo,
+                         @Param("tenantId")   UUID tenantId,
                          Pageable pageable);
 
-    long countByRefStartingWith(String prefix);
+    long countByRefStartingWithAndTenantId(String prefix, UUID tenantId);
 }

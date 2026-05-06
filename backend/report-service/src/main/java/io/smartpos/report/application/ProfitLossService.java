@@ -31,7 +31,7 @@ public class ProfitLossService {
      * sale line time, which we'll add in Phase 6b.
      */
     @Cacheable(value = RedisCacheConfig.CACHE_PROFIT_LOSS,
-               key = "#from + ':' + #to",
+               key = "T(io.smartpos.report.infrastructure.config.RedisCacheConfig).tenantKey(#from, #to)",
                unless = "#result == null")
     public ProfitLossDto profitLoss(LocalDate from, LocalDate to) {
         SalesFeign.SaleStats      s   = sales.salesStats(from, to, null, null);

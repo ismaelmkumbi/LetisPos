@@ -1,5 +1,6 @@
 package io.smartpos.notification.application;
 
+import io.smartpos.common.context.TenantContext;
 import io.smartpos.notification.api.dto.DeliveryDto;
 import io.smartpos.notification.api.dto.SendRequest;
 import io.smartpos.notification.application.channel.ChannelDispatcher;
@@ -60,13 +61,18 @@ public class NotificationService {
 
     @Transactional(readOnly = true)
     public Page<DeliveryDto> search(Channel channel, DeliveryStatus status, String recipient, Pageable pageable) {
-        return deliveryRepo.search(channel, status, recipient, pageable).map(DeliveryDto::from);
+        return deliveryRepo.search(channel, status, recipient, TenantContext.require(), pageable).map(DeliveryDto::from);
     }
 
     @Transactional(readOnly = true)
     public DeliveryDto get(UUID id) {
-        return deliveryRepo.findById(id).map(DeliveryDto::from)
+        NotificationDelivery d = deliveryRepo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Delivery not found"));
+        UUID currentTenant = TenantContext.require();
+        if (d.getTenantId() != null && !currentTenant.equals(d.getTenantId())) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Delivery not found");
+        }
+        return DeliveryDto.from(d);
     }
 
     @Transactional
@@ -98,6 +104,7 @@ public class NotificationService {
                 .status(DeliveryStatus.PENDING)
                 .relatedAggregate(req.relatedAggregate())
                 .relatedAggregateId(req.relatedAggregateId())
+                .tenantId(TenantContext.require())
                 .payloadMeta(new HashMap<>(data))
                 .build());
 
@@ -110,6 +117,10 @@ public class NotificationService {
     public DeliveryDto retry(UUID id) {
         NotificationDelivery d = deliveryRepo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Delivery not found"));
+        UUID currentTenant = TenantContext.require();
+        if (d.getTenantId() != null && !currentTenant.equals(d.getTenantId())) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Delivery not found");
+        }
         if (d.getStatus() == DeliveryStatus.SENT) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Already sent");
         }

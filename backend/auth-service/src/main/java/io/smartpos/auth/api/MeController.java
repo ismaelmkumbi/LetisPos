@@ -1,6 +1,8 @@
 package io.smartpos.auth.api;
 
+import io.smartpos.auth.domain.model.Tenant;
 import io.smartpos.auth.domain.model.User;
+import io.smartpos.auth.domain.repository.TenantRepository;
 import io.smartpos.auth.domain.repository.UserRepository;
 import io.smartpos.auth.infrastructure.security.JwtTokenService;
 import lombok.RequiredArgsConstructor;
@@ -11,13 +13,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 
-/**
- * Minimal /me endpoint. In Phase 1b this will be enriched via a Feign call
- * to User Service (roles, permissions, warehouses).
- */
 @RestController
 @RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
@@ -25,6 +24,7 @@ public class MeController {
 
     private final JwtTokenService jwtTokenService;
     private final UserRepository userRepository;
+    private final TenantRepository tenantRepository;
 
     @GetMapping("/me")
     public Map<String, Object> me(@RequestHeader(value = "Authorization", required = false) String authHeader) {
@@ -40,12 +40,23 @@ public class MeController {
         }
         User user = userRepository.findById(UUID.fromString(sub))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
-        return Map.of(
-                "id",       user.getId(),
-                "email",    user.getEmail(),
-                "status",   user.getStatus(),
-                "tenantId", user.getTenantId() == null ? "" : user.getTenantId().toString(),
-                "lastLoginAt", user.getLastLoginAt() == null ? "" : user.getLastLoginAt().toString()
-        );
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("id", user.getId());
+        result.put("email", user.getEmail());
+        result.put("status", user.getStatus());
+        result.put("tenantId", user.getTenantId() == null ? "" : user.getTenantId().toString());
+        result.put("lastLoginAt", user.getLastLoginAt() == null ? "" : user.getLastLoginAt().toString());
+
+        // Enrich with tenant details when available
+        if (user.getTenantId() != null) {
+            tenantRepository.findById(user.getTenantId()).ifPresent(t -> {
+                result.put("tenantName", t.getName());
+                result.put("tenantSlug", t.getSlug());
+                result.put("billingPlan", t.getBillingPlan().name());
+            });
+        }
+
+        return result;
     }
 }

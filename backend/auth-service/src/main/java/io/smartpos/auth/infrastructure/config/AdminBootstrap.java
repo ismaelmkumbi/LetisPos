@@ -2,10 +2,13 @@ package io.smartpos.auth.infrastructure.config;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.smartpos.auth.application.TenantService;
 import io.smartpos.auth.domain.model.OutboxEvent;
+import io.smartpos.auth.domain.model.Tenant;
 import io.smartpos.auth.domain.model.User;
 import io.smartpos.auth.domain.model.UserStatus;
 import io.smartpos.auth.domain.repository.OutboxRepository;
+import io.smartpos.auth.domain.repository.TenantRepository;
 import io.smartpos.auth.domain.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -17,17 +20,18 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import java.util.Map;
 
 /**
- * Seeds an initial admin user on first startup when the users table is empty.
+ * Seeds an initial admin user and default tenant on first startup.
  * Credentials come from {@link BootstrapProperties} (env-overridable).
  *
  * Also publishes a {@code UserRegistered} outbox event so user-service's
- * profile projection stays in sync (otherwise the bootstrap admin would only
- * exist in auth_db and subsequent calls to {@code /users/{id}} would 404).
+ * profile projection stays in sync.
  */
 @Slf4j
 @Configuration
 @RequiredArgsConstructor
 public class AdminBootstrap {
+
+    private final TenantRepository tenantRepository;
 
     @Bean
     public ApplicationRunner adminBootstrapRunner(UserRepository userRepository,
@@ -40,10 +44,27 @@ public class AdminBootstrap {
                 log.info("Users already exist — skipping admin bootstrap");
                 return;
             }
+
+            // Create default tenant so the bootstrap admin has a workspace
+            Tenant defaultTenant = tenantRepository.findBySlugIgnoreCase("default").orElseGet(() -> {
+                Tenant t = Tenant.builder()
+                        .name("Default Workspace")
+                        .slug("default")
+                        .status(io.smartpos.auth.domain.model.TenantStatus.ACTIVE)
+                        .billingPlan(io.smartpos.auth.domain.model.BillingPlan.ENTERPRISE)
+                        .maxUsers(Integer.MAX_VALUE)
+                        .maxStores(Integer.MAX_VALUE)
+                        .settings("{}")
+                        .build();
+                return tenantRepository.save(t);
+            });
+            log.info("Default tenant ready: id={} slug={}", defaultTenant.getId(), defaultTenant.getSlug());
+
             User admin = User.builder()
                     .email(props.adminEmail().toLowerCase())
                     .passwordHash(passwordEncoder.encode(props.adminPassword()))
                     .status(UserStatus.ACTIVE)
+                    .tenantId(defaultTenant.getId())
                     .build();
             admin = userRepository.save(admin);
 
@@ -56,8 +77,9 @@ public class AdminBootstrap {
                       userId   : {}
                       email    : {}
                       password : {}
+                      tenantId : {}
                     ===============================================================
-                    """, admin.getId(), admin.getEmail(), props.adminPassword());
+                    """, admin.getId(), admin.getEmail(), props.adminPassword(), defaultTenant.getId());
         };
     }
 

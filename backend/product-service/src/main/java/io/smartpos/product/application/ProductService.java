@@ -9,6 +9,7 @@ import io.smartpos.product.api.dto.CreateProductRequest;
 import io.smartpos.product.api.dto.ProductDto;
 import io.smartpos.product.api.dto.UpdateProductRequest;
 import io.smartpos.product.domain.model.*;
+import io.smartpos.common.context.TenantContext;
 import io.smartpos.product.domain.repository.OutboxRepository;
 import io.smartpos.product.domain.repository.ProductBarcodeRepository;
 import io.smartpos.product.domain.repository.ProductRepository;
@@ -49,7 +50,8 @@ public class ProductService {
     @Transactional(readOnly = true)
     public Page<ProductDto> search(String search, UUID categoryId, UUID brandId,
                                    Boolean status, Boolean featured, Pageable pageable) {
-        return productRepo.search(search, categoryId, brandId, status, featured, pageable).map(ProductDto::from);
+        return productRepo.search(search, categoryId, brandId, status, featured,
+                TenantContext.require(), pageable).map(ProductDto::from);
     }
 
     /**
@@ -130,6 +132,7 @@ public class ProductService {
                 .trackSerial(Boolean.TRUE.equals(req.trackSerial()))
                 .trackImei(Boolean.TRUE.equals(req.trackImei()))
                 .variant(req.variants() != null && !req.variants().isEmpty())
+                .tenantId(TenantContext.require())
                 .build();
 
         if (req.variants() != null) {

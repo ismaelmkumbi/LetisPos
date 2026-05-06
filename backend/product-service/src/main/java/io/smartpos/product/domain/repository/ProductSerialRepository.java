@@ -28,10 +28,12 @@ public interface ProductSerialRepository extends JpaRepository<ProductSerial, UU
              AND (:warehouseId IS NULL OR s.warehouseId = :warehouseId)
              AND (:status IS NULL OR s.status = :status)
              AND (COALESCE(:search,'') = '' OR LOWER(s.serialNumber) LIKE LOWER(CONCAT('%', :search, '%')))
+             AND s.tenantId = :tenantId
            """)
     Page<ProductSerial> search(@Param("productId")   UUID productId,
                                @Param("warehouseId") UUID warehouseId,
                                @Param("status")      SerialStatus status,
                                @Param("search")      String search,
+                               @Param("tenantId")    UUID tenantId,
                                Pageable pageable);
 }

@@ -1,5 +1,6 @@
 package io.smartpos.report.application;
 
+import io.smartpos.common.context.TenantContext;
 import io.smartpos.report.api.dto.AdvancedReports.*;
 import io.smartpos.report.infrastructure.feign.ProductFeign;
 import lombok.RequiredArgsConstructor;
@@ -84,18 +85,21 @@ public class AdvancedReportService {
         LocalDate cutoff = asOf.minusDays(lookbackDays);
 
         // Latest inventory snapshot per (product, warehouse)
+        UUID tenantId = TenantContext.require();
         String sql = """
             WITH latest_snap AS (
               SELECT DISTINCT ON (product_id, warehouse_id)
                      product_id, warehouse_id, on_hand, unit_cost, snapshot_date
                 FROM fact_inventory_snapshot
-               WHERE (? IS NULL OR warehouse_id = ?::uuid)
+               WHERE tenant_id = ?::uuid
+                 AND (? IS NULL OR warehouse_id = ?::uuid)
             ORDER BY product_id, warehouse_id, snapshot_date DESC
             ),
             recent_sales AS (
               SELECT DISTINCT product_id, warehouse_id, MAX(date) AS last_sold_date
                 FROM fact_product_sales_daily
-               WHERE date >= ?
+               WHERE tenant_id = ?::uuid
+                 AND date >= ?
                GROUP BY product_id, warehouse_id
             )
             SELECT s.product_id, s.warehouse_id, s.on_hand, s.unit_cost,
@@ -113,9 +117,11 @@ public class AdvancedReportService {
         String wh = warehouseId == null ? null : warehouseId.toString();
         List<DeadStockReport.Row> rows = jdbc.query(sql,
                 ps -> {
-                    ps.setObject(1, wh);
+                    ps.setObject(1, tenantId);
                     ps.setObject(2, wh);
-                    ps.setObject(3, java.sql.Date.valueOf(cutoff));
+                    ps.setObject(3, wh);
+                    ps.setObject(4, tenantId);
+                    ps.setObject(5, java.sql.Date.valueOf(cutoff));
                 },
                 (rs, i) -> new DeadStockReport.Row(
                         (UUID) rs.getObject("product_id"),
@@ -140,12 +146,14 @@ public class AdvancedReportService {
         String m = method == null ? "AVG" : method.toUpperCase();
 
         // Pull the most recent snapshot at or before `asOf`.
+        UUID tenantId = TenantContext.require();
         String sql = """
             WITH snap AS (
               SELECT DISTINCT ON (product_id, warehouse_id)
                      product_id, warehouse_id, on_hand, unit_cost
                 FROM fact_inventory_snapshot
-               WHERE snapshot_date <= ?
+               WHERE tenant_id = ?::uuid
+                 AND snapshot_date <= ?
                  AND (? IS NULL OR warehouse_id = ?::uuid)
             ORDER BY product_id, warehouse_id, snapshot_date DESC
             )
@@ -160,9 +168,10 @@ public class AdvancedReportService {
         String wh = warehouseId == null ? null : warehouseId.toString();
         List<InventoryValuationReport.Row> rows = jdbc.query(sql,
                 ps -> {
-                    ps.setObject(1, java.sql.Date.valueOf(LocalDate.now()));
-                    ps.setObject(2, wh);
+                    ps.setObject(1, tenantId);
+                    ps.setObject(2, java.sql.Date.valueOf(LocalDate.now()));
                     ps.setObject(3, wh);
+                    ps.setObject(4, wh);
                 },
                 (rs, i) -> {
                     UUID productId = (UUID) rs.getObject("product_id");
@@ -222,6 +231,7 @@ public class AdvancedReportService {
         String dimCol = byBrand ? "brand_id"   : "category_id";
         String nameCol = byBrand ? "brand_name" : "category_name";
 
+        UUID tenantId = TenantContext.require();
         String sql = """
             SELECT pm.""" + dimCol + """
                                   AS dim_id,
@@ -234,14 +244,16 @@ public class AdvancedReportService {
                    SUM(f.net)       AS net
               FROM fact_product_sales_daily f
               LEFT JOIN product_meta pm ON pm.product_id = f.product_id
-             WHERE f.date BETWEEN ? AND ?
+             WHERE f.tenant_id = ?::uuid
+               AND f.date BETWEEN ? AND ?
           GROUP BY pm.""" + dimCol + ", pm." + nameCol + """
           ORDER BY net DESC
         """;
         List<SalesByDimensionReport.Bucket> buckets = jdbc.query(sql,
                 ps -> {
-                    ps.setObject(1, java.sql.Date.valueOf(from));
-                    ps.setObject(2, java.sql.Date.valueOf(to));
+                    ps.setObject(1, tenantId);
+                    ps.setObject(2, java.sql.Date.valueOf(from));
+                    ps.setObject(3, java.sql.Date.valueOf(to));
                 },
                 (rs, i) -> new SalesByDimensionReport.Bucket(
                         (UUID) rs.getObject("dim_id"),

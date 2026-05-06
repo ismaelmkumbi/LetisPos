@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.QueryHints;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -20,8 +21,11 @@ public interface AccountRepository extends JpaRepository<Account, UUID> {
      */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @QueryHints({ @QueryHint(name = "jakarta.persistence.lock.timeout", value = "3000") })
-    @Query("SELECT a FROM Account a WHERE a.id = :id")
-    Optional<Account> findByIdForUpdate(@Param("id") UUID id);
+    @Query("SELECT a FROM Account a WHERE a.id = :id AND a.tenantId = :tenantId")
+    Optional<Account> findByIdForUpdate(@Param("id") UUID id,
+                                        @Param("tenantId") UUID tenantId);
+
+    List<Account> findByTenantId(UUID tenantId);
 
     long count();
 }

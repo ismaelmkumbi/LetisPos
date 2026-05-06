@@ -7,6 +7,7 @@ import io.smartpos.sales.domain.model.Sale;
 import io.smartpos.sales.domain.model.SaleStatus;
 import io.smartpos.sales.domain.repository.CashRegisterSessionRepository;
 import io.smartpos.sales.domain.repository.SaleRepository;
+import io.smartpos.common.context.TenantContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
@@ -31,7 +32,8 @@ public class CashRegisterService {
     private final SaleRepository saleRepo;
 
     public CashRegisterSessionDto open(UUID warehouseId, UUID userId, BigDecimal openingBalance) {
-        sessionRepo.findTopByWarehouseIdAndStatusOrderByOpenedAtDesc(warehouseId, CashRegisterStatus.OPEN)
+        UUID tenantId = TenantContext.require();
+        sessionRepo.findTopByWarehouseIdAndStatus(warehouseId, CashRegisterStatus.OPEN, tenantId)
             .ifPresent(s -> {
                 throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "A register is already open for this warehouse since " + s.getOpenedAt());
@@ -42,6 +44,7 @@ public class CashRegisterService {
             .userId(userId)
             .openingBalance(openingBalance != null ? openingBalance : BigDecimal.ZERO)
             .status(CashRegisterStatus.OPEN)
+            .tenantId(tenantId)
             .build();
 
         session = sessionRepo.save(session);
@@ -52,7 +55,7 @@ public class CashRegisterService {
     @Transactional(readOnly = true)
     public CashRegisterSessionDto getCurrent(UUID warehouseId) {
         CashRegisterSession session = sessionRepo
-            .findTopByWarehouseIdAndStatusOrderByOpenedAtDesc(warehouseId, CashRegisterStatus.OPEN)
+            .findTopByWarehouseIdAndStatus(warehouseId, CashRegisterStatus.OPEN, TenantContext.require())
             .orElse(null);
 
         if (session == null) return null;
@@ -64,7 +67,7 @@ public class CashRegisterService {
 
     public CashRegisterSessionDto close(UUID warehouseId, UUID userId, BigDecimal countedCash, String notes) {
         CashRegisterSession session = sessionRepo
-            .findTopByWarehouseIdAndStatusOrderByOpenedAtDesc(warehouseId, CashRegisterStatus.OPEN)
+            .findTopByWarehouseIdAndStatus(warehouseId, CashRegisterStatus.OPEN, TenantContext.require())
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                 "No open register found for this warehouse"));
 
@@ -80,14 +83,14 @@ public class CashRegisterService {
 
     @Transactional(readOnly = true)
     public List<CashRegisterSessionDto> history(UUID warehouseId) {
-        return sessionRepo.findByWarehouseId(warehouseId).stream()
+        return sessionRepo.findByWarehouseId(warehouseId, TenantContext.require()).stream()
             .map(CashRegisterSessionDto::from)
             .toList();
     }
 
     private BigDecimal computeExpectedCash(UUID warehouseId, Instant from, Instant to) {
         List<Sale> sales = saleRepo.findByWarehouseIdAndStatusAndConfirmedAtBetween(
-            warehouseId, SaleStatus.CONFIRMED, from, to,
+            warehouseId, SaleStatus.CONFIRMED, from, to, TenantContext.require(),
             PageRequest.of(0, 500, Sort.by("confirmedAt").ascending()));
         return sales.stream()
             .filter(Sale::isPos)

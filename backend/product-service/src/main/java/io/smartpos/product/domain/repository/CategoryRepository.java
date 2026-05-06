@@ -16,6 +16,7 @@ public interface CategoryRepository extends JpaRepository<Category, UUID> {
            SELECT c FROM Category c
            WHERE (COALESCE(:search, '') = '' OR LOWER(c.name) LIKE LOWER(CONCAT('%', :search, '%'))
                                             OR LOWER(COALESCE(c.code, '')) LIKE LOWER(CONCAT('%', :search, '%')))
+             AND c.tenantId = :tenantId
            """)
-    Page<Category> search(@Param("search") String search, Pageable pageable);
+    Page<Category> search(@Param("search") String search, @Param("tenantId") UUID tenantId, Pageable pageable);
 }

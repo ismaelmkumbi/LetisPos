@@ -17,7 +17,8 @@ public interface NotificationDeliveryRepository extends JpaRepository<Notificati
 
     @Query("""
            SELECT d FROM NotificationDelivery d
-           WHERE (:channel IS NULL OR d.channel = :channel)
+           WHERE d.tenantId = :tenantId
+             AND (:channel IS NULL OR d.channel = :channel)
              AND (:status  IS NULL OR d.status  = :status)
              AND (COALESCE(:recipient,'') = '' OR LOWER(d.recipient) LIKE LOWER(CONCAT('%', :recipient, '%')))
            ORDER BY d.createdAt DESC
@@ -25,6 +26,7 @@ public interface NotificationDeliveryRepository extends JpaRepository<Notificati
     Page<NotificationDelivery> search(@Param("channel")   Channel channel,
                                       @Param("status")    DeliveryStatus status,
                                       @Param("recipient") String recipient,
+                                      @Param("tenantId")  UUID tenantId,
                                       Pageable pageable);
 
     /**
@@ -43,5 +45,8 @@ public interface NotificationDeliveryRepository extends JpaRepository<Notificati
                                              @Param("maxAttempts") int maxAttempts,
                                              Pageable pageable);
 
-    List<NotificationDelivery> findByRelatedAggregateAndRelatedAggregateId(String aggregate, UUID aggregateId);
+    @Query("SELECT d FROM NotificationDelivery d WHERE d.tenantId = :tenantId AND d.relatedAggregate = :aggregate AND d.relatedAggregateId = :aggregateId ORDER BY d.createdAt DESC")
+    List<NotificationDelivery> findByRelatedAggregateAndRelatedAggregateId(@Param("aggregate") String aggregate,
+                                                                            @Param("aggregateId") UUID aggregateId,
+                                                                            @Param("tenantId") UUID tenantId);
 }

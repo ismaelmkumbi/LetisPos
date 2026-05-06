@@ -25,20 +25,35 @@ public interface SaleRepository extends JpaRepository<Sale, UUID> {
              AND (:customerId IS NULL OR s.customerId = :customerId)
              AND (:warehouseId IS NULL OR s.warehouseId = :warehouseId)
              AND (:status    IS NULL OR s.status = :status)
+             AND s.tenantId = :tenantId
            """)
     Page<Sale> search(@Param("dateFrom") LocalDate dateFrom,
                       @Param("dateTo")   LocalDate dateTo,
                       @Param("customerId") UUID customerId,
                       @Param("warehouseId") UUID warehouseId,
                       @Param("status") SaleStatus status,
+                      @Param("tenantId") UUID tenantId,
                       Pageable pageable);
 
     @EntityGraph(attributePaths = "lines")
     @Query("SELECT s FROM Sale s WHERE s.id = :id")
     Optional<Sale> findByIdWithLines(@Param("id") UUID id);
 
-    long countByRefStartingWith(String prefix);
+    @Query("SELECT COUNT(s) FROM Sale s WHERE s.ref LIKE CONCAT(:prefix, '%') AND s.tenantId = :tenantId")
+    long countByRefStartingWith(@Param("prefix") String prefix, @Param("tenantId") UUID tenantId);
 
+    @Query("""
+        SELECT s FROM Sale s
+        WHERE s.warehouseId = :warehouseId
+          AND s.status = :status
+          AND s.confirmedAt BETWEEN :from AND :to
+          AND s.tenantId = :tenantId
+        """)
     List<Sale> findByWarehouseIdAndStatusAndConfirmedAtBetween(
-        UUID warehouseId, SaleStatus status, Instant from, Instant to, Pageable pageable);
+        @Param("warehouseId") UUID warehouseId,
+        @Param("status") SaleStatus status,
+        @Param("from") Instant from,
+        @Param("to") Instant to,
+        @Param("tenantId") UUID tenantId,
+        Pageable pageable);
 }

@@ -1,9 +1,9 @@
 /**
  * Attendance — daily roster with quick check-in / check-out and a date-range view.
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
-  Alert, Autocomplete, Button, Chip, Stack, TextField,
+  Alert, Autocomplete, Box, Button, Chip, Stack, TextField,
 } from '@mui/material';
 import { IconLogin, IconLogout } from '@tabler/icons-react';
 
@@ -12,8 +12,10 @@ import {
   type Attendance, type AttendanceStatus, type Employee,
 } from 'src/api/smartpos/hrm';
 import PageHeader from 'src/components/smartpos/PageHeader';
+import FilterBar, { type ActiveFilter } from 'src/components/smartpos/FilterBar';
 import DataTable, { type Column } from 'src/components/smartpos/DataTable';
-import { brand } from 'src/theme/smartpos/brand';
+import { useAuth } from 'src/context/smartpos/AuthContext';
+import { brand, brandGradients } from 'src/theme/smartpos/brand';
 
 const STATUS_COLOURS: Record<AttendanceStatus, { bg: string; fg: string }> = {
   PRESENT:   { bg: brand.success.light, fg: brand.success.dark },
@@ -26,7 +28,16 @@ const STATUS_COLOURS: Record<AttendanceStatus, { bg: string; fg: string }> = {
 
 const todayIso = () => new Date().toISOString().slice(0, 10);
 
+const actionBtnSx = {
+  minHeight: 36,
+  fontWeight: 700,
+  borderRadius: '8px',
+  textTransform: 'none' as const,
+  px: 2,
+};
+
 export default function AttendancePage() {
+  const { user } = useAuth();
   const [from, setFrom] = useState(todayIso());
   const [to, setTo]     = useState(todayIso());
   const [rows, setRows] = useState<Attendance[]>([]);
@@ -35,11 +46,12 @@ export default function AttendancePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [refreshToken, setRefreshToken] = useState(0);
 
   useEffect(() => {
     listEmployees({ size: 200, status: 'ACTIVE' }).then((p) => setEmployees(p.content)).catch(() => {});
-  }, []);
+  }, [user?.tenantId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -49,7 +61,7 @@ export default function AttendancePage() {
       .catch((e) => !cancelled && setError(e instanceof Error ? e.message : 'Failed to load'))
       .finally(() => !cancelled && setLoading(false));
     return () => { cancelled = true; };
-  }, [from, to, refreshToken]);
+  }, [from, to, refreshToken, user?.tenantId]);
 
   const handleCheckIn = async () => {
     if (!picked) return;
@@ -69,6 +81,12 @@ export default function AttendancePage() {
     } catch (e) { setError(e instanceof Error ? e.message : 'Check-out failed'); }
     finally { setBusy(false); }
   };
+
+  const activeFilters: ActiveFilter[] = useMemo(() => {
+    const out: ActiveFilter[] = [];
+    if (picked) out.push({ key: 'employee', label: `Employee: ${picked.firstName} ${picked.lastName ?? ''}`, clear: () => setPicked(null) });
+    return out;
+  }, [picked]);
 
   const cols: Column<Attendance>[] = [
     {
@@ -92,34 +110,55 @@ export default function AttendancePage() {
   ];
 
   return (
-    <>
+    <Box sx={{ maxWidth: 1680, mx: 'auto', pb: 3 }}>
       <PageHeader title="Attendance" subtitle="Daily check-in / check-out and roster" />
 
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
 
-      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} sx={{ mb: 2 }} alignItems="center">
-        <TextField size="small" type="date" label="From" value={from}
-          onChange={(e) => setFrom(e.target.value)} InputLabelProps={{ shrink: true }} />
-        <TextField size="small" type="date" label="To" value={to}
-          onChange={(e) => setTo(e.target.value)} InputLabelProps={{ shrink: true }} />
+      <FilterBar
+        searchPlaceholder=""
+        searchValue=""
+        onSearchChange={() => {}}
+        searchAriaLabel=""
+        filtersOpen={filtersOpen}
+        onFiltersToggle={() => setFiltersOpen(!filtersOpen)}
+        activeFilters={activeFilters}
+        onClearAll={() => setPicked(null)}
+      >
+        <Stack direction="row" spacing={1.5} flexWrap="wrap" useFlexGap>
+          <TextField size="small" type="date" label="From" value={from}
+            onChange={(e) => setFrom(e.target.value)} InputLabelProps={{ shrink: true }}
+            sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px', height: 42 } }} />
+          <TextField size="small" type="date" label="To" value={to}
+            onChange={(e) => setTo(e.target.value)} InputLabelProps={{ shrink: true }}
+            sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px', height: 42 } }} />
 
-        <Autocomplete
-          sx={{ minWidth: 280 }}
-          size="small"
-          options={employees}
-          value={picked}
-          onChange={(_, v) => setPicked(v)}
-          getOptionLabel={(e) => `${e.firstName} ${e.lastName ?? ''} (${e.code})`}
-          renderInput={(p) => <TextField {...p} label="Employee" size="small" />}
-        />
-        <Button variant="outlined" startIcon={<IconLogin size={16} />}
-          disabled={!picked || busy} onClick={handleCheckIn}>Check in</Button>
-        <Button variant="contained" startIcon={<IconLogout size={16} />}
-          disabled={!picked || busy} onClick={handleCheckOut}
-          sx={{ bgcolor: brand.accent[500], '&:hover': { bgcolor: brand.accent[600] } }}>
-          Check out
-        </Button>
-      </Stack>
+          <Autocomplete
+            sx={{ minWidth: 280 }}
+            size="small"
+            options={employees}
+            value={picked}
+            onChange={(_, v) => setPicked(v)}
+            getOptionLabel={(e) => `${e.firstName} ${e.lastName ?? ''} (${e.code})`}
+            renderInput={(p) => <TextField {...p} label="Employee" size="small"
+              sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} />}
+          />
+
+          <Button variant="outlined" startIcon={<IconLogin size={16} />}
+            disabled={!picked || busy} onClick={handleCheckIn}
+            sx={actionBtnSx}>Check in</Button>
+          <Button variant="contained" startIcon={<IconLogout size={16} />}
+            disabled={!picked || busy} onClick={handleCheckOut}
+            sx={{
+              ...actionBtnSx,
+              background: brandGradients.cta,
+              boxShadow: `0 8px 20px -12px ${brand.primary[700]}`,
+              '&:hover': { background: `linear-gradient(135deg, ${brand.primary[700]} 0%, ${brand.primary[800]} 100%)` },
+            }}>
+            Check out
+          </Button>
+        </Stack>
+      </FilterBar>
 
       <DataTable
         columns={cols}
@@ -127,7 +166,12 @@ export default function AttendancePage() {
         loading={loading}
         getRowKey={(a) => a.id}
         emptyText="No attendance for this date range"
+        tableKey="attendance"
+        enableColumnVisibility
+        enableExport
+        exportFileName="attendance"
+        toolbarTitle="Daily roster"
       />
-    </>
+    </Box>
   );
 }

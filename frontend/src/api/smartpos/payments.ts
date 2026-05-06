@@ -7,10 +7,17 @@ import type { Page, UUID } from './types';
 
 // ---------- shared ----------
 
-export type AccountType   = 'CASH' | 'BANK' | 'CARD' | 'MOBILE_MONEY';
+export type AccountType = 'CASH' | 'BANK' | 'CARD' | 'MOBILE_MONEY';
 export type PaymentMethod = 'CASH' | 'CARD' | 'CHECK' | 'TRANSFER' | 'MPESA' | 'STRIPE';
 export type PaymentStatus = 'PENDING' | 'COMPLETED' | 'FAILED' | 'REFUNDED';
-export type ReferenceType = 'SALE' | 'PURCHASE' | 'SALE_RETURN' | 'PURCHASE_RETURN' | 'EXPENSE' | 'DEPOSIT' | 'TRANSFER';
+export type ReferenceType =
+  | 'SALE'
+  | 'PURCHASE'
+  | 'SALE_RETURN'
+  | 'PURCHASE_RETURN'
+  | 'EXPENSE'
+  | 'DEPOSIT'
+  | 'TRANSFER';
 
 // ---------- Accounts ----------
 
@@ -52,6 +59,15 @@ export async function updateAccount(id: UUID, body: AccountInput): Promise<Accou
   return data;
 }
 
+export async function deleteAccount(id: UUID): Promise<void> {
+  await api.delete(`/api/v1/accounts/${id}`);
+}
+
+export async function toggleAccountActive(id: UUID): Promise<Account> {
+  const { data } = await api.patch<Account>(`/api/v1/accounts/${id}/toggle-active`);
+  return data;
+}
+
 // ---------- Account Ledger ----------
 
 export interface LedgerEntry {
@@ -71,8 +87,9 @@ export async function getAccountLedger(
   accountId: UUID,
   params: { dateFrom?: string; dateTo?: string; page?: number; size?: number } = {},
 ): Promise<Page<LedgerEntry>> {
-  const { data } = await api.get<Page<LedgerEntry>>(
-    `/api/v1/accounts/${accountId}/ledger`, { params });
+  const { data } = await api.get<Page<LedgerEntry>>(`/api/v1/accounts/${accountId}/ledger`, {
+    params,
+  });
   return data;
 }
 
@@ -128,11 +145,23 @@ export interface RecordPaymentBody {
   notes?: string;
 }
 
-export async function listPayments(params: {
-  referenceType?: ReferenceType; referenceId?: UUID; accountId?: UUID;
-  dateFrom?: string; dateTo?: string; page?: number; size?: number;
-} = {}): Promise<Page<Payment>> {
+export async function listPayments(
+  params: {
+    referenceType?: ReferenceType;
+    referenceId?: UUID;
+    accountId?: UUID;
+    dateFrom?: string;
+    dateTo?: string;
+    page?: number;
+    size?: number;
+  } = {},
+): Promise<Page<Payment>> {
   const { data } = await api.get<Page<Payment>>('/api/v1/payments', { params });
+  return data;
+}
+
+export async function getPayment(id: UUID): Promise<Payment> {
+  const { data } = await api.get<Payment>(`/api/v1/payments/${id}`);
   return data;
 }
 
@@ -143,6 +172,10 @@ export async function recordPayment(body: RecordPaymentBody): Promise<Payment> {
 
 export async function refundPayment(id: UUID, reason?: string): Promise<void> {
   await api.post(`/api/v1/payments/${id}/refund`, { reason });
+}
+
+export async function deletePayment(id: UUID): Promise<void> {
+  await api.delete(`/api/v1/payments/${id}`);
 }
 
 // ---------- Expenses ----------
@@ -159,23 +192,52 @@ export interface Expense {
   notes: string | null;
 }
 
-export async function listExpenses(params: {
-  accountId?: UUID; categoryId?: UUID; dateFrom?: string; dateTo?: string;
-  page?: number; size?: number;
-} = {}): Promise<Page<Expense>> {
+export async function listExpenses(
+  params: {
+    accountId?: UUID;
+    categoryId?: UUID;
+    dateFrom?: string;
+    dateTo?: string;
+    page?: number;
+    size?: number;
+  } = {},
+): Promise<Page<Expense>> {
   const { data } = await api.get<Page<Expense>>('/api/v1/expenses', { params });
   return data;
 }
 
-export async function recordExpense(body: {
-  date?: string; accountId: UUID; categoryId?: UUID;
-  amount: number; currency?: string; description?: string; notes?: string;
-}): Promise<Expense> {
+export interface ExpenseInput {
+  date?: string;
+  accountId: UUID;
+  categoryId?: UUID;
+  amount: number;
+  currency?: string;
+  description?: string;
+  notes?: string;
+}
+
+export async function getExpense(id: UUID): Promise<Expense> {
+  const { data } = await api.get<Expense>(`/api/v1/expenses/${id}`);
+  return data;
+}
+
+export async function recordExpense(body: ExpenseInput): Promise<Expense> {
   const { data } = await api.post<Expense>('/api/v1/expenses', body);
   return data;
 }
 
-export async function listExpenseCategories(): Promise<{id: UUID; name: string; description: string | null}[]> {
+export async function updateExpense(id: UUID, body: ExpenseInput): Promise<Expense> {
+  const { data } = await api.put<Expense>(`/api/v1/expenses/${id}`, body);
+  return data;
+}
+
+export async function deleteExpense(id: UUID): Promise<void> {
+  await api.delete(`/api/v1/expenses/${id}`);
+}
+
+export async function listExpenseCategories(): Promise<
+  { id: UUID; name: string; description: string | null }[]
+> {
   const { data } = await api.get('/api/v1/expenses/categories');
   return data;
 }
@@ -199,17 +261,28 @@ export interface Deposit {
   notes: string | null;
 }
 
-export async function listDeposits(params: {
-  accountId?: UUID; categoryId?: UUID; dateFrom?: string; dateTo?: string;
-  page?: number; size?: number;
-} = {}): Promise<Page<Deposit>> {
+export async function listDeposits(
+  params: {
+    accountId?: UUID;
+    categoryId?: UUID;
+    dateFrom?: string;
+    dateTo?: string;
+    page?: number;
+    size?: number;
+  } = {},
+): Promise<Page<Deposit>> {
   const { data } = await api.get<Page<Deposit>>('/api/v1/deposits', { params });
   return data;
 }
 
 export async function recordDeposit(body: {
-  date?: string; accountId: UUID; categoryId?: UUID;
-  amount: number; currency?: string; description?: string; notes?: string;
+  date?: string;
+  accountId: UUID;
+  categoryId?: UUID;
+  amount: number;
+  currency?: string;
+  description?: string;
+  notes?: string;
 }): Promise<Deposit> {
   const { data } = await api.post<Deposit>('/api/v1/deposits', body);
   return data;

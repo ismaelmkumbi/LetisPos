@@ -1,5 +1,6 @@
 package io.smartpos.payment.application;
 
+import io.smartpos.common.context.TenantContext;
 import io.smartpos.payment.api.dto.PaymentDto;
 import io.smartpos.payment.domain.model.*;
 import io.smartpos.payment.domain.repository.*;
@@ -50,7 +51,8 @@ public class PaymentService {
     public Page<PaymentDto> search(ReferenceType referenceType, UUID referenceId,
                                    UUID accountId, LocalDate from, LocalDate to,
                                    Pageable pageable) {
-        return paymentRepo.search(referenceType, referenceId, accountId, from, to, pageable)
+        return paymentRepo.search(referenceType, referenceId, accountId, from, to,
+                TenantContext.require(), pageable)
                 .map(PaymentDto::from);
     }
 
@@ -62,7 +64,17 @@ public class PaymentService {
 
     @Transactional
     public PaymentDto record(PaymentDto.CreateRequest req, UUID userId) {
-        Account account = accountRepo.findByIdForUpdate(req.accountId())
+        return recordInternal(req, userId, TenantContext.require());
+    }
+
+    /**
+     * Package-private variant that accepts an explicit tenantId. Used by
+     * {@link StripeService} when processing webhooks outside the JWT filter
+     * chain (TenantContext is not available).
+     */
+    @Transactional
+    PaymentDto recordInternal(PaymentDto.CreateRequest req, UUID userId, UUID tenantId) {
+        Account account = accountRepo.findByIdForUpdate(req.accountId(), tenantId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Account not found"));
         if (!account.isActive()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Account is not active");
@@ -77,7 +89,7 @@ public class PaymentService {
 
         // Record payment
         Payment payment = Payment.builder()
-                .ref(nextPaymentRef(req.referenceType()))
+                .ref(nextPaymentRef(req.referenceType(), tenantId))
                 .date(req.date() != null ? req.date() : LocalDate.now())
                 .referenceType(req.referenceType())
                 .referenceId(req.referenceId())
@@ -89,6 +101,7 @@ public class PaymentService {
                 .notes(req.notes())
                 .userId(userId)
                 .status(PaymentStatus.COMPLETED)
+                .tenantId(tenantId)
                 .build();
         Payment saved = paymentRepo.save(payment);
 
@@ -102,6 +115,7 @@ public class PaymentService {
                 .debit(incoming ? req.amount() : BigDecimal.ZERO)
                 .credit(incoming ? BigDecimal.ZERO : req.amount())
                 .balanceAfter(newBalance)
+                .tenantId(tenantId)
                 .build());
 
         // Best-effort: tell Sales/Purchases about this payment
@@ -121,7 +135,7 @@ public class PaymentService {
         payload.put("method",        saved.getMethod().name());
         payload.put("currency",      saved.getCurrency());
         payload.put("tenantId",      saved.getTenantId() == null ? null : saved.getTenantId().toString());
-        outbox.publish("Payment", saved.getId(), "PaymentReceived", payload);
+        outbox.publish("Payment", saved.getId(), "PaymentReceived", payload, tenantId);
 
         return PaymentDto.from(saved);
     }
@@ -135,7 +149,8 @@ public class PaymentService {
         if (reason != null) p.setNotes((p.getNotes() == null ? "" : p.getNotes() + " | ") + "Refunded: " + reason);
         paymentRepo.save(p);
         outbox.publish("Payment", p.getId(), "PaymentRefunded",
-                Map.of("paymentId", p.getId(), "reason", reason == null ? "" : reason));
+                Map.of("paymentId", p.getId(), "reason", reason == null ? "" : reason),
+                p.getTenantId());
     }
 
     // ---- helpers ----
@@ -158,7 +173,7 @@ public class PaymentService {
         }
     }
 
-    private String nextPaymentRef(ReferenceType rt) {
+    private String nextPaymentRef(ReferenceType rt, UUID tenantId) {
         String shortCode = switch (rt) {
             case SALE            -> "PSR";      // payment for sale (received)
             case PURCHASE        -> "PPP";      // payment to purchase (paid)
@@ -169,7 +184,7 @@ public class PaymentService {
             case TRANSFER        -> "TRF";
         };
         String prefix = shortCode + "-" + Year.now().getValue() + "-";
-        long n = paymentRepo.countByRefStartingWith(prefix) + 1;
+        long n = paymentRepo.countByRefStartingWithAndTenantId(prefix, tenantId) + 1;
         return prefix + String.format("%06d", n);
     }
 }

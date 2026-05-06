@@ -112,6 +112,10 @@ public class PosSetting {
     @Builder.Default private boolean dailySummaryEnabled  = false;
     @Builder.Default private String  alertEmail           = "";
 
+    // ── Tenant ────────────────────────────────────────────────────────────────
+    @Column(name = "tenant_id")
+    private UUID tenantId;
+
     // ── Audit ────────────────────────────────────────────────────────────────
     @Column(updatable = false)
     private Instant createdAt;

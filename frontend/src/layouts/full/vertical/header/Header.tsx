@@ -168,6 +168,7 @@ const Header = () => {
             sx={{ mx: 0.45, my: 1.7, borderColor: brand.neutral[200] }}
           />
           <Stack direction="row" spacing={0.7} alignItems="center">
+            <Box sx={actionBtnSx}><Search /></Box>
             <Box sx={actionBtnSx}><Language /></Box>
             {modeToggle}
             <Box sx={actionBtnSx}><Notifications /></Box>

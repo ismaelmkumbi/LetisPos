@@ -19,7 +19,7 @@ public class InventoryReportService {
     // returned for cache operation"). The string namespace also keeps the
     // global-summary slot from colliding with a per-warehouse summary.
     @Cacheable(value = RedisCacheConfig.CACHE_INVENTORY,
-               key = "#warehouseId != null ? #warehouseId.toString() : 'all'",
+               key = "T(io.smartpos.report.infrastructure.config.RedisCacheConfig).tenantKey(#warehouseId)",
                unless = "#result == null")
     public InventoryFeign.WarehouseSummary summary(UUID warehouseId) {
         return inventory.summary(warehouseId);

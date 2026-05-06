@@ -49,6 +49,9 @@ public class CashRegisterSession {
     @Column(name = "notes")
     private String notes;
 
+    @Column(name = "tenant_id")
+    private UUID tenantId;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 

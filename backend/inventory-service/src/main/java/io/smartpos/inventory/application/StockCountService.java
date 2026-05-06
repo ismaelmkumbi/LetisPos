@@ -1,5 +1,6 @@
 package io.smartpos.inventory.application;
 
+import io.smartpos.common.context.TenantContext;
 import io.smartpos.inventory.api.dto.StockCountDto;
 import io.smartpos.inventory.domain.model.*;
 import io.smartpos.inventory.domain.repository.*;
@@ -43,6 +44,7 @@ public class StockCountService {
                 .userId(userId)
                 .status(StockCountStatus.OPEN)
                 .notes(req.notes())
+                .tenantId(TenantContext.require())
                 .build();
         return StockCountDto.from(countRepo.save(c));
     }
@@ -60,8 +62,9 @@ public class StockCountService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Count is " + c.getStatus());
         }
         c.getLines().clear();
+        UUID tenantId = TenantContext.require();
         for (StockCountDto.LineInput li : req.lines()) {
-            StockLevel s = stockRepo.find(li.productId(), li.variantId(), c.getWarehouseId()).orElse(null);
+            StockLevel s = stockRepo.find(li.productId(), li.variantId(), c.getWarehouseId(), tenantId).orElse(null);
             BigDecimal systemQty = s == null ? BigDecimal.ZERO : s.getOnHand();
             c.getLines().add(StockCountLine.builder()
                     .productId(li.productId()).variantId(li.variantId())
@@ -83,6 +86,7 @@ public class StockCountService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Count is " + c.getStatus());
         }
 
+        UUID tenantId = TenantContext.require();
         for (StockCountLine l : c.getLines()) {
             BigDecimal delta = l.getCountedQty().subtract(l.getSystemQty());
             if (delta.signum() == 0) continue;
@@ -101,6 +105,7 @@ public class StockCountService {
                     .qtyDelta(delta)
                     .referenceType(ReferenceType.COUNT).referenceId(c.getId())
                     .userId(userId)
+                    .tenantId(tenantId)
                     .build());
         }
 
@@ -116,7 +121,7 @@ public class StockCountService {
     @Transactional(readOnly = true)
     public Page<StockCountDto.ListItem> list(String search, Pageable pageable) {
         String s = (search == null || search.isBlank()) ? "" : search;
-        return countRepo.search(s, pageable)
+        return countRepo.search(s, TenantContext.require(), pageable)
                 .map(c -> {
                     String whName = warehouseRepo.findById(c.getWarehouseId())
                             .map(Warehouse::getName)

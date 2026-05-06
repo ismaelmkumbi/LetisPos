@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { CustomizerContext } from 'src/context/CustomizerContext';
 import { useAuth } from 'src/context/smartpos/AuthContext';
 import LanguageSwitcher from 'src/components/smartpos/LanguageSwitcher';
+import TenantSwitcher from 'src/components/smartpos/TenantSwitcher';
 import { brand } from 'src/theme/smartpos/brand';
 
 export const Profile = () => {
@@ -40,15 +41,6 @@ export const Profile = () => {
     const ln = (user as any).lastName as string | undefined;
     const full = `${fn ?? ''} ${ln ?? ''}`.trim();
     return full || user.email.split('@')[0];
-  })();
-
-  const subtitle = (() => {
-    if (!user) return '';
-    const roles = (user as any).roles as string[] | undefined;
-    if (roles && roles.length > 0) {
-      return roles[0].replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
-    }
-    return user.email;
   })();
 
   const avatarBg = `linear-gradient(135deg, ${brand.primary[500]} 0%, ${brand.primary[700]} 100%)`;
@@ -128,14 +120,9 @@ export const Profile = () => {
         <Typography variant="body2" sx={{ fontWeight: 600, lineHeight: 1.3 }} noWrap title={displayName}>
           {displayName}
         </Typography>
-        <Typography
-          variant="caption"
-          sx={{ color: brand.neutral[500], display: 'block', lineHeight: 1.3 }}
-          noWrap
-          title={subtitle}
-        >
-          {subtitle}
-        </Typography>
+        <Box sx={{ mt: 0.25 }}>
+          <TenantSwitcher />
+        </Box>
       </Box>
 
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, flexShrink: 0 }}>

@@ -1,5 +1,6 @@
 package io.smartpos.inventory.application;
 
+import io.smartpos.common.context.TenantContext;
 import io.smartpos.inventory.api.dto.TransferDto;
 import io.smartpos.inventory.domain.model.*;
 import io.smartpos.inventory.domain.repository.StockLevelRepository;
@@ -32,7 +33,7 @@ public class TransferService {
 
     @Transactional(readOnly = true)
     public Page<TransferDto> search(TransferStatus status, LocalDate from, LocalDate to, Pageable p) {
-        return transferRepo.search(status, from, to, p).map(TransferDto::from);
+        return transferRepo.search(status, from, to, TenantContext.require(), p).map(TransferDto::from);
     }
 
     @Transactional(readOnly = true)
@@ -59,6 +60,7 @@ public class TransferService {
                 .userId(userId)
                 .status(TransferStatus.DRAFT)
                 .notes(req.notes())
+                .tenantId(TenantContext.require())
                 .build();
         req.lines().forEach(li -> t.getLines().add(TransferLine.builder()
                 .productId(li.productId()).variantId(li.variantId())
@@ -81,9 +83,10 @@ public class TransferService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Transfer is cancelled");
         }
 
+        UUID tenantId = TenantContext.require();
         for (TransferLine line : t.getLines()) {
             // FROM: lock + deduct
-            StockLevel from = stockRepo.findForUpdate(line.getProductId(), line.getVariantId(), t.getFromWarehouseId())
+            StockLevel from = stockRepo.findForUpdate(line.getProductId(), line.getVariantId(), t.getFromWarehouseId(), tenantId)
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.CONFLICT,
                             "No stock in from-warehouse for product=" + line.getProductId()));
             try { from.applyDelta(line.getQty().negate()); }
@@ -100,6 +103,7 @@ public class TransferService {
                     .unitCost(line.getUnitCost())
                     .referenceType(ReferenceType.TRANSFER).referenceId(t.getId())
                     .userId(userId)
+                    .tenantId(tenantId)
                     .build());
 
             // TO: upsert + add
@@ -115,6 +119,7 @@ public class TransferService {
                     .unitCost(line.getUnitCost())
                     .referenceType(ReferenceType.TRANSFER).referenceId(t.getId())
                     .userId(userId)
+                    .tenantId(tenantId)
                     .build());
         }
 

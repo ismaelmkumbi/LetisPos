@@ -1,5 +1,6 @@
 package io.smartpos.hrm.application;
 
+import io.smartpos.common.context.TenantContext;
 import io.smartpos.hrm.api.dto.PayrollDto;
 import io.smartpos.hrm.domain.model.Employee;
 import io.smartpos.hrm.domain.model.PayrollLine;
@@ -56,6 +57,7 @@ public class PayrollService {
                 .periodStart(req.periodStart()).periodEnd(req.periodEnd())
                 .notes(req.notes())
                 .status(PayrollStatus.DRAFT)
+                .tenantId(TenantContext.require())
                 .build();
 
         if (req.lines() != null) {

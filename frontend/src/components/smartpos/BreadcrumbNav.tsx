@@ -30,6 +30,7 @@ const ROUTE_MAP: Record<string, { label: string; icon: React.ReactNode; parent?:
   '/smartpos/dashboard': { label: 'Dashboard', icon: <IconDashboard size={14} /> },
 
   '/smartpos/pos': { label: 'POS Terminal', icon: <IconShoppingCart size={14} /> },
+  '/smartpos/sales/pos': { label: 'POS Terminal', icon: <IconShoppingCart size={14} />, parent: '/smartpos/sales' },
 
   '/smartpos/products': { label: 'Products', icon: <IconPackage size={14} />, parent: '/smartpos/dashboard' },
   '/smartpos/customers': { label: 'Customers', icon: <IconUsers size={14} />, parent: '/smartpos/dashboard' },
@@ -55,7 +56,7 @@ const ROUTE_MAP: Record<string, { label: string; icon: React.ReactNode; parent?:
 const SIBLINGS: Record<string, { label: string; path: string; icon: React.ReactNode }[]> = {
   '/smartpos/dashboard': [
     { label: 'Dashboard', path: '/smartpos/dashboard', icon: <IconDashboard size={14} /> },
-    { label: 'POS Terminal', path: '/smartpos/pos', icon: <IconShoppingCart size={14} /> },
+    { label: 'POS Terminal', path: '/smartpos/sales/pos', icon: <IconShoppingCart size={14} /> },
   ],
   'catalog': [
     { label: 'Products', path: '/smartpos/products', icon: <IconPackage size={14} /> },
@@ -64,6 +65,7 @@ const SIBLINGS: Record<string, { label: string; path: string; icon: React.ReactN
   ],
   'sales': [
     { label: 'Sales Orders', path: '/smartpos/sales', icon: <IconReceipt size={14} /> },
+    { label: 'POS Terminal', path: '/smartpos/sales/pos', icon: <IconShoppingCart size={14} /> },
     { label: 'Quotations', path: '/smartpos/quotations', icon: <IconReceipt size={14} /> },
     { label: 'Returns', path: '/smartpos/returns', icon: <IconReceipt size={14} /> },
   ],

@@ -15,6 +15,7 @@ public interface BrandRepository extends JpaRepository<Brand, UUID> {
     @Query("""
            SELECT b FROM Brand b
            WHERE (COALESCE(:search, '') = '' OR LOWER(b.name) LIKE LOWER(CONCAT('%', :search, '%')))
+             AND b.tenantId = :tenantId
            """)
-    Page<Brand> search(@Param("search") String search, Pageable pageable);
+    Page<Brand> search(@Param("search") String search, @Param("tenantId") UUID tenantId, Pageable pageable);
 }

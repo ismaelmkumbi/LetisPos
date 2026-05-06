@@ -88,7 +88,16 @@ const NavCollapse = ({
 
   const handleFlyoutLeave = () => {
     if (!hideMenu) return;
-    closeTimerRef.current = setTimeout(() => setFlyoutAnchor(null), 200);
+    closeTimerRef.current = setTimeout(() => setFlyoutAnchor(null), 260);
+  };
+
+  const keepFlyoutOpen = () => {
+    if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+  };
+
+  const closeFlyoutSoon = () => {
+    if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+    closeTimerRef.current = setTimeout(() => setFlyoutAnchor(null), 260);
   };
 
   // menu collapse for sub-levels
@@ -280,6 +289,8 @@ const NavCollapse = ({
           anchorEl={flyoutAnchor}
           open={Boolean(flyoutAnchor)}
           onClose={() => setFlyoutAnchor(null)}
+          onMouseEnter={keepFlyoutOpen}
+          onMouseLeave={closeFlyoutSoon}
           title={t(`${menu.title}`)}
           titleIcon={menu.icon}
         >

@@ -3,6 +3,7 @@ package io.smartpos.sales.application;
 import io.smartpos.sales.api.dto.PosSettingDto;
 import io.smartpos.sales.domain.model.PosSetting;
 import io.smartpos.sales.domain.repository.PosSettingRepository;
+import io.smartpos.common.context.TenantContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -37,8 +38,9 @@ public class PosSettingService {
     // ── Reset to factory defaults ─────────────────────────────────────────────
 
     public PosSettingDto reset(UUID warehouseId) {
-        PosSetting existing = repo.findByWarehouseId(warehouseId).orElse(null);
-        PosSetting defaults = PosSetting.builder().warehouseId(warehouseId).build();
+        UUID tenantId = TenantContext.require();
+        PosSetting existing = repo.findByWarehouseId(warehouseId, tenantId).orElse(null);
+        PosSetting defaults = PosSetting.builder().warehouseId(warehouseId).tenantId(tenantId).build();
         if (existing != null) {
             defaults.setId(existing.getId());
             defaults.setCreatedAt(existing.getCreatedAt());
@@ -50,9 +52,10 @@ public class PosSettingService {
     // ── Internal helpers ──────────────────────────────────────────────────────
 
     private PosSetting findOrCreate(UUID warehouseId) {
-        return repo.findByWarehouseId(warehouseId)
+        UUID tenantId = TenantContext.require();
+        return repo.findByWarehouseId(warehouseId, tenantId)
                    .orElseGet(() -> repo.save(
-                       PosSetting.builder().warehouseId(warehouseId).build()));
+                       PosSetting.builder().warehouseId(warehouseId).tenantId(tenantId).build()));
     }
 
     /** Apply all non-null fields from the patch request onto the entity. */
