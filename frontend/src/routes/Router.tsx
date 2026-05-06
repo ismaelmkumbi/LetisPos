@@ -14,6 +14,9 @@ const BlankLayout = Loadable(lazy(() => import('../layouts/blank/BlankLayout')))
 const SmartPosDashboard = Loadable(lazy(() => import('../views/smartpos/dashboard/DashboardPage')));
 const SmartPosLogin = Loadable(lazy(() => import('../views/smartpos/auth/LoginPage')));
 const SmartPosPosTerminal = Loadable(lazy(() => import('../views/smartpos/pos/PosTerminalPage')));
+const SmartPosPosLaunch = Loadable(
+  lazy(() => import('../views/smartpos/pos/PosTerminalLaunchPage')),
+);
 const SmartPosProducts = Loadable(
   lazy(() => import('../views/smartpos/products/ProductsListPage')),
 );
@@ -24,12 +27,8 @@ const SmartPosSerials = Loadable(lazy(() => import('../views/smartpos/products/S
 const SmartPosCategories = Loadable(
   lazy(() => import('../views/smartpos/products/CategoriesListPage')),
 );
-const SmartPosBrands = Loadable(
-  lazy(() => import('../views/smartpos/products/BrandsListPage')),
-);
-const SmartPosUnits = Loadable(
-  lazy(() => import('../views/smartpos/products/UnitsListPage')),
-);
+const SmartPosBrands = Loadable(lazy(() => import('../views/smartpos/products/BrandsListPage')));
+const SmartPosUnits = Loadable(lazy(() => import('../views/smartpos/products/UnitsListPage')));
 const SmartPosBarcodes = Loadable(
   lazy(() => import('../views/smartpos/products/BarcodesListPage')),
 );
@@ -106,7 +105,20 @@ const SmartPosSuppliers = Loadable(
 const SmartPosWarehouses = Loadable(
   lazy(() => import('../views/smartpos/warehouses/WarehousesListPage')),
 );
+const SmartPosWarehouseDetail = Loadable(
+  lazy(() => import('../views/smartpos/warehouses/WarehouseDetailPage')),
+);
 const SmartPosStockLevels = Loadable(lazy(() => import('../views/smartpos/stock/StockLevelsPage')));
+const SmartPosStockAdjustments = Loadable(
+  lazy(() => import('../views/smartpos/stock/StockAdjustmentPage')),
+);
+const SmartPosStockTransfers = Loadable(
+  lazy(() => import('../views/smartpos/stock/StockTransferPage')),
+);
+const SmartPosStockCounts = Loadable(lazy(() => import('../views/smartpos/stock/StockCountPage')));
+const SmartPosStockCountDetail = Loadable(
+  lazy(() => import('../views/smartpos/stock/StockCountDetailPage')),
+);
 const SmartPosSales = Loadable(lazy(() => import('../views/smartpos/sales/SalesListPage')));
 const SmartPosSaleBuilder = Loadable(lazy(() => import('../views/smartpos/sales/SaleBuilderPage')));
 const SmartPosQuotations = Loadable(
@@ -124,6 +136,14 @@ const SmartPosPayments = Loadable(lazy(() => import('../views/smartpos/money/Pay
 const SmartPosExpenses = Loadable(lazy(() => import('../views/smartpos/money/ExpensesListPage')));
 const SmartPosTransfers = Loadable(lazy(() => import('../views/smartpos/money/TransfersListPage')));
 const SmartPosReports = Loadable(lazy(() => import('../views/smartpos/reports/ReportsPage')));
+const SmartPosReportsHub = Loadable(lazy(() => import('../views/smartpos/reports/ReportsHubPage')));
+const SmartPosSalesReport = Loadable(lazy(() => import('../views/smartpos/reports/SalesReportPage')));
+const SmartPosProfitLoss = Loadable(lazy(() => import('../views/smartpos/reports/ProfitLossPage')));
+const SmartPosInventoryReport = Loadable(lazy(() => import('../views/smartpos/reports/InventoryReportPage')));
+const SmartPosTaxReport = Loadable(lazy(() => import('../views/smartpos/reports/TaxReportPage')));
+const SmartPosPurchaseReport = Loadable(lazy(() => import('../views/smartpos/reports/PurchaseReportPage')));
+const SmartPosPaymentReport = Loadable(lazy(() => import('../views/smartpos/reports/PaymentReportPage')));
+const SmartPosCustomerReport = Loadable(lazy(() => import('../views/smartpos/reports/CustomerReportPage')));
 const SmartPosSettings = Loadable(
   lazy(() => import('../views/smartpos/settings/SettingsPlaceholder')),
 );
@@ -145,6 +165,13 @@ const SmartPosLocale = Loadable(
   lazy(() =>
     import('../views/smartpos/settings/SettingsPlaceholder').then((m) => ({
       default: m.LocaleSettings,
+    })),
+  ),
+);
+const SmartPosOnboarding = Loadable(
+  lazy(() =>
+    import('../views/smartpos/settings/SettingsPlaceholder').then((m) => ({
+      default: m.OnboardingSettings,
     })),
   ),
 );
@@ -352,14 +379,14 @@ const Router = [
           { path: '', element: <SmartPosProducts /> },
           { path: 'new', element: <SmartPosProductDetail /> },
           { path: 'categories', element: <SmartPosCategories /> },
-          { path: 'brands',     element: <SmartPosBrands /> },
-          { path: 'units',      element: <SmartPosUnits /> },
-          { path: 'barcodes',    element: <SmartPosBarcodes /> },
-          { path: 'serials',    element: <SmartPosSerials /> },
-          { path: 'count-stock',  element: <SmartPosCountStock /> },
+          { path: 'brands', element: <SmartPosBrands /> },
+          { path: 'units', element: <SmartPosUnits /> },
+          { path: 'barcodes', element: <SmartPosBarcodes /> },
+          { path: 'serials', element: <SmartPosSerials /> },
+          { path: 'count-stock', element: <SmartPosCountStock /> },
           { path: 'opening-stock', element: <SmartPosOpeningStock /> },
           { path: 'import-update', element: <SmartPosImportUpdate /> },
-          { path: 'print-labels',  element: <SmartPosPrintLabels /> },
+          { path: 'print-labels', element: <SmartPosPrintLabels /> },
           { path: ':id', element: <SmartPosProductDetail /> },
           { path: ':id/edit', element: <SmartPosProductDetail /> },
         ],
@@ -396,9 +423,15 @@ const Router = [
       { path: 'customers', element: <SmartPosCustomers /> },
       { path: 'suppliers', element: <SmartPosSuppliers /> },
       { path: 'warehouses', element: <SmartPosWarehouses /> },
+      { path: 'warehouses/:id', element: <SmartPosWarehouseDetail /> },
       { path: 'stock', element: <SmartPosStockLevels /> },
+      { path: 'stock/adjustments', element: <SmartPosStockAdjustments /> },
+      { path: 'stock/transfers', element: <SmartPosStockTransfers /> },
+      { path: 'stock/counts', element: <SmartPosStockCounts /> },
+      { path: 'stock/counts/:id', element: <SmartPosStockCountDetail /> },
       // Sales
       { path: 'sales', element: <SmartPosSales /> },
+      { path: 'sales/pos', element: <SmartPosPosLaunch /> },
       { path: 'sales/new', element: <SmartPosSaleBuilder /> },
       { path: 'sales/:id/edit', element: <SmartPosSaleBuilder /> },
       { path: 'quotations', element: <SmartPosQuotations /> },
@@ -412,14 +445,22 @@ const Router = [
       { path: 'payments', element: <SmartPosPayments /> },
       { path: 'expenses', element: <SmartPosExpenses /> },
       { path: 'transfers', element: <SmartPosTransfers /> },
-      // Reports
-      { path: 'reports', element: <SmartPosReports /> },
-      { path: 'exports', element: <SmartPosReports /> },
+      // Reports hub + individual report pages
+      { path: 'reports', element: <SmartPosReportsHub /> },
+      { path: 'reports/sales', element: <SmartPosSalesReport /> },
+      { path: 'reports/profit-loss', element: <SmartPosProfitLoss /> },
+      { path: 'reports/inventory', element: <SmartPosInventoryReport /> },
+      { path: 'reports/tax', element: <SmartPosTaxReport /> },
+      { path: 'reports/purchases', element: <SmartPosPurchaseReport /> },
+      { path: 'reports/payments', element: <SmartPosPaymentReport /> },
+      { path: 'reports/customers', element: <SmartPosCustomerReport /> },
+      { path: 'reports/exports', element: <SmartPosReports /> },
       // Settings
       { path: 'settings', element: <SmartPosSettings /> },
       { path: 'settings/users', element: <SmartPosUsersRoles /> },
       { path: 'settings/tenants', element: <SmartPosTenants /> },
       { path: 'settings/locale', element: <SmartPosLocale /> },
+      { path: 'settings/onboarding', element: <SmartPosOnboarding /> },
     ],
   },
   // ---- Modernize demo (left intact while we build; can be stripped later) ----

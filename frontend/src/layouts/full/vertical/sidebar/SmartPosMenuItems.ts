@@ -1,8 +1,8 @@
 /**
  * SmartPOS sidebar navigation.
  *
- * Menu is organised by POS workflow priority:
- *   Daily Operations → Catalog → Commerce → Finance → Reports → Administration
+ * Menu is organised by user workflow:
+ *   Operate → Inventory → People → Money → Insight → Workspace
  *
  * Titles are i18n keys resolved via the `smartpos` namespace so the menu
  * live-switches language along with the rest of the UI.
@@ -80,20 +80,25 @@ export function buildSmartPosMenu(t: TFunction): MenuItem[] {
   const uid = () => `smp-${++n}`;
 
   return [
-    // ── Daily Operations ──────────────────────────────────────────────
-    { subheader: t('smartpos:nav.daily_ops') },
+    // ── Operate ───────────────────────────────────────────────────────
+    { subheader: 'Operate' },
     { id: uid(), title: t('smartpos:nav.dashboard'),  icon: IconDashboard,    href: '/smartpos/dashboard' },
-    { id: uid(), title: t('smartpos:nav.pos_terminal'), icon: IconCashRegister, href: '/smartpos/pos',
-      chip: 'LIVE', chipColor: 'secondary' },
-    { id: uid(), title: t('smartpos:nav.sales'),        icon: IconReceipt,      href: '/smartpos/sales' },
-    { id: uid(), title: t('smartpos:nav.quotations'),   icon: IconFileInvoice,  href: '/smartpos/quotations' },
-    { id: uid(), title: t('smartpos:nav.returns'),      icon: IconArrowBackUp,  href: '/smartpos/returns' },
-    { id: uid(), title: t('smartpos:nav.recurring_invoices'), icon: IconRepeat, href: '/smartpos/recurring-invoices' },
-
-    // ── Catalog & Inventory ───────────────────────────────────────────
-    { subheader: t('smartpos:nav.catalog') },
     {
-      id: uid(), title: t('smartpos:nav.products'), icon: IconPackage,
+      id: uid(), title: 'Sales Desk', icon: IconReceipt,
+      children: [
+        { id: uid(), title: t('smartpos:nav.pos_terminal'), icon: IconCashRegister, href: '/smartpos/sales/pos',
+          chip: 'LIVE', chipColor: 'secondary' },
+        { id: uid(), title: t('smartpos:nav.sales'),        icon: IconReceipt,      href: '/smartpos/sales' },
+        { id: uid(), title: t('smartpos:nav.quotations'),   icon: IconFileInvoice,  href: '/smartpos/quotations' },
+        { id: uid(), title: t('smartpos:nav.returns'),      icon: IconArrowBackUp,  href: '/smartpos/returns' },
+        { id: uid(), title: t('smartpos:nav.recurring_invoices'), icon: IconRepeat, href: '/smartpos/recurring-invoices' },
+      ],
+    },
+
+    // ── Inventory ─────────────────────────────────────────────────────
+    { subheader: 'Inventory' },
+    {
+      id: uid(), title: 'Catalog', icon: IconPackage,
       children: [
         { id: uid(), title: 'All Products', icon: IconPackage, href: '/smartpos/products' },
         { id: uid(), title: t('smartpos:nav.categories'), icon: IconTag, href: '/smartpos/products/categories' },
@@ -107,17 +112,29 @@ export function buildSmartPosMenu(t: TFunction): MenuItem[] {
         { id: uid(), title: 'Print Labels',                icon: IconPrinter, href: '/smartpos/products/print-labels' },
       ],
     },
-    { id: uid(), title: t('smartpos:nav.stock'),      icon: IconBox,                href: '/smartpos/stock' },
-    { id: uid(), title: t('smartpos:nav.warehouses'), icon: IconBuildingWarehouse,  href: '/smartpos/warehouses' },
+    { id: uid(), title: t('smartpos:nav.warehouses'), icon: IconBuildingWarehouse,
+      children: [
+        { id: uid(), title: 'All Warehouses', icon: IconBuildingWarehouse, href: '/smartpos/warehouses' },
+        { id: uid(), title: 'Stock Levels',  icon: IconBox,               href: '/smartpos/stock' },
+      ],
+    },
+    {
+      id: uid(), title: 'Stock Operations', icon: IconBox,
+      children: [
+        { id: uid(), title: 'Adjustments',  icon: IconAdjustmentsAlt, href: '/smartpos/stock/adjustments' },
+        { id: uid(), title: 'Transfers',    icon: IconArrowsTransferDown, href: '/smartpos/stock/transfers' },
+        { id: uid(), title: 'Stock Counts', icon: IconClipboardCheck, href: '/smartpos/stock/counts' },
+      ],
+    },
 
-    // ── Commerce ──────────────────────────────────────────────────────
-    { subheader: t('smartpos:nav.commerce') },
+    // ── People ────────────────────────────────────────────────────────
+    { subheader: 'People' },
     { id: uid(), title: t('smartpos:nav.customers'),  icon: IconUsers,       href: '/smartpos/customers' },
     { id: uid(), title: t('smartpos:nav.suppliers'),  icon: IconTruck,       href: '/smartpos/suppliers' },
-    { id: uid(), title: t('smartpos:nav.purchases'),  icon: IconShoppingCart, href: '/smartpos/purchases' },
 
-    // ── Finance ───────────────────────────────────────────────────────
-    { subheader: t('smartpos:nav.finance') },
+    // ── Money ─────────────────────────────────────────────────────────
+    { subheader: 'Money' },
+    { id: uid(), title: t('smartpos:nav.purchases'),  icon: IconShoppingCart, href: '/smartpos/purchases' },
     { id: uid(), title: t('smartpos:nav.payments'),  icon: IconCoin,     href: '/smartpos/payments' },
     { id: uid(), title: t('smartpos:nav.accounts'),  icon: IconWallet,   href: '/smartpos/accounts' },
     { id: uid(), title: t('smartpos:nav.expenses'),  icon: IconReceipt2, href: '/smartpos/expenses' },
@@ -131,20 +148,27 @@ export function buildSmartPosMenu(t: TFunction): MenuItem[] {
       ],
     },
 
-    // ── Reports & Insights ────────────────────────────────────────────
-    { subheader: t('smartpos:nav.reports_group_header') },
+    // ── Insight ───────────────────────────────────────────────────────
+    { subheader: 'Insight' },
+    { id: uid(), title: 'Reports Hub', icon: IconChartBar, href: '/smartpos/reports' },
     {
-      id: uid(), title: t('smartpos:nav.reports_group'), icon: IconChartBar,
+      id: uid(), title: 'Reports', icon: IconChartBar,
       children: [
-        { id: uid(), title: t('smartpos:nav.reports'),           icon: IconChartBar,         href: '/smartpos/reports' },
-        { id: uid(), title: t('smartpos:nav.advanced_reports'),  icon: IconChartInfographic, href: '/smartpos/reports/advanced' },
-        { id: uid(), title: t('smartpos:nav.ai_insights'),       icon: IconSparkles,         href: '/smartpos/ai', chip: 'AI', chipColor: 'secondary' },
-        { id: uid(), title: t('smartpos:nav.async_exports'),     icon: IconDownload,         href: '/smartpos/exports' },
+        { id: uid(), title: 'Sales Report',        icon: IconChartBar,         href: '/smartpos/reports/sales' },
+        { id: uid(), title: 'Profit & Loss',        icon: IconReceipt,          href: '/smartpos/reports/profit-loss' },
+        { id: uid(), title: 'Inventory Report',     icon: IconPackage,          href: '/smartpos/reports/inventory' },
+        { id: uid(), title: 'Tax Report',           icon: IconPercentage,       href: '/smartpos/reports/tax' },
+        { id: uid(), title: 'Purchase Report',      icon: IconShoppingCart,     href: '/smartpos/reports/purchases' },
+        { id: uid(), title: 'Payment Report',       icon: IconCoin,             href: '/smartpos/reports/payments' },
+        { id: uid(), title: 'Customer Report',      icon: IconUsers,            href: '/smartpos/reports/customers' },
+        { id: uid(), title: 'Advanced Reports',     icon: IconChartInfographic, href: '/smartpos/reports/advanced' },
+        { id: uid(), title: 'Async Exports',        icon: IconDownload,         href: '/smartpos/reports/exports' },
       ],
     },
+    { id: uid(), title: t('smartpos:nav.ai_insights'), icon: IconSparkles, href: '/smartpos/ai', chip: 'AI', chipColor: 'secondary' },
 
-    // ── Administration ────────────────────────────────────────────────
-    { subheader: t('smartpos:nav.administration') },
+    // ── Workspace ─────────────────────────────────────────────────────
+    { subheader: 'Workspace' },
     {
       id: uid(), title: t('smartpos:nav.settings'), icon: IconSettings,
       children: [
@@ -158,6 +182,7 @@ export function buildSmartPosMenu(t: TFunction): MenuItem[] {
         { id: uid(), title: t('smartpos:nav.tenants'),            icon: IconBuilding,        href: '/smartpos/settings/tenants' },
         { id: uid(), title: t('smartpos:nav.localization'),       icon: IconWorld,           href: '/smartpos/settings/locale' },
         { id: uid(), title: t('smartpos:nav.languages_admin'),    icon: IconLanguage,        href: '/smartpos/settings/i18n' },
+        { id: uid(), title: t('smartpos:nav.pos_terminals'),      icon: IconDeviceDesktop,   href: '/smartpos/pos/terminals' },
       ],
     },
     {
@@ -177,7 +202,6 @@ export function buildSmartPosMenu(t: TFunction): MenuItem[] {
       ],
     },
     { id: uid(), title: t('smartpos:nav.integrations'), icon: IconPlug, href: '/smartpos/integrations' },
-    { id: uid(), title: t('smartpos:nav.pos_terminals'), icon: IconDeviceDesktop, href: '/smartpos/pos/terminals' },
   ];
 }
 
