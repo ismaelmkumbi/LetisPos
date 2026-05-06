@@ -220,13 +220,141 @@ export async function getSalesByDimension(params: {
   return data;
 }
 
+// ---------- Tax summary ----------
+
+export interface TaxByRate {
+  rate: number;
+  taxAmount: number;
+  taxableAmount: number;
+  count: number;
+}
+
+export interface TaxByCategory {
+  categoryName: string;
+  taxAmount: number;
+  taxableAmount: number;
+  count: number;
+}
+
+export interface TaxSummary {
+  from: string;
+  to: string;
+  totalTax: number;
+  taxableSales: number;
+  transactionCount: number;
+  byRate: TaxByRate[];
+  byCategory: TaxByCategory[];
+}
+
+export async function getTaxSummary(params: {
+  dateFrom?: string; dateTo?: string;
+} = {}): Promise<TaxSummary> {
+  const { data } = await api.get<TaxSummary>('/api/v1/reports/tax-summary', { params });
+  return data;
+}
+
+// ---------- Purchase summary ----------
+
+export interface PurchaseSummary {
+  from: string; to: string;
+  count: number; gross: number; paid: number; due: number;
+  avgPurchase: number;
+  series: { date: string; net: number; count: number }[];
+  topSuppliers: TopSupplier[];
+}
+
+export interface TopSupplier {
+  supplierId: UUID; supplierName: string;
+  orderCount: number; totalSpent: number;
+}
+
+export async function getPurchaseSummary(params: {
+  dateFrom?: string; dateTo?: string; warehouseId?: UUID;
+} = {}): Promise<PurchaseSummary> {
+  const { data } = await api.get<PurchaseSummary>('/api/v1/reports/purchases/summary', { params });
+  return data;
+}
+
+// ---------- Payment summary ----------
+
+export interface PaymentMethodRow {
+  method: string; total: number; count: number;
+}
+
+export interface PaymentSummary {
+  from: string; to: string;
+  totalCount: number;
+  totalIn: number; totalOut: number; netFlow: number;
+  outstanding: number;
+  inflowSeries: { date: string; net: number; count: number }[];
+  byMethod: PaymentMethodRow[];
+}
+
+export async function getPaymentSummary(params: {
+  dateFrom?: string; dateTo?: string;
+} = {}): Promise<PaymentSummary> {
+  const { data } = await api.get<PaymentSummary>('/api/v1/reports/payments/summary', { params });
+  return data;
+}
+
+// ---------- Customer summary ----------
+
+export interface TopCustomerDetail {
+  customerId: UUID; customerName: string | null;
+  orderCount: number; totalSpent: number;
+  lastPurchase: string | null;
+}
+
+export interface FrequencyBucket {
+  label: string; customerCount: number; revenueShare: number;
+}
+
+export interface CustomerSummary {
+  from: string; to: string;
+  totalCustomers: number; activeCustomers: number; newCustomers: number;
+  totalRevenue: number; avgRevenuePerCustomer: number;
+  topCustomers: TopCustomerDetail[];
+  frequencyDistribution: FrequencyBucket[];
+}
+
+export async function getCustomerSummary(params: {
+  dateFrom?: string; dateTo?: string;
+} = {}): Promise<CustomerSummary> {
+  const { data } = await api.get<CustomerSummary>('/api/v1/reports/customers/summary', { params });
+  return data;
+}
+
+// ---------- Employee sales ----------
+
+export interface EmployeeSalesRow {
+  employeeId: UUID; employeeName: string;
+  saleCount: number; totalNet: number;
+  totalGross: number; itemsSold: number;
+}
+
+export interface EmployeeSales {
+  from: string; to: string;
+  rows: EmployeeSalesRow[];
+}
+
+export async function getEmployeeSales(params: {
+  dateFrom?: string; dateTo?: string;
+} = {}): Promise<EmployeeSales> {
+  const { data } = await api.get<EmployeeSales>('/api/v1/reports/sales/by-employee', { params });
+  return data;
+}
+
 // ---------- Exports (sync) ----------
 
 export type ExportFormat = 'PDF' | 'XLSX' | 'CSV';
 export type ExportReportKey =
   | 'sales-summary-series'
   | 'sales-top-products'
-  | 'sales-top-customers';
+  | 'sales-top-customers'
+  | 'tax-summary'
+  | 'purchases-summary'
+  | 'payments-summary'
+  | 'customers-summary';
 
 /**
  * Triggers a synchronous export and returns the file as a Blob (ready for
