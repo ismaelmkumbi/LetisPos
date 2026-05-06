@@ -2,15 +2,18 @@ import React, {
   createContext, useCallback, useContext, useEffect, useMemo, useState,
 } from 'react';
 import {
-  CurrentUser, fetchMe, fetchMyProfile, login as apiLogin, logout as apiLogout,
+  CurrentUser, fetchMe, fetchMyProfile, fetchTenants, login as apiLogin, logout as apiLogout,
+  type Tenant,
 } from 'src/api/smartpos/auth';
 import { tokenStore } from 'src/api/smartpos/client';
 
 interface AuthContextValue {
   user: CurrentUser | null;
   loading: boolean;
+  tenants: Tenant[];
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  switchTenant: (tenantId: string) => Promise<void>;
   hasPermission: (perm: string) => boolean;
   hasRole: (role: string) => boolean;
   refreshMe: () => Promise<void>;
@@ -21,6 +24,7 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 export function SmartPosAuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<CurrentUser | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [tenants, setTenants] = useState<Tenant[]>([]);
 
   const loadMe = useCallback(async () => {
     if (!tokenStore.get()) { setUser(null); return; }
@@ -28,16 +32,13 @@ export function SmartPosAuthProvider({ children }: { children: React.ReactNode }
     try {
       me = await fetchMe();
     } catch {
-      // auth/me failing means the token is invalid — clear and bail.
       tokenStore.clear();
       setUser(null);
       return;
     }
-    // Profile enrichment is best-effort. If the user-service is unreachable
-    // or the profile row isn't provisioned yet (e.g. the admin hasn't been
-    // propagated from auth-service via the UserRegistered event), we still
-    // log the user in with the auth-derived fields — they just won't have
-    // warehouse scoping / extended permissions until the profile arrives.
+    // Persist the signed-token tenant for UI state only; requests use the JWT.
+    tokenStore.setTenantId(me.tenantId || null);
+
     try {
       const profile = await fetchMyProfile(me.id);
       setUser({ ...me, ...profile });
@@ -50,6 +51,15 @@ export function SmartPosAuthProvider({ children }: { children: React.ReactNode }
   useEffect(() => {
     (async () => {
       await loadMe();
+
+      // Load available tenants for the switcher
+      try {
+        const list = await fetchTenants();
+        setTenants(list);
+      } catch {
+        // Tenant list is non-critical — user can still work with their default tenant
+      }
+
       setLoading(false);
     })();
     const onLogout = () => setUser(null);
@@ -60,12 +70,23 @@ export function SmartPosAuthProvider({ children }: { children: React.ReactNode }
   const login = useCallback(async (email: string, password: string) => {
     await apiLogin(email, password);
     await loadMe();
+    // Reload tenants after login
+    try {
+      const list = await fetchTenants();
+      setTenants(list);
+    } catch { /* non-critical */ }
   }, [loadMe]);
 
   const logout = useCallback(async () => {
     await apiLogout();
     setUser(null);
+    setTenants([]);
   }, []);
+
+  const switchTenant = useCallback(async (tenantId: string) => {
+    if (!tenantId || tenantId === user?.tenantId) return;
+    await loadMe();
+  }, [loadMe, user?.tenantId]);
 
   const hasPermission = useCallback((perm: string) => {
     return !!user?.permissions?.includes(perm);
@@ -76,8 +97,8 @@ export function SmartPosAuthProvider({ children }: { children: React.ReactNode }
   }, [user]);
 
   const value = useMemo<AuthContextValue>(() => ({
-    user, loading, login, logout, hasPermission, hasRole, refreshMe: loadMe,
-  }), [user, loading, login, logout, hasPermission, hasRole, loadMe]);
+    user, loading, tenants, login, logout, switchTenant, hasPermission, hasRole, refreshMe: loadMe,
+  }), [user, loading, tenants, login, logout, switchTenant, hasPermission, hasRole, loadMe]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

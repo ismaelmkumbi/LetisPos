@@ -2,6 +2,7 @@ package io.smartpos.sales.application;
 
 import io.smartpos.sales.domain.model.PaymentStatus;
 import io.smartpos.sales.domain.model.SaleStatus;
+import io.smartpos.common.context.TenantContext;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.Tuple;
 import lombok.RequiredArgsConstructor;
@@ -47,6 +48,7 @@ public class StatsService {
                    COALESCE(SUM(s.paidTotal), 0)
             FROM Sale s
             WHERE s.status = :status
+              AND s.tenantId = :tenantId
               AND (CAST(:dateFrom    AS java.time.LocalDate) IS NULL OR s.date >= :dateFrom)
               AND (CAST(:dateTo      AS java.time.LocalDate) IS NULL OR s.date <= :dateTo)
               AND (CAST(:warehouseId AS java.util.UUID)      IS NULL OR s.warehouseId = :warehouseId)
@@ -54,6 +56,7 @@ public class StatsService {
             """;
         Object[] row = (Object[]) em.createQuery(jpql)
                 .setParameter("status", SaleStatus.CONFIRMED)
+                .setParameter("tenantId", TenantContext.require())
                 .setParameter("dateFrom", from)
                 .setParameter("dateTo", to)
                 .setParameter("warehouseId", warehouseId)
@@ -79,6 +82,7 @@ public class StatsService {
                    COALESCE(SUM(l.lineTotal), 0)
             FROM SaleLine l, Sale s
             WHERE s.id = l.saleId AND s.status = :status
+              AND s.tenantId = :tenantId
               AND (CAST(:dateFrom    AS java.time.LocalDate) IS NULL OR s.date >= :dateFrom)
               AND (CAST(:dateTo      AS java.time.LocalDate) IS NULL OR s.date <= :dateTo)
               AND (CAST(:warehouseId AS java.util.UUID)      IS NULL OR s.warehouseId = :warehouseId)
@@ -91,6 +95,7 @@ public class StatsService {
         @SuppressWarnings("unchecked")
         List<Object[]> rows = em.createQuery(jpql)
                 .setParameter("status", SaleStatus.CONFIRMED)
+                .setParameter("tenantId", TenantContext.require())
                 .setParameter("dateFrom", from)
                 .setParameter("dateTo", to)
                 .setParameter("warehouseId", warehouseId)
@@ -113,6 +118,7 @@ public class StatsService {
                    COUNT(s)
             FROM Sale s
             WHERE s.status = :status AND s.customerId IS NOT NULL
+              AND s.tenantId = :tenantId
               AND (CAST(:dateFrom AS java.time.LocalDate) IS NULL OR s.date >= :dateFrom)
               AND (CAST(:dateTo   AS java.time.LocalDate) IS NULL OR s.date <= :dateTo)
             GROUP BY s.customerId
@@ -121,6 +127,7 @@ public class StatsService {
         @SuppressWarnings("unchecked")
         List<Object[]> rows = em.createQuery(jpql)
                 .setParameter("status", SaleStatus.CONFIRMED)
+                .setParameter("tenantId", TenantContext.require())
                 .setParameter("dateFrom", from)
                 .setParameter("dateTo", to)
                 .setMaxResults(Math.max(1, Math.min(limit, 100)))
@@ -142,6 +149,7 @@ public class StatsService {
                    COUNT(s)
             FROM Sale s
             WHERE s.status = :status
+              AND s.tenantId = :tenantId
               AND (CAST(:dateFrom    AS java.time.LocalDate) IS NULL OR s.date >= :dateFrom)
               AND (CAST(:dateTo      AS java.time.LocalDate) IS NULL OR s.date <= :dateTo)
               AND (CAST(:warehouseId AS java.util.UUID)      IS NULL OR s.warehouseId = :warehouseId)
@@ -151,6 +159,7 @@ public class StatsService {
         @SuppressWarnings("unchecked")
         List<Object[]> rows = em.createQuery(jpql)
                 .setParameter("status", SaleStatus.CONFIRMED)
+                .setParameter("tenantId", TenantContext.require())
                 .setParameter("dateFrom", from)
                 .setParameter("dateTo", to)
                 .setParameter("warehouseId", warehouseId)
@@ -173,11 +182,13 @@ public class StatsService {
                    COALESCE(SUM(p.grandTotal), 0),
                    COALESCE(SUM(p.paidTotal), 0)
             FROM Purchase p
-            WHERE (CAST(:dateFrom    AS java.time.LocalDate) IS NULL OR p.date >= :dateFrom)
+            WHERE p.tenantId = :tenantId
+              AND (CAST(:dateFrom    AS java.time.LocalDate) IS NULL OR p.date >= :dateFrom)
               AND (CAST(:dateTo      AS java.time.LocalDate) IS NULL OR p.date <= :dateTo)
               AND (CAST(:warehouseId AS java.util.UUID)      IS NULL OR p.warehouseId = :warehouseId)
             """;
         Object[] row = (Object[]) em.createQuery(jpql)
+                .setParameter("tenantId", TenantContext.require())
                 .setParameter("dateFrom", from)
                 .setParameter("dateTo", to)
                 .setParameter("warehouseId", warehouseId)

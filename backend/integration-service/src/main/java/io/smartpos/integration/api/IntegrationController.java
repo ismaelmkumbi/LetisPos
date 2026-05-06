@@ -1,5 +1,6 @@
 package io.smartpos.integration.api;
 
+import io.smartpos.common.context.TenantContext;
 import io.smartpos.integration.application.qb.QuickBooksService;
 import io.smartpos.integration.application.woo.WooCommerceService;
 import io.smartpos.integration.application.zatca.ZatcaService;
@@ -30,7 +31,7 @@ public class IntegrationController {
     public Page<IntegrationSync> listSyncs(@RequestParam(required = false) String provider,
                                            @RequestParam(required = false) String status,
                                            Pageable pageable) {
-        return syncRepo.search(provider, status, pageable);
+        return syncRepo.search(provider, status, TenantContext.require(), pageable);
     }
 
     // ----- ZATCA -----

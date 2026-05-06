@@ -1,5 +1,6 @@
 package io.smartpos.payment.application;
 
+import io.smartpos.common.context.TenantContext;
 import io.smartpos.payment.api.dto.JournalEntryDto;
 import io.smartpos.payment.domain.model.ChartOfAccount;
 import io.smartpos.payment.domain.model.JournalEntry;
@@ -37,7 +38,7 @@ public class JournalEntryService {
     @Transactional(readOnly = true)
     public Page<JournalEntryDto> search(JournalStatus status, LocalDate from, LocalDate to,
                                         String source, Pageable pageable) {
-        return repo.search(status, from, to, source, pageable).map(JournalEntryDto::from);
+        return repo.search(status, from, to, source, TenantContext.require(), pageable).map(JournalEntryDto::from);
     }
 
     @Transactional(readOnly = true)
@@ -48,7 +49,8 @@ public class JournalEntryService {
 
     @Transactional
     public JournalEntryDto create(JournalEntryDto.CreateRequest req) {
-        if (repo.existsByRefIgnoreCase(req.ref())) {
+        UUID tenantId = TenantContext.require();
+        if (repo.existsByRefIgnoreCaseAndTenantId(req.ref(), tenantId)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Journal ref already exists");
         }
         JournalEntry je = JournalEntry.builder()
@@ -58,6 +60,7 @@ public class JournalEntryService {
                 .source(req.source() == null ? "MANUAL" : req.source())
                 .sourceRef(req.sourceRef())
                 .status(JournalStatus.DRAFT)
+                .tenantId(tenantId)
                 .build();
 
         addLines(je, req.lines());
@@ -135,6 +138,11 @@ public class JournalEntryService {
             ChartOfAccount acc = accountRepo.findById(in.accountId())
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
                             "Account not found: " + in.accountId()));
+            // Verify account belongs to same tenant as the journal entry
+            if (je.getTenantId() != null && !je.getTenantId().equals(acc.getTenantId())) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "Account " + acc.getCode() + " does not belong to the same tenant");
+            }
             if (!acc.isPostable()) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                         "Account " + acc.getCode() + " is a summary account; pick a leaf");

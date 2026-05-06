@@ -10,11 +10,11 @@ import java.util.UUID;
 
 public interface ChartOfAccountRepository extends JpaRepository<ChartOfAccount, UUID> {
 
-    Optional<ChartOfAccount> findByCodeIgnoreCase(String code);
+    Optional<ChartOfAccount> findByCodeIgnoreCaseAndTenantId(String code, UUID tenantId);
 
-    boolean existsByCodeIgnoreCase(String code);
+    boolean existsByCodeIgnoreCaseAndTenantId(String code, UUID tenantId);
 
-    List<ChartOfAccount> findByAccountClassOrderByCodeAsc(AccountClass accountClass);
+    List<ChartOfAccount> findByAccountClassAndTenantIdOrderByCodeAsc(AccountClass accountClass, UUID tenantId);
 
-    List<ChartOfAccount> findByActiveTrueOrderByCodeAsc();
+    List<ChartOfAccount> findByActiveTrueAndTenantIdOrderByCodeAsc(UUID tenantId);
 }

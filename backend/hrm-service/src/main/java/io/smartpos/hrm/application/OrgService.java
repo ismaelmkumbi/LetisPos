@@ -1,5 +1,6 @@
 package io.smartpos.hrm.application;
 
+import io.smartpos.common.context.TenantContext;
 import io.smartpos.hrm.api.dto.OrgDtos.*;
 import io.smartpos.hrm.domain.model.*;
 import io.smartpos.hrm.domain.repository.DepartmentRepository;
@@ -43,7 +44,8 @@ public class OrgService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Department exists");
         }
         return DepartmentDto.from(deptRepo.save(Department.builder()
-                .name(req.name()).description(req.description()).build()));
+                .name(req.name()).description(req.description())
+                .tenantId(TenantContext.require()).build()));
     }
     @Transactional
     public void deleteDepartment(UUID id) { deptRepo.deleteById(id); }
@@ -51,14 +53,14 @@ public class OrgService {
     // -------- designations --------
     @Transactional(readOnly = true)
     public List<DesignationDto> listDesignations(UUID departmentId) {
-        return (departmentId == null ? desigRepo.findAll() : desigRepo.findByDepartmentId(departmentId))
+        return (departmentId == null ? desigRepo.findAll() : desigRepo.findByDepartmentId(departmentId, TenantContext.require()))
                 .stream().map(DesignationDto::from).toList();
     }
     @Transactional
     public DesignationDto createDesignation(DesignationDto.CreateRequest req) {
         return DesignationDto.from(desigRepo.save(Designation.builder()
                 .name(req.name()).departmentId(req.departmentId())
-                .description(req.description()).build()));
+                .description(req.description()).tenantId(TenantContext.require()).build()));
     }
     @Transactional
     public void deleteDesignation(UUID id) { desigRepo.deleteById(id); }
@@ -71,7 +73,8 @@ public class OrgService {
     @Transactional
     public ShiftDto createShift(ShiftDto.CreateRequest req) {
         return ShiftDto.from(shiftRepo.save(OfficeShift.builder()
-                .name(req.name()).startTime(req.startTime()).endTime(req.endTime()).build()));
+                .name(req.name()).startTime(req.startTime()).endTime(req.endTime())
+                .tenantId(TenantContext.require()).build()));
     }
     @Transactional
     public void deleteShift(UUID id) { shiftRepo.deleteById(id); }
@@ -80,7 +83,7 @@ public class OrgService {
     @Transactional(readOnly = true)
     public List<HolidayDto> listHolidays(LocalDate from, LocalDate to) {
         if (from != null && to != null) {
-            return holidayRepo.findByHolidayDateBetween(from, to)
+            return holidayRepo.findByHolidayDateBetween(from, to, TenantContext.require())
                     .stream().map(HolidayDto::from).toList();
         }
         return holidayRepo.findAll().stream().map(HolidayDto::from).toList();
@@ -88,7 +91,8 @@ public class OrgService {
     @Transactional
     public HolidayDto createHoliday(HolidayDto.CreateRequest req) {
         return HolidayDto.from(holidayRepo.save(Holiday.builder()
-                .name(req.name()).holidayDate(req.holidayDate()).description(req.description()).build()));
+                .name(req.name()).holidayDate(req.holidayDate()).description(req.description())
+                .tenantId(TenantContext.require()).build()));
     }
     @Transactional
     public void deleteHoliday(UUID id) { holidayRepo.deleteById(id); }
@@ -102,7 +106,8 @@ public class OrgService {
     public LeaveTypeDto createLeaveType(LeaveTypeDto.CreateRequest req) {
         return LeaveTypeDto.from(leaveTypeRepo.save(LeaveType.builder()
                 .name(req.name()).daysPerYear(req.daysPerYear())
-                .paid(req.paid() == null || req.paid()).build()));
+                .paid(req.paid() == null || req.paid())
+                .tenantId(TenantContext.require()).build()));
     }
     @Transactional
     public void deleteLeaveType(UUID id) { leaveTypeRepo.deleteById(id); }

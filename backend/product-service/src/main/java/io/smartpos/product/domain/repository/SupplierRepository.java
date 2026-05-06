@@ -18,8 +18,10 @@ public interface SupplierRepository extends JpaRepository<Supplier, UUID> {
                   LOWER(s.phone) LIKE LOWER(CONCAT('%', :search, '%')) OR
                   LOWER(s.email) LIKE LOWER(CONCAT('%', :search, '%')))
              AND (:active IS NULL OR s.active = :active)
+             AND s.tenantId = :tenantId
            """)
-    Page<Supplier> search(@Param("search") String search,
-                          @Param("active") Boolean active,
+    Page<Supplier> search(@Param("search")   String search,
+                          @Param("active")   Boolean active,
+                          @Param("tenantId") UUID tenantId,
                           Pageable pageable);
 }

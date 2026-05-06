@@ -8,9 +8,7 @@
  *   LocaleSettings       — /smartpos/settings/locale
  *   SettingsPlaceholder  — generic placeholder (legacy compat)
  */
-import {
-  useEffect, useMemo, useState, useCallback,
-} from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import {
   Alert,
   Autocomplete,
@@ -48,7 +46,6 @@ import {
   IconLock,
   IconChartBar,
   IconArrowUpRight,
-  IconCreditCard,
   IconBuildingStore,
   IconLayoutGrid,
   IconPercentage,
@@ -57,12 +54,25 @@ import {
 import { useTranslation } from 'react-i18next';
 import PageHeader from 'src/components/smartpos/PageHeader';
 import {
-  SMARTPOS_LOCALES, setSmartPosLocale, getSmartPosLocale, type SmartPosLocale,
+  SMARTPOS_LOCALES,
+  setSmartPosLocale,
+  getSmartPosLocale,
+  type SmartPosLocale,
 } from 'src/i18n/smartpos';
 import { brand } from 'src/theme/smartpos/brand';
 import { premiumFieldSx } from 'src/components/smartpos/PosLayouts/shared';
 import { useAuth } from 'src/context/smartpos/AuthContext';
-import { getPosSettings, updatePosSettings, resetPosSettings, type PosSettings } from 'src/api/smartpos/posSettings';
+import { useOnboarding } from 'src/context/smartpos/OnboardingContext';
+import {
+  fetchTenant as apiFetchTenant,
+  updateTenant as apiUpdateTenant,
+} from 'src/api/smartpos/auth';
+import {
+  getPosSettings,
+  updatePosSettings,
+  resetPosSettings,
+  type PosSettings,
+} from 'src/api/smartpos/posSettings';
 import { listWarehouses, type Warehouse } from 'src/api/smartpos/inventory';
 import {
   listUsers,
@@ -81,22 +91,47 @@ import {
 } from 'src/api/smartpos/users';
 import type { UUID } from 'src/api/smartpos/types';
 import {
-  cardSx, SectionTitle, FloatingSaveBar, CardSkeletonGroup,
+  cardSx,
+  SectionTitle,
+  FloatingSaveBar,
+  CardSkeletonGroup,
 } from 'src/components/smartpos/SettingsHelpers';
 import DataTable, { type Column, StatusBadge } from 'src/components/smartpos/DataTable';
 
 const t_brand = brand;
 
-const fieldSx = { ...premiumFieldSx, '& .MuiOutlinedInput-root': { ...premiumFieldSx['& .MuiOutlinedInput-root'], borderRadius: '10px' } };
+const fieldSx = {
+  ...premiumFieldSx,
+  '& .MuiOutlinedInput-root': {
+    ...premiumFieldSx['& .MuiOutlinedInput-root'],
+    borderRadius: '10px',
+  },
+};
 
 const toggleGroupSx = {
   '& .MuiToggleButton-root': {
-    textTransform: 'none', fontWeight: 700, fontSize: '0.82rem', py: 0.8, px: 2, borderRadius: '8px',
+    textTransform: 'none',
+    fontWeight: 700,
+    fontSize: '0.82rem',
+    py: 0.8,
+    px: 2,
+    borderRadius: '8px',
   },
 };
 
 const CURRENCY_CODES = [
-  'TZS', 'KES', 'UGX', 'RWF', 'BIF', 'USD', 'EUR', 'GBP', 'ZAR', 'NGN', 'GHS', 'AED',
+  'TZS',
+  'KES',
+  'UGX',
+  'RWF',
+  'BIF',
+  'USD',
+  'EUR',
+  'GBP',
+  'ZAR',
+  'NGN',
+  'GHS',
+  'AED',
 ];
 
 const PRODUCTS_PER_PAGE_OPTS = [10, 20, 30, 50, 100];
@@ -126,17 +161,27 @@ export function SettingsHome() {
 
   // Load settings when warehouse changes
   useEffect(() => {
-    if (!warehouseId) { setSettings(null); setLoading(false); return; }
+    if (!warehouseId) {
+      setSettings(null);
+      setLoading(false);
+      return;
+    }
     let cancelled = false;
     setLoading(true);
     setError(null);
     getPosSettings(warehouseId)
-      .then((s) => { if (!cancelled) setSettings(s); })
+      .then((s) => {
+        if (!cancelled) setSettings(s);
+      })
       .catch((e) => {
         if (!cancelled) setError(e instanceof Error ? e.message : 'Failed to load settings');
       })
-      .finally(() => { if (!cancelled) setLoading(false); });
-    return () => { cancelled = true; };
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [warehouseId]);
 
   // Default to user's first warehouse
@@ -174,10 +219,10 @@ export function SettingsHome() {
         currencySymbol: settings.currencySymbol,
       });
       setSettings(updated);
-      setInfo(t('settings:preferences.saved'));
+      setInfo(t('settings.preferences.saved'));
       setTimeout(() => setInfo(null), 3000);
     } catch (e) {
-      setError(e instanceof Error ? e.message : t('settings:preferences.save_failed'));
+      setError(e instanceof Error ? e.message : t('settings.preferences.save_failed'));
     } finally {
       setSaving(false);
     }
@@ -204,38 +249,43 @@ export function SettingsHome() {
   return (
     <Box>
       <PageHeader
-        title={t('settings:preferences.title')}
-        subtitle={t('settings:preferences.subtitle')}
+        title={t('settings.preferences.title')}
+        subtitle={t('settings.preferences.subtitle')}
         badge={{ label: 'Enterprise', tone: 'primary' }}
       />
 
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>
+        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
+          {error}
+        </Alert>
       )}
       {info && (
-        <Alert severity="success" sx={{ mb: 2 }} onClose={() => setInfo(null)}>{info}</Alert>
+        <Alert severity="success" sx={{ mb: 2 }} onClose={() => setInfo(null)}>
+          {info}
+        </Alert>
       )}
 
       {/* Warehouse selector */}
       <Box sx={{ ...cardSx, p: 2.5, mb: 2.5 }}>
-        <SectionTitle icon={<IconBuildingStore size={20} />} title={t('settings:preferences.warehouse')} />
+        <SectionTitle
+          icon={<IconBuildingStore size={20} />}
+          title={t('settings.preferences.warehouse')}
+        />
         <Typography variant="body2" sx={{ color: t_brand.neutral[500], mb: 1.5 }}>
-          {t('settings:preferences.warehouse_hint')}
+          {t('settings.preferences.warehouse_hint')}
         </Typography>
         <Autocomplete
           value={selWarehouse ?? null}
           options={warehouses}
           getOptionLabel={(w) => `${w.name}${w.city ? ` — ${w.city}` : ''}`}
           onChange={(_, v) => v && setWarehouseId(v.id)}
-          renderInput={(p) => (
-            <TextField {...p} size="small" sx={{ ...fieldSx, minWidth: 360 }} />
-          )}
+          renderInput={(p) => <TextField {...p} size="small" sx={{ ...fieldSx, minWidth: 360 }} />}
           sx={{ maxWidth: 480 }}
         />
       </Box>
 
       {!warehouseId && !loading && (
-        <Alert severity="info">{t('settings:preferences.no_warehouse')}</Alert>
+        <Alert severity="info">{t('settings.preferences.no_warehouse')}</Alert>
       )}
 
       {loading && warehouseId && <CardSkeletonGroup heights={[220, 160, 180, 140]} count={4} />}
@@ -245,70 +295,106 @@ export function SettingsHome() {
           {/* Row: Store Information + POS Behaviour */}
           <Stack direction={{ xs: 'column', lg: 'row' }} spacing={2.5}>
             <Box sx={{ ...cardSx, p: 2.5, flex: 1 }}>
-              <SectionTitle icon={<IconBuildingStore size={20} />} title={t('settings:preferences.store_info')} />
+              <SectionTitle
+                icon={<IconBuildingStore size={20} />}
+                title={t('settings.preferences.store_info')}
+              />
               <Stack spacing={1.5}>
                 <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
                   <TextField
-                    label={t('settings:preferences.store_name')}
+                    label={t('settings.preferences.store_name')}
                     value={settings.storeName}
                     onChange={(e) => update({ storeName: e.target.value })}
-                    size="small" fullWidth sx={fieldSx}
+                    size="small"
+                    fullWidth
+                    sx={fieldSx}
                   />
                   <TextField
-                    label={t('settings:preferences.store_tax_id')}
+                    label={t('settings.preferences.store_tax_id')}
                     value={settings.storeTaxId}
                     onChange={(e) => update({ storeTaxId: e.target.value })}
-                    size="small" fullWidth sx={fieldSx}
+                    size="small"
+                    fullWidth
+                    sx={fieldSx}
                   />
                 </Stack>
                 <TextField
-                  label={t('settings:preferences.store_address')}
+                  label={t('settings.preferences.store_address')}
                   value={settings.storeAddress}
                   onChange={(e) => update({ storeAddress: e.target.value })}
-                  size="small" fullWidth sx={fieldSx}
+                  size="small"
+                  fullWidth
+                  sx={fieldSx}
                 />
                 <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
                   <TextField
-                    label={t('settings:preferences.store_phone')}
+                    label={t('settings.preferences.store_phone')}
                     value={settings.storePhone}
                     onChange={(e) => update({ storePhone: e.target.value })}
-                    size="small" fullWidth sx={fieldSx}
+                    size="small"
+                    fullWidth
+                    sx={fieldSx}
                   />
                   <TextField
-                    label={t('settings:preferences.store_email')}
+                    label={t('settings.preferences.store_email')}
                     value={settings.storeEmail}
                     onChange={(e) => update({ storeEmail: e.target.value })}
-                    size="small" fullWidth sx={fieldSx}
+                    size="small"
+                    fullWidth
+                    sx={fieldSx}
                   />
                 </Stack>
                 <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
-                  <TextField label="Website" value={settings.storeWebsite}
+                  <TextField
+                    label="Website"
+                    value={settings.storeWebsite}
                     onChange={(e) => update({ storeWebsite: e.target.value })}
-                    size="small" fullWidth sx={fieldSx} placeholder="https://example.com" />
-                  <TextField label="Logo URL" value={settings.logoUrl}
+                    size="small"
+                    fullWidth
+                    sx={fieldSx}
+                    placeholder="https://example.com"
+                  />
+                  <TextField
+                    label="Logo URL"
+                    value={settings.logoUrl}
                     onChange={(e) => update({ logoUrl: e.target.value })}
-                    size="small" fullWidth sx={fieldSx} placeholder="https://cdn.example.com/logo.png" />
+                    size="small"
+                    fullWidth
+                    sx={fieldSx}
+                    placeholder="https://cdn.example.com/logo.png"
+                  />
                 </Stack>
-                <TextField label="Footer message" value={settings.footerMessage}
+                <TextField
+                  label="Footer message"
+                  value={settings.footerMessage}
                   onChange={(e) => update({ footerMessage: e.target.value })}
-                  size="small" fullWidth sx={fieldSx}
-                  helperText="Shown at the bottom of every receipt" />
+                  size="small"
+                  fullWidth
+                  sx={fieldSx}
+                  helperText="Shown at the bottom of every receipt"
+                />
               </Stack>
             </Box>
 
             <Box sx={{ ...cardSx, p: 2.5, flex: 1 }}>
-              <SectionTitle icon={<IconLayoutGrid size={20} />} title={t('settings:preferences.pos_behaviour')} />
+              <SectionTitle
+                icon={<IconLayoutGrid size={20} />}
+                title={t('settings.preferences.pos_behaviour')}
+              />
               <Typography variant="body2" sx={{ color: t_brand.neutral[500], mb: 1.5 }}>
-                {t('settings:preferences.products_per_page_hint')}
+                {t('settings.preferences.products_per_page_hint')}
               </Typography>
               <ToggleButtonGroup
                 value={settings.productsPerPage}
-                exclusive size="small"
+                exclusive
+                size="small"
                 onChange={(_, v) => v && update({ productsPerPage: v })}
                 sx={toggleGroupSx}
               >
                 {PRODUCTS_PER_PAGE_OPTS.map((n) => (
-                  <ToggleButton key={n} value={n}>{n}</ToggleButton>
+                  <ToggleButton key={n} value={n}>
+                    {n}
+                  </ToggleButton>
                 ))}
               </ToggleButtonGroup>
             </Box>
@@ -317,34 +403,39 @@ export function SettingsHome() {
           {/* Row: Tax Defaults + Currency */}
           <Stack direction={{ xs: 'column', lg: 'row' }} spacing={2.5}>
             <Box sx={{ ...cardSx, p: 2.5, flex: 1 }}>
-              <SectionTitle icon={<IconPercentage size={20} />} title={t('settings:preferences.tax_defaults')} />
+              <SectionTitle
+                icon={<IconPercentage size={20} />}
+                title={t('settings.preferences.tax_defaults')}
+              />
               <Stack spacing={1.5}>
                 <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
                   <TextField
-                    label={t('settings:preferences.default_tax_rate')}
+                    label={t('settings.preferences.default_tax_rate')}
                     value={settings.defaultTaxRate}
                     onChange={(e) => {
                       const v = parseFloat(e.target.value);
                       if (!isNaN(v)) update({ defaultTaxRate: v });
                     }}
-                    type="number" size="small"
+                    type="number"
+                    size="small"
                     sx={{ maxWidth: 200, ...fieldSx }}
                     InputProps={{ endAdornment: <InputAdornment position="end">%</InputAdornment> }}
-                    helperText={t('settings:preferences.default_tax_rate_hint')}
+                    helperText={t('settings.preferences.default_tax_rate_hint')}
                   />
                 </Stack>
                 <Box>
                   <ToggleButtonGroup
                     value={settings.defaultTaxMethod}
-                    exclusive size="small"
+                    exclusive
+                    size="small"
                     onChange={(_, v) => v && update({ defaultTaxMethod: v })}
                     sx={toggleGroupSx}
                   >
                     <ToggleButton value="EXCLUSIVE">
-                      {t('settings:preferences.tax_method_exclusive')}
+                      {t('settings.preferences.tax_method_exclusive')}
                     </ToggleButton>
                     <ToggleButton value="INCLUSIVE">
-                      {t('settings:preferences.tax_method_inclusive')}
+                      {t('settings.preferences.tax_method_inclusive')}
                     </ToggleButton>
                   </ToggleButtonGroup>
                 </Box>
@@ -352,28 +443,33 @@ export function SettingsHome() {
             </Box>
 
             <Box sx={{ ...cardSx, p: 2.5, flex: 1 }}>
-              <SectionTitle icon={<IconCash size={20} />} title={t('settings:preferences.currency')} />
+              <SectionTitle
+                icon={<IconCash size={20} />}
+                title={t('settings.preferences.currency')}
+              />
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
                 <TextField
                   select
-                  label={t('settings:preferences.currency_code')}
+                  label={t('settings.preferences.currency_code')}
                   value={settings.currencyCode}
                   onChange={(e) => update({ currencyCode: e.target.value })}
                   size="small"
                   sx={{ minWidth: 140, ...fieldSx }}
-                  helperText={t('settings:preferences.currency_code_hint')}
+                  helperText={t('settings.preferences.currency_code_hint')}
                 >
                   {CURRENCY_CODES.map((c) => (
-                    <MenuItem key={c} value={c}>{c}</MenuItem>
+                    <MenuItem key={c} value={c}>
+                      {c}
+                    </MenuItem>
                   ))}
                 </TextField>
                 <TextField
-                  label={t('settings:preferences.currency_symbol')}
+                  label={t('settings.preferences.currency_symbol')}
                   value={settings.currencySymbol}
                   onChange={(e) => update({ currencySymbol: e.target.value })}
                   size="small"
                   sx={{ maxWidth: 140, ...fieldSx }}
-                  helperText={t('settings:preferences.currency_symbol_hint')}
+                  helperText={t('settings.preferences.currency_symbol_hint')}
                 />
               </Stack>
             </Box>
@@ -385,8 +481,10 @@ export function SettingsHome() {
             onSave={handleSave}
             onReset={handleReset}
             resetting={resetting}
-            saveLabel={t('settings:preferences.save')}
-            lastSavedAt={settings.updatedAt ? new Date(settings.updatedAt).toLocaleString() : undefined}
+            saveLabel={t('settings.preferences.save')}
+            lastSavedAt={
+              settings.updatedAt ? new Date(settings.updatedAt).toLocaleString() : undefined
+            }
           />
         </Stack>
       )}
@@ -395,6 +493,114 @@ export function SettingsHome() {
 }
 
 export default SettingsHome;
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Onboarding Settings
+   ────────────────────────────────────────────────────────────────────────── */
+
+export function OnboardingSettings() {
+  const { state, resetOnboarding } = useOnboarding();
+  const [resetting, setResetting] = useState(false);
+
+  const steps = [
+    { key: 'workspace', label: 'Workspace created' },
+    { key: 'warehouse', label: 'Warehouse added' },
+    { key: 'tax', label: 'Tax configured' },
+    { key: 'products', label: 'Products imported' },
+    { key: 'staff', label: 'Team invited' },
+    { key: 'firstSale', label: 'First sale recorded' },
+  ];
+
+  const handleReset = async () => {
+    setResetting(true);
+    await resetOnboarding();
+    setResetting(false);
+  };
+
+  return (
+    <Box>
+      <PageHeader title="Onboarding" subtitle="Track and manage workspace setup progress." />
+      <Box sx={{ maxWidth: 600, mx: 'auto', mt: 4 }}>
+        <Box
+          sx={{
+            p: 3,
+            borderRadius: '14px',
+            border: `1px solid ${brand.primary[200]}`,
+            bgcolor: brand.primary[50],
+            mb: 3,
+          }}
+        >
+          <Typography sx={{ fontWeight: 800, fontSize: 24, color: brand.neutral[900], mb: 1 }}>
+            {state.percent}% complete
+          </Typography>
+          <Box
+            sx={{
+              height: 8,
+              borderRadius: '4px',
+              bgcolor: brand.primary[100],
+              overflow: 'hidden',
+              mb: 3,
+            }}
+          >
+            <Box
+              sx={{
+                height: '100%',
+                width: `${state.percent}%`,
+                bgcolor: brand.primary[600],
+                borderRadius: '4px',
+                transition: 'width 0.5s ease',
+              }}
+            />
+          </Box>
+          <Stack spacing={1.5}>
+            {steps.map((s) => {
+              const done = state[s.key as keyof typeof state] as boolean;
+              return (
+                <Stack key={s.key} direction="row" alignItems="center" spacing={1.5}>
+                  <Box
+                    sx={{
+                      width: 22,
+                      height: 22,
+                      borderRadius: '50%',
+                      display: 'grid',
+                      placeItems: 'center',
+                      bgcolor: done ? brand.primary[600] : brand.neutral[200],
+                      color: done ? '#fff' : brand.neutral[500],
+                      fontSize: 12,
+                      fontWeight: 800,
+                      transition: 'all 0.3s ease',
+                    }}
+                  >
+                    {done ? '✓' : '○'}
+                  </Box>
+                  <Typography
+                    sx={{
+                      fontSize: 14,
+                      fontWeight: done ? 700 : 400,
+                      color: done ? brand.neutral[900] : brand.neutral[500],
+                    }}
+                  >
+                    {s.label}
+                  </Typography>
+                </Stack>
+              );
+            })}
+          </Stack>
+        </Box>
+
+        <Button
+          variant="outlined"
+          color="error"
+          disabled={resetting || state.percent === 16}
+          onClick={handleReset}
+          sx={{ textTransform: 'none', fontWeight: 700, borderRadius: '10px' }}
+        >
+          {resetting ? 'Resetting…' : 'Restart onboarding'}
+        </Button>
+      </Box>
+    </Box>
+  );
+}
 
 /* ──────────────────────────────────────────────────────────────────────────
    Users & Roles
@@ -407,20 +613,20 @@ export function UsersRolesSettings() {
   return (
     <Box>
       <PageHeader
-        title={t('settings:users.title')}
-        subtitle={t('settings:users.subtitle')}
+        title={t('settings.users.title')}
+        subtitle={t('settings.users.subtitle')}
         badge={{ label: 'Enterprise', tone: 'primary' }}
       />
       <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 2.5 }}>
         <Tab
           value="users"
-          label={t('settings:users.users_tab')}
+          label={t('settings.users.users_tab')}
           icon={<IconUsers size={18} />}
           iconPosition="start"
         />
         <Tab
           value="roles"
-          label={t('settings:users.roles_tab')}
+          label={t('settings.users.roles_tab')}
           icon={<IconShieldLock size={18} />}
           iconPosition="start"
         />
@@ -478,7 +684,7 @@ function UsersTab() {
     try {
       await setUserStatus(statusConfirm.id, !statusConfirm.active);
       setStatusConfirm(null);
-      showInfo(t('settings:users.status_toggled'));
+      showInfo(t('settings.users.status_toggled'));
       fetchUsers(page, search);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed');
@@ -495,117 +701,171 @@ function UsersTab() {
         isAllWarehouses: editingUser.isAllWarehouses,
       });
       setEditOpen(false);
-      showInfo(t('settings:users.user_saved'));
+      showInfo(t('settings.users.user_saved'));
       fetchUsers(page, search);
     } catch (e) {
-      setError(e instanceof Error ? e.message : t('settings:users.user_save_failed'));
+      setError(e instanceof Error ? e.message : t('settings.users.user_save_failed'));
     }
   };
 
-  const userColumns = useMemo<Column<UserDto>[]>(() => [
-    {
-      key: 'name', label: 'Name', width: 240,
-      sortable: true,
-      exportValue: (u) => [u.firstName, u.lastName].filter(Boolean).join(' ') || u.email,
-      render: (u) => (
-        <Stack direction="row" spacing={1} alignItems="center">
-          <Box
-            sx={{
-              width: 32, height: 32, borderRadius: 2,
-              bgcolor: t_brand.primary[100],
-              color: t_brand.primary[700],
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontWeight: 800, fontSize: '0.75rem',
-            }}
-          >
-            {(u.firstName?.[0] ?? u.email[0]).toUpperCase()}
-          </Box>
-          <Typography sx={{ fontWeight: 700, fontSize: '0.82rem' }}>
-            {[u.firstName, u.lastName].filter(Boolean).join(' ') || u.email}
+  const userColumns = useMemo<Column<UserDto>[]>(
+    () => [
+      {
+        key: 'name',
+        label: 'Name',
+        width: 240,
+        sortable: true,
+        exportValue: (u) => [u.firstName, u.lastName].filter(Boolean).join(' ') || u.email,
+        render: (u) => (
+          <Stack direction="row" spacing={1} alignItems="center">
+            <Box
+              sx={{
+                width: 32,
+                height: 32,
+                borderRadius: 2,
+                bgcolor: t_brand.primary[100],
+                color: t_brand.primary[700],
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 800,
+                fontSize: '0.75rem',
+              }}
+            >
+              {(u.firstName?.[0] ?? u.email[0]).toUpperCase()}
+            </Box>
+            <Typography sx={{ fontWeight: 700, fontSize: '0.82rem' }}>
+              {[u.firstName, u.lastName].filter(Boolean).join(' ') || u.email}
+            </Typography>
+          </Stack>
+        ),
+      },
+      {
+        key: 'email',
+        label: 'Email',
+        width: 220,
+        sortable: true,
+        exportValue: (u) => u.email,
+        render: (u) => (
+          <Typography sx={{ fontSize: '0.8rem', color: t_brand.neutral[600] }}>
+            {u.email}
           </Typography>
-        </Stack>
-      ),
-    },
-    {
-      key: 'email', label: 'Email', width: 220,
-      sortable: true,
-      exportValue: (u) => u.email,
-      render: (u) => (
-        <Typography sx={{ fontSize: '0.8rem', color: t_brand.neutral[600] }}>
-          {u.email}
-        </Typography>
-      ),
-    },
-    {
-      key: 'roles', label: 'Roles', width: 200,
-      exportValue: (u) => u.roles.join(', '),
-      render: (u) => (
-        <Stack direction="row" spacing={0.5} flexWrap="wrap" rowGap={0.5}>
-          {u.roles.slice(0, 3).map((r) => (
-            <Chip key={r} label={r} size="small"
-              sx={{ fontSize: '0.7rem', fontWeight: 600,
-                bgcolor: t_brand.primary[50], color: t_brand.primary[700] }} />
-          ))}
-          {u.roles.length > 3 && (
-            <Tooltip title={u.roles.slice(3).join(', ')}>
-              <Chip label={`+${u.roles.length - 3}`} size="small"
-                sx={{ fontSize: '0.7rem', fontWeight: 600,
-                  bgcolor: t_brand.neutral[100], color: t_brand.neutral[600] }} />
+        ),
+      },
+      {
+        key: 'roles',
+        label: 'Roles',
+        width: 200,
+        exportValue: (u) => u.roles.join(', '),
+        render: (u) => (
+          <Stack direction="row" spacing={0.5} flexWrap="wrap" rowGap={0.5}>
+            {u.roles.slice(0, 3).map((r) => (
+              <Chip
+                key={r}
+                label={r}
+                size="small"
+                sx={{
+                  fontSize: '0.7rem',
+                  fontWeight: 600,
+                  bgcolor: t_brand.primary[50],
+                  color: t_brand.primary[700],
+                }}
+              />
+            ))}
+            {u.roles.length > 3 && (
+              <Tooltip title={u.roles.slice(3).join(', ')}>
+                <Chip
+                  label={`+${u.roles.length - 3}`}
+                  size="small"
+                  sx={{
+                    fontSize: '0.7rem',
+                    fontWeight: 600,
+                    bgcolor: t_brand.neutral[100],
+                    color: t_brand.neutral[600],
+                  }}
+                />
+              </Tooltip>
+            )}
+          </Stack>
+        ),
+      },
+      {
+        key: 'active',
+        label: 'Status',
+        align: 'center',
+        width: 100,
+        sortable: true,
+        exportValue: (u) => (u.active ? 'Active' : 'Inactive'),
+        render: (u) => (
+          <StatusBadge
+            label={u.active ? t('settings.users.active') : t('settings.users.inactive')}
+            tone={u.active ? 'success' : 'neutral'}
+          />
+        ),
+      },
+      {
+        key: 'actions',
+        label: '',
+        align: 'right',
+        width: 140,
+        enableHiding: false,
+        render: (u) => (
+          <Stack direction="row" spacing={0.5} justifyContent="flex-end">
+            <Tooltip title="Edit user">
+              <IconButton
+                size="small"
+                onClick={() => {
+                  setEditingUser(u);
+                  setEditOpen(true);
+                }}
+              >
+                <IconEdit size={16} />
+              </IconButton>
             </Tooltip>
-          )}
-        </Stack>
-      ),
-    },
-    {
-      key: 'active', label: 'Status', align: 'center', width: 100,
-      sortable: true,
-      exportValue: (u) => u.active ? 'Active' : 'Inactive',
-      render: (u) => (
-        <StatusBadge
-          label={u.active ? t('settings:users.active') : t('settings:users.inactive')}
-          tone={u.active ? 'success' : 'neutral'}
-        />
-      ),
-    },
-    {
-      key: 'actions', label: '', align: 'right', width: 140,
-      enableHiding: false,
-      render: (u) => (
-        <Stack direction="row" spacing={0.5} justifyContent="flex-end">
-          <Tooltip title="Edit user">
-            <IconButton size="small"
-              onClick={() => { setEditingUser(u); setEditOpen(true); }}>
-              <IconEdit size={16} />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Assign warehouses">
-            <IconButton size="small"
-              onClick={() => { setWarehouseUser(u); setWarehouseOpen(true); }}>
-              <IconBuildingWarehouse size={16} />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title={u.active ? 'Deactivate' : 'Activate'}>
-            <IconButton size="small"
-              onClick={() => setStatusConfirm(u)}>
-              <IconLock size={16}
-                color={u.active ? t_brand.warning.dark : t_brand.success.dark} />
-            </IconButton>
-          </Tooltip>
-        </Stack>
-      ),
-    },
-  ], [t]);
+            <Tooltip title="Assign warehouses">
+              <IconButton
+                size="small"
+                onClick={() => {
+                  setWarehouseUser(u);
+                  setWarehouseOpen(true);
+                }}
+              >
+                <IconBuildingWarehouse size={16} />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title={u.active ? 'Deactivate' : 'Activate'}>
+              <IconButton size="small" onClick={() => setStatusConfirm(u)}>
+                <IconLock
+                  size={16}
+                  color={u.active ? t_brand.warning.dark : t_brand.success.dark}
+                />
+              </IconButton>
+            </Tooltip>
+          </Stack>
+        ),
+      },
+    ],
+    [t],
+  );
 
   return (
     <Box>
-      {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
-      {info && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setInfo(null)}>{info}</Alert>}
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
+          {error}
+        </Alert>
+      )}
+      {info && (
+        <Alert severity="success" sx={{ mb: 2 }} onClose={() => setInfo(null)}>
+          {info}
+        </Alert>
+      )}
 
       <DataTable
         columns={userColumns}
         rows={users}
         loading={loading}
-        emptyText={t('settings:users.no_users')}
+        emptyText={t('settings.users.no_users')}
         getRowKey={(u) => u.id}
         tableKey="users"
         enableSorting
@@ -621,9 +881,12 @@ function UsersTab() {
         toolbar={
           <TextField
             size="small"
-            placeholder={t('settings:users.search_users')}
+            placeholder={t('settings.users.search_users')}
             value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(0); }}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(0);
+            }}
             sx={{ minWidth: 280, ...fieldSx }}
             InputProps={{
               startAdornment: (
@@ -638,26 +901,44 @@ function UsersTab() {
 
       {/* Edit User Dialog */}
       <Dialog open={editOpen} onClose={() => setEditOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>{t('settings:users.edit_user_title')}</DialogTitle>
+        <DialogTitle>{t('settings.users.edit_user_title')}</DialogTitle>
         <DialogContent>
           {editingUser && (
             <Stack spacing={2} sx={{ mt: 1 }}>
               <Stack direction="row" spacing={1.5}>
-                <TextField fullWidth size="small" label={t('settings:users.first_name')}
+                <TextField
+                  fullWidth
+                  size="small"
+                  label={t('settings.users.first_name')}
                   value={editingUser.firstName}
                   onChange={(e) => setEditingUser({ ...editingUser, firstName: e.target.value })}
-                  sx={premiumFieldSx} />
-                <TextField fullWidth size="small" label={t('settings:users.last_name')}
+                  sx={premiumFieldSx}
+                />
+                <TextField
+                  fullWidth
+                  size="small"
+                  label={t('settings.users.last_name')}
                   value={editingUser.lastName}
                   onChange={(e) => setEditingUser({ ...editingUser, lastName: e.target.value })}
-                  sx={premiumFieldSx} />
+                  sx={premiumFieldSx}
+                />
               </Stack>
-              <TextField fullWidth size="small" label={t('settings:users.email')}
-                value={editingUser.email} disabled sx={premiumFieldSx} />
-              <TextField fullWidth size="small" label={t('settings:users.phone')}
+              <TextField
+                fullWidth
+                size="small"
+                label={t('settings.users.email')}
+                value={editingUser.email}
+                disabled
+                sx={premiumFieldSx}
+              />
+              <TextField
+                fullWidth
+                size="small"
+                label={t('settings.users.phone')}
                 value={editingUser.phone}
                 onChange={(e) => setEditingUser({ ...editingUser, phone: e.target.value })}
-                sx={premiumFieldSx} />
+                sx={premiumFieldSx}
+              />
               <FormControlLabel
                 control={
                   <Switch
@@ -665,18 +946,21 @@ function UsersTab() {
                     onChange={(_, v) => setEditingUser({ ...editingUser, isAllWarehouses: v })}
                   />
                 }
-                label={t('settings:users.all_warehouses')}
+                label={t('settings.users.all_warehouses')}
               />
             </Stack>
           )}
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setEditOpen(false)}>{t('common:cancel')}</Button>
-          <Button variant="contained" onClick={handleSaveUser}
+          <Button
+            variant="contained"
+            onClick={handleSaveUser}
             sx={{
               bgcolor: t_brand.accent[500],
               '&:hover': { bgcolor: t_brand.accent[600] },
-            }}>
+            }}
+          >
             {t('common:save')}
           </Button>
         </DialogActions>
@@ -686,18 +970,22 @@ function UsersTab() {
       <Dialog open={!!statusConfirm} onClose={() => setStatusConfirm(null)} maxWidth="xs" fullWidth>
         <DialogTitle>
           {statusConfirm?.active
-            ? t('settings:users.deactivate_confirm_title')
-            : t('settings:users.activate_confirm_title')}
+            ? t('settings.users.deactivate_confirm_title')
+            : t('settings.users.activate_confirm_title')}
         </DialogTitle>
         <DialogContent>
           <Typography variant="body2" sx={{ color: t_brand.neutral[600] }}>
             {statusConfirm?.active
-              ? t('settings:users.deactivate_confirm_body', {
-                name: [statusConfirm?.firstName, statusConfirm?.lastName].filter(Boolean).join(' ') || statusConfirm?.email,
-              })
-              : t('settings:users.activate_confirm_body', {
-                name: [statusConfirm?.firstName, statusConfirm?.lastName].filter(Boolean).join(' ') || statusConfirm?.email,
-              })}
+              ? t('settings.users.deactivate_confirm_body', {
+                  name:
+                    [statusConfirm?.firstName, statusConfirm?.lastName].filter(Boolean).join(' ') ||
+                    statusConfirm?.email,
+                })
+              : t('settings.users.activate_confirm_body', {
+                  name:
+                    [statusConfirm?.firstName, statusConfirm?.lastName].filter(Boolean).join(' ') ||
+                    statusConfirm?.email,
+                })}
           </Typography>
         </DialogContent>
         <DialogActions>
@@ -719,7 +1007,7 @@ function UsersTab() {
         onClose={() => setWarehouseOpen(false)}
         onAssigned={() => {
           setWarehouseOpen(false);
-          showInfo(t('settings:users.warehouses_assigned'));
+          showInfo(t('settings.users.warehouses_assigned'));
           fetchUsers(page, search);
         }}
       />
@@ -730,9 +1018,15 @@ function UsersTab() {
 /* ─── Assign Warehouses Dialog ──────────────────────────────────────── */
 
 function AssignWarehousesDialog({
-  open, user, onClose, onAssigned,
+  open,
+  user,
+  onClose,
+  onAssigned,
 }: {
-  open: boolean; user: UserDto | null; onClose: () => void; onAssigned: () => void;
+  open: boolean;
+  user: UserDto | null;
+  onClose: () => void;
+  onAssigned: () => void;
 }) {
   const { t } = useTranslation('smartpos');
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
@@ -751,7 +1045,8 @@ function AssignWarehousesDialog({
   const toggle = (id: UUID) => {
     setSelected((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
   };
@@ -771,7 +1066,7 @@ function AssignWarehousesDialog({
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>{t('settings:users.assign_warehouses')}</DialogTitle>
+      <DialogTitle>{t('settings.users.assign_warehouses')}</DialogTitle>
       <DialogContent>
         <Typography variant="body2" sx={{ color: t_brand.neutral[500], mb: 2 }}>
           {user ? `${[user.firstName, user.lastName].filter(Boolean).join(' ') || user.email}` : ''}
@@ -781,11 +1076,7 @@ function AssignWarehousesDialog({
             <FormControlLabel
               key={w.id}
               control={
-                <Checkbox
-                  checked={selected.has(w.id)}
-                  onChange={() => toggle(w.id)}
-                  size="small"
-                />
+                <Checkbox checked={selected.has(w.id)} onChange={() => toggle(w.id)} size="small" />
               }
               label={w.name}
             />
@@ -799,8 +1090,12 @@ function AssignWarehousesDialog({
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>{t('common:cancel')}</Button>
-        <Button variant="contained" onClick={handleSave} disabled={saving}
-          sx={{ bgcolor: t_brand.accent[500], '&:hover': { bgcolor: t_brand.accent[600] } }}>
+        <Button
+          variant="contained"
+          onClick={handleSave}
+          disabled={saving}
+          sx={{ bgcolor: t_brand.accent[500], '&:hover': { bgcolor: t_brand.accent[600] } }}
+        >
           {saving ? t('common:saving') : t('common:save')}
         </Button>
       </DialogActions>
@@ -839,7 +1134,9 @@ function RolesTab() {
     }
   }, []);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const showInfo = (msg: string) => {
     setInfo(msg);
@@ -867,19 +1164,19 @@ function RolesTab() {
           label: editingRole.label,
           description: editingRole.description,
         });
-        showInfo(t('settings:users.role_saved'));
+        showInfo(t('settings.users.role_saved'));
       } else {
         await updateRole(editingRole.id!, {
           name: editingRole.name!,
           label: editingRole.label,
           description: editingRole.description,
         });
-        showInfo(t('settings:users.role_saved'));
+        showInfo(t('settings.users.role_saved'));
       }
       setEditOpen(false);
       fetchData();
     } catch (e) {
-      setError(e instanceof Error ? e.message : t('settings:users.role_save_failed'));
+      setError(e instanceof Error ? e.message : t('settings.users.role_save_failed'));
     }
   };
 
@@ -888,103 +1185,131 @@ function RolesTab() {
     try {
       await deleteRole(deleteConfirm.id);
       setDeleteConfirm(null);
-      showInfo(t('settings:users.role_deleted'));
+      showInfo(t('settings.users.role_deleted'));
       fetchData();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to delete role');
     }
   };
 
-  const roleColumns = useMemo<Column<RoleDto>[]>(() => [
-    {
-      key: 'name', label: 'Name', width: 180,
-      sortable: true,
-      exportValue: (r) => r.name,
-      render: (r) => (
-        <Typography sx={{ fontWeight: 700, fontSize: '0.82rem', fontFamily: 'monospace' }}>
-          {r.name}
-        </Typography>
-      ),
-    },
-    {
-      key: 'label', label: 'Label', width: 180,
-      sortable: true,
-      exportValue: (r) => r.label ?? '',
-      render: (r) => (
-        <Typography sx={{ fontSize: '0.82rem' }}>
-          {r.label || '—'}
-        </Typography>
-      ),
-    },
-    {
-      key: 'permissions', label: 'Permissions', width: 160,
-      exportValue: (r) => r.permissions.join(', '),
-      render: (r) => (
-        <Tooltip title={r.permissions.join(', ') || 'None'}>
-          <Chip
-            label={t('settings:users.permissions_count', { count: r.permissions.length })}
-            size="small"
-            sx={{
-              fontSize: '0.7rem', fontWeight: 600,
-              bgcolor: t_brand.primary[50], color: t_brand.primary[700],
-              cursor: 'pointer',
-            }}
-          />
-        </Tooltip>
-      ),
-    },
-    {
-      key: 'isSystem', label: 'Type', align: 'center', width: 100,
-      sortable: true,
-      exportValue: (r) => r.isSystem ? 'System' : 'Custom',
-      render: (r) =>
-        r.isSystem ? (
-          <StatusBadge label={t('settings:users.system_role')} tone="warning" />
-        ) : (
-          <Typography sx={{ fontSize: '0.78rem', color: t_brand.neutral[400] }}>Custom</Typography>
+  const roleColumns = useMemo<Column<RoleDto>[]>(
+    () => [
+      {
+        key: 'name',
+        label: 'Name',
+        width: 180,
+        sortable: true,
+        exportValue: (r) => r.name,
+        render: (r) => (
+          <Typography sx={{ fontWeight: 700, fontSize: '0.82rem', fontFamily: 'monospace' }}>
+            {r.name}
+          </Typography>
         ),
-    },
-    {
-      key: 'actions', label: '', align: 'right', width: 150,
-      enableHiding: false,
-      render: (r) => (
-        <Stack direction="row" spacing={0.5} justifyContent="flex-end">
-          <Tooltip title="Manage Permissions">
-            <IconButton size="small"
-              onClick={() => { setPermRole(r); setPermOpen(true); }}>
-              <IconLock size={16} />
-            </IconButton>
+      },
+      {
+        key: 'label',
+        label: 'Label',
+        width: 180,
+        sortable: true,
+        exportValue: (r) => r.label ?? '',
+        render: (r) => <Typography sx={{ fontSize: '0.82rem' }}>{r.label || '—'}</Typography>,
+      },
+      {
+        key: 'permissions',
+        label: 'Permissions',
+        width: 160,
+        exportValue: (r) => r.permissions.join(', '),
+        render: (r) => (
+          <Tooltip title={r.permissions.join(', ') || 'None'}>
+            <Chip
+              label={t('settings.users.permissions_count', { count: r.permissions.length })}
+              size="small"
+              sx={{
+                fontSize: '0.7rem',
+                fontWeight: 600,
+                bgcolor: t_brand.primary[50],
+                color: t_brand.primary[700],
+                cursor: 'pointer',
+              }}
+            />
           </Tooltip>
-          <Tooltip title="Edit">
-            <IconButton size="small" onClick={() => handleEdit(r)}>
-              <IconEdit size={16} />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title={r.isSystem ? t('settings:users.system_role_warning') : 'Delete'}>
-            <span>
-              <IconButton size="small"
-                disabled={r.isSystem}
-                onClick={() => setDeleteConfirm(r)}>
-                <IconTrash size={16}
-                  color={r.isSystem ? t_brand.neutral[300] : t_brand.error.main} />
+        ),
+      },
+      {
+        key: 'isSystem',
+        label: 'Type',
+        align: 'center',
+        width: 100,
+        sortable: true,
+        exportValue: (r) => (r.isSystem ? 'System' : 'Custom'),
+        render: (r) =>
+          r.isSystem ? (
+            <StatusBadge label={t('settings.users.system_role')} tone="warning" />
+          ) : (
+            <Typography sx={{ fontSize: '0.78rem', color: t_brand.neutral[400] }}>
+              Custom
+            </Typography>
+          ),
+      },
+      {
+        key: 'actions',
+        label: '',
+        align: 'right',
+        width: 150,
+        enableHiding: false,
+        render: (r) => (
+          <Stack direction="row" spacing={0.5} justifyContent="flex-end">
+            <Tooltip title="Manage Permissions">
+              <IconButton
+                size="small"
+                onClick={() => {
+                  setPermRole(r);
+                  setPermOpen(true);
+                }}
+              >
+                <IconLock size={16} />
               </IconButton>
-            </span>
-          </Tooltip>
-        </Stack>
-      ),
-    },
-  ], [t]);
+            </Tooltip>
+            <Tooltip title="Edit">
+              <IconButton size="small" onClick={() => handleEdit(r)}>
+                <IconEdit size={16} />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title={r.isSystem ? t('settings.users.system_role_warning') : 'Delete'}>
+              <span>
+                <IconButton size="small" disabled={r.isSystem} onClick={() => setDeleteConfirm(r)}>
+                  <IconTrash
+                    size={16}
+                    color={r.isSystem ? t_brand.neutral[300] : t_brand.error.main}
+                  />
+                </IconButton>
+              </span>
+            </Tooltip>
+          </Stack>
+        ),
+      },
+    ],
+    [t],
+  );
 
   return (
     <Box>
-      {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
-      {info && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setInfo(null)}>{info}</Alert>}
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
+          {error}
+        </Alert>
+      )}
+      {info && (
+        <Alert severity="success" sx={{ mb: 2 }} onClose={() => setInfo(null)}>
+          {info}
+        </Alert>
+      )}
 
       <DataTable
         columns={roleColumns}
         rows={roles}
         loading={loading}
-        emptyText={t('settings:users.no_roles')}
+        emptyText={t('settings.users.no_roles')}
         getRowKey={(r) => r.id}
         tableKey="roles"
         enableSorting
@@ -1000,10 +1325,12 @@ function RolesTab() {
             sx={{
               bgcolor: t_brand.accent[500],
               '&:hover': { bgcolor: t_brand.accent[600] },
-              textTransform: 'none', fontWeight: 700, borderRadius: '10px',
+              textTransform: 'none',
+              fontWeight: 700,
+              borderRadius: '10px',
             }}
           >
-            {t('settings:users.create_role')}
+            {t('settings.users.create_role')}
           </Button>
         }
       />
@@ -1011,30 +1338,47 @@ function RolesTab() {
       {/* Create / Edit Role Dialog */}
       <Dialog open={editOpen} onClose={() => setEditOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>
-          {isNew ? t('settings:users.create_role') : t('settings:users.edit_role')}
+          {isNew ? t('settings.users.create_role') : t('settings.users.edit_role')}
         </DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
-            <TextField fullWidth size="small" label={t('settings:users.role_name')} required
+            <TextField
+              fullWidth
+              size="small"
+              label={t('settings.users.role_name')}
+              required
               value={editingRole?.name ?? ''}
               onChange={(e) => setEditingRole((prev) => ({ ...prev, name: e.target.value }))}
-              sx={premiumFieldSx} />
-            <TextField fullWidth size="small" label={t('settings:users.role_label')}
+              sx={premiumFieldSx}
+            />
+            <TextField
+              fullWidth
+              size="small"
+              label={t('settings.users.role_label')}
               value={editingRole?.label ?? ''}
               onChange={(e) => setEditingRole((prev) => ({ ...prev, label: e.target.value }))}
-              sx={premiumFieldSx} />
-            <TextField fullWidth size="small" label={t('settings:users.role_description')}
-              multiline minRows={2}
+              sx={premiumFieldSx}
+            />
+            <TextField
+              fullWidth
+              size="small"
+              label={t('settings.users.role_description')}
+              multiline
+              minRows={2}
               value={editingRole?.description ?? ''}
               onChange={(e) => setEditingRole((prev) => ({ ...prev, description: e.target.value }))}
-              sx={premiumFieldSx} />
+              sx={premiumFieldSx}
+            />
           </Stack>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setEditOpen(false)}>{t('common:cancel')}</Button>
-          <Button variant="contained" onClick={handleSaveRole}
+          <Button
+            variant="contained"
+            onClick={handleSaveRole}
             disabled={!editingRole?.name?.trim()}
-            sx={{ bgcolor: t_brand.accent[500], '&:hover': { bgcolor: t_brand.accent[600] } }}>
+            sx={{ bgcolor: t_brand.accent[500], '&:hover': { bgcolor: t_brand.accent[600] } }}
+          >
             {t('common:save')}
           </Button>
         </DialogActions>
@@ -1042,10 +1386,10 @@ function RolesTab() {
 
       {/* Delete Role Confirmation */}
       <Dialog open={!!deleteConfirm} onClose={() => setDeleteConfirm(null)} maxWidth="xs" fullWidth>
-        <DialogTitle>{t('settings:users.delete_role_confirm_title')}</DialogTitle>
+        <DialogTitle>{t('settings.users.delete_role_confirm_title')}</DialogTitle>
         <DialogContent>
           <Typography variant="body2" sx={{ color: t_brand.neutral[600] }}>
-            {t('settings:users.delete_role_confirm_body', { name: deleteConfirm?.name ?? '' })}
+            {t('settings.users.delete_role_confirm_body', { name: deleteConfirm?.name ?? '' })}
           </Typography>
         </DialogContent>
         <DialogActions>
@@ -1064,7 +1408,7 @@ function RolesTab() {
         onClose={() => setPermOpen(false)}
         onUpdated={() => {
           setPermOpen(false);
-          showInfo(t('settings:users.permissions_updated'));
+          showInfo(t('settings.users.permissions_updated'));
           fetchData();
         }}
       />
@@ -1075,10 +1419,17 @@ function RolesTab() {
 /* ─── Manage Permissions Dialog ─────────────────────────────────────── */
 
 function ManagePermissionsDialog({
-  open, role, allPermissions, onClose, onUpdated,
+  open,
+  role,
+  allPermissions,
+  onClose,
+  onUpdated,
 }: {
-  open: boolean; role: RoleDto | null; allPermissions: PermissionDto[];
-  onClose: () => void; onUpdated: () => void;
+  open: boolean;
+  role: RoleDto | null;
+  allPermissions: PermissionDto[];
+  onClose: () => void;
+  onUpdated: () => void;
 }) {
   const { t } = useTranslation('smartpos');
   const [selected, setSelected] = useState<Set<UUID>>(new Set());
@@ -1096,7 +1447,8 @@ function ManagePermissionsDialog({
   const toggle = (id: UUID) => {
     setSelected((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
   };
@@ -1128,9 +1480,12 @@ function ManagePermissionsDialog({
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle>
-        {t('settings:users.manage_permissions')}
+        {t('settings.users.manage_permissions')}
         {role && (
-          <Typography variant="body2" sx={{ color: t_brand.neutral[500], fontWeight: 400, mt: 0.5 }}>
+          <Typography
+            variant="body2"
+            sx={{ color: t_brand.neutral[500], fontWeight: 400, mt: 0.5 }}
+          >
             {role.name}
           </Typography>
         )}
@@ -1138,15 +1493,22 @@ function ManagePermissionsDialog({
       <DialogContent>
         {allPermissions.length === 0 && (
           <Typography variant="body2" sx={{ color: t_brand.neutral[400] }}>
-            {t('settings:users.no_permissions')}
+            {t('settings.users.no_permissions')}
           </Typography>
         )}
         {groups.map(([domain, perms]) => (
           <Box key={domain} sx={{ mb: 2 }}>
-            <Typography variant="caption" sx={{
-              fontWeight: 700, color: t_brand.neutral[500],
-              textTransform: 'uppercase', letterSpacing: '0.03em', display: 'block', mb: 0.5,
-            }}>
+            <Typography
+              variant="caption"
+              sx={{
+                fontWeight: 700,
+                color: t_brand.neutral[500],
+                textTransform: 'uppercase',
+                letterSpacing: '0.03em',
+                display: 'block',
+                mb: 0.5,
+              }}
+            >
               {domain}
             </Typography>
             <Stack spacing={0.25}>
@@ -1162,9 +1524,7 @@ function ManagePermissionsDialog({
                   }
                   label={
                     <Box>
-                      <Typography sx={{ fontSize: '0.8rem', fontWeight: 600 }}>
-                        {p.name}
-                      </Typography>
+                      <Typography sx={{ fontSize: '0.8rem', fontWeight: 600 }}>{p.name}</Typography>
                       {p.description && (
                         <Typography variant="caption" sx={{ color: t_brand.neutral[400] }}>
                           {p.description}
@@ -1180,8 +1540,12 @@ function ManagePermissionsDialog({
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>{t('common:cancel')}</Button>
-        <Button variant="contained" onClick={handleSave} disabled={saving}
-          sx={{ bgcolor: t_brand.accent[500], '&:hover': { bgcolor: t_brand.accent[600] } }}>
+        <Button
+          variant="contained"
+          onClick={handleSave}
+          disabled={saving}
+          sx={{ bgcolor: t_brand.accent[500], '&:hover': { bgcolor: t_brand.accent[600] } }}
+        >
           {saving ? t('common:saving') : t('common:save')}
         </Button>
       </DialogActions>
@@ -1197,68 +1561,361 @@ export function TenantsSettings() {
   const { t } = useTranslation('smartpos');
   const { user } = useAuth();
 
-  const FEATURES = [
-    { icon: <IconBuilding size={20} />, text: t('settings:tenants.feature_create') },
-    { icon: <IconArrowUpRight size={20} />, text: t('settings:tenants.feature_switch') },
-    { icon: <IconCreditCard size={20} />, text: t('settings:tenants.feature_billing') },
-    { icon: <IconLock size={20} />, text: t('settings:tenants.feature_isolation') },
-    { icon: <IconBuildingStore size={20} />, text: t('settings:tenants.feature_branding') },
-  ];
+  // ── tenant state ──
+  const [tenant, setTenant] = useState<{
+    id: string;
+    name: string;
+    slug: string;
+    status: string;
+    billingPlan: string;
+    maxUsers: number;
+    maxStores: number;
+    settings: string;
+  } | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [name, setName] = useState('');
+  const [slug, setSlug] = useState('');
+  const [plan, setPlan] = useState('FREE');
+  const [tenantSettings, setTenantSettings] = useState<Record<string, boolean>>({});
+  const [dirty, setDirty] = useState(false);
+
+  const loadTenant = useCallback(async () => {
+    if (!user?.tenantId) {
+      setLoading(false);
+      return;
+    }
+    try {
+      const t2 = await apiFetchTenant(user.tenantId);
+      setTenant(t2);
+      setName(t2.name);
+      setSlug(t2.slug);
+      setPlan(t2.billingPlan);
+      const parsed = t2.settings ? JSON.parse(t2.settings) : {};
+      setTenantSettings(typeof parsed === 'object' ? parsed : {});
+    } catch {
+      // Fall back to user enrichment data
+      setTenant({
+        id: user.tenantId,
+        name: user.tenantName || 'Default Workspace',
+        slug: user.tenantSlug || 'default',
+        status: 'ACTIVE',
+        billingPlan: user.billingPlan || 'FREE',
+        maxUsers: 5,
+        maxStores: 1,
+        settings: '{}',
+      });
+    }
+    setLoading(false);
+  }, [user]);
+
+  useEffect(() => {
+    loadTenant();
+  }, [loadTenant]);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const updated = await apiUpdateTenant(tenant!.id, {
+        name,
+        slug,
+        billingPlan: plan,
+      });
+      setTenant(updated);
+      setName(updated.name);
+      setSlug(updated.slug);
+      setPlan(updated.billingPlan);
+      setDirty(false);
+    } catch (e) {
+      console.error('Failed to update tenant', e);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const toggleFeature = (key: string) => {
+    setTenantSettings((prev) => ({ ...prev, [key]: !prev[key] }));
+    setDirty(true);
+  };
+
+  const planMeta: Record<string, { label: string; users: number; stores: number }> = {
+    FREE: { label: 'Free', users: 5, stores: 1 },
+    STARTER: { label: 'Starter', users: 20, stores: 5 },
+    PRO: { label: 'Pro', users: 100, stores: 25 },
+    ENTERPRISE: { label: 'Enterprise', users: -1, stores: -1 },
+  };
+
+  const currentPlanMeta = planMeta[plan] || planMeta.FREE;
+
+  if (loading) return <CardSkeletonGroup count={4} />;
+  if (!tenant) {
+    return (
+      <Box>
+        <PageHeader title={t('settings.tenants.title')} subtitle={t('settings.tenants.subtitle')} />
+        <Box sx={{ ...cardSx, p: 3, textAlign: 'center' }}>
+          <Typography color="text.secondary">
+            {t('settings.tenants.no_tenant', 'No tenant assigned. Contact your administrator.')}
+          </Typography>
+        </Box>
+      </Box>
+    );
+  }
 
   return (
     <Box>
       <PageHeader
-        title={t('settings:tenants.title')}
-        subtitle={t('settings:tenants.subtitle')}
-        badge={{ label: 'Coming Q3', tone: 'warning' }}
+        title={t('settings.tenants.title')}
+        subtitle={t('settings.tenants.subtitle')}
+        badge={{
+          label: planMeta[plan]?.label || plan,
+          tone:
+            plan === 'ENTERPRISE'
+              ? 'primary'
+              : plan === 'PRO'
+                ? 'primary'
+                : plan === 'STARTER'
+                  ? 'success'
+                  : 'neutral',
+        }}
       />
 
       <Stack spacing={2.5} sx={{ maxWidth: 1680, mx: 'auto' }}>
-        {/* Current tenant info */}
+        {/* ── Tenant info (editable) ── */}
         <Box sx={{ ...cardSx, p: 2.5 }}>
-          <SectionTitle icon={<IconBuilding size={20} />} title={t('settings:tenants.current_tenant')} />
-          <Stack direction="row" spacing={2} sx={{ mt: 1 }}>
-            <Box sx={{ flex: 1 }}>
-              <Typography variant="caption" sx={{ color: t_brand.neutral[500] }}>
-                {t('settings:tenants.tenant_id')}
-              </Typography>
-              <Typography sx={{ fontWeight: 700, fontFamily: 'monospace', fontSize: '0.88rem', color: t_brand.neutral[900] }}>
-                {user?.tenantId ?? '—'}
-              </Typography>
-            </Box>
-            <Chip label="Active" size="small"
-              sx={{ fontWeight: 600, bgcolor: t_brand.success.light, color: t_brand.success.dark }} />
+          <SectionTitle
+            icon={<IconBuilding size={20} />}
+            title={t('settings.tenants.current_tenant')}
+          />
+          <Stack spacing={2} sx={{ mt: 1.5 }}>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+              <Box flex={1}>
+                <Typography variant="caption" sx={{ color: t_brand.neutral[500], fontWeight: 600 }}>
+                  Workspace name
+                </Typography>
+                <TextField
+                  fullWidth
+                  size="small"
+                  value={name}
+                  onChange={(e) => {
+                    setName(e.target.value);
+                    setDirty(true);
+                  }}
+                  sx={fieldSx}
+                />
+              </Box>
+              <Box flex={1}>
+                <Typography variant="caption" sx={{ color: t_brand.neutral[500], fontWeight: 600 }}>
+                  Workspace slug
+                </Typography>
+                <TextField
+                  fullWidth
+                  size="small"
+                  value={slug}
+                  onChange={(e) => {
+                    setSlug(e.target.value);
+                    setDirty(true);
+                  }}
+                  sx={fieldSx}
+                />
+              </Box>
+            </Stack>
+            <Stack direction="row" spacing={2} alignItems="center">
+              <Box flex={1}>
+                <Typography
+                  variant="caption"
+                  sx={{ color: t_brand.neutral[500], fontWeight: 600, mb: 0.5, display: 'block' }}
+                >
+                  Billing plan
+                </Typography>
+                <ToggleButtonGroup
+                  value={plan}
+                  exclusive
+                  size="small"
+                  onChange={(_, v) => {
+                    if (v) {
+                      setPlan(v);
+                      setDirty(true);
+                    }
+                  }}
+                  sx={toggleGroupSx}
+                >
+                  {Object.entries(planMeta).map(([k, m]) => (
+                    <ToggleButton key={k} value={k} sx={{ textTransform: 'none' }}>
+                      {m.label}
+                    </ToggleButton>
+                  ))}
+                </ToggleButtonGroup>
+              </Box>
+              <Box>
+                <StatusBadge
+                  label={tenant.status}
+                  tone={
+                    tenant.status === 'ACTIVE'
+                      ? 'success'
+                      : tenant.status === 'SUSPENDED'
+                        ? 'warning'
+                        : 'error'
+                  }
+                />
+              </Box>
+            </Stack>
           </Stack>
         </Box>
 
-        {/* What are tenants */}
+        {/* ── Plan & limits ── */}
         <Box sx={{ ...cardSx, p: 2.5 }}>
-          <SectionTitle icon={<IconBuilding size={20} />} title={t('settings:tenants.what_are_tenants')} />
-          <Typography variant="body2" sx={{ color: t_brand.neutral[600], lineHeight: 1.7 }}>
-            {t('settings:tenants.tenant_description')}
-          </Typography>
-        </Box>
-
-        {/* Planned features */}
-        <Box sx={{ ...cardSx, p: 2.5 }}>
-          <SectionTitle icon={<IconChartBar size={20} />} title={t('settings:tenants.features_title')} />
-          <Stack spacing={1.25}>
-            {FEATURES.map((f, i) => (
-              <Stack key={i} direction="row" spacing={1.5} alignItems="center"
+          <SectionTitle icon={<IconChartBar size={20} />} title="Plan & Limits" />
+          <Stack spacing={2} sx={{ mt: 1.5 }}>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={3}>
+              <Box
+                flex={1}
                 sx={{
-                  p: 1.5, borderRadius: 2,
+                  p: 2,
+                  borderRadius: 2,
                   bgcolor: t_brand.neutral[50],
                   border: `1px solid ${t_brand.neutral[100]}`,
-                }}>
-                <Box sx={{ color: t_brand.primary[500] }}>{f.icon}</Box>
-                <Typography variant="body2" sx={{ fontWeight: 600, color: t_brand.neutral[800] }}>
-                  {f.text}
+                }}
+              >
+                <Typography variant="caption" sx={{ color: t_brand.neutral[500] }}>
+                  Users
                 </Typography>
+                <Stack direction="row" alignItems="baseline" spacing={1}>
+                  <Typography sx={{ fontWeight: 700, fontSize: '1.4rem' }}>
+                    {currentPlanMeta.users === -1 ? '∞' : currentPlanMeta.users}
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: t_brand.neutral[400] }}>
+                    {currentPlanMeta.users === -1 ? 'unlimited' : 'max users'}
+                  </Typography>
+                </Stack>
+              </Box>
+              <Box
+                flex={1}
+                sx={{
+                  p: 2,
+                  borderRadius: 2,
+                  bgcolor: t_brand.neutral[50],
+                  border: `1px solid ${t_brand.neutral[100]}`,
+                }}
+              >
+                <Typography variant="caption" sx={{ color: t_brand.neutral[500] }}>
+                  Stores / Locations
+                </Typography>
+                <Stack direction="row" alignItems="baseline" spacing={1}>
+                  <Typography sx={{ fontWeight: 700, fontSize: '1.4rem' }}>
+                    {currentPlanMeta.stores === -1 ? '∞' : currentPlanMeta.stores}
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: t_brand.neutral[400] }}>
+                    {currentPlanMeta.stores === -1 ? 'unlimited' : 'max stores'}
+                  </Typography>
+                </Stack>
+              </Box>
+              <Box
+                flex={2}
+                sx={{
+                  p: 2,
+                  borderRadius: 2,
+                  bgcolor: plan === 'FREE' ? '#FFF7ED' : t_brand.success.light,
+                  border: `1px solid ${plan === 'FREE' ? '#FDBA74' : t_brand.success.main}`,
+                }}
+              >
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: plan === 'FREE' ? '#C2410C' : t_brand.success.dark,
+                    fontWeight: 600,
+                  }}
+                >
+                  {plan === 'FREE' ? 'Consider upgrading' : 'Your plan includes premium features'}
+                </Typography>
+                <Typography variant="body2" sx={{ mt: 0.5, color: t_brand.neutral[700] }}>
+                  {plan === 'FREE'
+                    ? 'Free tier is limited to 5 users and 1 store. Upgrade to unlock more capacity and features.'
+                    : plan === 'ENTERPRISE'
+                      ? 'Full access to all features, unlimited users and stores.'
+                      : `The ${currentPlanMeta.label} plan supports up to ${currentPlanMeta.users} users and ${currentPlanMeta.stores} stores.`}
+                </Typography>
+              </Box>
+            </Stack>
+          </Stack>
+        </Box>
+
+        {/* ── Feature toggles ── */}
+        <Box sx={{ ...cardSx, p: 2.5 }}>
+          <SectionTitle
+            icon={<IconLayoutGrid size={20} />}
+            title={t('settings.tenants.features_title')}
+          />
+          <Stack spacing={1} sx={{ mt: 1.5 }}>
+            {[
+              {
+                key: 'posAdvancedLayout',
+                label: 'Advanced POS layout',
+                icon: <IconLayoutGrid size={16} />,
+              },
+              {
+                key: 'loyaltyEnabled',
+                label: 'Loyalty & rewards',
+                icon: <IconPercentage size={16} />,
+              },
+              { key: 'aiFeatures', label: 'AI-powered features', icon: <IconChartBar size={16} /> },
+              {
+                key: 'customBranding',
+                label: 'Custom branding & receipts',
+                icon: <IconBuildingStore size={16} />,
+              },
+              {
+                key: 'multiCurrency',
+                label: 'Multi-currency support',
+                icon: <IconCash size={16} />,
+              },
+              {
+                key: 'apiAccess',
+                label: 'API & webhook access',
+                icon: <IconArrowUpRight size={16} />,
+              },
+            ].map((ft) => (
+              <Stack
+                key={ft.key}
+                direction="row"
+                spacing={2}
+                alignItems="center"
+                sx={{
+                  p: 1.5,
+                  borderRadius: 2,
+                  bgcolor: t_brand.neutral[50],
+                  border: `1px solid ${t_brand.neutral[100]}`,
+                }}
+              >
+                <Box sx={{ color: t_brand.primary[500], display: 'flex' }}>{ft.icon}</Box>
+                <Typography
+                  variant="body2"
+                  sx={{ fontWeight: 600, color: t_brand.neutral[800], flex: 1 }}
+                >
+                  {ft.label}
+                </Typography>
+                <Switch
+                  size="small"
+                  checked={!!tenantSettings[ft.key]}
+                  onChange={() => toggleFeature(ft.key)}
+                />
               </Stack>
             ))}
           </Stack>
         </Box>
       </Stack>
+
+      {dirty && (
+        <FloatingSaveBar
+          saving={saving}
+          onSave={handleSave}
+          onReset={() => {
+            setName(tenant.name);
+            setSlug(tenant.slug);
+            setPlan(tenant.billingPlan);
+            setDirty(false);
+          }}
+        />
+      )}
     </Box>
   );
 }
@@ -1276,53 +1933,96 @@ export function LocaleSettings() {
     <Box>
       <PageHeader
         title="Localization"
-        subtitle="Language, currency format, tax rules"
+        subtitle="Display language, currency formatting, and regional defaults"
+        badge={{ label: 'Enterprise', tone: 'primary' }}
       />
-      <Box sx={{ ...cardSx, p: 2.5, maxWidth: 640 }}>
-        <SectionTitle icon={<IconBuilding size={20} />} title="Display language" />
-        <Typography variant="body2" sx={{ color: t_brand.neutral[500], mb: 2 }}>
-          Applies to every page in this browser. Saved to local storage.
-        </Typography>
 
-        <Stack spacing={1.5}>
-          {SMARTPOS_LOCALES.map((l) => {
-            const selected = l.code === current;
-            return (
-              <Box
-                key={l.code}
-                onClick={() => pick(l.code)}
-                sx={{
-                  display: 'flex', alignItems: 'center', gap: 2,
-                  p: 2, borderRadius: 2, cursor: 'pointer',
-                  border: `1px solid ${selected ? t_brand.primary[500] : t_brand.neutral[200]}`,
-                  bgcolor: selected ? t_brand.primary[50] : 'transparent',
-                  transition: 'all 0.15s',
-                  '&:hover': { borderColor: t_brand.primary[500] },
-                }}
-              >
-                <Typography component="span" sx={{ fontSize: 28 }}>{l.flag}</Typography>
-                <Box sx={{ flex: 1 }}>
-                  <Typography sx={{ fontWeight: 700 }}>{l.label}</Typography>
-                  <Typography variant="caption" sx={{ color: t_brand.neutral[500] }}>
-                    {l.code.toUpperCase()}
-                  </Typography>
-                </Box>
-                {selected && (
-                  <Typography
-                    variant="caption"
-                    sx={{ color: t_brand.primary[700], fontWeight: 700, letterSpacing: '0.08em' }}
+      <Stack spacing={2.5} sx={{ maxWidth: 1680, mx: 'auto' }}>
+        {/* Display language */}
+        <Box sx={{ ...cardSx, p: 2.5 }}>
+          <SectionTitle icon={<IconBuilding size={20} />} title="Display language" />
+          <Typography variant="body2" sx={{ color: t_brand.neutral[500], mb: 2 }}>
+            Applies to every page in this browser. Saved to local storage.
+          </Typography>
+
+          <Stack spacing={1.5}>
+            {SMARTPOS_LOCALES.map((l) => {
+              const selected = l.code === current;
+              return (
+                <Box
+                  key={l.code}
+                  onClick={() => pick(l.code)}
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 2,
+                    p: 2,
+                    borderRadius: '10px',
+                    cursor: 'pointer',
+                    border: `1px solid ${selected ? t_brand.primary[300] : t_brand.neutral[200]}`,
+                    bgcolor: selected ? t_brand.primary[50] + 'CC' : '#fff',
+                    transition: 'all 0.2s',
+                    '&:hover': {
+                      borderColor: t_brand.primary[400],
+                      boxShadow: `0 2px 8px ${t_brand.primary[500]}10`,
+                    },
+                  }}
+                >
+                  <Box
+                    sx={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: '10px',
+                      bgcolor: selected ? t_brand.primary[100] : t_brand.neutral[50],
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      transition: 'all 0.2s',
+                    }}
                   >
-                    ACTIVE
-                  </Typography>
-                )}
-              </Box>
-            );
-          })}
-        </Stack>
-      </Box>
-      <Alert severity="info" sx={{ mt: 2, maxWidth: 640 }}>
-        Per-user persistence, currency formatting, and tax-rule presets land in a later phase.
-      </Alert>
+                    <Typography component="span" sx={{ fontSize: 24 }}>
+                      {l.flag}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ flex: 1 }}>
+                    <Typography sx={{ fontWeight: 700, fontSize: '0.9rem' }}>{l.label}</Typography>
+                    <Typography variant="caption" sx={{ color: t_brand.neutral[500] }}>
+                      {l.code.toUpperCase()}
+                    </Typography>
+                  </Box>
+                  {selected && (
+                    <Chip
+                      label="Active"
+                      size="small"
+                      sx={{
+                        fontWeight: 700,
+                        fontSize: '0.7rem',
+                        bgcolor: t_brand.primary[100],
+                        color: t_brand.primary[700],
+                      }}
+                    />
+                  )}
+                </Box>
+              );
+            })}
+          </Stack>
+        </Box>
+
+        {/* Roadmap card */}
+        <Box
+          sx={{
+            ...cardSx,
+            p: 2.5,
+            borderColor: t_brand.accent[200],
+            bgcolor: t_brand.accent[50],
+          }}
+        >
+          <SectionTitle icon={<IconChartBar size={20} />} title="Coming next" />
+          <Typography variant="body2" sx={{ color: t_brand.neutral[600] }}>
+            Per-user persistence, currency formatting, and tax-rule presets land in a later phase.
+          </Typography>
+        </Box>
+      </Stack>
     </Box>
   );
 }
@@ -1332,8 +2032,14 @@ export function LocaleSettings() {
    ────────────────────────────────────────────────────────────────────────── */
 
 export function SettingsPlaceholder({
-  title, subtitle, info,
-}: { title: string; subtitle: string; info: string }) {
+  title,
+  subtitle,
+  info,
+}: {
+  title: string;
+  subtitle: string;
+  info: string;
+}) {
   return (
     <Box>
       <PageHeader title={title} subtitle={subtitle} />

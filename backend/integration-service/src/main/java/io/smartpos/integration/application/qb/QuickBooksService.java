@@ -1,5 +1,6 @@
 package io.smartpos.integration.application.qb;
 
+import io.smartpos.common.context.TenantContext;
 import io.smartpos.integration.application.IntegrationProperties;
 import io.smartpos.integration.domain.model.IntegrationSync;
 import io.smartpos.integration.domain.repository.IntegrationSyncRepository;
@@ -44,6 +45,7 @@ public class QuickBooksService {
                 .provider("QUICKBOOKS").direction("OUT")
                 .entityType("Invoice").entityId(saleId)
                 .requestBody(qbInvoicePayload.toString())
+                .tenantId(TenantContext.require())
                 .build());
 
         try {

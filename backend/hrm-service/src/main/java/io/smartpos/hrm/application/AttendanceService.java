@@ -1,5 +1,6 @@
 package io.smartpos.hrm.application;
 
+import io.smartpos.common.context.TenantContext;
 import io.smartpos.hrm.api.dto.AttendanceDto;
 import io.smartpos.hrm.domain.model.Attendance;
 import io.smartpos.hrm.domain.model.AttendanceStatus;
@@ -36,13 +37,13 @@ public class AttendanceService {
 
     @Transactional(readOnly = true)
     public List<AttendanceDto> listForEmployee(UUID employeeId, LocalDate from, LocalDate to) {
-        return repo.findByEmployeeIdAndWorkDateBetween(employeeId, from, to)
+        return repo.findByEmployeeIdAndWorkDateBetween(employeeId, from, to, TenantContext.require())
                 .stream().map(AttendanceDto::from).toList();
     }
 
     @Transactional(readOnly = true)
     public List<AttendanceDto> listByDate(LocalDate from, LocalDate to) {
-        return repo.findByWorkDateBetween(from, to).stream().map(AttendanceDto::from).toList();
+        return repo.findByWorkDateBetween(from, to, TenantContext.require()).stream().map(AttendanceDto::from).toList();
     }
 
     @Transactional
@@ -50,11 +51,12 @@ public class AttendanceService {
         Instant when = Optional.ofNullable(req.timestamp()).orElseGet(Instant::now);
         LocalDate day = when.atZone(ZoneId.systemDefault()).toLocalDate();
 
-        Attendance a = repo.findByEmployeeIdAndWorkDate(req.employeeId(), day)
+        Attendance a = repo.findByEmployeeIdAndWorkDate(req.employeeId(), day, TenantContext.require())
                 .orElseGet(() -> Attendance.builder()
                         .employeeId(req.employeeId())
                         .workDate(day)
                         .status(AttendanceStatus.PRESENT)
+                        .tenantId(TenantContext.require())
                         .build());
         if (a.getCheckIn() == null) a.setCheckIn(when);
         return AttendanceDto.from(repo.save(a));
@@ -65,7 +67,7 @@ public class AttendanceService {
         Instant when = Optional.ofNullable(req.timestamp()).orElseGet(Instant::now);
         LocalDate day = when.atZone(ZoneId.systemDefault()).toLocalDate();
 
-        Attendance a = repo.findByEmployeeIdAndWorkDate(req.employeeId(), day)
+        Attendance a = repo.findByEmployeeIdAndWorkDate(req.employeeId(), day, TenantContext.require())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No check-in for today"));
         a.setCheckOut(when);
         if (a.getCheckIn() != null) {
@@ -77,9 +79,10 @@ public class AttendanceService {
 
     @Transactional
     public AttendanceDto upsert(AttendanceDto.UpsertRequest req) {
-        Attendance a = repo.findByEmployeeIdAndWorkDate(req.employeeId(), req.workDate())
+        Attendance a = repo.findByEmployeeIdAndWorkDate(req.employeeId(), req.workDate(), TenantContext.require())
                 .orElseGet(() -> Attendance.builder()
-                        .employeeId(req.employeeId()).workDate(req.workDate()).build());
+                        .employeeId(req.employeeId()).workDate(req.workDate())
+                        .tenantId(TenantContext.require()).build());
         if (req.checkIn()      != null) a.setCheckIn(req.checkIn());
         if (req.checkOut()     != null) a.setCheckOut(req.checkOut());
         if (req.status()       != null) a.setStatus(req.status());

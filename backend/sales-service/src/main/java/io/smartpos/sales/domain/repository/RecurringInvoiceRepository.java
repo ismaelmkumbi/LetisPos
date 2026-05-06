@@ -21,16 +21,20 @@ public interface RecurringInvoiceRepository extends JpaRepository<RecurringInvoi
            WHERE (:status      IS NULL OR r.status     = :status)
              AND (:customerId  IS NULL OR r.customerId = :customerId)
              AND (:warehouseId IS NULL OR r.warehouseId = :warehouseId)
+             AND r.tenantId = :tenantId
            ORDER BY r.nextRunDate ASC
            """)
     Page<RecurringInvoice> search(@Param("status")      RecurringStatus status,
                                   @Param("customerId")  UUID customerId,
                                   @Param("warehouseId") UUID warehouseId,
+                                  @Param("tenantId")    UUID tenantId,
                                   Pageable pageable);
 
     /**
      * Templates due to fire today. Picked up in batches by the scheduler.
      * Limit/offset come from {@code Pageable} (page-size = batch).
+     * Runs system-wide (no tenant filter) because the scheduler operates
+     * outside a request context.
      */
     @Query("""
            SELECT r FROM RecurringInvoice r

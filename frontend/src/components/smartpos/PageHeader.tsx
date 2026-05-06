@@ -1,5 +1,8 @@
 import { Box, Button, Chip, Stack, Typography } from '@mui/material';
+import { IconChevronRight } from '@tabler/icons-react';
+import { Link } from 'react-router';
 import { brand } from 'src/theme/smartpos/brand';
+import { StatusIndicator, type OperationalState } from './StatusIndicator';
 
 export interface BreadcrumbItem {
   label: string;
@@ -19,6 +22,14 @@ export interface PageHeaderProps {
   badge?: { label: string; tone?: 'primary' | 'success' | 'warning' | 'error' | 'neutral' };
   action?: PageHeaderAction;
   actions?: PageHeaderAction[];
+  /** Breadcrumb trail rendered above the title */
+  breadcrumbs?: BreadcrumbItem[];
+  /** Operational status indicator (register state, workflow state) */
+  status?: { state: OperationalState; label: string };
+  /** Compact metric pills shown next to the badge */
+  metrics?: { label: string; value: string | number }[];
+  /** Live indicator with pulsing dot and text */
+  liveIndicator?: { text: string };
 }
 
 const BADGE_TONES = {
@@ -58,11 +69,44 @@ const ACTION_STYLES = {
   },
 };
 
-export function PageHeader({ title, subtitle, badge, action, actions }: PageHeaderProps) {
+export function PageHeader({
+  title, subtitle, badge, action, actions,
+  breadcrumbs, status, metrics, liveIndicator,
+}: PageHeaderProps) {
   const allActions = actions ?? (action ? [action] : []);
 
   return (
     <Box sx={{ mb: 2.25 }}>
+      {/* Breadcrumbs */}
+      {breadcrumbs && breadcrumbs.length > 0 && (
+        <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mb: 1.25 }}>
+          {breadcrumbs.map((b, i) => (
+            <Stack key={i} direction="row" spacing={0.5} alignItems="center">
+              {i > 0 && <IconChevronRight size={12} color={brand.neutral[400]} stroke={2} />}
+              {b.href ? (
+                <Typography
+                  component={Link}
+                  to={b.href}
+                  variant="caption"
+                  sx={{
+                    color: brand.neutral[500],
+                    fontWeight: 500,
+                    textDecoration: 'none',
+                    '&:hover': { color: brand.primary[600] },
+                  }}
+                >
+                  {b.label}
+                </Typography>
+              ) : (
+                <Typography variant="caption" sx={{ color: brand.neutral[700], fontWeight: 600 }}>
+                  {b.label}
+                </Typography>
+              )}
+            </Stack>
+          ))}
+        </Stack>
+      )}
+
       <Stack
         direction={{ xs: 'column', sm: 'row' }}
         justifyContent="space-between"
@@ -97,6 +141,11 @@ export function PageHeader({ title, subtitle, badge, action, actions }: PageHead
                   }}
                 />
               )}
+              {status && (
+                <Box sx={{ ml: 0.5 }}>
+                  <StatusIndicator state={status.state} label={status.label} size="sm" pulse />
+                </Box>
+              )}
             </Stack>
             {subtitle && (
               <Typography
@@ -105,6 +154,40 @@ export function PageHeader({ title, subtitle, badge, action, actions }: PageHead
               >
                 {subtitle}
               </Typography>
+            )}
+            {/* Metrics pills */}
+            {metrics && metrics.length > 0 && (
+              <Stack direction="row" spacing={1.5} sx={{ mt: 1 }}>
+                {metrics.map((m, i) => (
+                  <Box key={i} sx={{ display: 'flex', alignItems: 'baseline', gap: 0.5 }}>
+                    <Typography variant="caption" sx={{ color: brand.neutral[500], fontWeight: 500 }}>
+                      {m.label}
+                    </Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 700, color: brand.neutral[800] }}>
+                      {m.value}
+                    </Typography>
+                  </Box>
+                ))}
+              </Stack>
+            )}
+            {/* Live indicator */}
+            {liveIndicator && (
+              <Stack direction="row" spacing={0.75} alignItems="center" sx={{ mt: 0.75 }}>
+                <Box
+                  sx={{
+                    width: 6, height: 6, borderRadius: '50%',
+                    bgcolor: brand.success.main,
+                    animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    '@keyframes pulse': {
+                      '0%, 100%': { opacity: 1 },
+                      '50%': { opacity: 0.4 },
+                    },
+                  }}
+                />
+                <Typography variant="caption" sx={{ color: brand.neutral[500], fontWeight: 500 }}>
+                  {liveIndicator.text}
+                </Typography>
+              </Stack>
             )}
           </Box>
         </Stack>

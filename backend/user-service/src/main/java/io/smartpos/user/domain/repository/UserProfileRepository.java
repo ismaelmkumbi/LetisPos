@@ -13,9 +13,12 @@ import java.util.UUID;
 public interface UserProfileRepository extends JpaRepository<UserProfile, UUID> {
     Optional<UserProfile> findByEmailIgnoreCase(String email);
 
+    long countByTenantId(UUID tenantId);
+
     @Query("""
            SELECT u FROM UserProfile u
-           WHERE (:search IS NULL OR
+           WHERE u.tenantId = :tenantId
+             AND (:search IS NULL OR
                   LOWER(u.email)     LIKE LOWER(CONCAT('%', :search, '%')) OR
                   LOWER(u.firstName) LIKE LOWER(CONCAT('%', :search, '%')) OR
                   LOWER(u.lastName)  LIKE LOWER(CONCAT('%', :search, '%')))
@@ -23,5 +26,6 @@ public interface UserProfileRepository extends JpaRepository<UserProfile, UUID> 
            """)
     Page<UserProfile> search(@Param("search") String search,
                              @Param("active") Boolean active,
+                             @Param("tenantId") UUID tenantId,
                              Pageable pageable);
 }

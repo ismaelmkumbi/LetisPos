@@ -1,5 +1,6 @@
 package io.smartpos.product.application;
 
+import io.smartpos.common.context.TenantContext;
 import io.smartpos.product.api.dto.BrandDto;
 import io.smartpos.product.domain.model.Brand;
 import io.smartpos.product.domain.repository.BrandRepository;
@@ -32,7 +33,7 @@ public class BrandService {
 
     @Transactional(readOnly = true)
     public Page<BrandDto> search(String search, Pageable pageable) {
-        return repo.search(search, pageable).map(BrandDto::from);
+        return repo.search(search, TenantContext.require(), pageable).map(BrandDto::from);
     }
 
     @Transactional(readOnly = true)
@@ -47,7 +48,8 @@ public class BrandService {
         if (repo.existsByNameIgnoreCase(req.name())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Brand name already exists");
         }
-        Brand b = Brand.builder().name(req.name()).imageUrl(req.imageUrl()).description(req.description()).build();
+        Brand b = Brand.builder().name(req.name()).imageUrl(req.imageUrl()).description(req.description())
+                .tenantId(TenantContext.require()).build();
         return BrandDto.from(repo.save(b));
     }
 

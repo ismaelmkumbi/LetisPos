@@ -4,9 +4,11 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.smartpos.payment.api.dto.PaymentDto;
 import io.smartpos.payment.api.dto.StripeDto;
+import io.smartpos.payment.domain.model.Account;
 import io.smartpos.payment.domain.model.PaymentMethod;
 import io.smartpos.payment.domain.model.ReferenceType;
 import io.smartpos.payment.domain.model.StripeWebhookEvent;
+import io.smartpos.payment.domain.repository.AccountRepository;
 import io.smartpos.payment.domain.repository.StripeWebhookEventRepository;
 import io.smartpos.payment.infrastructure.stripe.StripeProperties;
 import lombok.RequiredArgsConstructor;
@@ -45,6 +47,7 @@ public class StripeService {
     private final StripeProperties props;
     private final StripeWebhookEventRepository webhookRepo;
     private final PaymentService paymentService;
+    private final AccountRepository accountRepo;
     private final ObjectMapper mapper;
 
     public StripeDto.IntentResponse createPaymentIntent(StripeDto.IntentRequest req) {
@@ -110,7 +113,10 @@ public class StripeService {
                 String intentId = object.path("id").asText();
 
                 if (saleId != null && accountId != null && amount.signum() > 0) {
-                    paymentService.record(new PaymentDto.CreateRequest(
+                    // Webhooks arrive outside JWT context — look up tenant from the account.
+                    Account account = accountRepo.findById(accountId).orElse(null);
+                    UUID tenantId = account != null ? account.getTenantId() : null;
+                    paymentService.recordInternal(new PaymentDto.CreateRequest(
                             null,                      // today's date
                             ReferenceType.SALE,
                             saleId,
@@ -120,7 +126,7 @@ public class StripeService {
                             PaymentMethod.STRIPE,
                             intentId,
                             "Stripe webhook " + stripeEventId
-                    ), null);
+                    ), null, tenantId);
                 } else {
                     log.warn("[STRIPE] payment_intent.succeeded missing metadata — skipping record. event={}", stripeEventId);
                 }

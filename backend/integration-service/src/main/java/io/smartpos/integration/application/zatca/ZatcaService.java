@@ -1,5 +1,6 @@
 package io.smartpos.integration.application.zatca;
 
+import io.smartpos.common.context.TenantContext;
 import io.smartpos.integration.application.IntegrationProperties;
 import io.smartpos.integration.domain.model.IntegrationSync;
 import io.smartpos.integration.domain.repository.IntegrationSyncRepository;
@@ -57,6 +58,7 @@ public class ZatcaService {
                 .status("OK").attempts(1)
                 .requestBody(payload.toString())
                 .responseBody(qr)
+                .tenantId(TenantContext.require())
                 .completedAt(Instant.now())
                 .build());
     }

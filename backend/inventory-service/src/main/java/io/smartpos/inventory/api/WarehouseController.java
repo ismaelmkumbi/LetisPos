@@ -38,4 +38,17 @@ public class WarehouseController {
     public WarehouseDto update(@PathVariable UUID id, @Valid @RequestBody WarehouseDto.CreateRequest req) {
         return service.update(id, req);
     }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('warehouse.manage')")
+    public ResponseEntity<Void> deactivate(@PathVariable UUID id) {
+        service.deactivate(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping("/{id}/status")
+    @PreAuthorize("hasAuthority('warehouse.manage')")
+    public WarehouseDto setStatus(@PathVariable UUID id, @RequestBody WarehouseDto.StatusRequest req) {
+        return service.setStatus(id, req.active());
+    }
 }

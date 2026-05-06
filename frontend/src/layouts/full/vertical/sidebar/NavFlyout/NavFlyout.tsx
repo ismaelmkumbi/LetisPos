@@ -6,12 +6,23 @@ interface NavFlyoutProps {
   anchorEl: HTMLElement | null;
   open: boolean;
   onClose: () => void;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
   title?: string;
   titleIcon?: ElementType;
   children: ReactNode;
 }
 
-const NavFlyout: FC<NavFlyoutProps> = ({ anchorEl, open, onClose, title, titleIcon: TitleIcon, children }) => {
+const NavFlyout: FC<NavFlyoutProps> = ({
+  anchorEl,
+  open,
+  onClose,
+  onMouseEnter,
+  onMouseLeave,
+  title,
+  titleIcon: TitleIcon,
+  children,
+}) => {
   const theme = useTheme();
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -23,9 +34,11 @@ const NavFlyout: FC<NavFlyoutProps> = ({ anchorEl, open, onClose, title, titleIc
 
   const handleMouseEnter = () => {
     if (closeTimer.current) clearTimeout(closeTimer.current);
+    onMouseEnter?.();
   };
 
   const handleMouseLeave = () => {
+    onMouseLeave?.();
     closeTimer.current = setTimeout(onClose, 200);
   };
 
@@ -37,21 +50,37 @@ const NavFlyout: FC<NavFlyoutProps> = ({ anchorEl, open, onClose, title, titleIc
       anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
       transformOrigin={{ vertical: 'top', horizontal: 'left' }}
       TransitionComponent={Grow}
-      transitionDuration={{ enter: 250, exit: 200 }}
+      transitionDuration={{ enter: 160, exit: 120 }}
       disableRestoreFocus
-      sx={{ pointerEvents: 'none' }}
+      marginThreshold={8}
+      sx={{
+        pointerEvents: 'none',
+        '& .MuiPopover-paper': {
+          transformOrigin: 'left top !important',
+        },
+      }}
       slotProps={{
         paper: {
           sx: {
             pointerEvents: 'auto',
-            ml: 1.5,
-            mt: -0.5,
-            minWidth: 220,
-            maxWidth: 280,
+            ml: 1,
+            mt: 0,
+            minWidth: 236,
+            maxWidth: 320,
+            maxHeight: 'calc(100vh - 16px)',
+            overflowY: 'auto',
             p: 1,
             borderRadius: '14px',
             boxShadow: theme.shadows[8],
             transformOrigin: '0 0 0',
+            '&::before': {
+              content: '""',
+              position: 'absolute',
+              left: -12,
+              top: 0,
+              width: 12,
+              height: '100%',
+            },
           },
           onMouseEnter: handleMouseEnter,
           onMouseLeave: handleMouseLeave,

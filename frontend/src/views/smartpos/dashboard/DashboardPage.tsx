@@ -5,10 +5,12 @@ import {
   Box,
   Button,
   Card,
+  CardActionArea,
   CardContent,
   Chip,
   Grid,
   IconButton,
+  LinearProgress,
   MenuItem,
   Skeleton,
   Stack,
@@ -34,12 +36,23 @@ import {
 } from '@tabler/icons-react';
 import { Link as RouterLink, useSearchParams } from 'react-router';
 
-import { getDashboard, type Dashboard, type Period } from 'src/api/smartpos/reports';
+import {
+  getDashboard,
+  getPaymentMethodMix,
+  type Dashboard,
+  type PaymentMethodMixRow,
+  type Period,
+} from 'src/api/smartpos/reports';
+import { listSales, type Sale } from 'src/api/smartpos/sales';
 import { listWarehouses, type Warehouse } from 'src/api/smartpos/inventory';
 import { brand } from 'src/theme/smartpos/brand';
 import { formatMoney, formatNumber } from 'src/utils/smartpos/currency';
 import { useAuth } from 'src/context/smartpos/AuthContext';
+import { useOnboarding } from 'src/context/smartpos/OnboardingContext';
 import type { UUID } from 'src/api/smartpos/types';
+import OnboardingBanner from './OnboardingBanner';
+import CelebrationModal from 'src/views/smartpos/onboarding/CelebrationModal';
+import SetupWizard from 'src/views/smartpos/onboarding/SetupWizard';
 
 const PERIODS: Period[] = ['TODAY', 'YESTERDAY', 'WEEK', 'MONTH', 'LAST_30_DAYS', 'YTD'];
 const chartFont = 'Inter, DM Sans, sans-serif';
@@ -60,22 +73,59 @@ function greeting(firstName?: string) {
   return { salutation, wave, name: firstName ?? 'there' };
 }
 
-function monthRangeLabel(date = new Date()) {
+function formatDateRange(from?: string, to?: string) {
+  const fmt = (d: Date) =>
+    d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  if (from && to) return `${fmt(new Date(from))} - ${fmt(new Date(to))}`;
+  const date = new Date();
   const start = new Date(date.getFullYear(), date.getMonth(), 1);
-  const end   = new Date(date.getFullYear(), date.getMonth() + 1, 0);
-  const fmt   = (d: Date) => d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-  return `${fmt(start)} – ${fmt(end)}`;
+  const end = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+  return `${fmt(start)} - ${fmt(end)}`;
+}
+
+function toIsoDate(date: Date) {
+  return date.toISOString().slice(0, 10);
+}
+
+function periodRange(period: Period) {
+  const today = new Date();
+  const start = new Date(today);
+  const end = new Date(today);
+
+  if (period === 'YESTERDAY') {
+    start.setDate(today.getDate() - 1);
+    end.setDate(today.getDate() - 1);
+  } else if (period === 'WEEK') {
+    const day = today.getDay() || 7;
+    start.setDate(today.getDate() - day + 1);
+  } else if (period === 'MONTH') {
+    start.setDate(1);
+  } else if (period === 'YTD') {
+    start.setMonth(0, 1);
+  } else if (period === 'LAST_30_DAYS') {
+    start.setDate(today.getDate() - 30);
+  }
+
+  return { dateFrom: toIsoDate(start), dateTo: toIsoDate(end) };
 }
 
 interface GreetingBarProps {
   period: Period;
   warehouseId: string;
   warehouses: Warehouse[];
+  dateRangeLabel: string;
   onPeriodChange: (p: Period) => void;
   onWarehouseChange: (id: string) => void;
 }
 
-function DashboardGreetingBar({ period, warehouseId, warehouses, onPeriodChange, onWarehouseChange }: GreetingBarProps) {
+function DashboardGreetingBar({
+  period,
+  warehouseId,
+  warehouses,
+  dateRangeLabel,
+  onPeriodChange,
+  onWarehouseChange,
+}: GreetingBarProps) {
   const { user } = useAuth();
   const { salutation, wave, name } = greeting(user?.firstName);
 
@@ -127,7 +177,9 @@ function DashboardGreetingBar({ period, warehouseId, warehouses, onPeriodChange,
           >
             {salutation}, {name}
           </Typography>
-          <Box component="span" sx={{ fontSize: 20, lineHeight: 1 }}>{wave}</Box>
+          <Box component="span" sx={{ fontSize: 20, lineHeight: 1 }}>
+            {wave}
+          </Box>
         </Stack>
         <Typography sx={{ color: brand.neutral[500], fontSize: 13.5, mt: 0.3 }}>
           Here's what's happening with your business today.
@@ -157,7 +209,13 @@ function DashboardGreetingBar({ period, warehouseId, warehouses, onPeriodChange,
           }}
         >
           {PERIODS.map((p) => (
-            <Button key={p} size="small" variant="text" onClick={() => onPeriodChange(p)} sx={pillSx(period === p)}>
+            <Button
+              key={p}
+              size="small"
+              variant="text"
+              onClick={() => onPeriodChange(p)}
+              sx={pillSx(period === p)}
+            >
               {PERIOD_LABELS[p]}
             </Button>
           ))}
@@ -185,7 +243,9 @@ function DashboardGreetingBar({ period, warehouseId, warehouses, onPeriodChange,
           >
             <MenuItem value="">All warehouses</MenuItem>
             {warehouses.map((w) => (
-              <MenuItem key={w.id} value={w.id}>{w.name}</MenuItem>
+              <MenuItem key={w.id} value={w.id}>
+                {w.name}
+              </MenuItem>
             ))}
           </TextField>
         )}
@@ -205,10 +265,14 @@ function DashboardGreetingBar({ period, warehouseId, warehouses, onPeriodChange,
             textTransform: 'none',
             whiteSpace: 'nowrap',
             bgcolor: '#fff',
-            '&:hover': { borderColor: brand.primary[300], bgcolor: brand.primary[50], color: brand.primary[700] },
+            '&:hover': {
+              borderColor: brand.primary[300],
+              bgcolor: brand.primary[50],
+              color: brand.primary[700],
+            },
           }}
         >
-          {monthRangeLabel()}
+          {dateRangeLabel}
         </Button>
       </Stack>
     </Box>
@@ -233,20 +297,39 @@ function moneyShort(value: number): string {
   return formatMoney(value);
 }
 
-function trend(series: number[]) {
-  if (series.length < 2 || !series[0]) return { positive: true, value: 0 };
+type Trend = { positive: boolean; value: number };
+
+function trend(series: number[]): Trend | null {
+  if (series.length < 2 || !series[0]) return null;
   const value = ((series[series.length - 1] - series[0]) / Math.abs(series[0])) * 100;
   return { positive: value >= 0, value: Math.abs(value) };
 }
 
+function trendLabel(current: Trend | null) {
+  if (!current) return null;
+  return `${current.positive ? 'Up' : 'Down'} ${current.value.toFixed(1)}%`;
+}
+
+function methodLabel(method: string) {
+  return method
+    .replace(/_/g, ' ')
+    .toLowerCase()
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
 function seriesOrFallback(data?: Dashboard | null) {
   const values = data?.salesSeries?.map((row) => row.net) ?? [];
-  return values.length > 1 ? values : [9, 12, 18, 16, 24, 22, 31, 28, 36, 34, 42];
+  return values;
 }
 
 function sparkOptions(color: string): ApexOptions {
   return {
-    chart: { type: 'area', sparkline: { enabled: true }, toolbar: { show: false }, fontFamily: chartFont },
+    chart: {
+      type: 'area',
+      sparkline: { enabled: true },
+      toolbar: { show: false },
+      fontFamily: chartFont,
+    },
     colors: [color],
     stroke: { curve: 'smooth', width: 2.2 },
     fill: { type: 'gradient', gradient: { opacityFrom: 0.22, opacityTo: 0.02, stops: [0, 90] } },
@@ -256,11 +339,34 @@ function sparkOptions(color: string): ApexOptions {
 }
 
 export default function DashboardPage() {
+  const { user } = useAuth();
+  const { state: onboardingState } = useOnboarding();
+  const [showCelebration, setShowCelebration] = useState(false);
+  const [showWizard, setShowWizard] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const [data, setData] = useState<Dashboard | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [sectionError, setSectionError] = useState<string | null>(null);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+  const [paymentMix, setPaymentMix] = useState<PaymentMethodMixRow[]>([]);
+  const [paymentMixUnavailable, setPaymentMixUnavailable] = useState(false);
+  const [recentSales, setRecentSales] = useState<Sale[]>([]);
+
+  useEffect(() => {
+    if (onboardingState.isComplete) {
+      setShowCelebration(true);
+    }
+  }, [onboardingState.isComplete]);
+
+  useEffect(() => {
+    // Auto-open wizard on first visit if only workspace step is done
+    if (onboardingState.percent <= 16 && !onboardingState.isComplete) {
+      const timer = setTimeout(() => setShowWizard(true), 800);
+      return () => clearTimeout(timer);
+    }
+  }, [onboardingState.percent, onboardingState.isComplete]);
 
   // Read initial values from URL, default to MONTH / all warehouses
   const initPeriod = searchParams.get('period') as Period | null;
@@ -275,73 +381,133 @@ export default function DashboardPage() {
     listWarehouses()
       .then((rows) => setWarehouses(rows.filter((r) => r.active)))
       .catch(() => setWarehouses([]));
-  }, []);
+  }, [user?.tenantId]);
 
   const setFilter = (key: 'period' | 'warehouseId', value: string) => {
     if (key === 'period') setPeriod(value as Period);
     else setWarehouseId(value as UUID | '');
     // Sync to URL for bookmarkability
     const next = new URLSearchParams(searchParams);
-    if (value) next.set(key, value); else next.delete(key);
+    if (value) next.set(key, value);
+    else next.delete(key);
     setSearchParams(next, { replace: true });
   };
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
+    if (data) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
     setError(null);
-    getDashboard({ period, warehouseId: warehouseId || undefined })
-      .then((row) => {
-        if (!cancelled) {
-          setData(row);
-          setLoading(false);
+    setSectionError(null);
+    setPaymentMixUnavailable(false);
+    const range = periodRange(period);
+    Promise.allSettled([
+      getDashboard({ period, warehouseId: warehouseId || undefined }),
+      getPaymentMethodMix(range),
+      listSales({
+        ...range,
+        warehouseId: warehouseId || undefined,
+        status: 'CONFIRMED',
+        page: 0,
+        size: 5,
+        sort: 'date,desc',
+      }),
+    ])
+      .then(([dashboardResult, paymentMixResult, salesResult]) => {
+        if (cancelled) return;
+        if (dashboardResult.status === 'rejected') {
+          throw dashboardResult.reason;
         }
+
+        setData(dashboardResult.value);
+        setPaymentMix(paymentMixResult.status === 'fulfilled' ? paymentMixResult.value : []);
+        setPaymentMixUnavailable(paymentMixResult.status === 'rejected');
+        setRecentSales(salesResult.status === 'fulfilled' ? salesResult.value.content : []);
+
+        const failedSections = [salesResult.status === 'rejected' ? 'recent sales' : null].filter(
+          Boolean,
+        );
+        setSectionError(
+          failedSections.length
+            ? `Live ${failedSections.join(' and ')} could not be loaded.`
+            : null,
+        );
+        setLoading(false);
+        setRefreshing(false);
       })
       .catch((err) => {
         if (!cancelled) {
           setError(err instanceof Error ? err.message : 'Failed to load dashboard');
           setLoading(false);
+          setRefreshing(false);
         }
       });
-    return () => { cancelled = true; };
-  }, [period, warehouseId]);
+    return () => {
+      cancelled = true;
+    };
+  }, [period, warehouseId, user?.tenantId]);
 
   const salesSeries = useMemo(() => seriesOrFallback(data), [data]);
   const revenueTrend = useMemo(() => trend(salesSeries), [salesSeries]);
-  const expenseSeries = useMemo(() => salesSeries.map((v, i) => Math.max(v * (0.42 + (i % 3) * 0.04), 0)), [salesSeries]);
-  const profitSeries = useMemo(() => salesSeries.map((v, i) => v - expenseSeries[i]), [salesSeries, expenseSeries]);
-  const orderSeries = useMemo(() => data?.salesSeries?.map((row) => row.count) ?? [4, 6, 8, 7, 10, 9, 12, 11], [data]);
+  const orderSeries = useMemo(() => data?.salesSeries?.map((row) => row.count) ?? [], [data]);
+  const dateRangeLabel = useMemo(() => formatDateRange(data?.from, data?.to), [data]);
 
-  const businessOptions: ApexOptions = useMemo(() => ({
-    chart: { type: 'line', toolbar: { show: false }, fontFamily: chartFont, zoom: { enabled: false } },
-    colors: [brand.primary[600], brand.error.main, brand.info.main],
-    stroke: { curve: 'smooth', width: 2.6 },
-    dataLabels: { enabled: false },
-    grid: { borderColor: brand.neutral[200], strokeDashArray: 0, padding: { left: 8, right: 12 } },
-    markers: { size: 4, hover: { size: 6 }, strokeWidth: 3 },
-    xaxis: {
-      categories: data?.salesSeries?.map((row) => row.date) ?? ['1 Apr', '7 Apr', '14 Apr', '21 Apr', '30 Apr'],
-      labels: { style: { colors: muted, fontSize: '11px' } },
-      axisBorder: { show: false },
-      axisTicks: { show: false },
-    },
-    yaxis: { labels: { formatter: (v) => moneyShort(v), style: { colors: muted, fontSize: '11px' } } },
-    legend: { position: 'top', horizontalAlign: 'left', fontSize: '12px', markers: { size: 6, strokeWidth: 0 } },
-    tooltip: { y: { formatter: (v) => formatMoney(v) } },
-  }), [data]);
+  const businessOptions: ApexOptions = useMemo(
+    () => ({
+      chart: {
+        type: 'line',
+        toolbar: { show: false },
+        fontFamily: chartFont,
+        zoom: { enabled: false },
+      },
+      colors: [brand.primary[600]],
+      stroke: { curve: 'smooth', width: 2.6 },
+      dataLabels: { enabled: false },
+      grid: {
+        borderColor: brand.neutral[200],
+        strokeDashArray: 0,
+        padding: { left: 8, right: 12 },
+      },
+      markers: { size: 4, hover: { size: 6 }, strokeWidth: 3 },
+      xaxis: {
+        categories: data?.salesSeries?.map((row) => row.date) ?? [],
+        labels: { style: { colors: muted, fontSize: '11px' } },
+        axisBorder: { show: false },
+        axisTicks: { show: false },
+      },
+      yaxis: {
+        labels: { formatter: (v) => moneyShort(v), style: { colors: muted, fontSize: '11px' } },
+      },
+      legend: {
+        position: 'top',
+        horizontalAlign: 'left',
+        fontSize: '12px',
+        markers: { size: 6, strokeWidth: 0 },
+      },
+      tooltip: { y: { formatter: (v) => formatMoney(v) } },
+    }),
+    [data],
+  );
 
-  const paymentTotal = (data?.sales.paid ?? 0) + (data?.purchases.paid ?? 0) + (data?.payments.totalIn ?? 0) + Math.max(data?.payments.totalOut ?? 0, 0);
-  const paymentSeries = [
-    data?.payments.totalIn ?? 7302000,
-    data?.sales.paid ?? 4160000,
-    data?.purchases.paid ?? 2482000,
-    Math.max(data?.payments.totalOut ?? 656000, 1),
+  const paymentSeries = paymentMix.map((row) => row.total);
+  const paymentTotal = paymentSeries.reduce((sum, value) => sum + value, 0);
+  const paymentLabels = paymentMix.map((row) => methodLabel(row.method));
+  const paymentColors = [
+    brand.primary[600],
+    brand.info.main,
+    brand.warning.main,
+    brand.purple.main,
+    brand.error.main,
+    brand.neutral[500],
   ];
 
   const paymentOptions: ApexOptions = {
     chart: { type: 'donut', fontFamily: chartFont },
-    colors: [brand.primary[600], brand.info.main, brand.warning.main, brand.purple.main],
-    labels: ['Cash', 'Card', 'Mobile Money', 'Bank Transfer'],
+    colors: paymentColors,
+    labels: paymentLabels,
     dataLabels: { enabled: false },
     stroke: { width: 4, colors: ['#FFFFFF'] },
     legend: { show: false },
@@ -354,7 +520,7 @@ export default function DashboardPage() {
             total: {
               show: true,
               label: 'Total',
-              formatter: () => moneyShort(paymentTotal || 14600000),
+              formatter: () => moneyShort(paymentTotal),
               fontSize: '20px',
               fontWeight: 800,
               color: titleColor,
@@ -373,15 +539,25 @@ export default function DashboardPage() {
         period={period}
         warehouseId={warehouseId}
         warehouses={warehouses}
+        dateRangeLabel={dateRangeLabel}
         onPeriodChange={(p) => setFilter('period', p)}
         onWarehouseChange={(id) => setFilter('warehouseId', id)}
       />
+
+      <OnboardingBanner />
 
       {error && (
         <Alert severity="error" sx={{ mb: 2, borderRadius: '12px' }}>
           {error}
         </Alert>
       )}
+      {sectionError && !error && (
+        <Alert severity="warning" sx={{ mb: 2, borderRadius: '12px' }}>
+          {sectionError}
+        </Alert>
+      )}
+
+      {refreshing && <LinearProgress sx={{ mb: 2, borderRadius: '4px', height: 3 }} />}
 
       {loading && !data ? (
         <DashboardSkeleton />
@@ -389,13 +565,13 @@ export default function DashboardPage() {
         <>
           <Grid container spacing={2} sx={{ mb: 2 }}>
             <Grid size={{ xs: 12, lg: 4 }}>
-              <BusinessPulseCard data={data} salesSeries={salesSeries} />
+              <BusinessPulseCard data={data} salesSeries={salesSeries} period={period} />
             </Grid>
             <Grid size={{ xs: 12, sm: 6, lg: 2 }}>
               <MetricCard
                 label="Cash in Hand"
                 value={formatMoney(data?.payments.totalIn ?? 0)}
-                change="18.7%"
+                change={trendLabel(revenueTrend)}
                 icon={<IconWallet size={20} />}
                 color={brand.primary[600]}
                 series={salesSeries}
@@ -405,7 +581,7 @@ export default function DashboardPage() {
               <MetricCard
                 label="Net Sales"
                 value={formatMoney(data?.sales.net ?? 0)}
-                change="22.5%"
+                change={trendLabel(revenueTrend)}
                 icon={<IconBriefcase size={20} />}
                 color={brand.info.main}
                 series={salesSeries}
@@ -415,7 +591,7 @@ export default function DashboardPage() {
               <MetricCard
                 label="Orders"
                 value={formatNumber(data?.sales.count ?? 0)}
-                change="12.3%"
+                change={trendLabel(trend(orderSeries))}
                 icon={<IconShoppingCart size={20} />}
                 color={brand.warning.main}
                 series={orderSeries}
@@ -425,10 +601,10 @@ export default function DashboardPage() {
               <MetricCard
                 label="Purchases"
                 value={formatMoney(data?.purchases.gross ?? 0)}
-                change="16.4%"
+                change={null}
                 icon={<IconShoppingCart size={20} />}
                 color={brand.primary[600]}
-                series={salesSeries.map((value) => value * 0.58)}
+                series={[]}
               />
             </Grid>
           </Grid>
@@ -438,24 +614,39 @@ export default function DashboardPage() {
               <AlertStrip
                 tone="warning"
                 icon={<IconAlertTriangle size={24} />}
-                title={`${formatNumber(data?.inventory.lowStockLines ?? 3)} items are low in stock`}
-                subtitle="View and restock now"
+                title={`${formatNumber(data?.inventory.lowStockLines ?? 0)} items are low in stock`}
+                subtitle="Open stock levels and restock decisions"
+                to="/smartpos/stock"
               />
             </Grid>
             <Grid size={{ xs: 12, md: 4 }}>
               <AlertStrip
                 tone="error"
                 icon={<IconInfoCircle size={24} />}
-                title={data && data.netProfit < 0 ? 'Profit is negative this month' : 'Review profit this month'}
-                subtitle="Review your expenses and sales"
+                title={
+                  data && data.netProfit < 0
+                    ? 'Profit is negative this period'
+                    : 'Review profit this period'
+                }
+                subtitle="Compare sales, purchases, and expenses"
+                to="/smartpos/reports"
               />
             </Grid>
             <Grid size={{ xs: 12, md: 4 }}>
               <AlertStrip
                 tone="success"
                 icon={<IconCircleCheck size={24} />}
-                title={`Sales increased by ${revenueTrend.value.toFixed(0)}%`}
-                subtitle="Great job! Keep it up"
+                title={
+                  revenueTrend
+                    ? `Sales ${revenueTrend.positive ? 'increased' : 'decreased'} by ${revenueTrend.value.toFixed(0)}%`
+                    : 'Sales trend is waiting for more data'
+                }
+                subtitle={
+                  revenueTrend
+                    ? 'Review the sales report behind this movement'
+                    : 'Record more sales to calculate movement'
+                }
+                to="/smartpos/reports"
               />
             </Grid>
           </Grid>
@@ -464,46 +655,54 @@ export default function DashboardPage() {
             <Grid size={{ xs: 12, lg: 8 }}>
               <Card elevation={0} sx={{ ...cardSx, height: '100%' }}>
                 <CardContent sx={{ p: 2.25 }}>
-                  <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
+                  <Stack
+                    direction="row"
+                    justifyContent="space-between"
+                    alignItems="center"
+                    sx={{ mb: 1 }}
+                  >
                     <Box>
-                      <Typography sx={{ fontWeight: 800, color: titleColor, fontSize: 18 }}>Business Overview</Typography>
+                      <Typography sx={{ fontWeight: 800, color: titleColor, fontSize: 18 }}>
+                        Business Overview
+                      </Typography>
                       <Stack direction="row" spacing={2.5} sx={{ mt: 1 }}>
                         <Legend color={brand.primary[600]} label="Revenue" />
-                        <Legend color={brand.error.main} label="Expenses" />
-                        <Legend color={brand.info.main} label="Profit" />
                       </Stack>
                     </Box>
                     <Stack direction="row" spacing={0.5} alignItems="center">
-                      {['Daily', 'Weekly', 'Monthly'].map((label) => (
-                        <Chip
-                          key={label}
-                          label={label}
-                          size="small"
-                          sx={{
-                            bgcolor: label === 'Weekly' ? brand.primary[50] : '#fff',
-                            color: label === 'Weekly' ? brand.primary[700] : brand.neutral[600],
-                            fontWeight: 700,
-                          }}
-                        />
-                      ))}
-                      <IconButton size="small"><IconDotsVertical size={18} /></IconButton>
+                      <Chip
+                        label={PERIOD_LABELS[period]}
+                        size="small"
+                        sx={{
+                          bgcolor: brand.primary[50],
+                          color: brand.primary[700],
+                          fontWeight: 700,
+                        }}
+                      />
+                      <IconButton size="small">
+                        <IconDotsVertical size={18} />
+                      </IconButton>
                     </Stack>
                   </Stack>
-                  <Chart
-                    options={businessOptions}
-                    series={[
-                      { name: 'Revenue', data: salesSeries },
-                      { name: 'Expenses', data: expenseSeries },
-                      { name: 'Profit', data: profitSeries },
-                    ]}
-                    type="line"
-                    height={280}
-                  />
+                  {salesSeries.length ? (
+                    <Chart
+                      options={businessOptions}
+                      series={[{ name: 'Revenue', data: salesSeries }]}
+                      type="line"
+                      height={280}
+                    />
+                  ) : (
+                    <EmptyPanel
+                      title="No sales trend yet"
+                      subtitle="Confirmed sales will appear here as soon as they are recorded."
+                      height={280}
+                    />
+                  )}
                 </CardContent>
               </Card>
             </Grid>
             <Grid size={{ xs: 12, lg: 4 }}>
-              <RecentTransactions data={data} />
+              <RecentTransactions rows={recentSales} />
             </Grid>
           </Grid>
 
@@ -511,19 +710,41 @@ export default function DashboardPage() {
             <Grid size={{ xs: 12, lg: 4 }}>
               <Card elevation={0} sx={{ ...cardSx, height: '100%' }}>
                 <CardContent sx={{ p: 2.25 }}>
-                  <Typography sx={{ fontWeight: 800, color: titleColor, fontSize: 18, mb: 1.5 }}>Financial Health</Typography>
+                  <Typography sx={{ fontWeight: 800, color: titleColor, fontSize: 18, mb: 1.5 }}>
+                    Financial Health
+                  </Typography>
                   <Grid container spacing={1.25}>
                     <Grid size={{ xs: 12, sm: 6 }}>
-                      <SmallStat label="Expenses" value={formatMoney(data?.expenses.total ?? 0)} tone="error" icon={<IconWalletOff size={19} />} />
+                      <SmallStat
+                        label="Expenses"
+                        value={formatMoney(data?.expenses.total ?? 0)}
+                        tone="error"
+                        icon={<IconWalletOff size={19} />}
+                      />
                     </Grid>
                     <Grid size={{ xs: 12, sm: 6 }}>
-                      <SmallStat label="Profit Margin" value={`${profitMargin(data).toFixed(1)}%`} tone={profitMargin(data) >= 0 ? 'success' : 'error'} icon={<IconAlertTriangle size={19} />} />
+                      <SmallStat
+                        label="Profit Margin"
+                        value={`${profitMargin(data).toFixed(1)}%`}
+                        tone={profitMargin(data) >= 0 ? 'success' : 'error'}
+                        icon={<IconAlertTriangle size={19} />}
+                      />
                     </Grid>
                     <Grid size={{ xs: 12, sm: 6 }}>
-                      <SmallStat label="Sales Due" value={formatMoney(data?.sales.due ?? 0)} tone="warning" icon={<IconX size={19} />} />
+                      <SmallStat
+                        label="Sales Due"
+                        value={formatMoney(data?.sales.due ?? 0)}
+                        tone="warning"
+                        icon={<IconX size={19} />}
+                      />
                     </Grid>
                     <Grid size={{ xs: 12, sm: 6 }}>
-                      <SmallStat label="Purchases" value={formatMoney(data?.purchases.gross ?? 0)} tone="success" icon={<IconShoppingCart size={19} />} />
+                      <SmallStat
+                        label="Purchases"
+                        value={formatMoney(data?.purchases.gross ?? 0)}
+                        tone="success"
+                        icon={<IconShoppingCart size={19} />}
+                      />
                     </Grid>
                   </Grid>
                 </CardContent>
@@ -532,19 +753,37 @@ export default function DashboardPage() {
             <Grid size={{ xs: 12, lg: 3 }}>
               <Card elevation={0} sx={{ ...cardSx, height: '100%' }}>
                 <CardContent sx={{ p: 2.25 }}>
-                  <Typography sx={{ fontWeight: 800, color: titleColor, fontSize: 18, mb: 1.5 }}>Operations Overview</Typography>
+                  <Typography sx={{ fontWeight: 800, color: titleColor, fontSize: 18, mb: 1.5 }}>
+                    Operations Overview
+                  </Typography>
                   <Grid container spacing={1.25}>
                     <Grid size={{ xs: 6 }}>
-                      <SmallStat label="Inventory Value" value={formatNumber(data?.inventory.totalOnHand ?? 0)} tone="info" />
+                      <SmallStat
+                        label="Inventory Value"
+                        value={formatNumber(data?.inventory.totalOnHand ?? 0)}
+                        tone="info"
+                      />
                     </Grid>
                     <Grid size={{ xs: 6 }}>
-                      <SmallStat label="Stock at Risk" value={`${formatNumber(data?.inventory.lowStockLines ?? 0)} Items`} tone="warning" />
+                      <SmallStat
+                        label="Stock at Risk"
+                        value={`${formatNumber(data?.inventory.lowStockLines ?? 0)} Items`}
+                        tone="warning"
+                      />
                     </Grid>
                     <Grid size={{ xs: 6 }}>
-                      <SmallStat label="Total SKUs" value={formatNumber(data?.inventory.distinctProducts ?? 0)} tone="purple" />
+                      <SmallStat
+                        label="Total SKUs"
+                        value={formatNumber(data?.inventory.distinctProducts ?? 0)}
+                        tone="purple"
+                      />
                     </Grid>
                     <Grid size={{ xs: 6 }}>
-                      <SmallStat label="Stock Movement" value={formatNumber(data?.inventory.totalAvailable ?? 0)} tone="success" />
+                      <SmallStat
+                        label="Stock Movement"
+                        value={formatNumber(data?.inventory.totalAvailable ?? 0)}
+                        tone="success"
+                      />
                     </Grid>
                   </Grid>
                 </CardContent>
@@ -553,26 +792,61 @@ export default function DashboardPage() {
             <Grid size={{ xs: 12, lg: 5 }}>
               <Card elevation={0} sx={{ ...cardSx, height: '100%' }}>
                 <CardContent sx={{ p: 2.25 }}>
-                  <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
-                    <Typography sx={{ fontWeight: 800, color: titleColor, fontSize: 18 }}>Payment Mix</Typography>
-                    <Typography component={RouterLink} to="/smartpos/reports" sx={{ color: brand.primary[600], fontWeight: 700, fontSize: 13 }}>
+                  <Stack
+                    direction="row"
+                    justifyContent="space-between"
+                    alignItems="center"
+                    sx={{ mb: 1 }}
+                  >
+                    <Typography sx={{ fontWeight: 800, color: titleColor, fontSize: 18 }}>
+                      Payment Mix
+                    </Typography>
+                    <Typography
+                      component={RouterLink}
+                      to="/smartpos/reports"
+                      sx={{ color: brand.primary[600], fontWeight: 700, fontSize: 13 }}
+                    >
                       View report
                     </Typography>
                   </Stack>
                   <Grid container spacing={2} alignItems="center">
                     <Grid size={{ xs: 12, sm: 5 }}>
-                      <Chart options={paymentOptions} series={paymentSeries} type="donut" height={230} />
+                      {paymentSeries.length ? (
+                        <Chart
+                          options={paymentOptions}
+                          series={paymentSeries}
+                          type="donut"
+                          height={230}
+                        />
+                      ) : (
+                        <EmptyPanel
+                          title={
+                            paymentMixUnavailable ? 'Payment mix unavailable' : 'No payments yet'
+                          }
+                          subtitle={
+                            paymentMixUnavailable
+                              ? 'The dashboard will keep the rest of your live data available.'
+                              : 'Completed payments will build this mix.'
+                          }
+                          height={230}
+                        />
+                      )}
                     </Grid>
                     <Grid size={{ xs: 12, sm: 7 }}>
                       <Stack spacing={1.35}>
-                        {[
-                          ['Cash', paymentSeries[0], brand.primary[600]],
-                          ['Card', paymentSeries[1], brand.info.main],
-                          ['Mobile Money', paymentSeries[2], brand.warning.main],
-                          ['Bank Transfer', paymentSeries[3], brand.purple.main],
-                        ].map(([label, value, color]) => (
-                          <PaymentRow key={label as string} label={label as string} value={value as number} color={color as string} total={paymentTotal || 1} />
-                        ))}
+                        {paymentMix.map((row, index) => {
+                          const label = methodLabel(row.method);
+                          const color = paymentColors[index % paymentColors.length];
+                          return (
+                            <PaymentRow
+                              key={label}
+                              label={label}
+                              value={row.total}
+                              color={color}
+                              total={paymentTotal || 1}
+                            />
+                          );
+                        })}
                       </Stack>
                     </Grid>
                   </Grid>
@@ -582,13 +856,25 @@ export default function DashboardPage() {
           </Grid>
         </>
       )}
+
+      <SetupWizard open={showWizard} onClose={() => setShowWizard(false)} />
+      <CelebrationModal open={showCelebration} onClose={() => setShowCelebration(false)} />
     </Box>
   );
 }
 
-function BusinessPulseCard({ data, salesSeries }: { data: Dashboard | null; salesSeries: number[] }) {
+function BusinessPulseCard({
+  data,
+  salesSeries,
+  period,
+}: {
+  data: Dashboard | null;
+  salesSeries: number[];
+  period: Period;
+}) {
   const loss = data ? Math.min(data.netProfit, 0) : 0;
   const options = sparkOptions(brand.error.main);
+  const periodLabel = PERIOD_LABELS[period].toLowerCase();
   return (
     <Card
       elevation={0}
@@ -601,27 +887,76 @@ function BusinessPulseCard({ data, salesSeries }: { data: Dashboard | null; sale
       <CardContent sx={{ p: 2.5, height: '100%', display: 'flex', flexDirection: 'column' }}>
         <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
           <Box>
-            <Typography sx={{ color: titleColor, fontSize: 12, fontWeight: 800, textTransform: 'uppercase' }}>
+            <Typography
+              sx={{ color: titleColor, fontSize: 12, fontWeight: 800, textTransform: 'uppercase' }}
+            >
               Business Pulse
             </Typography>
             <Typography sx={{ color: titleColor, fontSize: 18, fontWeight: 800, mt: 2 }}>
-              {loss < 0 ? 'You are losing money today' : 'Your business is profitable today'}
+              {loss < 0
+                ? `You are losing money ${periodLabel}`
+                : `Your business is profitable ${periodLabel}`}
             </Typography>
-            <Typography sx={{ color: loss < 0 ? brand.error.main : brand.primary[600], fontSize: 30, fontWeight: 900, mt: 1.25 }}>
+            <Typography
+              sx={{
+                color: loss < 0 ? brand.error.main : brand.primary[600],
+                fontSize: 30,
+                fontWeight: 900,
+                mt: 1.25,
+              }}
+            >
               {loss < 0 ? `-${formatMoney(Math.abs(loss))}` : formatMoney(data?.netProfit ?? 0)}
             </Typography>
           </Box>
-          <Box sx={{ width: 48, height: 48, borderRadius: '12px', bgcolor: brand.error.light, color: brand.error.main, display: 'grid', placeItems: 'center' }}>
+          <Box
+            sx={{
+              width: 48,
+              height: 48,
+              borderRadius: '12px',
+              bgcolor: brand.error.light,
+              color: brand.error.main,
+              display: 'grid',
+              placeItems: 'center',
+            }}
+          >
             <IconWalletOff size={25} />
           </Box>
         </Stack>
         <Stack direction="row" spacing={0.75} alignItems="center" sx={{ mt: 1 }}>
-          {loss < 0 ? <IconArrowDown size={15} color={brand.error.main} /> : <IconArrowUp size={15} color={brand.primary[600]} />}
-          <Typography sx={{ color: loss < 0 ? brand.error.main : brand.primary[600], fontSize: 13, fontWeight: 800 }}>13.4%</Typography>
-          <Typography sx={{ color: brand.neutral[600], fontSize: 13 }}>vs yesterday</Typography>
+          {loss < 0 ? (
+            <IconArrowDown size={15} color={brand.error.main} />
+          ) : (
+            <IconArrowUp size={15} color={brand.primary[600]} />
+          )}
+          <Typography
+            sx={{
+              color: loss < 0 ? brand.error.main : brand.primary[600],
+              fontSize: 13,
+              fontWeight: 800,
+            }}
+          >
+            {data ? 'Live profit' : 'Waiting for data'}
+          </Typography>
+          <Typography sx={{ color: brand.neutral[600], fontSize: 13 }}>
+            for selected period
+          </Typography>
         </Stack>
         <Box sx={{ mt: 'auto', mx: -1 }}>
-          <Chart options={options} series={[{ name: 'Profit', data: salesSeries }]} type="area" height={82} />
+          {salesSeries.length ? (
+            <Chart
+              options={options}
+              series={[{ name: 'Revenue', data: salesSeries }]}
+              type="area"
+              height={82}
+            />
+          ) : (
+            <EmptyPanel
+              title="No revenue trend"
+              subtitle="Sales series will appear here."
+              height={82}
+              compact
+            />
+          )}
         </Box>
       </CardContent>
     </Card>
@@ -629,11 +964,16 @@ function BusinessPulseCard({ data, salesSeries }: { data: Dashboard | null; sale
 }
 
 function MetricCard({
-  label, value, change, icon, color, series,
+  label,
+  value,
+  change,
+  icon,
+  color,
+  series,
 }: {
   label: string;
   value: string;
-  change: string;
+  change: string | null;
   icon: React.ReactNode;
   color: string;
   series: number[];
@@ -641,18 +981,46 @@ function MetricCard({
   return (
     <Card elevation={0} sx={{ ...cardSx, minHeight: 250 }}>
       <CardContent sx={{ p: 2.25, display: 'flex', flexDirection: 'column', height: '100%' }}>
-        <Box sx={{ width: 48, height: 48, borderRadius: '12px', bgcolor: `${color}12`, color, display: 'grid', placeItems: 'center', mb: 2 }}>
+        <Box
+          sx={{
+            width: 48,
+            height: 48,
+            borderRadius: '12px',
+            bgcolor: `${color}12`,
+            color,
+            display: 'grid',
+            placeItems: 'center',
+            mb: 2,
+          }}
+        >
           {icon}
         </Box>
         <Typography sx={{ color: titleColor, fontWeight: 700, fontSize: 13 }}>{label}</Typography>
-        <Typography sx={{ color: titleColor, fontWeight: 900, fontSize: 21, mt: 1 }}>{value}</Typography>
-        <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mt: 1 }}>
-          <IconArrowUp size={14} color={brand.primary[600]} />
-          <Typography sx={{ color: brand.primary[600], fontWeight: 800, fontSize: 12 }}>{change}</Typography>
-        </Stack>
-        <Typography sx={{ color: muted, fontSize: 12 }}>vs yesterday</Typography>
+        <Typography sx={{ color: titleColor, fontWeight: 900, fontSize: 21, mt: 1 }}>
+          {value}
+        </Typography>
+        {change ? (
+          <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mt: 1 }}>
+            <IconArrowUp size={14} color={brand.primary[600]} />
+            <Typography sx={{ color: brand.primary[600], fontWeight: 800, fontSize: 12 }}>
+              {change}
+            </Typography>
+          </Stack>
+        ) : (
+          <Typography sx={{ color: muted, fontSize: 12, mt: 1 }}>Live total</Typography>
+        )}
+        <Typography sx={{ color: muted, fontSize: 12 }}>selected period</Typography>
         <Box sx={{ mt: 'auto', mx: -1, mb: -1 }}>
-          <Chart options={sparkOptions(color)} series={[{ name: label, data: series }]} type="area" height={58} />
+          {series.length ? (
+            <Chart
+              options={sparkOptions(color)}
+              series={[{ name: label, data: series }]}
+              type="area"
+              height={58}
+            />
+          ) : (
+            <EmptyPanel title="" subtitle="No series" height={58} compact />
+          )}
         </Box>
       </CardContent>
     </Card>
@@ -660,12 +1028,17 @@ function MetricCard({
 }
 
 function AlertStrip({
-  tone, icon, title, subtitle,
+  tone,
+  icon,
+  title,
+  subtitle,
+  to,
 }: {
   tone: 'success' | 'warning' | 'error';
   icon: React.ReactNode;
   title: string;
   subtitle: string;
+  to: string;
 }) {
   const map = {
     success: { color: brand.primary[600], bg: '#F0FDF4', border: brand.primary[100] },
@@ -674,63 +1047,126 @@ function AlertStrip({
   };
   const current = map[tone];
   return (
-    <Card elevation={0} sx={{ borderRadius: '12px', border: `1px solid ${current.border}`, bgcolor: current.bg }}>
-      <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-        <Stack direction="row" spacing={1.5} alignItems="center">
-          <Box sx={{ color: current.color, display: 'grid', placeItems: 'center' }}>{icon}</Box>
-          <Box sx={{ minWidth: 0, flex: 1 }}>
-            <Typography sx={{ color: current.color, fontWeight: 800, fontSize: 13 }}>{title}</Typography>
-            <Typography sx={{ color: brand.neutral[700], fontSize: 12, mt: 0.3 }}>{subtitle}</Typography>
-          </Box>
-          <IconChevronRight size={18} color={brand.neutral[700]} />
-        </Stack>
-      </CardContent>
+    <Card
+      elevation={0}
+      sx={{
+        borderRadius: '12px',
+        border: `1px solid ${current.border}`,
+        bgcolor: current.bg,
+        height: '100%',
+        transition: 'transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease',
+        '&:hover': {
+          transform: 'translateY(-1px)',
+          boxShadow: '0 12px 28px rgba(15,23,42,0.08)',
+          borderColor: current.color,
+        },
+      }}
+    >
+      <CardActionArea
+        component={RouterLink}
+        to={to}
+        sx={{
+          height: '100%',
+          color: 'inherit',
+          textAlign: 'left',
+          '& .MuiCardActionArea-focusHighlight': { bgcolor: current.color },
+        }}
+      >
+        <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+          <Stack direction="row" spacing={1.5} alignItems="center">
+            <Box sx={{ color: current.color, display: 'grid', placeItems: 'center' }}>{icon}</Box>
+            <Box sx={{ minWidth: 0, flex: 1 }}>
+              <Typography sx={{ color: current.color, fontWeight: 800, fontSize: 13 }}>
+                {title}
+              </Typography>
+              <Typography sx={{ color: brand.neutral[700], fontSize: 12, mt: 0.3 }}>
+                {subtitle}
+              </Typography>
+            </Box>
+            <IconChevronRight size={18} color={brand.neutral[700]} />
+          </Stack>
+        </CardContent>
+      </CardActionArea>
     </Card>
   );
 }
 
-function RecentTransactions({ data }: { data: Dashboard | null }) {
-  const rows = (data?.topProducts ?? []).slice(0, 4);
-  const fallback = [
-    { name: 'Cash Sale to Walk-in Customer', revenue: 245000 },
-    { name: 'Cash Sale to John Client', revenue: 189500 },
-    { name: 'Card Payment - POS', revenue: 320000 },
-    { name: 'Mobile Money - M-Pesa', revenue: 75000 },
-  ];
-  const displayRows = rows.length ? rows.map((row) => ({ name: row.name, revenue: row.revenue })) : fallback;
+function RecentTransactions({ rows }: { rows: Sale[] }) {
   return (
     <Card elevation={0} sx={{ ...cardSx, height: '100%' }}>
       <CardContent sx={{ p: 2.25 }}>
         <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1.25 }}>
-          <Typography sx={{ fontWeight: 800, color: titleColor, fontSize: 18 }}>Recent Transactions</Typography>
-          <Typography component={RouterLink} to="/smartpos/sales" sx={{ color: brand.primary[600], fontWeight: 700, fontSize: 13 }}>
+          <Typography sx={{ fontWeight: 800, color: titleColor, fontSize: 18 }}>
+            Recent Transactions
+          </Typography>
+          <Typography
+            component={RouterLink}
+            to="/smartpos/sales"
+            sx={{ color: brand.primary[600], fontWeight: 700, fontSize: 13 }}
+          >
             View all
           </Typography>
         </Stack>
-        <Stack spacing={1.35}>
-          {displayRows.map((row, index) => (
-            <Stack key={`${row.name}-${index}`} direction="row" spacing={1.25} alignItems="center">
-              <Box sx={{ width: 40, height: 40, borderRadius: '10px', bgcolor: index % 2 ? brand.info.light : brand.primary[50], color: index % 2 ? brand.info.main : brand.primary[600], display: 'grid', placeItems: 'center', flexShrink: 0 }}>
-                <IconBriefcase size={19} />
-              </Box>
-              <Box sx={{ minWidth: 0, flex: 1 }}>
-                <Typography noWrap sx={{ color: titleColor, fontWeight: 800, fontSize: 13 }}>Sale #INV-0024{5 - index}</Typography>
-                <Typography noWrap sx={{ color: muted, fontSize: 12 }}>{row.name}</Typography>
-              </Box>
-              <Typography sx={{ color: muted, fontSize: 12 }}>{['11:35 AM', '10:22 AM', '09:15 AM', '08:45 AM'][index]}</Typography>
-              <Typography sx={{ color: brand.primary[600], fontWeight: 900, fontSize: 13, minWidth: 88, textAlign: 'right' }}>
-                {formatMoney(row.revenue)}
-              </Typography>
-            </Stack>
-          ))}
-        </Stack>
+        {rows.length ? (
+          <Stack spacing={1.35}>
+            {rows.map((row, index) => (
+              <Stack key={row.id} direction="row" spacing={1.25} alignItems="center">
+                <Box
+                  sx={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: '10px',
+                    bgcolor: index % 2 ? brand.info.light : brand.primary[50],
+                    color: index % 2 ? brand.info.main : brand.primary[600],
+                    display: 'grid',
+                    placeItems: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  <IconBriefcase size={19} />
+                </Box>
+                <Box sx={{ minWidth: 0, flex: 1 }}>
+                  <Typography noWrap sx={{ color: titleColor, fontWeight: 800, fontSize: 13 }}>
+                    {row.ref}
+                  </Typography>
+                  <Typography noWrap sx={{ color: muted, fontSize: 12 }}>
+                    {row.customerId ? 'Customer sale' : 'Walk-in sale'} - {row.paymentStatus}
+                  </Typography>
+                </Box>
+                <Typography sx={{ color: muted, fontSize: 12 }}>
+                  {formatSaleTime(row.date)}
+                </Typography>
+                <Typography
+                  sx={{
+                    color: brand.primary[600],
+                    fontWeight: 900,
+                    fontSize: 13,
+                    minWidth: 88,
+                    textAlign: 'right',
+                  }}
+                >
+                  {formatMoney(row.grandTotal)}
+                </Typography>
+              </Stack>
+            ))}
+          </Stack>
+        ) : (
+          <EmptyPanel
+            title="No recent sales"
+            subtitle="Confirmed sales will appear here."
+            height={180}
+          />
+        )}
       </CardContent>
     </Card>
   );
 }
 
 function SmallStat({
-  label, value, tone, icon,
+  label,
+  value,
+  tone,
+  icon,
 }: {
   label: string;
   value: string;
@@ -746,16 +1182,46 @@ function SmallStat({
   };
   const current = map[tone];
   return (
-    <Box sx={{ p: 1.5, borderRadius: '10px', border: `1px solid ${brand.neutral[200]}`, bgcolor: '#fff', minHeight: 100 }}>
+    <Box
+      sx={{
+        p: 1.5,
+        borderRadius: '10px',
+        border: `1px solid ${brand.neutral[200]}`,
+        bgcolor: '#fff',
+        minHeight: 100,
+      }}
+    >
       <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
         <Typography sx={{ color: brand.neutral[600], fontSize: 12 }}>{label}</Typography>
-        <Box sx={{ width: 38, height: 38, borderRadius: '10px', bgcolor: current.bg, color: current.color, display: 'grid', placeItems: 'center' }}>
+        <Box
+          sx={{
+            width: 38,
+            height: 38,
+            borderRadius: '10px',
+            bgcolor: current.bg,
+            color: current.color,
+            display: 'grid',
+            placeItems: 'center',
+          }}
+        >
           {icon ?? <IconArrowUp size={18} />}
         </Box>
       </Stack>
-      <Typography sx={{ color: titleColor, fontWeight: 900, fontSize: 17, mt: 1 }}>{value}</Typography>
-      <Typography sx={{ color: tone === 'error' ? brand.error.main : brand.primary[600], fontSize: 12, fontWeight: 800, mt: 1 }}>
-        {tone === 'error' ? '↓ 5.3%' : '↑ 8.7%'} <Box component="span" sx={{ color: muted, fontWeight: 500 }}>vs yesterday</Box>
+      <Typography sx={{ color: titleColor, fontWeight: 900, fontSize: 17, mt: 1 }}>
+        {value}
+      </Typography>
+      <Typography
+        sx={{
+          color: tone === 'error' ? brand.error.main : brand.primary[600],
+          fontSize: 12,
+          fontWeight: 800,
+          mt: 1,
+        }}
+      >
+        Live{' '}
+        <Box component="span" sx={{ color: muted, fontWeight: 500 }}>
+          selected period
+        </Box>
       </Typography>
     </Box>
   );
@@ -770,15 +1236,72 @@ function Legend({ color, label }: { color: string; label: string }) {
   );
 }
 
-function PaymentRow({ label, value, color, total }: { label: string; value: number; color: string; total: number }) {
+function PaymentRow({
+  label,
+  value,
+  color,
+  total,
+}: {
+  label: string;
+  value: number;
+  color: string;
+  total: number;
+}) {
   const pct = total ? Math.round((value / total) * 100) : 0;
   return (
     <Stack direction="row" alignItems="center" spacing={1.25}>
       <Box sx={{ width: 11, height: 11, borderRadius: '50%', bgcolor: color }} />
       <Typography sx={{ color: brand.neutral[700], fontSize: 13, flex: 1 }}>{label}</Typography>
       <Typography sx={{ color: brand.neutral[600], fontSize: 13 }}>{formatMoney(value)}</Typography>
-      <Typography sx={{ color: brand.neutral[600], fontSize: 13, width: 38, textAlign: 'right' }}>{pct}%</Typography>
+      <Typography sx={{ color: brand.neutral[600], fontSize: 13, width: 38, textAlign: 'right' }}>
+        {pct}%
+      </Typography>
     </Stack>
+  );
+}
+
+function formatSaleTime(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+}
+
+function EmptyPanel({
+  title,
+  subtitle,
+  height,
+  compact = false,
+}: {
+  title: string;
+  subtitle: string;
+  height: number;
+  compact?: boolean;
+}) {
+  return (
+    <Box
+      sx={{
+        height,
+        minHeight: height,
+        borderRadius: compact ? '8px' : '12px',
+        border: compact ? 'none' : `1px dashed ${brand.neutral[200]}`,
+        bgcolor: compact ? 'transparent' : brand.neutral[50],
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        px: compact ? 0 : 2,
+        textAlign: 'center',
+      }}
+    >
+      {title && (
+        <Typography sx={{ color: titleColor, fontWeight: 800, fontSize: compact ? 12 : 14 }}>
+          {title}
+        </Typography>
+      )}
+      <Typography sx={{ color: muted, fontSize: compact ? 11 : 12, mt: title ? 0.25 : 0 }}>
+        {subtitle}
+      </Typography>
+    </Box>
   );
 }
 

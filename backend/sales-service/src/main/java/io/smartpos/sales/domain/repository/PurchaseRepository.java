@@ -23,17 +23,20 @@ public interface PurchaseRepository extends JpaRepository<Purchase, UUID> {
              AND (:supplierId IS NULL OR p.supplierId = :supplierId)
              AND (:warehouseId IS NULL OR p.warehouseId = :warehouseId)
              AND (:status    IS NULL OR p.status = :status)
+             AND p.tenantId = :tenantId
            """)
     Page<Purchase> search(@Param("dateFrom") LocalDate dateFrom,
                           @Param("dateTo")   LocalDate dateTo,
                           @Param("supplierId") UUID supplierId,
                           @Param("warehouseId") UUID warehouseId,
                           @Param("status") PurchaseStatus status,
+                          @Param("tenantId") UUID tenantId,
                           Pageable pageable);
 
     @EntityGraph(attributePaths = "lines")
     @Query("SELECT p FROM Purchase p WHERE p.id = :id")
     Optional<Purchase> findByIdWithLines(@Param("id") UUID id);
 
-    long countByRefStartingWith(String prefix);
+    @Query("SELECT COUNT(p) FROM Purchase p WHERE p.ref LIKE CONCAT(:prefix, '%') AND p.tenantId = :tenantId")
+    long countByRefStartingWith(@Param("prefix") String prefix, @Param("tenantId") UUID tenantId);
 }

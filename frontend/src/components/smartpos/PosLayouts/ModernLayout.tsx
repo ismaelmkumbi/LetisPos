@@ -76,7 +76,7 @@ import {
   IconArrowLeft,
   IconArrowRight,
   IconHome,
-  IconLanguage,
+  IconHelp,
   IconMinus,
   IconPlus,
   IconQrcode,
@@ -93,6 +93,7 @@ import {
   IconUser,
   IconUserPlus,
   IconX,
+  IconWifiOff,
 } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
@@ -104,7 +105,7 @@ import { listCategories, listBrands } from 'src/api/smartpos/products';
 import type { Brand as BrandRef, Category } from 'src/api/smartpos/types';
 import type { Line } from './types';
 import type { PosLayoutProps, PaymentChoice, LayoutTab } from './PosLayoutProps';
-import { unitPriceForTier, posSurface, premiumFieldSx, softScrollSx, focusVisibleSx, POS_LANG_CYCLE, CHECKOUT_PANEL_MIN_WIDTH, FOOTER_HEIGHT, PRODUCT_PAGE_SIZE } from './shared';
+import { unitPriceForTier, posSurface, premiumFieldSx, softScrollSx, focusVisibleSx, CHECKOUT_PANEL_MIN_WIDTH, FOOTER_HEIGHT, PRODUCT_PAGE_SIZE } from './shared';
 import EditLineModal from 'src/components/smartpos/EditLineModal';
 import QuickAddCustomerModal from 'src/components/smartpos/QuickAddCustomerModal';
 import CashRegisterIndicator from 'src/components/smartpos/CashRegisterIndicator';
@@ -219,11 +220,13 @@ export default function ModernLayout(props: PosLayoutProps) {
         linkedTerminalId={props.linkedTerminalId}
         onLinkedTerminalChange={props.onLinkedTerminalChange}
         online={props.online}
+        queueSize={props.queueSize}
         user={user}
         onHoldCart={props.onHoldCart}
         onScanFocus={() => props.barcodeRef.current?.focus()}
         onCustomerCreated={props.onCustomerCreated}
         onTodaySales={props.onTodaySales}
+        onNotify={props.onNotify}
         registerSession={props.registerSession}
         registerLoading={props.registerLoading}
         onOpenRegister={props.onOpenRegister}
@@ -391,10 +394,12 @@ interface KioskTopBarProps {
   onCustomerCreated?: (customer: Customer) => void;
   terminals: PosTerminal[]; linkedTerminalId: string; onLinkedTerminalChange: (id: string) => void;
   online: boolean;
+  queueSize: number;
   user?: { firstName?: string; lastName?: string; email?: string; roles?: string[] } | null;
   onHoldCart?: () => void;
   onScanFocus: () => void;
   onTodaySales?: () => void;
+  onNotify?: (message: string) => void;
   registerSession?: import('src/api/smartpos/cashRegister').CashRegisterSession | null;
   registerLoading?: boolean;
   onOpenRegister?: () => void;
@@ -404,15 +409,6 @@ interface KioskTopBarProps {
 function KioskTopBar(p: KioskTopBarProps) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
-  const { i18n } = useTranslation();
-
-  const cycleLanguage = () => {
-    const code = (i18n.language || 'en').split('-')[0];
-    const idx = POS_LANG_CYCLE.indexOf(code as (typeof POS_LANG_CYCLE)[number]);
-    const i = idx >= 0 ? idx : 0;
-    const next = POS_LANG_CYCLE[(i + 1) % POS_LANG_CYCLE.length];
-    void i18n.changeLanguage(next);
-  };
 
   useEffect(() => {
     const syncFullscreenState = () => setIsFullscreen(Boolean(document.fullscreenElement));
@@ -429,197 +425,155 @@ function KioskTopBar(p: KioskTopBarProps) {
     await document.exitFullscreen();
   };
 
-  const topFieldSx = {
-    minWidth: 160,
-    '& .MuiOutlinedInput-root': {
-      height: 40,
-      borderRadius: '10px',
-      bgcolor: '#fff',
-      fontSize: '0.84rem',
-      '& fieldset': { borderColor: brand.neutral[200] },
-      '&:hover fieldset': { borderColor: brand.primary[300] },
-      '&.Mui-focused fieldset': { borderColor: brand.primary[500] },
-    },
-    '& .MuiInputLabel-root': { display: 'none' },
-  } as const;
-
   return (
     <Box
       sx={{
-        height: 64,
+        height: 56,
         flexShrink: 0,
         display: 'flex',
         alignItems: 'center',
         gap: 1,
-        px: 2,
+        px: 1.75,
         bgcolor: '#fff',
         borderBottom: `1px solid ${brand.neutral[200]}`,
-        boxShadow: `0 1px 10px ${brand.neutral[900]}08`,
         overflowX: 'auto',
         overflowY: 'hidden',
         ...softScrollSx,
       }}
     >
-      <Box component={Link} to="/smartpos/dashboard" sx={{ textDecoration: 'none', flexShrink: 0 }}>
-        <BrandLogo size="lg" />
-      </Box>
-
-      <Tooltip title={p.online ? 'Online' : 'Offline — sales will queue locally'} arrow>
-        <Box sx={{ flexShrink: 0, display: 'flex', alignItems: 'center', px: 0.5 }}>
-          <IconCircleFilled size={11} color={p.online ? brand.primary[600] : brand.warning.main} />
+      {/* Logo + operational status cluster */}
+      <Stack direction="row" spacing={0.75} alignItems="center" sx={{ flexShrink: 0 }}>
+        <Box component={Link} to="/smartpos/dashboard" sx={{ textDecoration: 'none', display: 'flex', mr: 0.5 }}>
+          <BrandLogo size="md" />
         </Box>
-      </Tooltip>
 
-      <CashRegisterIndicator
-        session={p.registerSession ?? null}
-        loading={p.registerLoading ?? false}
-        onOpen={() => p.onOpenRegister?.()}
-        onClose={() => p.onCloseRegister?.()}
-      />
+        <Box sx={{ width: 1, height: 24, bgcolor: brand.neutral[200], mx: 0.25 }} />
 
-      <TextField
-        select
-        size="small"
-        value={p.warehouseId}
-        onChange={(e) => p.onWarehouseChange(e.target.value)}
-        sx={{ ...topFieldSx, minWidth: 170 }}
-      >
-        {p.warehouses.map((warehouse) => (
-          <MenuItem key={warehouse.id} value={warehouse.id}>{warehouse.name}</MenuItem>
-        ))}
-      </TextField>
+        <Tooltip title={p.online ? 'Online' : `Offline — ${p.queueSize} sale${p.queueSize !== 1 ? 's' : ''} queued`} arrow>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, px: 0.75, py: 0.4, borderRadius: '6px', bgcolor: p.online ? brand.success.light : brand.warning.light, border: `1px solid ${p.online ? brand.success.main : brand.warning.main}22` }}>
+            {p.online ? (
+              <IconCircleFilled size={7} color={brand.success.main} />
+            ) : (
+              <IconWifiOff size={12} color={brand.warning.main} />
+            )}
+            {!p.online && p.queueSize > 0 && (
+              <Chip label={p.queueSize} size="small" sx={{ height: 16, fontSize: '0.5625rem', fontWeight: 800, bgcolor: brand.warning.main, color: '#fff', '.MuiChip-label': { px: 0.5 } }} />
+            )}
+          </Box>
+        </Tooltip>
 
-      <TextField
-        select
-        size="small"
-        value={p.categoryId}
-        onChange={(e) => p.onCategoryChange(e.target.value)}
-        slotProps={{ select: { displayEmpty: true } }}
-        sx={{ minWidth: 170, '& .MuiOutlinedInput-root': { height: 40, borderRadius: '10px', bgcolor: '#fff', fontSize: '0.84rem', '& fieldset': { borderColor: brand.neutral[200] }, '&:hover fieldset': { borderColor: brand.primary[300] }, '&.Mui-focused fieldset': { borderColor: brand.primary[500] } } }}
-      >
-        <MenuItem value="">All Categories</MenuItem>
-        {p.categories.map((category) => (
-          <MenuItem key={category.id} value={category.id}>{category.name}</MenuItem>
-        ))}
-      </TextField>
+        <CashRegisterIndicator
+          session={p.registerSession ?? null}
+          loading={p.registerLoading ?? false}
+          onOpen={() => p.onOpenRegister?.()}
+          onClose={() => p.onCloseRegister?.()}
+        />
+      </Stack>
 
-      <TextField
-        select
-        size="small"
-        value={p.brandId}
-        onChange={(e) => p.onBrandChange(e.target.value)}
-        slotProps={{ select: { displayEmpty: true } }}
-        sx={{ minWidth: 170, '& .MuiOutlinedInput-root': { height: 40, borderRadius: '10px', bgcolor: '#fff', fontSize: '0.84rem', '& fieldset': { borderColor: brand.neutral[200] }, '&:hover fieldset': { borderColor: brand.primary[300] }, '&.Mui-focused fieldset': { borderColor: brand.primary[500] } } }}
-      >
-        <MenuItem value="">All Brands</MenuItem>
-        {p.brands.map((brandRef) => (
-          <MenuItem key={brandRef.id} value={brandRef.id}>{brandRef.name}</MenuItem>
-        ))}
-      </TextField>
+      {/* Filter row — compact icon-triggered selects */}
+      <Stack direction="row" spacing={0.5} alignItems="center" sx={{ flexShrink: 0, ml: 0.5 }}>
+        <TextField
+          select size="small" value={p.warehouseId}
+          onChange={(e) => p.onWarehouseChange(e.target.value)}
+          sx={{ minWidth: 140, '& .MuiOutlinedInput-root': { height: 38, borderRadius: '8px', bgcolor: brand.neutral[50], fontSize: '0.8rem', '& fieldset': { borderColor: brand.neutral[200] }, '&:hover fieldset': { borderColor: brand.primary[300] }, '&.Mui-focused fieldset': { borderColor: brand.primary[400] } } }}
+        >
+          {p.warehouses.map((w) => (
+            <MenuItem key={w.id} value={w.id} dense>{w.name}</MenuItem>
+          ))}
+        </TextField>
+        <TextField
+          select size="small" value={p.categoryId}
+          onChange={(e) => p.onCategoryChange(e.target.value)}
+          slotProps={{ select: { displayEmpty: true } }}
+          sx={{ minWidth: 130, '& .MuiOutlinedInput-root': { height: 38, borderRadius: '8px', bgcolor: brand.neutral[50], fontSize: '0.8rem', '& fieldset': { borderColor: brand.neutral[200] }, '&:hover fieldset': { borderColor: brand.primary[300] }, '&.Mui-focused fieldset': { borderColor: brand.primary[400] } } }}
+        >
+          <MenuItem value="">All Categories</MenuItem>
+          {p.categories.map((c) => <MenuItem key={c.id} value={c.id} dense>{c.name}</MenuItem>)}
+        </TextField>
+        <TextField
+          select size="small" value={p.brandId}
+          onChange={(e) => p.onBrandChange(e.target.value)}
+          slotProps={{ select: { displayEmpty: true } }}
+          sx={{ minWidth: 120, '& .MuiOutlinedInput-root': { height: 38, borderRadius: '8px', bgcolor: brand.neutral[50], fontSize: '0.8rem', '& fieldset': { borderColor: brand.neutral[200] }, '&:hover fieldset': { borderColor: brand.primary[300] }, '&.Mui-focused fieldset': { borderColor: brand.primary[400] } } }}
+        >
+          <MenuItem value="">All Brands</MenuItem>
+          {p.brands.map((b) => <MenuItem key={b.id} value={b.id} dense>{b.name}</MenuItem>)}
+        </TextField>
+      </Stack>
 
+      <Box sx={{ flex: 1, minWidth: 8 }} />
+
+      {/* Customer selector */}
       <Autocomplete
         size="small"
         options={p.customers}
         value={p.customers.find((c) => c.id === p.customerId) || null}
         onChange={(_, value) => p.onCustomerChange(value?.id ?? null)}
-        getOptionLabel={(customer) => customer.name}
-        sx={{ minWidth: 220, flexShrink: 0 }}
+        getOptionLabel={(c) => c.name}
+        sx={{ minWidth: 200, maxWidth: 280, flexShrink: 1 }}
         renderInput={(params) => (
           <TextField
             {...params}
             placeholder="Walk-in Customer"
-            sx={topFieldSx}
             slotProps={{
               input: {
                 ...params.InputProps,
                 startAdornment: (
                   <InputAdornment position="start">
-                    <IconUser size={18} color={brand.primary[600]} />
+                    <IconUser size={16} color={brand.neutral[400]} />
                   </InputAdornment>
                 ),
               },
             }}
+            sx={{ '& .MuiOutlinedInput-root': { height: 38, borderRadius: '8px', bgcolor: brand.neutral[50], fontSize: '0.8rem', '& fieldset': { borderColor: brand.neutral[200] }, '&:hover fieldset': { borderColor: brand.primary[300] }, '&.Mui-focused fieldset': { borderColor: brand.primary[400] } } }}
           />
         )}
       />
 
       <Tooltip title="Quick add customer" arrow>
-        <IconButton
-          size="small"
-          onClick={() => setQuickAddOpen(true)}
-          sx={{
-            width: 40,
-            height: 40,
-            flexShrink: 0,
-            borderRadius: '10px',
-            border: `1px solid ${brand.primary[200]}`,
-            color: brand.primary[600],
-            bgcolor: brand.primary[50],
-            '&:hover': { bgcolor: brand.primary[100], color: brand.primary[700] },
-          }}
-        >
-          <IconUserPlus size={18} />
+        <IconButton size="small" onClick={() => setQuickAddOpen(true)}
+          sx={{ width: 34, height: 34, borderRadius: '8px', border: `1px solid ${brand.neutral[200]}`, color: brand.neutral[500], '&:hover': { bgcolor: brand.primary[50], color: brand.primary[600], borderColor: brand.primary[300] } }}>
+          <IconUserPlus size={16} />
         </IconButton>
       </Tooltip>
 
-      <Box sx={{ flex: 1, minWidth: 8 }} />
+      <Box sx={{ width: 1, height: 24, bgcolor: brand.neutral[200], mx: 0.25 }} />
 
-      {/* Right-side icon cluster — order matches POS-master legacy: receipts → settings → lang → display → fullscreen */}
-      <Stack direction="row" spacing={0.5} alignItems="center" sx={{ flexShrink: 0 }}>
+      {/* Right-side icon cluster */}
+      <Stack direction="row" spacing={0.25} alignItems="center" sx={{ flexShrink: 0 }}>
+        <KioskIconButton title="Keyboard shortcuts" onClick={() => p.onNotify?.('Press ? to view shortcuts')}>
+          <IconHelp size={16} />
+        </KioskIconButton>
         <KioskIconButton title="Today's sales" onClick={() => p.onTodaySales?.()}>
-          <IconReceipt size={17} />
+          <IconReceipt size={16} />
         </KioskIconButton>
         <KioskIconButton title="Settings" to="/smartpos/settings">
-          <IconSettings size={17} />
-        </KioskIconButton>
-        <KioskIconButton title="Language" onClick={cycleLanguage}>
-          <IconLanguage size={17} />
+          <IconSettings size={16} />
         </KioskIconButton>
         <Select
-          size="small"
-          value={p.linkedTerminalId}
+          size="small" value={p.linkedTerminalId}
           onChange={(e) => p.onLinkedTerminalChange(e.target.value)}
           displayEmpty
           renderValue={(selected) => {
-            if (!selected) {
-              return (
-                <Stack direction="row" spacing={0.75} alignItems="center" sx={{ color: brand.neutral[500] }}>
-                  <IconDeviceDesktop size={16} />
-                  <Typography sx={{ fontSize: '0.82rem', fontWeight: 600 }}>Display</Typography>
-                </Stack>
-              );
-            }
-            const terminal = p.terminals.find((t) => t.id === selected);
+            const terminal = selected ? p.terminals.find((t) => t.id === selected) : null;
             return (
-              <Stack direction="row" spacing={0.75} alignItems="center" sx={{ color: brand.primary[600] }}>
-                <IconDeviceDesktop size={16} color={brand.primary[600]} />
-                <Typography sx={{ fontSize: '0.82rem', fontWeight: 700 }} noWrap>
-                  {terminal?.name ?? selected.slice(0, 8)}
-                </Typography>
-              </Stack>
+              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                <IconDeviceDesktop size={15} color={terminal ? brand.primary[500] : brand.neutral[400]} />
+              </Box>
             );
           }}
           sx={{
-            minWidth: 130,
-            height: 40,
-            flexShrink: 0,
-            borderRadius: '10px',
-            '& .MuiOutlinedInput-notchedOutline': { borderColor: brand.neutral[200] },
-            '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: brand.primary[300] },
-            '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: brand.primary[500] },
-            '& .MuiSelect-select': { display: 'flex', alignItems: 'center', py: 0.75 },
+            width: 38, height: 34, flexShrink: 0, borderRadius: '8px',
+            '& .MuiOutlinedInput-notchedOutline': { borderColor: 'transparent' },
+            '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: brand.neutral[200] },
+            '& .MuiSelect-select': { display: 'flex', alignItems: 'center', justifyContent: 'center', py: 0, px: '8px !important' },
           }}
         >
           <MenuItem value=""><em>Not paired</em></MenuItem>
-          {p.terminals.map((terminal) => (
-            <MenuItem key={terminal.id} value={terminal.id}>{terminal.name} · {terminal.code}</MenuItem>
-          ))}
+          {p.terminals.map((t) => <MenuItem key={t.id} value={t.id}>{t.name} · {t.code}</MenuItem>)}
         </Select>
-        <KioskIconButton
-          title={isFullscreen ? 'Exit full screen' : 'Enter full screen'}
-          onClick={toggleFullscreen}
-        >
-          {isFullscreen ? <IconArrowsMinimize size={17} /> : <IconArrowsMaximize size={17} />}
+        <KioskIconButton title={isFullscreen ? 'Exit full screen' : 'Enter full screen'} onClick={toggleFullscreen}>
+          {isFullscreen ? <IconArrowsMinimize size={16} /> : <IconArrowsMaximize size={16} />}
         </KioskIconButton>
       </Stack>
 
@@ -835,6 +789,7 @@ function CheckoutPanel(p: CheckoutPanelProps) {
               <CartItem
                 key={`${line.productId}-${i}`}
                 line={line}
+                stock={p.stockMap[line.productId]}
                 onInc={() => p.onInc(i)}
                 onDec={() => p.onDec(i)}
                 onRemove={() => p.onRemove(i)}
@@ -966,14 +921,20 @@ function CheckoutPanel(p: CheckoutPanelProps) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 function CartItem({
-  line, onInc, onDec, onRemove, onEditClick, onPatchLine,
+  line, stock, onInc, onDec, onRemove, onEditClick, onPatchLine,
 }: {
   line: Line;
+  stock?: StockLevel;
   onInc: () => void; onDec: () => void; onRemove: () => void;
   onEditClick: () => void;
   onPatchLine: (patch: Partial<Line>) => void;
 }) {
   const lineTotal = line.unitPrice * line.qty;
+  const stockAvailable = stock?.available ?? 0;
+  const stockState =
+    stockAvailable <= 0 ? 'critical' :
+    stockAvailable <= (stock?.stockAlertThreshold ?? 5) ? 'attention' :
+    'active';
 
   return (
     <Box
@@ -981,14 +942,12 @@ function CartItem({
         position: 'relative',
         p: 1.4,
         border: `1px solid ${brand.neutral[200]}`,
-        borderRadius: '14px',
+        borderRadius: '12px',
         bgcolor: '#fff',
-        boxShadow: `0 1px 2px ${brand.neutral[900]}06`,
-        transition: 'transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease',
+        boxShadow: 'none',
+        transition: 'border-color 0.15s ease',
         '&:hover': {
-          transform: 'translateY(-1px)',
           borderColor: brand.primary[300],
-          boxShadow: `0 12px 24px -18px ${brand.primary[700]}66`,
         },
       }}
     >
@@ -1030,9 +989,17 @@ function CartItem({
 
       {/* Name + SKU */}
       <Box sx={{ pr: 6, mb: 1.1 }}>
-        <Typography sx={{ fontWeight: 800, fontSize: '0.88rem', color: brand.neutral[900], lineHeight: 1.25, letterSpacing: '-0.01em' }} noWrap>
-          {line.productName}
-        </Typography>
+        <Stack direction="row" spacing={0.75} alignItems="center">
+          <Box
+            sx={{
+              width: 7, height: 7, borderRadius: '50%', flexShrink: 0,
+              bgcolor: brand.operational[stockState].dot,
+            }}
+          />
+          <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: brand.neutral[900], lineHeight: 1.25, letterSpacing: '-0.01em' }} noWrap>
+            {line.productName}
+          </Typography>
+        </Stack>
         {line.productCode && (
           <Typography variant="caption" sx={{ color: brand.neutral[500], fontWeight: 600 }}>
             SKU: {line.productCode}
@@ -1442,22 +1409,16 @@ function ProductCard({ product, stock, onAdd }: { product: Product; stock?: Stoc
       sx={{
         position: 'relative',
         overflow: 'hidden',
-        ...posSurface,
-        borderRadius: '8px',
-        opacity: outOfStock ? 0.55 : 1,
-        transition: 'transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, opacity 0.18s ease',
+        border: `1px solid ${brand.neutral[200]}`,
+        borderRadius: '10px',
+        bgcolor: '#fff',
+        opacity: outOfStock ? 0.5 : 1,
+        transition: 'border-color 0.15s ease, opacity 0.15s ease',
         cursor: outOfStock ? 'not-allowed' : 'pointer',
         ...focusVisibleSx,
         '&:hover': outOfStock ? {} : {
-          transform: 'translateY(-3px)',
-          borderColor: brand.primary[300],
-          boxShadow: `0 20px 36px -24px ${brand.primary[700]}77`,
-          '& .product-add-btn': {
-            opacity: 1,
-            transform: 'scale(1)',
-          },
+          borderColor: brand.primary[400],
         },
-        '&:active': outOfStock ? {} : { transform: 'translateY(-1px)' },
       }}
       onClick={handleAction}
       onKeyDown={(event) => {
@@ -1471,7 +1432,7 @@ function ProductCard({ product, stock, onAdd }: { product: Product; stock?: Stoc
       <Box
         sx={{
           aspectRatio: '1/1',
-          background: '#fff',
+          bgcolor: brand.neutral[50],
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -1489,10 +1450,11 @@ function ProductCard({ product, stock, onAdd }: { product: Product; stock?: Stoc
         ) : (
           <Typography
             sx={{
-              fontSize: '3rem',
+              fontSize: '2.4rem',
               fontWeight: 800,
-              color: brand.primary[300],
+              color: brand.neutral[300],
               letterSpacing: '-0.04em',
+              userSelect: 'none',
             }}
           >
             {product.name.charAt(0).toUpperCase()}
@@ -1505,16 +1467,16 @@ function ProductCard({ product, stock, onAdd }: { product: Product; stock?: Stoc
           label={stockLabel}
           sx={{
             position: 'absolute',
-            top: 8,
-            left: 8,
-            height: 22,
-            fontSize: '0.68rem',
+            top: 6,
+            left: 6,
+            height: 20,
+            fontSize: '0.625rem',
             fontWeight: 700,
+            letterSpacing: '0.02em',
             bgcolor: stockChipColor.bg,
             color: stockChipColor.color,
-            borderRadius: '8px',
+            borderRadius: '5px',
             border: `1px solid ${stockChipColor.border}`,
-            backdropFilter: 'blur(6px)',
           }}
         />
 
@@ -2064,28 +2026,28 @@ function PaymentMethodCard({
       role="button"
       tabIndex={0}
       sx={{
-        minHeight: 132,
-        p: 1.7,
+        minHeight: 108,
+        p: 1.5,
         borderRadius: '8px',
-        border: `1.5px solid ${active ? brand.primary[500] : brand.neutral[200]}`,
+        border: `1px solid ${active ? brand.primary[500] : brand.neutral[200]}`,
         bgcolor: active ? brand.primary[50] : '#fff',
         cursor: 'pointer',
         position: 'relative',
-        transition: 'all 0.16s ease',
-        '&:hover': { borderColor: brand.primary[400], transform: 'translateY(-1px)' },
+        transition: 'border-color 0.15s ease, background-color 0.15s ease',
+        '&:hover': { borderColor: brand.primary[400] },
       }}
     >
       {active && (
-        <Avatar sx={{ position: 'absolute', top: 14, right: 14, width: 22, height: 22, bgcolor: brand.primary[600] }}>
-          <IconCheck size={14} />
-        </Avatar>
+        <Box sx={{ position: 'absolute', top: 8, right: 8, width: 20, height: 20, borderRadius: '50%', bgcolor: brand.primary[600], display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <IconCheck size={12} color="#fff" stroke={3} />
+        </Box>
       )}
-      {badge && (
-        <Chip label={badge} size="small" sx={{ position: 'absolute', top: 14, right: 14, bgcolor: brand.primary[600], color: '#fff', fontWeight: 800 }} />
+      {badge && !active && (
+        <Chip label={badge} size="small" sx={{ position: 'absolute', top: 8, right: 8, bgcolor: brand.primary[600], color: '#fff', fontWeight: 700, height: 18, fontSize: '0.625rem' }} />
       )}
-      <Box sx={{ color: choice === 'CASH' ? brand.primary[700] : brand.info.dark, mb: 2.1 }}>{icon}</Box>
-      <Typography sx={{ fontWeight: 900, color: brand.neutral[900] }}>{title}</Typography>
-      <Typography sx={{ color: brand.neutral[500], fontSize: '0.84rem', fontWeight: 600 }}>{subtitle}</Typography>
+      <Box sx={{ color: active ? brand.primary[600] : brand.neutral[500], mb: 1.5, display: 'flex' }}>{icon}</Box>
+      <Typography sx={{ fontWeight: 700, color: brand.neutral[900], fontSize: '0.8125rem' }}>{title}</Typography>
+      <Typography sx={{ color: brand.neutral[500], fontSize: '0.75rem', fontWeight: 500 }}>{subtitle}</Typography>
     </Box>
   );
 }
@@ -2172,7 +2134,6 @@ interface FooterBarProps {
 
 function FooterBar(p: FooterBarProps) {
   const statusColor = p.online ? brand.success.main : brand.warning.main;
-  const statusLabel = p.online ? 'Online' : `Offline · ${p.queueSize} queued`;
 
   return (
     <Box
@@ -2181,64 +2142,43 @@ function FooterBar(p: FooterBarProps) {
         zIndex: 5,
         height: FOOTER_HEIGHT,
         px: 2,
-        py: 1,
+        py: 1.25,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         gap: 1.5,
         bgcolor: '#fff',
         borderTop: `1px solid ${brand.neutral[200]}`,
-        boxShadow: `0 -6px 18px -12px ${brand.neutral[900]}44`,
-        backdropFilter: 'blur(14px)',
         flexShrink: 0,
       }}
     >
-      {/* Left side: status + utility buttons */}
-      <Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: 0 }}>
-        <Stack
-          direction="row"
-          spacing={0.75}
-          alignItems="center"
-          sx={{
-            px: 1.25, py: 0.5,
-            borderRadius: '999px',
-            bgcolor: p.online ? brand.success.light : brand.warning.light,
-            border: `1px solid ${statusColor}33`,
-            flexShrink: 0,
-          }}
-        >
-          <IconCircleFilled size={9} color={statusColor} />
-          <Typography sx={{ fontSize: '0.78rem', fontWeight: 700, color: p.online ? brand.success.dark : brand.warning.dark }}>
-            {statusLabel}
+      {/* Left: utility actions */}
+      <Stack direction="row" spacing={0.5} alignItems="center" sx={{ minWidth: 0 }}>
+        <Stack direction="row" spacing={0.5} alignItems="center"
+          sx={{ px: 1, py: 0.35, borderRadius: '6px', bgcolor: brand.neutral[50], border: `1px solid ${brand.neutral[200]}`, flexShrink: 0 }}>
+          <IconCircleFilled size={7} color={statusColor} />
+          <Typography sx={{ fontSize: '0.6875rem', fontWeight: 700, color: p.online ? brand.success.dark : brand.warning.dark, ml: 0.5 }}>
+            {p.online ? 'Online' : 'Offline'}
           </Typography>
+          {!p.online && p.queueSize > 0 && (
+            <Chip label={p.queueSize} size="small" sx={{ ml: 0.5, height: 16, fontSize: '0.5625rem', fontWeight: 800, bgcolor: brand.warning.main, color: '#fff', '.MuiChip-label': { px: 0.5 } }} />
+          )}
         </Stack>
-
-        <FooterAction icon={<IconHome size={15} />} label="Home" to="/smartpos/dashboard" />
-        <FooterAction icon={<IconRefresh size={15} />} label="Reset" onClick={p.onClear} />
-        <FooterAction icon={<IconReceipt size={15} />} label="Recent Drafts" onClick={p.onOpenHeldCarts} />
-
-        <FooterAction icon={<IconShoppingCart size={15} />} label="Hold" onClick={p.onHoldCart} />
+        <FooterAction icon={<IconHome size={14} />} label="Home" to="/smartpos/dashboard" />
+        <FooterAction icon={<IconRefresh size={14} />} label="Reset" onClick={p.onClear} />
+        <FooterAction icon={<IconReceipt size={14} />} label="Drafts" onClick={p.onOpenHeldCarts} />
+        <FooterAction icon={<IconShoppingCart size={14} />} label="Hold" onClick={p.onHoldCart} />
         <PosBeepSoundPicker />
       </Stack>
 
-      {/* Right side: total payable + Pay Now CTA */}
-      <Stack direction="row" spacing={2} alignItems="center">
-        <Stack
-          direction="row"
-          spacing={1.25}
-          alignItems="center"
-          sx={{
-            px: 1.5,
-            py: 0.8,
-            borderRadius: '14px',
-            bgcolor: brand.primary[50],
-            border: `1px solid ${brand.primary[100]}`,
-          }}
-        >
-          <Typography sx={{ fontSize: '0.7rem', fontWeight: 800, color: brand.neutral[500], textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-            Total Payable
+      {/* Right: total + CTA */}
+      <Stack direction="row" spacing={1.5} alignItems="center" sx={{ flexShrink: 0 }}>
+        <Stack direction="row" spacing={1} alignItems="baseline"
+          sx={{ px: 1.5, py: 0.6, borderRadius: '8px', bgcolor: brand.primary[50], border: `1px solid ${brand.primary[100]}` }}>
+          <Typography sx={{ fontSize: '0.625rem', fontWeight: 700, color: brand.neutral[500], textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            Total
           </Typography>
-          <Typography sx={{ fontSize: '1.25rem', fontWeight: 900, color: brand.primary[700], letterSpacing: '-0.03em' }}>
+          <Typography sx={{ fontSize: '1.15rem', fontWeight: 900, color: brand.primary[700], letterSpacing: '-0.03em', lineHeight: 1 }}>
             {fmt(p.grand)}
           </Typography>
         </Stack>
@@ -2248,14 +2188,14 @@ function FooterBar(p: FooterBarProps) {
           size="large"
           disabled={!p.canCheckout}
           onClick={p.onCheckout}
-          startIcon={p.submitting ? <CircularProgress size={16} color="inherit" /> : <IconCheck size={17} />}
+          startIcon={p.submitting ? <CircularProgress size={15} color="inherit" /> : <IconCheck size={16} />}
           sx={{
-            minWidth: 180,
-            py: 1.25,
-            px: 3,
-            borderRadius: '14px',
+            minWidth: 170,
+            py: 1.15,
+            px: 2.5,
+            borderRadius: '10px',
             fontWeight: 800,
-            fontSize: '0.95rem',
+            fontSize: '0.875rem',
             letterSpacing: '0.01em',
             textTransform: 'none',
             background: p.canCheckout
@@ -2266,15 +2206,10 @@ function FooterBar(p: FooterBarProps) {
             ...focusVisibleSx,
             '&:hover': {
               background: `linear-gradient(135deg, ${brand.primary[700]} 0%, ${brand.primary[600]} 60%, ${brand.accent[600]} 130%)`,
-              transform: 'translateY(-1px)',
               boxShadow: `0 10px 26px -6px ${brand.primary[500]}99`,
             },
-            '&:active': { transform: 'translateY(0)' },
-            '&.Mui-disabled': {
-              background: brand.neutral[200],
-              color: brand.neutral[400],
-            },
-            transition: 'all 0.2s ease',
+            '&.Mui-disabled': { background: brand.neutral[200], color: brand.neutral[400] },
+            transition: 'all 0.18s ease',
           }}
         >
           {p.submitting ? p.labelProcessing : `Pay Now · ${p.itemCount} item${p.itemCount === 1 ? '' : 's'}`}

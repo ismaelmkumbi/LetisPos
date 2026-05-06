@@ -32,12 +32,14 @@ export interface LineEditorProps {
   searchProducts: (query: string) => Promise<Product[]>;
   /** Override the label shown on the price header (e.g. "Unit cost" for purchases). */
   priceLabel?: string;
+  /** When true, all inputs are disabled (readonly mode). */
+  disabled?: boolean;
 }
 
 const fmt = formatMoney;
 
 export default function LineEditor({
-  lines, onChange, searchProducts, priceLabel = 'Price',
+  lines, onChange, searchProducts, priceLabel = 'Price', disabled = false,
 }: LineEditorProps) {
   const [options, setOptions] = useState<Product[]>([]);
   const [searching, setSearching] = useState(false);
@@ -102,6 +104,7 @@ export default function LineEditor({
               </Box>
             </li>
           )}
+          disabled={disabled}
           onChange={(_, v) => { if (v) { addProduct(v); setQuery(''); setOptions([]); } }}
           renderInput={(params) => (
             <TextField
@@ -160,6 +163,7 @@ export default function LineEditor({
                     <TextField
                       size="small" type="number" value={l.unitPrice}
                       onChange={(e) => patch(i, { unitPrice: Number(e.target.value) })}
+                      disabled={disabled}
                       inputProps={{ style: { textAlign: 'right' } }}
                       sx={{ width: 100 }}
                     />
@@ -168,6 +172,7 @@ export default function LineEditor({
                     <TextField
                       size="small" type="number" value={l.qty}
                       onChange={(e) => patch(i, { qty: Math.max(0, Number(e.target.value)) })}
+                      disabled={disabled}
                       inputProps={{ style: { textAlign: 'right' } }}
                       sx={{ width: 70 }}
                     />
@@ -176,6 +181,7 @@ export default function LineEditor({
                     <TextField
                       size="small" type="number" value={l.taxRate}
                       onChange={(e) => patch(i, { taxRate: Number(e.target.value) })}
+                      disabled={disabled}
                       inputProps={{ style: { textAlign: 'right' } }}
                       sx={{ width: 70 }}
                     />
@@ -184,7 +190,7 @@ export default function LineEditor({
                     {fmt(sub + tax)}
                   </TableCell>
                   <TableCell>
-                    <IconButton size="small" onClick={() => remove(i)} sx={{ color: brand.error.main }}>
+                    <IconButton size="small" onClick={() => remove(i)} disabled={disabled} sx={{ color: disabled ? brand.neutral[300] : brand.error.main }}>
                       <IconTrash size={14} />
                     </IconButton>
                   </TableCell>

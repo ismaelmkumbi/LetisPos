@@ -6,5 +6,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.UUID;
 
 public interface AccountTransferRepository extends JpaRepository<AccountTransfer, UUID> {
-    long countByRefStartingWith(String prefix);
+    long countByRefStartingWithAndTenantId(String prefix, UUID tenantId);
 }

@@ -18,4 +18,5 @@ public record WarehouseDto(
             @NotBlank String name,
             String city, String country, String phone, String email, String zip, String notes
     ) {}
+    public record StatusRequest(boolean active) {}
 }

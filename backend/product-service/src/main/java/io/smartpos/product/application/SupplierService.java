@@ -1,5 +1,6 @@
 package io.smartpos.product.application;
 
+import io.smartpos.common.context.TenantContext;
 import io.smartpos.product.api.dto.SupplierDto;
 import io.smartpos.product.domain.model.Supplier;
 import io.smartpos.product.domain.repository.SupplierRepository;
@@ -21,7 +22,7 @@ public class SupplierService {
 
     @Transactional(readOnly = true)
     public Page<SupplierDto> search(String q, Boolean active, Pageable pageable) {
-        return repo.search(q, active, pageable).map(SupplierDto::from);
+        return repo.search(q, active, TenantContext.require(), pageable).map(SupplierDto::from);
     }
 
     @Transactional(readOnly = true)
@@ -41,6 +42,7 @@ public class SupplierService {
                 .address(req.address())
                 .city(req.city())
                 .country(req.country())
+                .tenantId(TenantContext.require())
                 .notes(req.notes())
                 .active(true)
                 .build();

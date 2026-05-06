@@ -1,5 +1,6 @@
 package io.smartpos.payment.application;
 
+import io.smartpos.common.context.TenantContext;
 import io.smartpos.payment.api.dto.ExpenseDto;
 import io.smartpos.payment.domain.model.*;
 import io.smartpos.payment.domain.repository.AccountRepository;
@@ -34,21 +35,26 @@ public class ExpenseService {
     @Transactional(readOnly = true)
     public Page<ExpenseDto> search(UUID accountId, UUID categoryId,
                                    LocalDate from, LocalDate to, Pageable p) {
-        return expenseRepo.search(accountId, categoryId, from, to, p).map(ExpenseDto::from);
+        return expenseRepo.search(accountId, categoryId, from, to, TenantContext.require(), p).map(ExpenseDto::from);
     }
 
     @Transactional(readOnly = true)
-    public List<ExpenseCategory> listCategories() { return catRepo.findAll(); }
+    public List<ExpenseCategory> listCategories() { return catRepo.findByTenantId(TenantContext.require()); }
 
     @Transactional
     public ExpenseCategory createCategory(ExpenseDto.CategoryRequest req) {
-        ExpenseCategory c = ExpenseCategory.builder().name(req.name()).description(req.description()).build();
+        ExpenseCategory c = ExpenseCategory.builder()
+                .name(req.name())
+                .description(req.description())
+                .tenantId(TenantContext.require())
+                .build();
         return catRepo.save(c);
     }
 
     @Transactional
     public ExpenseDto create(ExpenseDto.CreateRequest req, UUID userId) {
-        Account account = accountRepo.findByIdForUpdate(req.accountId())
+        UUID tenantId = TenantContext.require();
+        Account account = accountRepo.findByIdForUpdate(req.accountId(), tenantId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Account not found"));
 
         Expense e = Expense.builder()
@@ -61,6 +67,7 @@ public class ExpenseService {
                 .description(req.description())
                 .notes(req.notes())
                 .userId(userId)
+                .tenantId(tenantId)
                 .build();
         Expense saved = expenseRepo.save(e);
 
@@ -73,17 +80,19 @@ public class ExpenseService {
                 .description("Expense " + saved.getRef() + (saved.getDescription() == null ? "" : " — " + saved.getDescription()))
                 .debit(BigDecimal.ZERO).credit(req.amount())
                 .balanceAfter(newBalance)
+                .tenantId(tenantId)
                 .build());
 
         outbox.publish("Expense", saved.getId(), "ExpenseRecorded",
                 java.util.Map.of("expenseId", saved.getId(), "amount", saved.getAmount(),
-                                 "accountId", saved.getAccountId()));
+                                 "accountId", saved.getAccountId()),
+                tenantId);
         return ExpenseDto.from(saved);
     }
 
     private String nextRef() {
         String prefix = "EXP-" + Year.now().getValue() + "-";
-        long n = expenseRepo.countByRefStartingWith(prefix) + 1;
+        long n = expenseRepo.countByRefStartingWithAndTenantId(prefix, TenantContext.require()) + 1;
         return prefix + String.format("%06d", n);
     }
 }

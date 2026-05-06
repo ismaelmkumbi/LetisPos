@@ -47,6 +47,13 @@ export async function updateWarehouse(id: UUID, body: WarehouseInput): Promise<W
   const { data } = await api.put<Warehouse>(`/api/v1/warehouses/${id}`, body);
   return data;
 }
+export async function deleteWarehouse(id: UUID): Promise<void> {
+  await api.delete(`/api/v1/warehouses/${id}`);
+}
+export async function toggleWarehouseStatus(id: UUID, active: boolean): Promise<Warehouse> {
+  const { data } = await api.patch<Warehouse>(`/api/v1/warehouses/${id}/status`, { active });
+  return data;
+}
 
 // ---------- Stock levels ----------
 
@@ -254,6 +261,22 @@ export interface StockCount {
   lines: StockCountLine[];
 }
 
+export interface StockCountListItem {
+  id: UUID;
+  ref: string;
+  warehouseId: UUID;
+  warehouseName: string;
+  status: string;
+  date: string;
+}
+
+export async function listStockCounts(params: {
+  search?: string; page?: number; size?: number;
+} = {}): Promise<Page<StockCountListItem>> {
+  const { data } = await api.get<Page<StockCountListItem>>('/api/v1/stock-counts', { params });
+  return data;
+}
+
 export async function getStockCount(id: UUID): Promise<StockCount> {
   const { data } = await api.get<StockCount>(`/api/v1/stock-counts/${id}`);
   return data;
@@ -274,5 +297,22 @@ export async function submitStockCountLines(
 
 export async function postStockCount(id: UUID): Promise<StockCount> {
   const { data } = await api.post<StockCount>(`/api/v1/stock-counts/${id}/post`);
+  return data;
+}
+
+// ---------- Stock summary (dashboard) ----------
+
+export interface WarehouseSummary {
+  distinctProducts: number;
+  totalOnHand: number;
+  totalReserved: number;
+  totalAvailable: number;
+  lowStockLines: number;
+}
+
+export async function getStockSummary(warehouseId?: UUID): Promise<WarehouseSummary> {
+  const { data } = await api.get<WarehouseSummary>('/api/v1/stock/summary', {
+    params: { warehouseId },
+  });
   return data;
 }

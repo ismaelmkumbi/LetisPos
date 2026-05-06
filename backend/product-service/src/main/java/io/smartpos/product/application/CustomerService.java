@@ -1,5 +1,6 @@
 package io.smartpos.product.application;
 
+import io.smartpos.common.context.TenantContext;
 import io.smartpos.product.api.dto.CustomerDto;
 import io.smartpos.product.domain.model.Customer;
 import io.smartpos.product.domain.repository.CustomerRepository;
@@ -23,7 +24,7 @@ public class CustomerService {
 
     @Transactional(readOnly = true)
     public Page<CustomerDto> search(String q, Boolean active, Pageable pageable) {
-        return repo.search(q, active, pageable).map(CustomerDto::from);
+        return repo.search(q, active, TenantContext.require(), pageable).map(CustomerDto::from);
     }
 
     @Transactional(readOnly = true)
@@ -45,6 +46,7 @@ public class CustomerService {
                 .country(req.country())
                 .creditLimit(Optional.ofNullable(req.creditLimit()).orElse(BigDecimal.ZERO))
                 .notes(req.notes())
+                .tenantId(TenantContext.require())
                 .active(true)
                 .build();
         return CustomerDto.from(repo.save(c));

@@ -1,5 +1,6 @@
 package io.smartpos.payment.application;
 
+import io.smartpos.common.context.TenantContext;
 import io.smartpos.payment.api.dto.AccountDto;
 import io.smartpos.payment.api.dto.AccountTransferDto;
 import io.smartpos.payment.api.dto.LedgerDto;
@@ -31,7 +32,7 @@ public class AccountService {
 
     @Transactional(readOnly = true)
     public List<AccountDto> list() {
-        return accountRepo.findAll().stream().map(AccountDto::from).collect(Collectors.toList());
+        return accountRepo.findByTenantId(TenantContext.require()).stream().map(AccountDto::from).collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
@@ -51,6 +52,7 @@ public class AccountService {
                 .balance(nz(req.initialBalance()))
                 .notes(req.notes())
                 .active(true)
+                .tenantId(TenantContext.require())
                 .build();
         return AccountDto.from(accountRepo.save(a));
     }
@@ -69,7 +71,7 @@ public class AccountService {
 
     @Transactional(readOnly = true)
     public Page<LedgerDto> ledger(UUID accountId, LocalDate from, LocalDate to, Pageable pageable) {
-        return ledgerRepo.ledgerFor(accountId, from, to, pageable).map(LedgerDto::from);
+        return ledgerRepo.ledgerFor(accountId, from, to, TenantContext.require(), pageable).map(LedgerDto::from);
     }
 
     /**
@@ -82,12 +84,14 @@ public class AccountService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "from and to accounts must differ");
         }
 
+        UUID tenantId = TenantContext.require();
+
         // Deterministic lock order
         UUID first  = req.fromAccountId().compareTo(req.toAccountId()) < 0 ? req.fromAccountId() : req.toAccountId();
         UUID second = first.equals(req.fromAccountId()) ? req.toAccountId() : req.fromAccountId();
-        Account a1 = accountRepo.findByIdForUpdate(first)
+        Account a1 = accountRepo.findByIdForUpdate(first, tenantId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Account not found"));
-        Account a2 = accountRepo.findByIdForUpdate(second)
+        Account a2 = accountRepo.findByIdForUpdate(second, tenantId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Account not found"));
 
         Account from = a1.getId().equals(req.fromAccountId()) ? a1 : a2;
@@ -106,6 +110,7 @@ public class AccountService {
                 .amount(req.amount())
                 .notes(req.notes())
                 .userId(userId)
+                .tenantId(tenantId)
                 .build();
         AccountTransfer saved = transferRepo.save(transfer);
 
@@ -116,6 +121,7 @@ public class AccountService {
                 .description("Transfer out to " + to.getName() + " (" + saved.getRef() + ")")
                 .debit(BigDecimal.ZERO).credit(req.amount())
                 .balanceAfter(newFrom)
+                .tenantId(tenantId)
                 .build());
         ledgerRepo.save(LedgerEntry.builder()
                 .accountId(to.getId()).txnDate(saved.getDate())
@@ -123,6 +129,7 @@ public class AccountService {
                 .description("Transfer in from " + from.getName() + " (" + saved.getRef() + ")")
                 .debit(req.amount()).credit(BigDecimal.ZERO)
                 .balanceAfter(newTo)
+                .tenantId(tenantId)
                 .build());
 
         return AccountTransferDto.from(saved);
@@ -130,7 +137,7 @@ public class AccountService {
 
     private String nextTransferRef() {
         String prefix = "AT-" + Year.now().getValue() + "-";
-        long n = transferRepo.countByRefStartingWith(prefix) + 1;
+        long n = transferRepo.countByRefStartingWithAndTenantId(prefix, TenantContext.require()) + 1;
         return prefix + String.format("%06d", n);
     }
 

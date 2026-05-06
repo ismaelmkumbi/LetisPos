@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.smartpos.sales.api.dto.DraftSaleDto;
 import io.smartpos.sales.domain.model.DraftSale;
 import io.smartpos.sales.domain.repository.DraftSaleRepository;
+import io.smartpos.common.context.TenantContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -24,7 +25,7 @@ public class DraftSaleService {
 
     @Transactional(readOnly = true)
     public List<DraftSaleDto> listMine(UUID userId) {
-        return repo.findByUserIdOrderByUpdatedAtDesc(userId).stream()
+        return repo.findByUserIdOrderByUpdatedAtDesc(userId, TenantContext.require()).stream()
                 .map(d -> DraftSaleDto.from(d, parse(d.getData())))
                 .collect(Collectors.toList());
     }
@@ -47,6 +48,7 @@ public class DraftSaleService {
                 .customerId(req.customerId())
                 .label(req.label())
                 .data(writeAsJson(req.data()))
+                .tenantId(TenantContext.require())
                 .build();
         DraftSale saved = repo.save(d);
         return DraftSaleDto.from(saved, req.data());

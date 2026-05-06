@@ -16,6 +16,7 @@ public interface UnitRepository extends JpaRepository<Unit, UUID> {
            SELECT u FROM Unit u
            WHERE (COALESCE(:search, '') = '' OR LOWER(u.name) LIKE LOWER(CONCAT('%', :search, '%'))
                                             OR LOWER(u.shortName) LIKE LOWER(CONCAT('%', :search, '%')))
+             AND u.tenantId = :tenantId
            """)
-    Page<Unit> search(@Param("search") String search, Pageable pageable);
+    Page<Unit> search(@Param("search") String search, @Param("tenantId") UUID tenantId, Pageable pageable);
 }

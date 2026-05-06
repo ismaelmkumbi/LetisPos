@@ -1,5 +1,4 @@
 import { Stack, TextField, MenuItem } from '@mui/material';
-import { brand } from 'src/theme/smartpos/brand';
 
 export interface ReportFilters {
   dateFrom: string;

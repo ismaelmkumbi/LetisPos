@@ -20,7 +20,7 @@ export interface Page<T> {
   content: T[];
   totalElements: number;
   totalPages: number;
-  number: number;          // current page (0-based)
+  number: number; // current page (0-based)
   size: number;
   first: boolean;
   last: boolean;
@@ -166,12 +166,20 @@ export interface Supplier {
   id: UUID;
   code?: string | null;
   name: string;
+  contactPerson?: string | null;
   email?: string | null;
   phone?: string | null;
+  website?: string | null;
   taxNumber?: string | null;
   address?: string | null;
   city?: string | null;
   country?: string | null;
+  paymentTermDays?: number | null;
+  creditLimit?: number | null;
+  balance?: number | null;
+  openingBalance?: number | null;
   notes?: string | null;
   active: boolean;
+  createdAt?: string | null;
+  updatedAt?: string | null;
 }

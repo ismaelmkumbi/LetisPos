@@ -15,13 +15,23 @@ import java.util.UUID;
 
 public interface SaleReturnRepository extends JpaRepository<SaleReturn, UUID> {
 
-    Page<SaleReturn> findBySaleIdOrderByDateDesc(UUID saleId, Pageable pageable);
+    @Query("""
+        SELECT r FROM SaleReturn r
+        WHERE r.saleId = :saleId
+          AND r.tenantId = :tenantId
+        ORDER BY r.date DESC
+        """)
+    Page<SaleReturn> findBySaleIdOrderByDateDesc(
+        @Param("saleId") UUID saleId,
+        @Param("tenantId") UUID tenantId,
+        Pageable pageable);
 
     @EntityGraph(attributePaths = "lines")
     @Query("SELECT r FROM SaleReturn r WHERE r.id = :id")
     Optional<SaleReturn> findByIdWithLines(@Param("id") UUID id);
 
-    long countByRefStartingWith(String prefix);
+    @Query("SELECT COUNT(r) FROM SaleReturn r WHERE r.ref LIKE CONCAT(:prefix, '%') AND r.tenantId = :tenantId")
+    long countByRefStartingWith(@Param("prefix") String prefix, @Param("tenantId") UUID tenantId);
 
     /**
      * Top-level returns search — drives the frontend Returns index page.
@@ -34,6 +44,7 @@ public interface SaleReturnRepository extends JpaRepository<SaleReturn, UUID> {
              AND (:customerId  IS NULL OR r.customerId  = :customerId)
              AND (:warehouseId IS NULL OR r.warehouseId = :warehouseId)
              AND (:status      IS NULL OR r.status      = :status)
+             AND r.tenantId = :tenantId
            ORDER BY r.date DESC, r.createdAt DESC
            """)
     Page<SaleReturn> search(@Param("from")        LocalDate from,
@@ -41,5 +52,6 @@ public interface SaleReturnRepository extends JpaRepository<SaleReturn, UUID> {
                             @Param("customerId")  UUID customerId,
                             @Param("warehouseId") UUID warehouseId,
                             @Param("status")      ReturnStatus status,
+                            @Param("tenantId")    UUID tenantId,
                             Pageable pageable);
 }

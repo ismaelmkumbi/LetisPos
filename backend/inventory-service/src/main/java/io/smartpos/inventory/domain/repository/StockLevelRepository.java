@@ -23,10 +23,12 @@ public interface StockLevelRepository extends JpaRepository<StockLevel, UUID> {
            WHERE s.productId = :productId
              AND (:variantId IS NULL AND s.variantId IS NULL OR s.variantId = :variantId)
              AND s.warehouseId = :warehouseId
+             AND s.tenantId = :tenantId
            """)
     Optional<StockLevel> find(@Param("productId") UUID productId,
                               @Param("variantId") UUID variantId,
-                              @Param("warehouseId") UUID warehouseId);
+                              @Param("warehouseId") UUID warehouseId,
+                              @Param("tenantId") UUID tenantId);
 
     /**
      * Pessimistic-write lock with {@code SKIP LOCKED} semantics — used on the
@@ -45,10 +47,12 @@ public interface StockLevelRepository extends JpaRepository<StockLevel, UUID> {
            WHERE s.productId = :productId
              AND (:variantId IS NULL AND s.variantId IS NULL OR s.variantId = :variantId)
              AND s.warehouseId = :warehouseId
+             AND s.tenantId = :tenantId
            """)
     Optional<StockLevel> findForUpdate(@Param("productId") UUID productId,
                                        @Param("variantId") UUID variantId,
-                                       @Param("warehouseId") UUID warehouseId);
+                                       @Param("warehouseId") UUID warehouseId,
+                                       @Param("tenantId") UUID tenantId);
 
     Page<StockLevel> findByWarehouseId(UUID warehouseId, Pageable pageable);
 
@@ -60,8 +64,11 @@ public interface StockLevelRepository extends JpaRepository<StockLevel, UUID> {
            WHERE (:warehouseId IS NULL OR s.warehouseId = :warehouseId)
              AND (s.onHand - s.reserved) <= s.stockAlertThreshold
              AND s.stockAlertThreshold > 0
+             AND s.tenantId = :tenantId
            """)
-    Page<StockLevel> findLowStock(@Param("warehouseId") UUID warehouseId, Pageable pageable);
+    Page<StockLevel> findLowStock(@Param("warehouseId") UUID warehouseId,
+                                  @Param("tenantId") UUID tenantId,
+                                  Pageable pageable);
 
     /** Batch lookup — stock levels for many products in one warehouse. */
     @Query("""
@@ -69,7 +76,9 @@ public interface StockLevelRepository extends JpaRepository<StockLevel, UUID> {
            WHERE s.warehouseId = :warehouseId
              AND s.productId IN (:productIds)
              AND s.variantId IS NULL
+             AND s.tenantId = :tenantId
            """)
     List<StockLevel> findByWarehouseAndProducts(@Param("warehouseId") UUID warehouseId,
-                                                @Param("productIds") List<UUID> productIds);
+                                                @Param("productIds") List<UUID> productIds,
+                                                @Param("tenantId") UUID tenantId);
 }

@@ -93,6 +93,13 @@
             <version>${project.version}</version>
         </dependency>
 
+        <!-- Shared common utilities (TenantContext, filters) -->
+        <dependency>
+            <groupId>io.smartpos</groupId>
+            <artifactId>common</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
         <!-- Test -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

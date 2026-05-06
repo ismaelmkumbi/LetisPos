@@ -20,5 +20,10 @@ export { EditDrawer, type EditDrawerProps } from './EditDrawer';
 // UX Enhancement
 export { KeyboardShortcutsHelp, useKeyboardShortcuts, type ShortcutDefinition } from './KeyboardShortcuts';
 
+// Operational Components
+export { StatusIndicator, type StatusIndicatorProps, type OperationalState } from './StatusIndicator';
+export { MetricCard, type MetricCardProps } from './MetricCard';
+export { OperationalAlert, type OperationalAlertProps, type AlertContext } from './OperationalAlert';
+
 // Forms (using default export)
 export { default as LanguageSwitcher } from './LanguageSwitcher';

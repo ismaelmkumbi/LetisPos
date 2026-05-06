@@ -19,3 +19,4 @@ export * as posTerminalsApi from './posTerminals';
 export * as integrationsApi from './integrations';
 export * as i18nApi from './i18n';
 export * as usersApi from './users';
+export * as onboardingApi from './onboarding';

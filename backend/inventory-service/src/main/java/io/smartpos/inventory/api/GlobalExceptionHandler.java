@@ -3,6 +3,7 @@ package io.smartpos.inventory.api;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -35,6 +36,13 @@ public class GlobalExceptionHandler {
     public ProblemDetail responseStatus(ResponseStatusException ex) {
         ProblemDetail pd = ProblemDetail.forStatusAndDetail(ex.getStatusCode(), ex.getReason());
         pd.setTitle(ex.getStatusCode().toString());
+        return pd;
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ProblemDetail accessDenied(AccessDeniedException ex) {
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, ex.getMessage());
+        pd.setTitle("Access Denied");
         return pd;
     }
 

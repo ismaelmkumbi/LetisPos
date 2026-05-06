@@ -5,26 +5,24 @@ import { RouterProvider } from 'react-router';
 import router from './routes/Router';
 import { CustomizerContext } from 'src/context/CustomizerContext';
 import { SmartPosAuthProvider } from 'src/context/smartpos/AuthContext';
+import { OnboardingProvider } from 'src/context/smartpos/OnboardingContext';
 import OfflineBanner from 'src/components/smartpos/OfflineBanner';
 import 'src/i18n/smartpos'; // registers SmartPOS namespace + Swahili
 import { useContext } from 'react';
 
-
-
 function App() {
-
   const theme = ThemeSettings();
   const { activeDir } = useContext(CustomizerContext);
 
-
   return (
-
     <ThemeProvider theme={theme}>
       <RTL direction={activeDir}>
         <CssBaseline />
         <OfflineBanner />
         <SmartPosAuthProvider>
-          <RouterProvider router={router} />
+          <OnboardingProvider>
+            <RouterProvider router={router} />
+          </OnboardingProvider>
         </SmartPosAuthProvider>
       </RTL>
     </ThemeProvider>

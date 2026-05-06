@@ -17,13 +17,20 @@ public class OutboxPublisher {
     private final ObjectMapper mapper;
 
     public void publish(String aggregateType, UUID aggregateId, String eventType, Object payload) {
+        publish(aggregateType, aggregateId, eventType, payload, null);
+    }
+
+    public void publish(String aggregateType, UUID aggregateId, String eventType, Object payload, UUID tenantId) {
         try {
-            outboxRepo.save(OutboxEvent.builder()
+            OutboxEvent.OutboxEventBuilder builder = OutboxEvent.builder()
                     .aggregateType(aggregateType)
                     .aggregateId(aggregateId)
                     .eventType(eventType)
-                    .payload(mapper.writeValueAsString(payload))
-                    .build());
+                    .payload(mapper.writeValueAsString(payload));
+            if (tenantId != null) {
+                builder.tenantId(tenantId);
+            }
+            outboxRepo.save(builder.build());
         } catch (JsonProcessingException e) {
             throw new IllegalStateException("Outbox serialize failed", e);
         }

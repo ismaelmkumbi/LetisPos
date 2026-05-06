@@ -1,5 +1,6 @@
 package io.smartpos.payment.application;
 
+import io.smartpos.common.context.TenantContext;
 import io.smartpos.payment.api.dto.ChartOfAccountDto;
 import io.smartpos.payment.domain.model.AccountClass;
 import io.smartpos.payment.domain.model.ChartOfAccount;
@@ -22,9 +23,10 @@ public class ChartOfAccountService {
 
     @Transactional(readOnly = true)
     public List<ChartOfAccountDto> list(AccountClass cls) {
+        UUID tenantId = TenantContext.require();
         List<ChartOfAccount> list = (cls == null)
-                ? repo.findByActiveTrueOrderByCodeAsc()
-                : repo.findByAccountClassOrderByCodeAsc(cls);
+                ? repo.findByActiveTrueAndTenantIdOrderByCodeAsc(tenantId)
+                : repo.findByAccountClassAndTenantIdOrderByCodeAsc(cls, tenantId);
         return list.stream().map(ChartOfAccountDto::from).toList();
     }
 
@@ -36,7 +38,8 @@ public class ChartOfAccountService {
 
     @Transactional
     public ChartOfAccountDto create(ChartOfAccountDto.CreateRequest req) {
-        if (repo.existsByCodeIgnoreCase(req.code())) {
+        UUID tenantId = TenantContext.require();
+        if (repo.existsByCodeIgnoreCaseAndTenantId(req.code(), tenantId)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Account code already exists");
         }
         ChartOfAccount c = ChartOfAccount.builder()
@@ -50,6 +53,7 @@ public class ChartOfAccountService {
                 .postable(req.postable() == null || req.postable())
                 .active(req.active() == null || req.active())
                 .description(req.description())
+                .tenantId(tenantId)
                 .build();
         return ChartOfAccountDto.from(repo.save(c));
     }

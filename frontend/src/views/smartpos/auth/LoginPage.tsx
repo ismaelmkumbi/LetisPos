@@ -1,12 +1,7 @@
 /**
  * Letis POS — Sign-In.
  *
- * Premium two-column layout:
- *   Left  : Airy white panel with brand mark, headline + accented closer,
- *           four product pillars, and the reference POS workstation image.
- *   Right : Sign-in card — logo medallion, email + password (icon-prefixed,
- *           with show/hide), Remember me, Forgot password, primary CTA with
- *           lock, "or continue with" divider, Google SSO, and a register link.
+ * Premium two-column sign-in layout.
  *
  */
 import React from 'react';
@@ -188,7 +183,7 @@ const LoginPage: React.FC = () => {
           sx={{
             flex: 1,
             position: 'relative',
-            display: 'flex',
+            display: { xs: 'none', md: 'flex' },
             flexDirection: 'column',
             px: { xs: 4, sm: 6, md: 8, lg: 10 },
             py: { xs: 6, md: 7 },
@@ -236,7 +231,7 @@ const LoginPage: React.FC = () => {
               Run your business
               <br />
               <Box component="span" sx={{ color: accentGreen }}>
-                with clarity.
+                in one place.
               </Box>
             </Typography>
 
@@ -249,30 +244,29 @@ const LoginPage: React.FC = () => {
                 maxWidth: 460,
               }}
             >
-              Letis POS helps you manage sales, inventory, customers, and reports —
-              all in real time. Anywhere, anytime.
+              Sales, stock, customers, and reports for every workspace.
             </Typography>
 
             <Stack spacing={2.25} sx={{ mt: 4, maxWidth: 440 }}>
               <Feature
                 Icon={IconChartBar}
-                title="Real-time sales & reports"
-                body="Track performance and growth instantly."
+                title="Live sales reports"
+                body="Track performance fast."
               />
               <Feature
                 Icon={IconBox}
-                title="Inventory & stock management"
-                body="Know what's in stock, always."
+                title="Inventory control"
+                body="Know stock by store."
               />
               <Feature
                 Icon={IconUsers}
-                title="Customer management"
-                body="Build strong relationships."
+                title="Customer records"
+                body="Keep every visit useful."
               />
               <Feature
                 Icon={IconShieldCheck}
-                title="Secure & reliable"
-                body="Your data is protected, always."
+                title="Secure access"
+                body="Tenant-scoped accounts."
               />
             </Stack>
 
@@ -308,8 +302,9 @@ const LoginPage: React.FC = () => {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            px: { xs: 3, sm: 6 },
-            py: { xs: 6, md: 8 },
+            minHeight: { xs: '100dvh', md: 'auto' },
+            px: { xs: 1.75, sm: 6 },
+            py: { xs: 2, sm: 6, md: 8 },
             position: 'relative',
             bgcolor: '#FFFFFF',
           }}
@@ -319,7 +314,14 @@ const LoginPage: React.FC = () => {
             direction="row"
             spacing={1}
             alignItems="center"
-            sx={{ position: 'absolute', top: 24, right: 28, color: brand.neutral[500], fontSize: 13 }}
+            sx={{
+              display: { xs: 'none', sm: 'flex' },
+              position: 'absolute',
+              top: 24,
+              right: 28,
+              color: brand.neutral[500],
+              fontSize: 13,
+            }}
           >
             <Box
               sx={{
@@ -342,11 +344,11 @@ const LoginPage: React.FC = () => {
             sx={{
               width: '100%',
               maxWidth: 440,
-              p: { xs: 3, sm: 5, md: 6 },
-              borderRadius: '16px',
+              p: { xs: 2, sm: 5, md: 6 },
+              borderRadius: { xs: 0, sm: '16px' },
               bgcolor: '#FFFFFF',
-              border: `1px solid ${brand.neutral[200]}`,
-              boxShadow: '0 24px 70px rgba(15,23,42,0.10)',
+              border: { xs: 'none', sm: `1px solid ${brand.neutral[200]}` },
+              boxShadow: { xs: 'none', sm: '0 24px 70px rgba(15,23,42,0.10)' },
             }}
           >
             {/* logo medallion */}
@@ -360,7 +362,7 @@ const LoginPage: React.FC = () => {
                 alignItems: 'center',
                 justifyContent: 'center',
                 mx: 'auto',
-                mb: 2.5,
+                mb: { xs: 1.75, sm: 2.5 },
               }}
             >
               <LetisMark size={42} />
@@ -370,7 +372,7 @@ const LoginPage: React.FC = () => {
               component="h2"
               sx={{
                 textAlign: 'center',
-                fontSize: '1.85rem',
+                fontSize: { xs: '1.55rem', sm: '1.85rem' },
                 fontWeight: 800,
                 letterSpacing: '-0.02em',
                 color: brand.neutral[900],
@@ -384,7 +386,7 @@ const LoginPage: React.FC = () => {
                 fontSize: 14.5,
                 color: brand.neutral[500],
                 mt: 0.5,
-                mb: 4,
+                mb: { xs: 3, sm: 4 },
               }}
             >
               Sign in to your Letis POS account

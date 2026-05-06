@@ -1,31 +1,32 @@
-import { useEffect, useState } from 'react';
-import {
-  Alert, Box, Button, Chip, MenuItem, Stack, TextField, Typography,
-} from '@mui/material';
-import { IconPlus, IconBolt } from '@tabler/icons-react';
+import { useEffect, useMemo, useState } from 'react';
+import { Alert, Box, Button, Chip, MenuItem, Stack, TextField, Typography } from '@mui/material';
+import { IconPlus, IconBolt, IconReceipt, IconCoin, IconPercentage, IconCash, IconReceipt2 } from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 
-import { listSales, type Sale, type SaleStatus, type PaymentStatus } from 'src/api/smartpos/sales';
+import { listSales, getSaleStats, type Sale, type SaleStatus, type PaymentStatus, type SaleStats } from 'src/api/smartpos/sales';
 import PageHeader from 'src/components/smartpos/PageHeader';
 import DataTable, { type Column } from 'src/components/smartpos/DataTable';
+import MetricCard from 'src/components/smartpos/MetricCard';
+import EmptyStateGuide from 'src/components/smartpos/EmptyStateGuide';
 import { brand } from 'src/theme/smartpos/brand';
 import { formatMoney } from 'src/utils/smartpos/currency';
 
 const fmt = formatMoney;
+const PAGE_SIZE = 20;
 
 const SALE_STATUS_TONE: Record<SaleStatus, { bg: string; fg: string }> = {
-  DRAFT:     { bg: brand.neutral[100],  fg: brand.neutral[700] },
+  DRAFT: { bg: brand.neutral[100], fg: brand.neutral[700] },
   CONFIRMED: { bg: brand.success.light, fg: brand.success.dark },
-  CANCELLED: { bg: brand.error.light,   fg: brand.error.dark },
-  RETURNED:  { bg: brand.warning.light, fg: brand.warning.dark },
+  CANCELLED: { bg: brand.error.light, fg: brand.error.dark },
+  RETURNED: { bg: brand.warning.light, fg: brand.warning.dark },
 };
 
 const PAY_STATUS_TONE: Record<PaymentStatus, { bg: string; fg: string }> = {
-  UNPAID:   { bg: brand.error.light,   fg: brand.error.dark },
-  PARTIAL:  { bg: brand.warning.light, fg: brand.warning.dark },
-  PAID:     { bg: brand.success.light, fg: brand.success.dark },
-  REFUNDED: { bg: brand.neutral[100],  fg: brand.neutral[700] },
+  UNPAID: { bg: brand.error.light, fg: brand.error.dark },
+  PARTIAL: { bg: brand.warning.light, fg: brand.warning.dark },
+  PAID: { bg: brand.success.light, fg: brand.success.dark },
+  REFUNDED: { bg: brand.neutral[100], fg: brand.neutral[700] },
 };
 
 export default function SalesListPage() {
@@ -34,75 +35,274 @@ export default function SalesListPage() {
   const [rows, setRows] = useState<Sale[]>([]);
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
+  const [totalElements, setTotalElements] = useState<number | undefined>();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<SaleStatus | ''>('');
+  const [stats, setStats] = useState<SaleStats | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    listSales({ status: (status || undefined) as SaleStatus | undefined, page, size: 20, sort: 'date,desc' })
-      .then((p) => { if (!cancelled) { setRows(p.content); setTotalPages(p.totalPages || 1); } })
-      .catch((e) => { if (!cancelled) setError(e instanceof Error ? e.message : 'Failed to load'); })
-      .finally(() => { if (!cancelled) setLoading(false); });
-    return () => { cancelled = true; };
+    listSales({
+      status: (status || undefined) as SaleStatus | undefined,
+      page,
+      size: 20,
+      sort: 'date,desc',
+    })
+      .then((p) => {
+        if (!cancelled) {
+          setRows(p.content);
+          setTotalPages(p.totalPages || 1);
+          setTotalElements(p.totalElements);
+        }
+      })
+      .catch((e) => {
+        if (!cancelled) setError(e instanceof Error ? e.message : 'Failed to load');
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [status, page]);
 
-  const columns: Column<Sale>[] = [
+  useEffect(() => {
+    getSaleStats({}).then(setStats).catch(() => {});
+  }, []);
+
+  const columns: Column<Sale>[] = useMemo(() => [
     {
-      key: 'ref', label: 'Ref',
+      key: '_num',
+      label: '#',
+      width: 52,
+      align: 'center' as const,
+      sortable: false,
+      enableHiding: false,
+      render: (_s, i) => (
+        <Typography
+          sx={{
+            fontWeight: 700,
+            fontSize: '0.75rem',
+            color: brand.neutral[400],
+            fontFamily: "'DM Mono', 'Courier New', monospace",
+            letterSpacing: '-0.02em',
+          }}
+        >
+          {page * PAGE_SIZE + i + 1}
+        </Typography>
+      ),
+    },
+    {
+      key: 'ref',
+      label: 'Sale',
+      width: 200,
       render: (s) => (
-        <Stack>
-          <Typography variant="body2" sx={{ fontWeight: 700, color: brand.primary[700] }}>
-            {s.ref}
-          </Typography>
-          <Typography variant="caption" sx={{ color: brand.neutral[500] }}>
-            {new Date(s.date).toLocaleDateString()}
-          </Typography>
+        <Stack direction="row" spacing={1.5} alignItems="center">
+          <Box
+            sx={{
+              width: 36,
+              height: 36,
+              borderRadius: '10px',
+              bgcolor: s.pos ? brand.accent[50] : brand.primary[50],
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
+          >
+            <IconReceipt2
+              size={16}
+              color={s.pos ? brand.accent[600] : brand.primary[600]}
+              stroke={1.8}
+            />
+          </Box>
+          <Box sx={{ minWidth: 0 }}>
+            <Typography
+              variant="body2"
+              sx={{
+                fontWeight: 700,
+                fontFamily: "'DM Mono', 'Courier New', monospace",
+                fontSize: '0.8rem',
+                color: brand.neutral[800],
+                letterSpacing: '-0.02em',
+                lineHeight: 1.3,
+              }}
+              noWrap
+            >
+              {s.ref}
+            </Typography>
+            <Typography variant="caption" sx={{ color: brand.neutral[500], fontWeight: 500 }}>
+              {new Date(s.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+            </Typography>
+          </Box>
         </Stack>
       ),
     },
     {
-      key: 'pos', label: 'Channel', align: 'center',
+      key: 'pos',
+      label: 'Channel',
+      width: 110,
+      align: 'center' as const,
       render: (s) => (
         <Chip
-          label={s.pos ? 'POS' : 'Back-office'}
+          label={s.pos ? 'POS' : 'Office'}
           size="small"
           sx={{
+            height: 22,
+            fontWeight: 700,
+            fontSize: '0.65rem',
+            letterSpacing: '0.03em',
             bgcolor: s.pos ? brand.accent[50] : brand.primary[50],
-            color:   s.pos ? brand.accent[700] : brand.primary[700],
-            fontWeight: 600,
+            color: s.pos ? brand.accent[700] : brand.primary[700],
+            borderRadius: '6px',
+            '.MuiChip-label': { px: 1 },
           }}
         />
       ),
     },
     {
-      key: 'status', label: 'Status', align: 'center',
+      key: 'status',
+      label: 'Status',
+      width: 110,
+      align: 'center' as const,
       render: (s) => {
         const t = SALE_STATUS_TONE[s.status];
-        return <Chip label={s.status} size="small" sx={{ bgcolor: t.bg, color: t.fg, fontWeight: 600 }} />;
+        return (
+          <Chip
+            label={s.status}
+            size="small"
+            sx={{
+              height: 22,
+              fontWeight: 700,
+              fontSize: '0.65rem',
+              letterSpacing: '0.03em',
+              bgcolor: t.bg,
+              color: t.fg,
+              borderRadius: '6px',
+              '.MuiChip-label': { px: 1 },
+            }}
+          />
+        );
       },
     },
     {
-      key: 'paymentStatus', label: 'Payment', align: 'center',
+      key: 'paymentStatus',
+      label: 'Payment',
+      width: 110,
+      align: 'center' as const,
       render: (s) => {
         const t = PAY_STATUS_TONE[s.paymentStatus];
-        return <Chip label={s.paymentStatus} size="small" sx={{ bgcolor: t.bg, color: t.fg, fontWeight: 600 }} />;
+        return (
+          <Chip
+            label={s.paymentStatus}
+            size="small"
+            sx={{
+              height: 22,
+              fontWeight: 700,
+              fontSize: '0.65rem',
+              letterSpacing: '0.03em',
+              bgcolor: t.bg,
+              color: t.fg,
+              borderRadius: '6px',
+              '.MuiChip-label': { px: 1 },
+            }}
+          />
+        );
       },
     },
-    { key: 'grandTotal', label: 'Total',    align: 'right', render: (s) => <span style={{ fontWeight: 600 }}>{fmt(s.grandTotal)}</span> },
-    { key: 'paidTotal',  label: 'Paid',     align: 'right', render: (s) => fmt(s.paidTotal) },
     {
-      key: 'dueTotal',   label: 'Due',      align: 'right',
-      render: (s) => <span style={{ color: s.dueTotal > 0 ? brand.error.dark : brand.neutral[500], fontWeight: 600 }}>{fmt(s.dueTotal)}</span>,
+      key: 'grandTotal',
+      label: 'Total',
+      width: 120,
+      align: 'right' as const,
+      render: (s) => (
+        <Typography
+          sx={{
+            fontWeight: 700,
+            fontFamily: "'DM Mono', 'Courier New', monospace",
+            fontSize: '0.82rem',
+            color: brand.neutral[800],
+            letterSpacing: '-0.03em',
+          }}
+        >
+          {fmt(s.grandTotal)}
+        </Typography>
+      ),
     },
-  ];
+    {
+      key: 'paidTotal',
+      label: 'Paid',
+      width: 110,
+      align: 'right' as const,
+      render: (s) => (
+        <Typography
+          sx={{
+            fontWeight: 600,
+            fontFamily: "'DM Mono', 'Courier New', monospace",
+            fontSize: '0.78rem',
+            color: s.paidTotal > 0 ? brand.success.dark : brand.neutral[400],
+            letterSpacing: '-0.03em',
+          }}
+        >
+          {fmt(s.paidTotal)}
+        </Typography>
+      ),
+    },
+    {
+      key: 'dueTotal',
+      label: 'Due',
+      width: 110,
+      align: 'right' as const,
+      render: (s) => (
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 0.75 }}>
+          {s.dueTotal > 0 && (
+            <Box
+              sx={{
+                width: 6,
+                height: 6,
+                borderRadius: '50%',
+                bgcolor: brand.operational.critical.dot,
+                flexShrink: 0,
+              }}
+            />
+          )}
+          <Typography
+            sx={{
+              fontWeight: 700,
+              fontFamily: "'DM Mono', 'Courier New', monospace",
+              fontSize: '0.78rem',
+              color: s.dueTotal > 0 ? brand.operational.critical.text : brand.neutral[400],
+              letterSpacing: '-0.03em',
+            }}
+          >
+            {fmt(s.dueTotal)}
+          </Typography>
+        </Box>
+      ),
+    },
+  ], [page]);
 
   return (
     <Box>
       <PageHeader
         title={t('nav.sales')}
-        subtitle={t('nav.sales_group') + ' — POS + back-office'}
+        subtitle="Transaction history — POS + back-office sales"
+        breadcrumbs={[
+          { label: 'Sales Desk', href: '/smartpos/sales' },
+          { label: 'Sales' },
+        ]}
+        metrics={
+          stats
+            ? [
+                { label: 'Sales', value: stats.count.toLocaleString() },
+                { label: 'Revenue', value: fmt(stats.net) },
+                { label: 'Tax', value: fmt(stats.tax) },
+                { label: 'Due', value: fmt(stats.due) },
+              ]
+            : undefined
+        }
         action={{
           label: t('common.new') + ' ' + t('nav.sales').toLowerCase(),
           icon: <IconPlus size={18} />,
@@ -110,24 +310,48 @@ export default function SalesListPage() {
         }}
       />
 
-      <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
+      {/* Metric cards */}
+      {stats && (
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} sx={{ mb: 2 }}>
+          <MetricCard label="Total Sales" value={stats.count.toLocaleString()} icon={<IconReceipt size={16} />} />
+          <MetricCard label="Revenue" value={fmt(stats.net)} icon={<IconCash size={16} />} />
+          <MetricCard label="Tax Collected" value={fmt(stats.tax)} icon={<IconPercentage size={16} />} />
+          <MetricCard
+            label="Outstanding"
+            value={fmt(stats.due)}
+            icon={<IconCoin size={16} />}
+            trend={stats.due > 0 ? { direction: 'up', value: fmt(stats.due) } : undefined}
+          />
+        </Stack>
+      )}
+
+      <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2, flexWrap: 'wrap', gap: 1 }}>
         <Button
-          variant="outlined" size="small"
+          variant="outlined"
+          size="small"
           startIcon={<IconBolt size={16} />}
-          onClick={() => nav('/smartpos/pos')}
+          onClick={() => nav('/smartpos/sales/pos')}
           sx={{
-            borderColor: brand.accent[500], color: brand.accent[600], fontWeight: 700,
-            '&:hover': { borderColor: brand.accent[600], bgcolor: brand.accent[50] },
+            borderColor: brand.primary[500],
+            color: brand.primary[600],
+            fontWeight: 600,
+            '&:hover': { borderColor: brand.primary[600], bgcolor: brand.primary[50] },
           }}
         >
           {t('nav.pos_terminal')}
         </Button>
         <TextField
-          select size="small" value={status} label="Status"
-          onChange={(e) => { setStatus(e.target.value as SaleStatus | ''); setPage(0); }}
-          sx={{ minWidth: 180 }}
+          select
+          size="small"
+          value={status}
+          label="Status"
+          onChange={(e) => {
+            setStatus(e.target.value as SaleStatus | '');
+            setPage(0);
+          }}
+          sx={{ minWidth: 160 }}
         >
-          <MenuItem value="">All</MenuItem>
+          <MenuItem value="">All statuses</MenuItem>
           <MenuItem value="DRAFT">Draft</MenuItem>
           <MenuItem value="CONFIRMED">Confirmed</MenuItem>
           <MenuItem value="CANCELLED">Cancelled</MenuItem>
@@ -135,18 +359,38 @@ export default function SalesListPage() {
         </TextField>
       </Stack>
 
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
+
+      {!loading && rows.length === 0 && !status && (
+        <EmptyStateGuide
+          title="No sales yet"
+          subtitle="Record your first sale to start tracking revenue and customer transactions."
+          icon={<IconBolt size={48} />}
+          action={{ label: 'Open POS', to: '/smartpos/sales/pos' }}
+          onboardingStep="Step 5 of 5"
+        />
+      )}
 
       <DataTable
         columns={columns}
         rows={rows}
         loading={loading}
         emptyText="No sales in this view."
+        emptyAction={status ? undefined : { label: 'Open POS Terminal', onClick: () => nav('/smartpos/sales/pos') }}
         page={page}
         totalPages={totalPages}
+        totalElements={totalElements}
         onPageChange={setPage}
         getRowKey={(s) => s.id}
         onRowClick={(s) => nav(`/smartpos/sales/${s.id}/edit`)}
+        enableExport
+        enableExcelExport
+        exportFileName="sales"
+        toolbarTitle="Sales transactions"
       />
     </Box>
   );

@@ -1,5 +1,6 @@
 package io.smartpos.product.application;
 
+import io.smartpos.common.context.TenantContext;
 import io.smartpos.product.api.dto.UnitDto;
 import io.smartpos.product.domain.model.Unit;
 import io.smartpos.product.domain.repository.UnitRepository;
@@ -34,7 +35,7 @@ public class UnitService {
 
     @Transactional(readOnly = true)
     public Page<UnitDto> search(String search, Pageable pageable) {
-        return repo.search(search, pageable).map(UnitDto::from);
+        return repo.search(search, TenantContext.require(), pageable).map(UnitDto::from);
     }
 
     @Transactional
@@ -48,6 +49,7 @@ public class UnitService {
                 .shortName(req.shortName())
                 .baseUnitId(req.baseUnitId())
                 .conversionFactor(Optional.ofNullable(req.conversionFactor()).orElse(BigDecimal.ONE))
+                .tenantId(TenantContext.require())
                 .build();
         return UnitDto.from(repo.save(u));
     }

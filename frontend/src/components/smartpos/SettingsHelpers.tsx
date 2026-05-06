@@ -3,7 +3,7 @@
  * Replaces duplicated SectionLabel / Hint / AlertCard across all settings pages
  * and provides the card design system consistent with the product module.
  */
-import type { ReactNode } from 'react';
+import { forwardRef, type ReactNode } from 'react';
 import {
   Box,
   Card,
@@ -179,13 +179,13 @@ export interface FloatingSaveBarProps {
   lastSavedAt?: string;
 }
 
-export function FloatingSaveBar({
+export const FloatingSaveBar = forwardRef<HTMLDivElement, FloatingSaveBarProps>(function FloatingSaveBar({
   saving, onSave, saveLabel = 'Save Changes',
   onReset, resetting, resetLabel = 'Reset to defaults',
   lastSavedAt,
-}: FloatingSaveBarProps) {
+}, ref) {
   return (
-    <Box sx={{
+    <Box ref={ref} sx={{
       position: 'fixed',
       bottom: 24,
       right: 24,
@@ -262,4 +262,4 @@ export function FloatingSaveBar({
       </Stack>
     </Box>
   );
-}
+});

@@ -10,6 +10,9 @@ import {
 } from '@mui/material';
 import { IconX } from '@tabler/icons-react';
 import { brand } from 'src/theme/smartpos/brand';
+import { StatusIndicator, type OperationalState } from './StatusIndicator';
+
+const SIZE_WIDTHS = { sm: 400, md: 560, lg: 720 } as const;
 
 export interface EditDrawerProps {
   open: boolean;
@@ -21,6 +24,10 @@ export interface EditDrawerProps {
   submitLabel?: string;
   disabled?: boolean;
   width?: number;
+  /** Predefined size: 'sm' (400), 'md' (560), 'lg' (720). Overridden by `width`. */
+  size?: 'sm' | 'md' | 'lg';
+  /** Operational status shown alongside the title */
+  statusIndicator?: { state: OperationalState; label: string };
   /** Extra footer buttons rendered to the LEFT of Cancel / Save. */
   extraActions?: React.ReactNode;
   children: React.ReactNode;
@@ -28,8 +35,10 @@ export interface EditDrawerProps {
 
 export function EditDrawer({
   open, title, subtitle, onClose, onSubmit, submitting, submitLabel = 'Save',
-  disabled, width = 480, extraActions, children,
+  disabled, width, size, statusIndicator, extraActions, children,
 }: EditDrawerProps) {
+  const drawerWidth = width ?? SIZE_WIDTHS[size ?? 'md'];
+
   return (
     <Drawer
       anchor="right"
@@ -37,7 +46,7 @@ export function EditDrawer({
       onClose={onClose}
       PaperProps={{
         sx: {
-          width: { xs: '100%', sm: width },
+          width: { xs: '100%', sm: drawerWidth },
           maxWidth: '100vw',
           display: 'flex',
           flexDirection: 'column',
@@ -52,7 +61,12 @@ export function EditDrawer({
         gap: 2,
       }}>
         <Box sx={{ minWidth: 0 }}>
-          <Typography variant="h6" sx={{ fontWeight: 700 }} noWrap>{title}</Typography>
+          <Stack direction="row" spacing={1} alignItems="center">
+            <Typography variant="h6" sx={{ fontWeight: 700 }} noWrap>{title}</Typography>
+            {statusIndicator && (
+              <StatusIndicator state={statusIndicator.state} label={statusIndicator.label} size="sm" />
+            )}
+          </Stack>
           {subtitle && (
             <Typography variant="caption" sx={{ color: brand.neutral[500] }} noWrap>
               {subtitle}

@@ -25,6 +25,8 @@ public class OutboxEvent {
     @Column(name = "payload", nullable = false, columnDefinition = "jsonb")
     private String payload;
 
+    @Column(name = "tenant_id") private UUID tenantId;
+
     @Column(name = "created_at", nullable = false, updatable = false) private Instant createdAt;
     @Column(name = "published_at") private Instant publishedAt;
 

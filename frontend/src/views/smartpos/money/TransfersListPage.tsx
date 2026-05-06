@@ -8,6 +8,7 @@ import {
 } from 'src/api/smartpos/inventory';
 import PageHeader from 'src/components/smartpos/PageHeader';
 import DataTable, { type Column } from 'src/components/smartpos/DataTable';
+import { useAuth } from 'src/context/smartpos/AuthContext';
 import { brand } from 'src/theme/smartpos/brand';
 
 const TONE: Record<TransferStatus, { bg: string; fg: string }> = {
@@ -18,6 +19,7 @@ const TONE: Record<TransferStatus, { bg: string; fg: string }> = {
 };
 
 export default function TransfersListPage() {
+  const { user } = useAuth();
   const [rows, setRows] = useState<Transfer[]>([]);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [page, setPage] = useState(0);
@@ -25,7 +27,7 @@ export default function TransfersListPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => { listWarehouses().then(setWarehouses).catch(() => {}); }, []);
+  useEffect(() => { listWarehouses().then(setWarehouses).catch(() => {}); }, [user?.tenantId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -35,7 +37,7 @@ export default function TransfersListPage() {
       .catch((e) => { if (!cancelled) setError(e instanceof Error ? e.message : 'Failed to load'); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [page]);
+  }, [page, user?.tenantId]);
 
   const whName = useMemo(() => {
     const m = new Map<string, string>();
@@ -68,13 +70,13 @@ export default function TransfersListPage() {
       key: 'status', label: 'Status', align: 'center',
       render: (t) => {
         const tone = TONE[t.status];
-        return <Chip label={t.status.replace('_', ' ')} size="small" sx={{ bgcolor: tone.bg, color: tone.fg, fontWeight: 600 }} />;
+        return <Chip label={t.status.replace(/_/g, ' ')} size="small" sx={{ bgcolor: tone.bg, color: tone.fg, fontWeight: 600, borderRadius: '6px' }} />;
       },
     },
   ];
 
   return (
-    <Box>
+    <Box sx={{ maxWidth: 1680, mx: 'auto', pb: 3 }}>
       <PageHeader title="Transfers" subtitle="Stock moves between warehouses" />
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
       <DataTable
@@ -82,6 +84,11 @@ export default function TransfersListPage() {
         emptyText="No transfers yet."
         page={page} totalPages={totalPages} onPageChange={setPage}
         getRowKey={(t) => t.id}
+        tableKey="transfers"
+        enableColumnVisibility
+        enableExport
+        exportFileName="transfers"
+        toolbarTitle="Stock movements"
       />
     </Box>
   );

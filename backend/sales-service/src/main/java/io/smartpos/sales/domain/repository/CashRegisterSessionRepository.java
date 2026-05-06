@@ -12,14 +12,25 @@ import java.util.UUID;
 
 public interface CashRegisterSessionRepository extends JpaRepository<CashRegisterSession, UUID> {
 
-    Optional<CashRegisterSession> findTopByWarehouseIdAndStatusOrderByOpenedAtDesc(
-        UUID warehouseId, CashRegisterStatus status);
+    @Query("""
+        SELECT s FROM CashRegisterSession s
+        WHERE s.warehouseId = :warehouseId
+          AND s.status = :status
+          AND s.tenantId = :tenantId
+        ORDER BY s.openedAt DESC
+        """)
+    Optional<CashRegisterSession> findTopByWarehouseIdAndStatus(
+        @Param("warehouseId") UUID warehouseId,
+        @Param("status") CashRegisterStatus status,
+        @Param("tenantId") UUID tenantId);
 
     @Query("""
         SELECT s FROM CashRegisterSession s
         WHERE s.warehouseId = :warehouseId
+          AND s.tenantId = :tenantId
         ORDER BY s.openedAt DESC
         """)
     List<CashRegisterSession> findByWarehouseId(
-        @Param("warehouseId") UUID warehouseId);
+        @Param("warehouseId") UUID warehouseId,
+        @Param("tenantId") UUID tenantId);
 }

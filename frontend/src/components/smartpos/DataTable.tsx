@@ -35,6 +35,7 @@ import {
   type ColumnDef, type SortingState, type VisibilityState,
 } from '@tanstack/react-table';
 import { brand } from 'src/theme/smartpos/brand';
+import { StatusIndicator, type OperationalState } from './StatusIndicator';
 import * as XLSX from 'xlsx';
 
 // ─── Public API — UNCHANGED from v1 ──────────────────────────────────────────
@@ -49,6 +50,8 @@ export interface Column<T> {
   sortable?: boolean;
   /** Allow this column to be hidden via the column-visibility menu (default: true). */
   enableHiding?: boolean;
+  /** Hide this column by default on first visit. User can re-enable via Columns menu. */
+  defaultHidden?: boolean;
   /** Render the cell — second arg is the row index within the current page. */
   render?: (row: T, index: number) => React.ReactNode;
   /** Override how this column is serialized for CSV export.
@@ -70,7 +73,13 @@ export interface DataTableProps<T> {
   onRowClick?: (row: T) => void;
   getRowKey?: (row: T, index: number) => string;
   dense?: boolean;
+  /** Row density: 'comfortable' (default) or 'compact'. Overrides `dense` when set. */
+  density?: 'comfortable' | 'compact';
   stickyHeader?: boolean;
+  /** Render a coloured status dot before the first column for each row. */
+  getRowStatus?: (row: T) => { state: OperationalState; label: string } | null;
+  /** CTA shown in the empty state (e.g. "Create first quotation"). */
+  emptyAction?: { label: string; onClick: () => void };
   // ── NEW (opt-in) ──────────────────────────────────────────────────────────
   /** Stable identifier — column-visibility preferences are persisted under this key. */
   tableKey?: string;
@@ -135,11 +144,17 @@ const SKELETON_ROWS = 6;
 const VISIBILITY_LS_PREFIX = 'smartpos:dt:vis:';
 const WIDTHS_LS_PREFIX = 'smartpos:dt:w:';
 
-const loadVisibility = (key: string | undefined): VisibilityState => {
-  if (!key || typeof window === 'undefined') return {};
+const loadVisibility = (key: string | undefined, columns: Column<unknown>[]): VisibilityState => {
+  const defaults: VisibilityState = {};
+  for (const c of columns) {
+    if (c.defaultHidden) defaults[c.key] = false;
+  }
+  if (!key || typeof window === 'undefined') return defaults;
   try {
-    return JSON.parse(window.localStorage.getItem(VISIBILITY_LS_PREFIX + key) ?? '{}');
-  } catch { return {}; }
+    const saved = JSON.parse(window.localStorage.getItem(VISIBILITY_LS_PREFIX + key) ?? '{}');
+    // Merge: saved state wins over defaults (user may have shown/hidden columns since)
+    return { ...defaults, ...saved };
+  } catch { return defaults; }
 };
 const saveVisibility = (key: string | undefined, v: VisibilityState) => {
   if (!key || typeof window === 'undefined') return;
@@ -181,7 +196,8 @@ const reactNodeToText = (node: React.ReactNode): string => {
 export function DataTable<T>({
   columns, rows, loading, emptyText = 'No records found',
   emptyIcon, totalPages, totalElements, page = 0, pageSize = 20,
-  onPageChange, onRowClick, getRowKey, dense = false, stickyHeader = true,
+  onPageChange, onRowClick, getRowKey, dense = false, density,
+  stickyHeader = true, getRowStatus, emptyAction,
   tableKey,
   enableSorting = false,
   onSortChange,
@@ -194,6 +210,7 @@ export function DataTable<T>({
   expandable = false,
   renderExpanded,
 }: DataTableProps<T>) {
+  const isCompact = density === 'compact' || dense;
   // ── Expandable row state ──────────────────────────────────────────────────
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
 
@@ -212,7 +229,7 @@ export function DataTable<T>({
   }, [sorting]);
 
   // ── Visibility state (with localStorage persistence per tableKey) ─────────
-  const [visibility, setVisibility] = useState<VisibilityState>(() => loadVisibility(tableKey));
+  const [visibility, setVisibility] = useState<VisibilityState>(() => loadVisibility(tableKey, columns as Column<unknown>[]));
   useEffect(() => { saveVisibility(tableKey, visibility); }, [tableKey, visibility]);
 
   // ── Column width state (with localStorage persistence per tableKey) ────────
@@ -274,10 +291,10 @@ export function DataTable<T>({
   });
 
   const showPagination = totalPages !== undefined && totalPages > 1;
-  const rowHeight = dense ? 46 : 64;
-  const cellPx    = dense ? 1.5 : 1.75;
-  const cellPyHd  = dense ? 0.9 : 1.35;
-  const cellPyBd  = dense ? 0.65 : 1.1;
+  const rowHeight = isCompact ? 46 : 56;
+  const cellPx    = isCompact ? 1.5 : 1.75;
+  const cellPyHd  = isCompact ? 0.9 : 1.2;
+  const cellPyBd  = isCompact ? 0.65 : 0.9;
   const startRow = page * pageSize + 1;
   const endRow = Math.min((page + 1) * pageSize, totalElements ?? rows.length);
 
@@ -539,6 +556,9 @@ export function DataTable<T>({
           <TableHead>
             {table.getHeaderGroups().map((hg) => (
               <TableRow key={hg.id}>
+                {getRowStatus && (
+                  <TableCell key="_status" sx={{ width: 32, py: cellPyHd, px: 0.25, backgroundColor: brand.neutral[50], borderBottom: `1px solid ${brand.neutral[200]}` }} />
+                )}
                 {expandable && (
                   <TableCell key="_expand" sx={{ width: 40, py: cellPyHd, px: 0.5, backgroundColor: brand.neutral[50], borderBottom: `1px solid ${brand.neutral[200]}` }} />
                 )}
@@ -757,6 +777,16 @@ export function DataTable<T>({
                     <Typography variant="caption" sx={{ color: brand.neutral[500] }}>
                       Try adjusting your filters or search terms
                     </Typography>
+                    {emptyAction && (
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        onClick={emptyAction.onClick}
+                        sx={{ mt: 1 }}
+                      >
+                        {emptyAction.label}
+                      </Button>
+                    )}
                   </Box>
                 </TableCell>
               </TableRow>
@@ -766,7 +796,8 @@ export function DataTable<T>({
                 const rowKey = getRowKey ? getRowKey(original, row.index) : row.id;
                 const isExpanded = expandable && expandedRowId === rowKey;
                 const toggleExpand = () => setExpandedRowId(isExpanded ? null : rowKey);
-                const totalCells = row.getVisibleCells().length + (expandable ? 1 : 0);
+                const totalCells = row.getVisibleCells().length + (expandable ? 1 : 0) + (getRowStatus ? 1 : 0);
+                const rowStatus = getRowStatus?.(original) ?? null;
                 return (
                   <>
                     <TableRow
@@ -785,6 +816,17 @@ export function DataTable<T>({
                         '&:last-child td': { borderBottom: 0 },
                       }}
                     >
+                      {/* Row status dot */}
+                      {getRowStatus && (
+                        <TableCell
+                          sx={{ width: 32, py: cellPyBd, px: 0.25, borderBottom: `1px solid ${brand.neutral[100]}` }}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {rowStatus ? (
+                            <StatusIndicator state={rowStatus.state} label="" size="sm" />
+                          ) : null}
+                        </TableCell>
+                      )}
                       {expandable && (
                         <TableCell
                           sx={{ width: 40, py: cellPyBd, px: 0.5, borderBottom: `1px solid ${brand.neutral[200]}` }}

@@ -21,15 +21,17 @@ public interface PaymentRepository extends JpaRepository<Payment, UUID> {
              AND (:accountId     IS NULL OR p.accountId     = :accountId)
              AND (:dateFrom      IS NULL OR p.date >= :dateFrom)
              AND (:dateTo        IS NULL OR p.date <= :dateTo)
+             AND p.tenantId = :tenantId
            """)
     Page<Payment> search(@Param("referenceType") ReferenceType referenceType,
                          @Param("referenceId")   UUID referenceId,
                          @Param("accountId")     UUID accountId,
                          @Param("dateFrom")      LocalDate dateFrom,
                          @Param("dateTo")        LocalDate dateTo,
+                         @Param("tenantId")      UUID tenantId,
                          Pageable pageable);
 
-    List<Payment> findByReferenceTypeAndReferenceId(ReferenceType referenceType, UUID referenceId);
+    List<Payment> findByReferenceTypeAndReferenceIdAndTenantId(ReferenceType referenceType, UUID referenceId, UUID tenantId);
 
-    long countByRefStartingWith(String prefix);
+    long countByRefStartingWithAndTenantId(String prefix, UUID tenantId);
 }

@@ -1,5 +1,6 @@
 package io.smartpos.hrm.application;
 
+import io.smartpos.common.context.TenantContext;
 import io.smartpos.hrm.api.dto.EmployeeDto;
 import io.smartpos.hrm.domain.model.Employee;
 import io.smartpos.hrm.domain.model.EmployeeStatus;
@@ -26,7 +27,7 @@ public class EmployeeService {
     @Transactional(readOnly = true)
     public Page<EmployeeDto> search(String search, UUID departmentId, UUID designationId,
                                     EmployeeStatus status, Pageable pageable) {
-        return repo.search(search, departmentId, designationId, status, pageable).map(EmployeeDto::from);
+        return repo.search(search, departmentId, designationId, status, TenantContext.require(), pageable).map(EmployeeDto::from);
     }
 
     @Transactional(readOnly = true)
@@ -50,6 +51,7 @@ public class EmployeeService {
                 .salaryCurrency(Optional.ofNullable(req.salaryCurrency()).orElse("TZS"))
                 .address(req.address()).imageUrl(req.imageUrl()).notes(req.notes())
                 .status(EmployeeStatus.ACTIVE)
+                .tenantId(TenantContext.require())
                 .build();
         return EmployeeDto.from(repo.save(e));
     }

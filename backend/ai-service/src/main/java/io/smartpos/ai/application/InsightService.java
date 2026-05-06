@@ -6,6 +6,7 @@ import io.smartpos.ai.application.provider.AiRouter;
 import io.smartpos.ai.domain.model.AiInvocation;
 import io.smartpos.ai.domain.repository.AiInvocationRepository;
 import io.smartpos.ai.infrastructure.feign.ReportFeign;
+import io.smartpos.common.context.TenantContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -108,6 +109,7 @@ public class InsightService {
                 .output(result.text())
                 .error(error)
                 .userId(userId)
+                .tenantId(TenantContext.require())
                 .durationMs(duration)
                 .build());
 

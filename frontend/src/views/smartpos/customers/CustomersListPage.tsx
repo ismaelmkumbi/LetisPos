@@ -11,6 +11,7 @@ import type { Customer } from 'src/api/smartpos/types';
 import PageHeader from 'src/components/smartpos/PageHeader';
 import DataTable, { type Column } from 'src/components/smartpos/DataTable';
 import CustomerEditDrawer from './CustomerEditDrawer';
+import { useAuth } from 'src/context/smartpos/AuthContext';
 import { brand } from 'src/theme/smartpos/brand';
 import { formatMoney } from 'src/utils/smartpos/currency';
 
@@ -18,6 +19,7 @@ const fmt = formatMoney;
 
 export default function CustomersListPage() {
   const { t } = useTranslation('smartpos');
+  const { user } = useAuth();
   const [rows, setRows] = useState<Customer[]>([]);
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
@@ -38,7 +40,7 @@ export default function CustomersListPage() {
         .finally(() => { if (!cancelled) setLoading(false); });
     }, 300);
     return () => { cancelled = true; clearTimeout(t); };
-  }, [search, page, refreshToken]);
+  }, [search, page, refreshToken, user?.tenantId]);
 
   const columns: Column<Customer>[] = [
     {
@@ -109,7 +111,7 @@ export default function CustomersListPage() {
   ];
 
   return (
-    <Box>
+    <Box sx={{ maxWidth: 1680, mx: 'auto', pb: 3 }}>
       <PageHeader
         title={t('nav.customers')}
         subtitle={t('common.search') + ' / credit limits / contact'}
@@ -148,6 +150,12 @@ export default function CustomersListPage() {
         onPageChange={setPage}
         getRowKey={(c) => c.id}
         onRowClick={(c) => { setEditing(c); setDrawerOpen(true); }}
+        tableKey="customers"
+        enableSorting
+        enableColumnVisibility
+        enableExport
+        exportFileName="customers"
+        toolbarTitle="Customer directory"
       />
 
       <CustomerEditDrawer

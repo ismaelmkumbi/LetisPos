@@ -3,6 +3,7 @@ package io.smartpos.inventory.application;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.smartpos.common.context.TenantContext;
 import io.smartpos.inventory.api.dto.ReservationDto;
 import io.smartpos.inventory.api.dto.StockLevelDto;
 import io.smartpos.inventory.domain.model.*;
@@ -51,7 +52,7 @@ public class StockService {
 
     @Transactional(readOnly = true)
     public StockLevelDto find(UUID productId, UUID variantId, UUID warehouseId) {
-        return stockRepo.find(productId, variantId, warehouseId)
+        return stockRepo.find(productId, variantId, warehouseId, TenantContext.require())
                 .map(StockLevelDto::from)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No stock row"));
     }
@@ -63,12 +64,12 @@ public class StockService {
 
     @Transactional(readOnly = true)
     public Page<StockLevelDto> lowStock(UUID warehouseId, Pageable p) {
-        return stockRepo.findLowStock(warehouseId, p).map(StockLevelDto::from);
+        return stockRepo.findLowStock(warehouseId, TenantContext.require(), p).map(StockLevelDto::from);
     }
 
     @Transactional(readOnly = true)
     public Map<UUID, StockLevelDto> batchLevels(UUID warehouseId, List<UUID> productIds) {
-        List<StockLevel> levels = stockRepo.findByWarehouseAndProducts(warehouseId, productIds);
+        List<StockLevel> levels = stockRepo.findByWarehouseAndProducts(warehouseId, productIds, TenantContext.require());
         Map<UUID, StockLevelDto> result = new LinkedHashMap<>();
         for (StockLevel s : levels) {
             result.put(s.getProductId(), StockLevelDto.from(s));
@@ -101,8 +102,9 @@ public class StockService {
                 .thenComparing(l -> l.warehouseId().toString())
                 .thenComparing(l -> l.variantId() == null ? "" : l.variantId().toString()));
 
+        UUID tenantId = TenantContext.require();
         for (ReservationDto.Line line : sorted) {
-            StockLevel s = stockRepo.findForUpdate(line.productId(), line.variantId(), line.warehouseId())
+            StockLevel s = stockRepo.findForUpdate(line.productId(), line.variantId(), line.warehouseId(), tenantId)
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.CONFLICT,
                             "No stock row for product=" + line.productId() + " warehouse=" + line.warehouseId()));
             try {
@@ -121,6 +123,7 @@ public class StockService {
                 .expiresAt(Instant.now().plus(Duration.ofMinutes(ttl)))
                 .status(ReservationStatus.ACTIVE)
                 .userId(userId)
+                .tenantId(tenantId)
                 .build();
         res = reservationRepo.save(res);
 
@@ -145,9 +148,10 @@ public class StockService {
         }
 
         List<ReservationLine> lines = fromJson(r.getLinesJson());
+        UUID tenantId = TenantContext.require();
 
         for (ReservationLine line : lines) {
-            StockLevel s = stockRepo.findForUpdate(line.productId(), line.variantId(), line.warehouseId())
+            StockLevel s = stockRepo.findForUpdate(line.productId(), line.variantId(), line.warehouseId(), tenantId)
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.CONFLICT, "Stock row vanished"));
             try {
                 s.commitReserved(line.qty());
@@ -164,6 +168,7 @@ public class StockService {
                     .referenceType(ReferenceType.SALE)
                     .referenceId(saleId)
                     .userId(userId)
+                    .tenantId(tenantId)
                     .build());
         }
 
@@ -181,9 +186,10 @@ public class StockService {
         StockReservation r = reservationRepo.findBySaleId(saleId).orElse(null);
         if (r == null || r.getStatus() != ReservationStatus.ACTIVE) return;
 
+        UUID tenantId = TenantContext.require();
         List<ReservationLine> lines = fromJson(r.getLinesJson());
         for (ReservationLine line : lines) {
-            StockLevel s = stockRepo.findForUpdate(line.productId(), line.variantId(), line.warehouseId())
+            StockLevel s = stockRepo.findForUpdate(line.productId(), line.variantId(), line.warehouseId(), tenantId)
                     .orElse(null);
             if (s == null) continue;
             s.releaseReservation(line.qty());
@@ -203,9 +209,11 @@ public class StockService {
         StockReservation r = reservationRepo.findById(reservationId).orElse(null);
         if (r == null || r.getStatus() != ReservationStatus.ACTIVE) return;
 
+        // Use the reservation's own tenantId because the scheduled job has no request context.
+        UUID tenantId = r.getTenantId();
         List<ReservationLine> lines = fromJson(r.getLinesJson());
         for (ReservationLine line : lines) {
-            stockRepo.findForUpdate(line.productId(), line.variantId(), line.warehouseId())
+            stockRepo.findForUpdate(line.productId(), line.variantId(), line.warehouseId(), tenantId)
                     .ifPresent(s -> { s.releaseReservation(line.qty()); stockRepo.save(s); });
         }
         r.setStatus(ReservationStatus.EXPIRED);
@@ -220,12 +228,14 @@ public class StockService {
 
     @Transactional
     public StockLevel upsert(UUID productId, UUID variantId, UUID warehouseId) {
-        return stockRepo.findForUpdate(productId, variantId, warehouseId).orElseGet(() -> {
+        UUID tenantId = TenantContext.require();
+        return stockRepo.findForUpdate(productId, variantId, warehouseId, tenantId).orElseGet(() -> {
             log.info("Creating new stock_levels row for product={} variant={} warehouse={}",
                     productId, variantId, warehouseId);
             StockLevel s = StockLevel.builder()
                     .productId(productId).variantId(variantId).warehouseId(warehouseId)
                     .onHand(BigDecimal.ZERO).reserved(BigDecimal.ZERO).stockAlertThreshold(0)
+                    .tenantId(tenantId)
                     .build();
             return stockRepo.save(s);
         });

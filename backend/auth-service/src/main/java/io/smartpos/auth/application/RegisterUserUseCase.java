@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.smartpos.auth.api.dto.RegisterRequest;
 import io.smartpos.auth.domain.model.OutboxEvent;
+import io.smartpos.auth.domain.model.Tenant;
 import io.smartpos.auth.domain.model.User;
 import io.smartpos.auth.domain.model.UserStatus;
 import io.smartpos.auth.domain.repository.OutboxRepository;
@@ -29,6 +30,7 @@ public class RegisterUserUseCase {
     private final OutboxRepository outboxRepository;
     private final PasswordEncoder passwordEncoder;
     private final ObjectMapper objectMapper;
+    private final TenantService tenantService;
 
     @Transactional
     public UUID register(RegisterRequest req) {
@@ -36,12 +38,20 @@ public class RegisterUserUseCase {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already registered");
         }
 
+        // Resolve tenant: explicit tenantId, auto-create from tenantName, or leave null
+        UUID tenantId = req.tenantId();
+        Tenant tenant = null;
+        if (tenantId == null && req.tenantName() != null && !req.tenantName().isBlank()) {
+            tenant = tenantService.create(req.tenantName(), req.tenantSlug(), null);
+            tenantId = tenant.getId();
+        }
+
         User user = User.builder()
                 .email(req.email().toLowerCase())
                 .username(req.username())
                 .passwordHash(passwordEncoder.encode(req.password()))
                 .status(UserStatus.ACTIVE)
-                .tenantId(req.tenantId())
+                .tenantId(tenantId)
                 .build();
         try {
             user = userRepository.save(user);
@@ -52,7 +62,7 @@ public class RegisterUserUseCase {
         // Emit UserRegistered event via outbox so User Service can create a profile.
         publishUserRegistered(user, req);
 
-        log.info("Registered user id={} email={}", user.getId(), user.getEmail());
+        log.info("Registered user id={} email={} tenantId={}", user.getId(), user.getEmail(), tenantId);
         return user.getId();
     }
 

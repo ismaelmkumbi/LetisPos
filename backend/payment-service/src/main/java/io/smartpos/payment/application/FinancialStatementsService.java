@@ -1,5 +1,6 @@
 package io.smartpos.payment.application;
 
+import io.smartpos.common.context.TenantContext;
 import io.smartpos.payment.api.dto.FinancialReports.*;
 import io.smartpos.payment.domain.model.AccountClass;
 import io.smartpos.payment.domain.model.ChartOfAccount;
@@ -147,7 +148,7 @@ public class FinancialStatementsService {
 
     private Map<UUID, BigDecimal[]> totalsByAccount(LocalDate from, LocalDate to) {
         Map<UUID, BigDecimal[]> out = new HashMap<>();
-        for (Object[] row : journalRepo.sumByAccount(from, to)) {
+        for (Object[] row : journalRepo.sumByAccount(from, to, TenantContext.require())) {
             out.put((UUID) row[0],
                     new BigDecimal[]{ (BigDecimal) row[1], (BigDecimal) row[2] });
         }
@@ -156,7 +157,8 @@ public class FinancialStatementsService {
 
     private Map<UUID, ChartOfAccount> coaIndex() {
         Map<UUID, ChartOfAccount> m = new HashMap<>();
-        for (ChartOfAccount c : coaRepo.findAll()) m.put(c.getId(), c);
+        for (ChartOfAccount c : coaRepo.findByActiveTrueAndTenantIdOrderByCodeAsc(TenantContext.require()))
+            m.put(c.getId(), c);
         return m;
     }
 }

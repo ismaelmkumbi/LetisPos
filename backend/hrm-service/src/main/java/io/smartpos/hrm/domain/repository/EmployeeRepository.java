@@ -23,10 +23,12 @@ public interface EmployeeRepository extends JpaRepository<Employee, UUID> {
              AND (:departmentId  IS NULL OR e.departmentId  = :departmentId)
              AND (:designationId IS NULL OR e.designationId = :designationId)
              AND (:status        IS NULL OR e.status        = :status)
+             AND e.tenantId = :tenantId
            """)
     Page<Employee> search(@Param("search") String search,
                           @Param("departmentId")  UUID departmentId,
                           @Param("designationId") UUID designationId,
                           @Param("status")        EmployeeStatus status,
+                          @Param("tenantId")      UUID tenantId,
                           Pageable pageable);
 }

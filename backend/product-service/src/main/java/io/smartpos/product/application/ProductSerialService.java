@@ -1,5 +1,6 @@
 package io.smartpos.product.application;
 
+import io.smartpos.common.context.TenantContext;
 import io.smartpos.product.api.dto.SerialDto;
 import io.smartpos.product.domain.model.Product;
 import io.smartpos.product.domain.model.ProductSerial;
@@ -37,7 +38,7 @@ public class ProductSerialService {
     @Transactional(readOnly = true)
     public Page<SerialDto> search(UUID productId, UUID warehouseId, SerialStatus status,
                                   String search, Pageable pageable) {
-        return repo.search(productId, warehouseId, status, search, pageable).map(SerialDto::from);
+        return repo.search(productId, warehouseId, status, search, TenantContext.require(), pageable).map(SerialDto::from);
     }
 
     @Transactional(readOnly = true)

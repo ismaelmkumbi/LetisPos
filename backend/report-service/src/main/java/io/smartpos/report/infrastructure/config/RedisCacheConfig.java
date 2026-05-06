@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
 import com.fasterxml.jackson.databind.jsontype.PolymorphicTypeValidator;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import io.smartpos.common.context.TenantContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.cache.RedisCacheConfiguration;
@@ -15,7 +16,10 @@ import org.springframework.data.redis.serializer.RedisSerializationContext;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Per-cache TTLs for report projections.
@@ -36,6 +40,12 @@ public class RedisCacheConfig {
     public static final String CACHE_TOP_CUSTOMERS = "top-customers";
     public static final String CACHE_INVENTORY     = "inventory";
     public static final String CACHE_PROFIT_LOSS   = "profit-loss";
+
+    public static String tenantKey(Object... parts) {
+        return Stream.concat(Stream.of(TenantContext.require()), Arrays.stream(parts))
+                .map(part -> part == null ? "all" : part.toString())
+                .collect(Collectors.joining(":"));
+    }
 
     @Bean
     public RedisCacheManager cacheManager(RedisConnectionFactory cf) {

@@ -1,5 +1,6 @@
 package io.smartpos.inventory.application;
 
+import io.smartpos.common.context.TenantContext;
 import io.smartpos.inventory.api.dto.WarehouseDto;
 import io.smartpos.inventory.domain.model.Warehouse;
 import io.smartpos.inventory.domain.repository.WarehouseRepository;
@@ -21,7 +22,8 @@ public class WarehouseService {
 
     @Transactional(readOnly = true)
     public List<WarehouseDto> list() {
-        return repo.findAll().stream().map(WarehouseDto::from).collect(Collectors.toList());
+        return repo.findByTenantId(TenantContext.require()).stream()
+                .map(WarehouseDto::from).collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
@@ -41,6 +43,7 @@ public class WarehouseService {
                 .phone(req.phone()).email(req.email())
                 .zip(req.zip()).notes(req.notes())
                 .active(true)
+                .tenantId(TenantContext.require())
                 .build();
         return WarehouseDto.from(repo.save(w));
     }
@@ -57,6 +60,22 @@ public class WarehouseService {
         w.setEmail(req.email());
         w.setZip(req.zip());
         w.setNotes(req.notes());
+        return WarehouseDto.from(repo.save(w));
+    }
+
+    @Transactional
+    public void deactivate(UUID id) {
+        Warehouse w = repo.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Warehouse not found"));
+        w.setActive(false);
+        repo.save(w);
+    }
+
+    @Transactional
+    public WarehouseDto setStatus(UUID id, boolean active) {
+        Warehouse w = repo.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Warehouse not found"));
+        w.setActive(active);
         return WarehouseDto.from(repo.save(w));
     }
 }

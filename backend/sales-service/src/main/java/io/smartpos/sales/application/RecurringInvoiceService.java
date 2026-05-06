@@ -6,6 +6,7 @@ import io.smartpos.sales.api.dto.SaleDto;
 import io.smartpos.sales.api.dto.SaleLineInput;
 import io.smartpos.sales.domain.model.*;
 import io.smartpos.sales.domain.repository.RecurringInvoiceRepository;
+import io.smartpos.common.context.TenantContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -47,7 +48,8 @@ public class RecurringInvoiceService {
     @Transactional(readOnly = true)
     public Page<RecurringInvoiceDto> search(RecurringStatus status, UUID customerId,
                                             UUID warehouseId, Pageable pageable) {
-        return repo.search(status, customerId, warehouseId, pageable).map(RecurringInvoiceDto::from);
+        return repo.search(status, customerId, warehouseId, TenantContext.require(), pageable)
+                .map(RecurringInvoiceDto::from);
     }
 
     @Transactional(readOnly = true)
@@ -75,6 +77,7 @@ public class RecurringInvoiceService {
                 .sendNotification(req.sendNotification() == null || req.sendNotification())
                 .notes(req.notes())
                 .status(RecurringStatus.ACTIVE)
+                .tenantId(TenantContext.require())
                 .build();
         addLines(r, req.lines());
         return RecurringInvoiceDto.from(repo.save(r));

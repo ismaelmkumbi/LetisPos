@@ -6,6 +6,7 @@ import io.smartpos.report.infrastructure.config.RedisCacheConfig;
 import io.smartpos.report.infrastructure.feign.InventoryFeign;
 import io.smartpos.report.infrastructure.feign.PaymentFeign;
 import io.smartpos.report.infrastructure.feign.SalesFeign;
+import io.smartpos.common.context.TenantContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
@@ -21,8 +22,8 @@ import java.util.UUID;
  * Assembles a full dashboard payload via parallel-friendly Feign calls.
  *
  * For Phase 6 v1 each dashboard render fans out ~5 Feign requests. With 5 min
- * Redis caching per (warehouse, period) tuple this is fine for dozens of
- * concurrent users — the first request warms the cache for everyone else.
+ * Redis caching per (tenant, warehouse, period) tuple this is fine for dozens
+ * of concurrent users inside the same tenant.
  *
  * Phase 6b will pre-populate fact tables via Kafka consumers and this service
  * will read from there instead.
@@ -37,9 +38,11 @@ public class DashboardService {
     private final PaymentFeign   payments;
 
     @Cacheable(value = RedisCacheConfig.CACHE_DASHBOARD,
-               key = "#warehouseId + ':' + #period.name()",
+               key = "T(io.smartpos.report.infrastructure.config.RedisCacheConfig).tenantKey(#warehouseId, #period.name())",
                unless = "#result == null")
     public DashboardDto dashboard(UUID warehouseId, Period period) {
+        TenantContext.require();
+
         LocalDate today = LocalDate.now();
         LocalDate from = period.from(today);
         LocalDate to   = period.to(today);

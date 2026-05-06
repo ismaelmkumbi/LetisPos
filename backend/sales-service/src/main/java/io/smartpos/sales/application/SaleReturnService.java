@@ -5,6 +5,7 @@ import io.smartpos.sales.domain.model.*;
 import io.smartpos.sales.domain.repository.SaleRepository;
 import io.smartpos.sales.domain.repository.SaleReturnRepository;
 import io.smartpos.sales.infrastructure.feign.InventoryClient;
+import io.smartpos.common.context.TenantContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -50,7 +51,8 @@ public class SaleReturnService {
             LocalDate from, LocalDate to,
             UUID customerId, UUID warehouseId, ReturnStatus status,
             org.springframework.data.domain.Pageable pageable) {
-        return returnRepo.search(from, to, customerId, warehouseId, status, pageable)
+        return returnRepo.search(from, to, customerId, warehouseId, status,
+                TenantContext.require(), pageable)
                 .map(SaleReturnDto::from);
     }
 
@@ -71,6 +73,7 @@ public class SaleReturnService {
                 .userId(userId)
                 .reason(req.reason())
                 .status(ReturnStatus.CONFIRMED)
+                .tenantId(TenantContext.require())
                 .build();
 
         BigDecimal total = BigDecimal.ZERO;
@@ -116,7 +119,7 @@ public class SaleReturnService {
 
     private String nextRef() {
         String prefix = "SRT-" + Year.now().getValue() + "-";
-        long n = returnRepo.countByRefStartingWith(prefix) + 1;
+        long n = returnRepo.countByRefStartingWith(prefix, TenantContext.require()) + 1;
         return prefix + String.format("%06d", n);
     }
 }

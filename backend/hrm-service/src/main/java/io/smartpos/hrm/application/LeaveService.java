@@ -1,5 +1,6 @@
 package io.smartpos.hrm.application;
 
+import io.smartpos.common.context.TenantContext;
 import io.smartpos.hrm.api.dto.LeaveRequestDto;
 import io.smartpos.hrm.domain.model.LeaveRequest;
 import io.smartpos.hrm.domain.model.LeaveStatus;
@@ -25,7 +26,7 @@ public class LeaveService {
 
     @Transactional(readOnly = true)
     public Page<LeaveRequestDto> listForEmployee(UUID employeeId, Pageable pageable) {
-        return repo.findByEmployeeIdOrderByCreatedAtDesc(employeeId, pageable).map(LeaveRequestDto::from);
+        return repo.findByEmployeeIdOrderByCreatedAtDesc(employeeId, TenantContext.require(), pageable).map(LeaveRequestDto::from);
     }
 
     @Transactional
@@ -41,6 +42,7 @@ public class LeaveService {
                 .days(BigDecimal.valueOf(days))
                 .reason(req.reason())
                 .status(LeaveStatus.PENDING)
+                .tenantId(TenantContext.require())
                 .build();
         return LeaveRequestDto.from(repo.save(r));
     }

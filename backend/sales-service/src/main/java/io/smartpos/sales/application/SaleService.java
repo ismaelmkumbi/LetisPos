@@ -7,12 +7,16 @@ import io.smartpos.sales.domain.model.*;
 import io.smartpos.sales.domain.repository.SalePaymentAppliedRepository;
 import io.smartpos.sales.domain.repository.SaleRepository;
 import io.smartpos.sales.infrastructure.feign.InventoryClient;
+import io.smartpos.common.context.TenantContext;
+import jakarta.persistence.EntityManager;
 import org.springframework.dao.DataIntegrityViolationException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -53,6 +57,7 @@ public class SaleService {
     private final InventoryClient  inventory;
     private final OutboxPublisher  outbox;
     private final SalePaymentAppliedRepository appliedRepo;
+    private final EntityManager em;
 
     @Value("${smartpos.sales.default-currency:TZS}")
     private String defaultCurrency;
@@ -65,12 +70,98 @@ public class SaleService {
     @Transactional(readOnly = true)
     public Page<SaleDto> search(LocalDate from, LocalDate to, UUID customerId,
                                 UUID warehouseId, SaleStatus status, Pageable p) {
-        return saleRepo.search(from, to, customerId, warehouseId, status, p).map(SaleDto::from);
+        UUID tenantId = TenantContext.require();
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put("tenantId", tenantId);
+
+        StringBuilder where = new StringBuilder(" FROM Sale s WHERE s.tenantId = :tenantId");
+        if (from != null) {
+            where.append(" AND s.date >= :dateFrom");
+            params.put("dateFrom", from);
+        }
+        if (to != null) {
+            where.append(" AND s.date <= :dateTo");
+            params.put("dateTo", to);
+        }
+        if (customerId != null) {
+            where.append(" AND s.customerId = :customerId");
+            params.put("customerId", customerId);
+        }
+        if (warehouseId != null) {
+            where.append(" AND s.warehouseId = :warehouseId");
+            params.put("warehouseId", warehouseId);
+        }
+        if (status != null) {
+            where.append(" AND s.status = :status");
+            params.put("status", status);
+        }
+
+        Long total = bind(em.createQuery("SELECT COUNT(s)" + where, Long.class), params)
+                .getSingleResult();
+        if (total == 0) {
+            return new PageImpl<>(List.of(), p, 0);
+        }
+
+        var idQuery = bind(em.createQuery("SELECT s.id" + where + orderBy(p), UUID.class), params);
+        if (p.isPaged()) {
+            idQuery.setFirstResult((int) p.getOffset());
+            idQuery.setMaxResults(p.getPageSize());
+        }
+        List<UUID> ids = idQuery.getResultList();
+        if (ids.isEmpty()) {
+            return new PageImpl<>(List.of(), p, total);
+        }
+
+        List<Sale> rows = em.createQuery("""
+                SELECT DISTINCT s FROM Sale s
+                LEFT JOIN FETCH s.lines
+                WHERE s.id IN :ids
+                """, Sale.class)
+                .setParameter("ids", ids)
+                .getResultList();
+        Map<UUID, Sale> byId = new HashMap<>();
+        rows.forEach(s -> byId.put(s.getId(), s));
+
+        List<SaleDto> content = ids.stream()
+                .map(byId::get)
+                .filter(Objects::nonNull)
+                .map(SaleDto::from)
+                .toList();
+        return new PageImpl<>(content, p, total);
+    }
+
+    private static <T> jakarta.persistence.TypedQuery<T> bind(
+            jakarta.persistence.TypedQuery<T> query, Map<String, Object> params) {
+        params.forEach(query::setParameter);
+        return query;
+    }
+
+    private static String orderBy(Pageable pageable) {
+        List<String> clauses = new ArrayList<>();
+        Sort sort = pageable.getSortOr(Sort.by(Sort.Order.desc("date"), Sort.Order.desc("createdAt")));
+        for (Sort.Order order : sort) {
+            String property = switch (order.getProperty()) {
+                case "date", "createdAt", "confirmedAt", "ref", "grandTotal", "status" -> order.getProperty();
+                default -> null;
+            };
+            if (property != null) {
+                clauses.add("s." + property + " " + order.getDirection().name());
+            }
+        }
+        if (clauses.isEmpty()) {
+            clauses.add("s.date DESC");
+            clauses.add("s.createdAt DESC");
+        }
+        clauses.add("s.id ASC");
+        return " ORDER BY " + String.join(", ", clauses);
     }
 
     @Transactional(readOnly = true)
     public SaleDto get(UUID id) {
-        return saleRepo.findByIdWithLines(id).map(SaleDto::from)
+        UUID tenantId = TenantContext.require();
+        return saleRepo.findByIdWithLines(id)
+                .filter(s -> tenantId.equals(s.getTenantId()))
+                .map(SaleDto::from)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Sale not found"));
     }
 
@@ -96,6 +187,7 @@ public class SaleService {
                 .shipping(nz(req.shipping()))
                 .discountTotal(nz(req.discount()))
                 .notes(req.notes())
+                .tenantId(TenantContext.require())
                 .build();
 
         BigDecimal sumSubtotal = BigDecimal.ZERO;
@@ -264,7 +356,7 @@ public class SaleService {
 
     String nextRef() {
         String prefix = "INV-" + Year.now().getValue() + "-";
-        long n = saleRepo.countByRefStartingWith(prefix) + 1;
+        long n = saleRepo.countByRefStartingWith(prefix, TenantContext.require()) + 1;
         return prefix + String.format("%06d", n);
     }
 

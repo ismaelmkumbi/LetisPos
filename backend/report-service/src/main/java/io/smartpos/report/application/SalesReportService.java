@@ -21,7 +21,7 @@ public class SalesReportService {
     private final SalesFeign sales;
 
     @Cacheable(value = RedisCacheConfig.CACHE_SALES_SUMMARY,
-               key = "#from + ':' + #to + ':' + #warehouseId + ':' + #customerId",
+               key = "T(io.smartpos.report.infrastructure.config.RedisCacheConfig).tenantKey(#from, #to, #warehouseId, #customerId)",
                unless = "#result == null")
     public SalesSummaryDto summary(LocalDate from, LocalDate to,
                                    UUID warehouseId, UUID customerId) {
@@ -36,7 +36,7 @@ public class SalesReportService {
     }
 
     @Cacheable(value = RedisCacheConfig.CACHE_TOP_PRODUCTS,
-               key = "#from + ':' + #to + ':' + #warehouseId + ':' + #limit",
+               key = "T(io.smartpos.report.infrastructure.config.RedisCacheConfig).tenantKey(#from, #to, #warehouseId, #limit)",
                unless = "#result == null")
     public List<SalesFeign.TopProduct> topProducts(LocalDate from, LocalDate to,
                                                    UUID warehouseId, int limit) {
@@ -44,7 +44,7 @@ public class SalesReportService {
     }
 
     @Cacheable(value = RedisCacheConfig.CACHE_TOP_CUSTOMERS,
-               key = "#from + ':' + #to + ':' + #limit",
+               key = "T(io.smartpos.report.infrastructure.config.RedisCacheConfig).tenantKey(#from, #to, #limit)",
                unless = "#result == null")
     public List<SalesFeign.TopCustomer> topCustomers(LocalDate from, LocalDate to, int limit) {
         return sales.topCustomers(from, to, limit);

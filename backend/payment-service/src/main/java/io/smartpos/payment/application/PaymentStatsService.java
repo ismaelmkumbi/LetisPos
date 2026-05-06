@@ -1,5 +1,6 @@
 package io.smartpos.payment.application;
 
+import io.smartpos.common.context.TenantContext;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -33,12 +34,14 @@ public class PaymentStatsService {
                    COALESCE(SUM(CASE WHEN p.referenceType IN ('PURCHASE','SALE_RETURN','EXPENSE') THEN p.amount ELSE 0 END), 0)
             FROM Payment p
             WHERE p.status = 'COMPLETED'
+              AND p.tenantId = :tenantId
             """);
-        if (from != null) jpql.append(" AND p.date >= :dateFrom");
-        if (to != null) jpql.append(" AND p.date <= :dateTo");
-        if (accountId != null) jpql.append(" AND p.accountId = :accountId");
+        if (from != null) jpql.append(" AND p.date >= :dateFrom ");
+        if (to != null) jpql.append(" AND p.date <= :dateTo ");
+        if (accountId != null) jpql.append(" AND p.accountId = :accountId ");
 
         var query = em.createQuery(jpql.toString());
+        query.setParameter("tenantId", TenantContext.require());
         if (from != null) query.setParameter("dateFrom", from);
         if (to != null) query.setParameter("dateTo", to);
         if (accountId != null) query.setParameter("accountId", accountId);
@@ -55,12 +58,13 @@ public class PaymentStatsService {
         StringBuilder jpql = new StringBuilder("""
             SELECT COALESCE(SUM(e.amount), 0), COUNT(e)
             FROM Expense e
-            WHERE 1 = 1
+            WHERE e.tenantId = :tenantId
             """);
-        if (from != null) jpql.append(" AND e.date >= :dateFrom");
-        if (to != null) jpql.append(" AND e.date <= :dateTo");
+        if (from != null) jpql.append(" AND e.date >= :dateFrom ");
+        if (to != null) jpql.append(" AND e.date <= :dateTo ");
 
         var query = em.createQuery(jpql.toString());
+        query.setParameter("tenantId", TenantContext.require());
         if (from != null) query.setParameter("dateFrom", from);
         if (to != null) query.setParameter("dateTo", to);
 
@@ -78,15 +82,18 @@ public class PaymentStatsService {
                    COUNT(p)
             FROM Payment p
             WHERE p.status = 'COMPLETED'
+              AND p.tenantId = :tenantId
             """);
-        if (from != null) jpql.append(" AND p.date >= :dateFrom");
-        if (to != null) jpql.append(" AND p.date <= :dateTo");
+        if (from != null) jpql.append(" AND p.date >= :dateFrom ");
+        if (to != null) jpql.append(" AND p.date <= :dateTo ");
         jpql.append("""
+            
             GROUP BY p.method
             ORDER BY SUM(p.amount) DESC
             """);
 
         var query = em.createQuery(jpql.toString());
+        query.setParameter("tenantId", TenantContext.require());
         if (from != null) query.setParameter("dateFrom", from);
         if (to != null) query.setParameter("dateTo", to);
 
