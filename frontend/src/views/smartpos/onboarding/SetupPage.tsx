@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
-  Box, Button, LinearProgress, Stack, Typography, keyframes,
+  Box, Button, CircularProgress, LinearProgress, Stack, Typography, keyframes,
 } from '@mui/material';
 import {
   IconCheck, IconCircle, IconPackage, IconPercentage, IconRulerMeasure,
 } from '@tabler/icons-react';
-import { useNavigate } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import { useSetupGate } from 'src/routes/smartpos/useSetupGate';
 import { listUnits } from 'src/api/smartpos/products';
 import type { Unit } from 'src/api/smartpos/types';
@@ -23,25 +23,27 @@ const fadeInUp = keyframes`
 type StepKey = 'units' | 'products' | 'tax';
 
 const STEPS: { key: StepKey; label: string; icon: React.ReactNode; description: string }[] = [
-  { key: 'units', label: 'Units of measure', icon: <IconRulerMeasure size={20} />, description: 'Review default units — pieces, kg, liter, and more' },
+  { key: 'units', label: 'Units of measure', icon: <IconRulerMeasure size={20} />, description: 'Review default units' },
   { key: 'products', label: 'First product', icon: <IconPackage size={20} />, description: 'Add at least one product to unlock the shop' },
   { key: 'tax', label: 'Tax rate', icon: <IconPercentage size={20} />, description: 'Set your default tax rate for sales' },
 ];
 
 /* ─── Step content components ───────────────────────────────────── */
 
-interface StepProps { onSkip: () => void; onComplete: () => void; }
+interface StepProps { onAdvance: () => void; }
 
 /* ── Units step ── */
 
-function UnitsStep({ onSkip, onComplete }: StepProps) {
+function UnitsStep({ onAdvance }: StepProps) {
   const [units, setUnits] = useState<Unit[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     listUnits()
       .then((u) => setUnits(u))
-      .catch(() => {})
+      .catch((err) => {
+        console.error('SetupPage: failed to load units', err);
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -57,7 +59,10 @@ function UnitsStep({ onSkip, onComplete }: StepProps) {
       </Box>
 
       {loading ? (
-        <Typography sx={{ color: brand.neutral[400], fontSize: '0.85rem' }}>Loading units…</Typography>
+        <Stack direction="row" spacing={1.5} alignItems="center">
+          <CircularProgress size={18} sx={{ color: brand.neutral[400] }} />
+          <Typography sx={{ color: brand.neutral[400], fontSize: '0.85rem' }}>Loading units…</Typography>
+        </Stack>
       ) : units.length === 0 ? (
         <Typography sx={{ color: brand.neutral[500], fontSize: '0.85rem' }}>
           No units found. They'll be seeded when you register. Skip for now and add them from Settings.
@@ -84,14 +89,14 @@ function UnitsStep({ onSkip, onComplete }: StepProps) {
       <Stack direction="row" spacing={1.5}>
         <Button
           variant="outlined"
-          onClick={onSkip}
+          onClick={onAdvance}
           sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600 }}
         >
           Skip for now
         </Button>
         <Button
           variant="contained"
-          onClick={onComplete}
+          onClick={onAdvance}
           sx={{
             borderRadius: '10px', textTransform: 'none', fontWeight: 700,
             background: `linear-gradient(135deg, ${brand.primary[500]} 0%, ${brand.primary[700]} 100%)`,
@@ -107,12 +112,21 @@ function UnitsStep({ onSkip, onComplete }: StepProps) {
 
 /* ── Products step ── */
 
-function ProductsStep({ onSkip, onComplete }: StepProps) {
-  const { needsSetup, loading } = useSetupGate({ skip: false });
-
+function ProductsStep({ needsSetup, loading, onAdvance }: StepProps & { needsSetup: boolean; loading: boolean }) {
   useEffect(() => {
-    if (!loading && !needsSetup) onComplete();
-  }, [loading, needsSetup, onComplete]);
+    if (!loading && !needsSetup) onAdvance();
+  }, [loading, needsSetup, onAdvance]);
+
+  if (loading) {
+    return (
+      <Stack spacing={3} alignItems="center" sx={{ py: 4 }}>
+        <CircularProgress size={32} sx={{ color: brand.primary[400] }} />
+        <Typography sx={{ color: brand.neutral[500], fontSize: '0.85rem' }}>
+          Checking product catalog…
+        </Typography>
+      </Stack>
+    );
+  }
 
   return (
     <Stack spacing={3}>
@@ -126,8 +140,8 @@ function ProductsStep({ onSkip, onComplete }: StepProps) {
       </Box>
 
       <Button
-        component="a"
-        href="/smartpos/products"
+        component={Link}
+        to="/smartpos/products"
         variant="contained"
         size="large"
         sx={{
@@ -149,7 +163,7 @@ function ProductsStep({ onSkip, onComplete }: StepProps) {
         </Typography>
         <Button
           variant="text"
-          onClick={onSkip}
+          onClick={onAdvance}
           sx={{ textTransform: 'none', color: brand.neutral[500], flexShrink: 0 }}
         >
           Skip for now
@@ -161,7 +175,7 @@ function ProductsStep({ onSkip, onComplete }: StepProps) {
 
 /* ── Tax step ── */
 
-function TaxStep({ onSkip, onComplete }: StepProps) {
+function TaxStep({ onAdvance }: StepProps) {
   return (
     <Stack spacing={3}>
       <Box>
@@ -187,21 +201,21 @@ function TaxStep({ onSkip, onComplete }: StepProps) {
           18% VAT
         </Typography>
         <Typography sx={{ fontSize: '0.8rem', color: brand.neutral[500], mt: 0.5 }}>
-          Standard rate for Tanzania.
+          Standard rate for Tanzania. Adjust in Settings → Tax & Pricing.
         </Typography>
       </Box>
 
       <Stack direction="row" spacing={1.5}>
         <Button
           variant="outlined"
-          onClick={onSkip}
+          onClick={onAdvance}
           sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600 }}
         >
           I'll set this later
         </Button>
         <Button
           variant="contained"
-          onClick={onComplete}
+          onClick={onAdvance}
           sx={{
             borderRadius: '10px', textTransform: 'none', fontWeight: 700,
             background: `linear-gradient(135deg, ${brand.primary[500]} 0%, ${brand.primary[700]} 100%)`,
@@ -225,19 +239,13 @@ export default function SetupPage() {
 
   const allDone = !gateLoading && !needsSetup;
 
-  const handleComplete = (key: StepKey) => {
+  const advanceStep = useCallback(() => {
+    const key = STEPS[activeStep].key;
     setCompleted((prev) => new Set([...prev, key]));
     if (activeStep < STEPS.length - 1) {
       setActiveStep((s) => s + 1);
     }
-  };
-
-  const handleSkip = (key: StepKey) => {
-    setCompleted((prev) => new Set([...prev, key]));
-    if (activeStep < STEPS.length - 1) {
-      setActiveStep((s) => s + 1);
-    }
-  };
+  }, [activeStep]);
 
   const progress = (completed.size / STEPS.length) * 100;
 
@@ -282,17 +290,19 @@ export default function SetupPage() {
   }
 
   /* ── Wizard ── */
-  const CurrentStep = (() => {
-    const props: StepProps = {
-      onSkip: () => handleSkip(STEPS[activeStep].key),
-      onComplete: () => handleComplete(STEPS[activeStep].key),
-    };
-    switch (STEPS[activeStep].key) {
-      case 'units': return <UnitsStep {...props} />;
-      case 'products': return <ProductsStep {...props} />;
-      case 'tax': return <TaxStep {...props} />;
+  const stepProps: StepProps = { onAdvance: advanceStep };
+
+  const renderStep = () => {
+    const key = STEPS[activeStep].key;
+    switch (key) {
+      case 'units':
+        return <UnitsStep {...stepProps} />;
+      case 'products':
+        return <ProductsStep {...stepProps} needsSetup={needsSetup} loading={gateLoading} />;
+      case 'tax':
+        return <TaxStep {...stepProps} />;
     }
-  })();
+  };
 
   return (
     <Box sx={{ maxWidth: 900, mx: 'auto', px: { xs: 2, sm: 4 }, py: { xs: 3, sm: 5 } }}>
@@ -322,7 +332,7 @@ export default function SetupPage() {
 
       <Stack direction={{ xs: 'column', md: 'row' }} spacing={4}>
         {/* Left: step list */}
-        <Box sx={{ width: { xs: '100%', md: 250 }, flexShrink: 0 }}>
+        <Box sx={{ width: { xs: '100%', md: 230 }, flexShrink: 0 }}>
           <Stack spacing={0.5}>
             {STEPS.map((step, i) => {
               const isCurrent = i === activeStep;
@@ -330,12 +340,12 @@ export default function SetupPage() {
               return (
                 <Box
                   key={step.key}
-                  onClick={() => { if (isDone || completed.has(step.key)) setActiveStep(i); }}
+                  onClick={() => { if (isDone) setActiveStep(i); }}
                   sx={{
                     display: 'flex',
                     alignItems: 'flex-start',
-                    gap: 1.5,
-                    px: 1.5, py: 1.25,
+                    gap: 1.25,
+                    px: 1.25, py: 1,
                     borderRadius: '10px',
                     cursor: isDone ? 'pointer' : 'default',
                     bgcolor: isCurrent ? brand.primary[50] : 'transparent',
@@ -368,7 +378,7 @@ export default function SetupPage() {
         {/* Right: step content */}
         <Box sx={{ flex: 1, minWidth: 0 }} key={activeStep}>
           <Box sx={{ animation: `${fadeInUp} 0.35s ease both` }}>
-            {CurrentStep}
+            {renderStep()}
           </Box>
         </Box>
       </Stack>
