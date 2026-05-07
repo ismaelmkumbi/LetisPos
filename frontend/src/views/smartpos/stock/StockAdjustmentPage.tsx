@@ -350,14 +350,21 @@ function AdjustmentLineRow({
 }) {
   const [products, setProducts] = useState<Product[]>([]);
   const [inputValue, setInputValue] = useState('');
+  const [searching, setSearching] = useState(false);
 
   useEffect(() => {
-    if (inputValue.length < 2) return;
+    if (inputValue.length < 2) { setProducts([]); return; }
     let cancelled = false;
+    setSearching(true);
     const timer = setTimeout(() => {
       listProducts({ search: inputValue, size: 10 }).then((p) => {
         if (!cancelled) setProducts(p.content);
-      }).catch(() => {});
+      }).catch((err) => {
+        console.error('StockAdjustment: product search failed', err);
+        if (!cancelled) setProducts([]);
+      }).finally(() => {
+        if (!cancelled) setSearching(false);
+      });
     }, 300);
     return () => { cancelled = true; clearTimeout(timer); };
   }, [inputValue]);
@@ -366,13 +373,16 @@ function AdjustmentLineRow({
     <Stack direction="row" spacing={1} alignItems="center">
       <Autocomplete
         size="small"
+        openOnFocus
+        loading={searching}
         options={products}
         getOptionLabel={(p) => `${p.name} (${p.code})`}
         inputValue={inputValue}
         onInputChange={(_, v) => setInputValue(v)}
-        onChange={(_, p) => { if (p) onChange({ ...line, productId: p.id }); }}
+        onChange={(_, p) => { if (p) { onChange({ ...line, productId: p.id }); setProducts([]); setInputValue(''); } }}
         filterOptions={(x) => x}
-        renderInput={(params) => <TextField {...params} label="Product" />}
+        noOptionsText={inputValue.length < 2 ? 'Type at least 2 characters to search' : 'No products found'}
+        renderInput={(params) => <TextField {...params} label="Product" placeholder="Search product..." />}
         sx={{ flex: 1, minWidth: 200 }}
       />
       <TextField
