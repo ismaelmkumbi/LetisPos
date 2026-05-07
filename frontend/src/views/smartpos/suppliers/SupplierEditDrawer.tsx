@@ -14,7 +14,7 @@ export interface SupplierEditDrawerProps {
 
 const empty: SupplierInput = {
   name: '',
-  code: '',
+  code: undefined,
   contactPerson: '',
   email: '',
   phone: '',
@@ -42,7 +42,7 @@ export default function SupplierEditDrawer({
   useEffect(() => {
     if (initial) {
       setForm({
-        code: initial.code ?? '',
+        code: initial.code ?? undefined,
         name: initial.name,
         contactPerson: initial.contactPerson ?? '',
         email: initial.email ?? '',
@@ -118,11 +118,12 @@ export default function SupplierEditDrawer({
       <Stack direction="row" spacing={2}>
         <TextField
           label="Code"
-          value={form.code ?? ''}
-          onChange={(e) => patch('code', e.target.value)}
+          value={form.code ?? 'Auto-generated'}
           size="small"
-          sx={{ width: 140 }}
-          placeholder="Auto"
+          sx={{ width: 170 }}
+          disabled
+          InputProps={{ readOnly: true }}
+          helperText="Generated on save"
         />
         <TextField
           label="Name *"

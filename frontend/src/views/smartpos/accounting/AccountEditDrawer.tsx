@@ -9,8 +9,16 @@ import {
   type AccountClass, type ChartOfAccount, type CreateAccountBody, type NormalBalance,
 } from 'src/api/smartpos/accounting';
 
+const CLASS_PREFIX: Record<string, string> = { ASSET: '1', LIABILITY: '2', EQUITY: '3', REVENUE: '4', EXPENSE: '5' };
+
+function generateCode(accountClass: string): string {
+  const prefix = CLASS_PREFIX[accountClass] || '1';
+  const seq = String(Math.floor(Math.random() * 9000) + 1000);
+  return `${prefix}-${seq}`;
+}
+
 const empty: CreateAccountBody = {
-  code: '', name: '', accountClass: 'ASSET', normalBalance: 'DR', postable: true, active: true,
+  code: generateCode('ASSET'), name: '', accountClass: 'ASSET', normalBalance: 'DR', postable: true, active: true,
 };
 
 export interface AccountEditDrawerProps {
@@ -44,8 +52,8 @@ export default function AccountEditDrawer({ open, initial, onClose, onSaved }: A
     setBody((b) => ({ ...b, [k]: v }));
 
   const handleSubmit = async () => {
-    if (!body.code.trim() || !body.name.trim()) {
-      setError('Code and name are required.');
+    if (!body.name.trim()) {
+      setError('Name is required.');
       return;
     }
     setSubmitting(true);
@@ -76,8 +84,9 @@ export default function AccountEditDrawer({ open, initial, onClose, onSaved }: A
 
       <Stack direction="row" spacing={2}>
         <TextField
-          label="Code" value={body.code} required size="small" sx={{ width: 140 }}
-          onChange={(e) => patch('code', e.target.value)}
+          label="Code" value={body.code} size="small" sx={{ width: 140 }}
+          disabled InputProps={{ readOnly: true }}
+          helperText="Auto"
         />
         <TextField
           label="Name" value={body.name} required size="small" fullWidth
@@ -88,7 +97,7 @@ export default function AccountEditDrawer({ open, initial, onClose, onSaved }: A
       <Stack direction="row" spacing={2}>
         <TextField
           select label="Class" value={body.accountClass} size="small" fullWidth
-          onChange={(e) => patch('accountClass', e.target.value as AccountClass)}
+          onChange={(e) => { const cls = e.target.value as AccountClass; patch('accountClass', cls); if (!initial) patch('code', generateCode(cls)); }}
         >
           {(['ASSET','LIABILITY','EQUITY','REVENUE','EXPENSE'] as AccountClass[]).map((c) =>
             <MenuItem key={c} value={c}>{c}</MenuItem>)}
