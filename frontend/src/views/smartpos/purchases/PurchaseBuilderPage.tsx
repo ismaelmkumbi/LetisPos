@@ -24,16 +24,13 @@ import {
   receivePurchase,
   cancelPurchase,
   getPurchase,
-  addPaymentToPurchase,
-  getPurchasePayments,
   type CreatePurchaseBody,
   type PurchaseStatus,
-  type PurchasePayment,
 } from 'src/api/smartpos/sales';
 import { listProducts } from 'src/api/smartpos/products';
 import { listSuppliers } from 'src/api/smartpos/suppliers';
 import { listWarehouses, type Warehouse } from 'src/api/smartpos/inventory';
-import { listAccounts } from 'src/api/smartpos/payments';
+import { listAccounts, listPayments, recordPayment, type Payment } from 'src/api/smartpos/payments';
 import type { Supplier } from 'src/api/smartpos/types';
 
 import PageHeader from 'src/components/smartpos/PageHeader';
@@ -70,7 +67,7 @@ export default function PurchaseBuilderPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [banner, setBanner] = useState<string | null>(null);
-  const [payments, setPayments] = useState<PurchasePayment[]>([]);
+  const [payments, setPayments] = useState<Payment[]>([]);
   const [payAmount, setPayAmount] = useState(0);
   const [payMethod, setPayMethod] = useState('CASH');
   const [payAccountId, setPayAccountId] = useState('');
@@ -103,7 +100,7 @@ export default function PurchaseBuilderPage() {
   useEffect(() => {
     if (!id) return;
     setLoading(true);
-    Promise.all([getPurchase(id), getPurchasePayments(id).catch(() => [] as PurchasePayment[])])
+    Promise.all([getPurchase(id), listPayments({ referenceType: 'PURCHASE', referenceId: id }).then((p) => p.content).catch(() => [] as Payment[])])
       .then(([p, pmts]) => {
         setWarehouseId(p.warehouseId);
         setSupplierId(p.supplierId);
@@ -186,10 +183,12 @@ export default function PurchaseBuilderPage() {
     if (!id || payAmount <= 0 || !payAccountId) return;
     setPaying(true);
     try {
-      const pmt = await addPaymentToPurchase(id, {
+      const pmt = await recordPayment({
+        referenceType: 'PURCHASE',
+        referenceId: id,
         accountId: payAccountId,
         amount: payAmount,
-        method: payMethod,
+        method: payMethod as any,
         notes: payNotes || undefined,
       });
       setPayments((prev) => [...prev, pmt]);
