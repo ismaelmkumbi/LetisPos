@@ -73,6 +73,10 @@ export default function LineEditor({
     setSearching(true);
     searchProducts(q)
       .then(setOptions)
+      .catch((err) => {
+        console.error('LineEditor: product search failed', err);
+        setOptions([]);
+      })
       .finally(() => setSearching(false));
   };
 
@@ -87,6 +91,7 @@ export default function LineEditor({
       <Box sx={{ p: 2, bgcolor: brand.neutral[50], borderBottom: `1px solid ${brand.neutral[200]}` }}>
         <Autocomplete<Product, false, false, false>
           size="small"
+          openOnFocus
           loading={searching}
           options={options}
           filterOptions={(x) => x}
@@ -94,6 +99,7 @@ export default function LineEditor({
           onInputChange={(_, v) => onSearchChange(v)}
           value={null}
           getOptionLabel={(p) => `${p.code} — ${p.name}`}
+          noOptionsText={query.length < 2 ? 'Type at least 2 characters to search' : 'No products found'}
           renderOption={(props, p) => (
             <li {...props} key={p.id}>
               <Box>

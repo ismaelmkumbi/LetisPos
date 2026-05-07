@@ -253,11 +253,13 @@ export default function PurchaseBuilderPage() {
 
                   <Autocomplete
                     size="small"
+                    openOnFocus
                     options={suppliers}
                     value={suppliers.find((s) => s.id === supplierId) || null}
                     onChange={(_, v) => setSupplierId(v?.id ?? null)}
                     getOptionLabel={(s) => s.name}
                     disabled={!isEditable}
+                    noOptionsText="No suppliers found — add one in Suppliers or skip"
                     renderInput={(params) => <TextField {...params} label="Supplier (optional)" />}
                     sx={{ minWidth: 260, flex: 1 }}
                   />
