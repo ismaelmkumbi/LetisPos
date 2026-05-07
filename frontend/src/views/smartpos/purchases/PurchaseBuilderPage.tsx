@@ -24,12 +24,16 @@ import {
   receivePurchase,
   cancelPurchase,
   getPurchase,
+  addPaymentToPurchase,
+  getPurchasePayments,
   type CreatePurchaseBody,
   type PurchaseStatus,
+  type PurchasePayment,
 } from 'src/api/smartpos/sales';
 import { listProducts } from 'src/api/smartpos/products';
 import { listSuppliers } from 'src/api/smartpos/suppliers';
 import { listWarehouses, type Warehouse } from 'src/api/smartpos/inventory';
+import { listAccounts } from 'src/api/smartpos/payments';
 import type { Supplier } from 'src/api/smartpos/types';
 
 import PageHeader from 'src/components/smartpos/PageHeader';
@@ -66,6 +70,15 @@ export default function PurchaseBuilderPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [banner, setBanner] = useState<string | null>(null);
+  const [payments, setPayments] = useState<PurchasePayment[]>([]);
+  const [payAmount, setPayAmount] = useState(0);
+  const [payMethod, setPayMethod] = useState('CASH');
+  const [payAccountId, setPayAccountId] = useState('');
+  const [payNotes, setPayNotes] = useState('');
+  const [accounts, setAccounts] = useState<{ id: string; name: string }[]>([]);
+  const [paying, setPaying] = useState(false);
+
+  const paidTotal = payments.reduce((s, p) => s + p.amount, 0);
 
   const isEditable = !existingStatus || existingStatus === 'DRAFT' || existingStatus === 'ORDERED';
 
@@ -90,8 +103,8 @@ export default function PurchaseBuilderPage() {
   useEffect(() => {
     if (!id) return;
     setLoading(true);
-    getPurchase(id)
-      .then((p) => {
+    Promise.all([getPurchase(id), getPurchasePayments(id).catch(() => [] as PurchasePayment[])])
+      .then(([p, pmts]) => {
         setWarehouseId(p.warehouseId);
         setSupplierId(p.supplierId);
         setNotes(p.notes ?? '');
@@ -101,6 +114,7 @@ export default function PurchaseBuilderPage() {
         setDueDate(p.dueDate?.slice(0, 10) ?? '');
         setExistingStatus(p.status);
         setExistingRef(p.ref);
+        setPayments(pmts);
         setLines(
           p.lines.map((l) => ({
             productId: l.productId,
@@ -114,11 +128,13 @@ export default function PurchaseBuilderPage() {
       })
       .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load purchase'))
       .finally(() => setLoading(false));
+    listAccounts().then((a) => setAccounts(a.map((x) => ({ id: x.id, name: x.name })))).catch(() => {});
   }, [id]);
 
   const subtotal = lines.reduce((s, l) => s + l.unitPrice * l.qty, 0);
   const tax = lines.reduce((s, l) => s + l.unitPrice * l.qty * (l.taxRate / 100), 0);
   const grand = subtotal + tax - discount + shipping;
+  const balanceDue = grand - paidTotal;
 
   const searchProducts = async (q: string) => (await listProducts({ search: q, size: 20 })).content;
 
@@ -163,6 +179,26 @@ export default function PurchaseBuilderPage() {
       setError(e instanceof Error ? e.message : 'Save failed');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleRecordPayment = async () => {
+    if (!id || payAmount <= 0 || !payAccountId) return;
+    setPaying(true);
+    try {
+      const pmt = await addPaymentToPurchase(id, {
+        accountId: payAccountId,
+        amount: payAmount,
+        method: payMethod,
+        notes: payNotes || undefined,
+      });
+      setPayments((prev) => [...prev, pmt]);
+      setPayAmount(0);
+      setPayNotes('');
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Payment failed');
+    } finally {
+      setPaying(false);
     }
   };
 
@@ -331,58 +367,85 @@ export default function PurchaseBuilderPage() {
               </Typography>
               <Stack spacing={1}>
                 <Stack direction="row" justifyContent="space-between">
-                  <Typography variant="body2" color="text.secondary">
-                    Subtotal
-                  </Typography>
+                  <Typography variant="body2" color="text.secondary">Subtotal</Typography>
                   <Typography variant="body2">{fmt(subtotal)}</Typography>
                 </Stack>
                 <Stack direction="row" justifyContent="space-between">
-                  <Typography variant="body2" color="text.secondary">
-                    Tax
-                  </Typography>
+                  <Typography variant="body2" color="text.secondary">Tax</Typography>
                   <Typography variant="body2">{fmt(tax)}</Typography>
                 </Stack>
                 <Stack direction="row" alignItems="center" justifyContent="space-between">
-                  <Typography variant="body2" color="text.secondary">
-                    Shipping
-                  </Typography>
-                  <TextField
-                    size="small"
-                    type="number"
-                    value={shipping}
+                  <Typography variant="body2" color="text.secondary">Shipping</Typography>
+                  <TextField size="small" type="number" value={shipping}
                     onChange={(e) => setShipping(Number(e.target.value) || 0)}
-                    disabled={!isEditable}
-                    inputProps={{ style: { textAlign: 'right' } }}
-                    sx={{ width: 110 }}
-                  />
+                    disabled={!isEditable} inputProps={{ style: { textAlign: 'right' } }} sx={{ width: 110 }} />
                 </Stack>
                 <Stack direction="row" alignItems="center" justifyContent="space-between">
-                  <Typography variant="body2" color="text.secondary">
-                    Discount
-                  </Typography>
-                  <TextField
-                    size="small"
-                    type="number"
-                    value={discount}
+                  <Typography variant="body2" color="text.secondary">Discount</Typography>
+                  <TextField size="small" type="number" value={discount}
                     onChange={(e) => setDiscount(Number(e.target.value) || 0)}
-                    disabled={!isEditable}
-                    inputProps={{ style: { textAlign: 'right' } }}
-                    sx={{ width: 110 }}
-                  />
+                    disabled={!isEditable} inputProps={{ style: { textAlign: 'right' } }} sx={{ width: 110 }} />
                 </Stack>
                 <Divider />
                 <Stack direction="row" justifyContent="space-between">
-                  <Typography variant="body1" sx={{ fontWeight: 700 }}>
-                    Total
-                  </Typography>
-                  <Typography variant="h6" sx={{ fontWeight: 800, color: brand.primary[700] }}>
-                    {fmt(grand)}
-                  </Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 700 }}>Total</Typography>
+                  <Typography variant="h6" sx={{ fontWeight: 800, color: brand.primary[700] }}>{fmt(grand)}</Typography>
                 </Stack>
+                {id && (
+                  <>
+                    <Stack direction="row" justifyContent="space-between">
+                      <Typography variant="body2" color="text.secondary">Paid</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 700, color: brand.success.dark }}>{fmt(paidTotal)}</Typography>
+                    </Stack>
+                    <Stack direction="row" justifyContent="space-between">
+                      <Typography variant="body2" color="text.secondary">Balance due</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 700, color: balanceDue > 0 ? brand.error.dark : brand.success.dark }}>
+                        {fmt(Math.max(0, balanceDue))}
+                      </Typography>
+                    </Stack>
+                    {payments.map((p) => (
+                      <Stack key={p.id} direction="row" justifyContent="space-between">
+                        <Typography variant="caption" color="text.secondary">
+                          {new Date(p.date).toLocaleDateString()} · {p.method}
+                        </Typography>
+                        <Typography variant="caption" sx={{ fontWeight: 600 }}>{fmt(p.amount)}</Typography>
+                      </Stack>
+                    ))}
+                  </>
+                )}
               </Stack>
 
+              {/* Record payment (edit mode only) */}
+              {id && (
+                <Box sx={{ mt: 2, p: 1.5, borderRadius: '10px', bgcolor: brand.neutral[50], border: `1px solid ${brand.neutral[200]}` }}>
+                  <Typography variant="caption" sx={{ fontWeight: 700, color: brand.neutral[600], textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Record payment
+                  </Typography>
+                  <Stack spacing={1} sx={{ mt: 1 }}>
+                    <TextField size="small" type="number" label="Amount" value={payAmount || ''}
+                      onChange={(e) => setPayAmount(Number(e.target.value) || 0)} />
+                    <TextField select size="small" label="Method" value={payMethod}
+                      onChange={(e) => setPayMethod(e.target.value)}>
+                      {['CASH','CARD','TRANSFER','MPESA','CHECK'].map((m) => <MenuItem key={m} value={m}>{m}</MenuItem>)}
+                    </TextField>
+                    <TextField select size="small" label="Account" value={payAccountId}
+                      onChange={(e) => setPayAccountId(e.target.value)}>
+                      {accounts.map((a) => <MenuItem key={a.id} value={a.id}>{a.name}</MenuItem>)}
+                    </TextField>
+                    <TextField size="small" label="Notes" value={payNotes}
+                      onChange={(e) => setPayNotes(e.target.value)} />
+                    <Button fullWidth variant="contained" size="small"
+                      onClick={handleRecordPayment} disabled={paying || payAmount <= 0 || !payAccountId}
+                      startIcon={paying ? <CircularProgress size={14} color="inherit" /> : undefined}
+                      sx={{ textTransform: 'none', fontWeight: 700, borderRadius: '8px' }}>
+                      {paying ? 'Recording…' : 'Add payment'}
+                    </Button>
+                  </Stack>
+                </Box>
+              )}
+
               {isEditable && (
-                <Stack spacing={1} sx={{ mt: 3 }}>
+                <Stack spacing={1} sx={{ mt: 2 }}>
                   <Button
                     fullWidth
                     variant="outlined"
