@@ -3,41 +3,36 @@ import { Navigate, useLocation } from 'react-router';
 import { useAuth } from 'src/context/smartpos/AuthContext';
 import { useSetupGate } from './useSetupGate';
 
+const SETUP_ALLOWED_ROUTES = [
+  '/smartpos/setup',
+  '/smartpos/products',
+  '/smartpos/categories',
+  '/smartpos/products/units',
+  '/smartpos/settings',
+];
+
 /**
  * Wrap any route element that requires authentication.
- *   <Route element={<RequireAuth><FullLayout/></RequireAuth>}>
- *     ...protected routes...
- *   </Route>
- *
- * Optionally enforce a specific permission:
- *   <Route element={<RequireAuth perm="sale.create"><SalesCreate/></RequireAuth>} />
+ * Also gates access to /smartpos/setup until at least one product exists.
  */
 export function RequireAuth({
   children, perm, role,
 }: { children: React.ReactNode; perm?: string; role?: string }) {
   const { user, loading, hasPermission, hasRole } = useAuth();
   const location = useLocation();
+  const { needsSetup, loading: setupLoading } = useSetupGate({ skip: loading || !user });
 
-  if (loading) return null; // could render a splash
-
-  const { needsSetup, loading: setupLoading } = useSetupGate();
-  const setupAllowedRoutes = [
-    '/smartpos/setup',
-    '/smartpos/products',
-    '/smartpos/categories',
-    '/smartpos/products/units',
-    '/smartpos/settings',
-  ];
-
-  if (!setupLoading && needsSetup) {
-    const isSetupRoute = setupAllowedRoutes.some((r) => location.pathname.startsWith(r));
-    if (!isSetupRoute) {
-      return <Navigate to="/smartpos/setup" state={{ from: location }} replace />;
-    }
-  }
+  // Combine loading states for initial blank render
+  if (loading || setupLoading) return null;
 
   if (!user) {
     return <Navigate to="/auth/login" replace state={{ from: location }} />;
+  }
+  if (needsSetup) {
+    const isSetupRoute = SETUP_ALLOWED_ROUTES.some((r) => location.pathname.startsWith(r));
+    if (!isSetupRoute) {
+      return <Navigate to="/smartpos/setup" state={{ from: location }} replace />;
+    }
   }
   if (perm && !hasPermission(perm)) {
     return <Navigate to="/auth/403" replace />;
