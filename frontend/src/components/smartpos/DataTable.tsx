@@ -20,6 +20,7 @@
  *                              built-in toolbar buttons.
  *   • toolbarTitle           — small caption rendered on the left.
  */
+import { Fragment } from 'react';
 import {
   Box, Button, Card, Checkbox, Collapse, Divider, FormControlLabel, Menu,
   MenuItem, Pagination, Skeleton, Stack, Table, TableBody, TableCell,
@@ -799,7 +800,7 @@ export function DataTable<T>({
                 const totalCells = row.getVisibleCells().length + (expandable ? 1 : 0) + (getRowStatus ? 1 : 0);
                 const rowStatus = getRowStatus?.(original) ?? null;
                 return (
-                  <React.Fragment key={rowKey}>
+                  <Fragment key={rowKey}>
                     <TableRow
                       hover={!!onRowClick}
                       onClick={onRowClick ? () => onRowClick(original) : undefined}
@@ -876,7 +877,7 @@ export function DataTable<T>({
                         </TableCell>
                       </TableRow>
                     )}
-                  </React.Fragment>
+                  </Fragment>
                 );
               })
             )}
