@@ -181,6 +181,7 @@ export default function ExpensesListPage() {
       amount: 0,
       description: '',
       notes: '',
+      receiptUrl: '',
     });
     setFormError(null);
     setDialogOpen(true);
@@ -194,6 +195,7 @@ export default function ExpensesListPage() {
       amount: exp.amount,
       description: exp.description ?? '',
       notes: exp.notes ?? '',
+      receiptUrl: exp.receiptUrl ?? '',
     });
     setFormError(null);
     setDialogOpen(true);
@@ -567,6 +569,15 @@ export default function ExpensesListPage() {
               fullWidth
               value={form.description ?? ''}
               onChange={(e) => patchForm('description', e.target.value)}
+            />
+            <TextField
+              label="Receipt URL"
+              size="small"
+              fullWidth
+              placeholder="https://..."
+              value={form.receiptUrl ?? ''}
+              onChange={(e) => patchForm('receiptUrl', e.target.value)}
+              helperText="Link to a scanned receipt or invoice"
             />
             <TextField
               label="Notes"
