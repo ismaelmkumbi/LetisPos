@@ -107,7 +107,7 @@ function UnitsStep({ onSkip, onComplete }: StepProps) {
 
 /* ── Products step ── */
 
-function ProductsStep({ onComplete }: StepProps) {
+function ProductsStep({ onSkip, onComplete }: StepProps) {
   const { needsSetup, loading } = useSetupGate({ skip: false });
 
   useEffect(() => {
@@ -143,9 +143,18 @@ function ProductsStep({ onComplete }: StepProps) {
         Go to product catalog
       </Button>
 
-      <Typography sx={{ fontSize: '0.8rem', color: brand.neutral[400] }}>
-        After adding your first product, return here and the wizard will continue automatically.
-      </Typography>
+      <Stack direction="row" spacing={1.5} alignItems="center">
+        <Typography sx={{ fontSize: '0.8rem', color: brand.neutral[400] }}>
+          After adding your first product, return here and the wizard will continue automatically.
+        </Typography>
+        <Button
+          variant="text"
+          onClick={onSkip}
+          sx={{ textTransform: 'none', color: brand.neutral[500], flexShrink: 0 }}
+        >
+          Skip for now
+        </Button>
+      </Stack>
     </Stack>
   );
 }
