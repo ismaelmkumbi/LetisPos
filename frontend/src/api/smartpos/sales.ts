@@ -513,6 +513,32 @@ export async function deletePurchase(id: UUID): Promise<void> {
   await api.delete(`/api/v1/purchases/${id}`);
 }
 
+// ─── Purchase payments ───
+
+export interface PurchasePayment {
+  id: UUID;
+  purchaseId: UUID;
+  accountId: UUID;
+  accountName?: string;
+  amount: number;
+  method: string;
+  date: string;
+  notes?: string | null;
+}
+
+export async function addPaymentToPurchase(
+  purchaseId: UUID,
+  body: { accountId: UUID; amount: number; method: string; date?: string; notes?: string },
+): Promise<PurchasePayment> {
+  const { data } = await api.post<PurchasePayment>(`/api/v1/purchases/${purchaseId}/payments`, body);
+  return data;
+}
+
+export async function getPurchasePayments(purchaseId: UUID): Promise<PurchasePayment[]> {
+  const { data } = await api.get<PurchasePayment[]>(`/api/v1/purchases/${purchaseId}/payments`);
+  return data;
+}
+
 // ---------- Purchase Returns ----------
 
 export interface PurchaseReturn {
