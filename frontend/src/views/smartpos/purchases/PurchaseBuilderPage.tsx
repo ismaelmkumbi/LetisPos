@@ -192,8 +192,10 @@ export default function PurchaseBuilderPage() {
         notes: payNotes || undefined,
       });
       setPayments((prev) => [...prev, pmt]);
+      setBanner(`Payment of ${fmt(payAmount)} recorded successfully`);
       setPayAmount(0);
       setPayNotes('');
+      setTimeout(() => setBanner(null), 4000);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Payment failed');
     } finally {
