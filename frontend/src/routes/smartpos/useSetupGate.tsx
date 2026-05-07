@@ -11,7 +11,8 @@ export function useSetupGate() {
       .then((p) => {
         if (!cancelled) setNeedsSetup((p.totalElements ?? 0) === 0);
       })
-      .catch(() => {
+      .catch((err) => {
+        console.error('useSetupGate: failed to check product count, defaulting to no-setup', err);
         if (!cancelled) setNeedsSetup(false); // fail open
       })
       .finally(() => {
