@@ -147,9 +147,11 @@ export interface RecordPaymentBody {
 
 export async function listPayments(
   params: {
+    search?: string;
     referenceType?: ReferenceType;
     referenceId?: UUID;
     accountId?: UUID;
+    method?: string;
     dateFrom?: string;
     dateTo?: string;
     page?: number;
