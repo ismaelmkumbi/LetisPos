@@ -175,6 +175,9 @@ const SmartPosOnboarding = Loadable(
     })),
   ),
 );
+const SetupPage = Loadable(
+  lazy(() => import('../views/smartpos/onboarding/SetupPage')),
+);
 
 /* ****Pages***** */
 const ModernDash = Loadable(lazy(() => import('../views/dashboard/Modern')));
@@ -461,6 +464,7 @@ const Router = [
       { path: 'settings/tenants', element: <SmartPosTenants /> },
       { path: 'settings/locale', element: <SmartPosLocale /> },
       { path: 'settings/onboarding', element: <SmartPosOnboarding /> },
+      { path: 'setup', element: <SetupPage /> },
     ],
   },
   // ---- Modernize demo (left intact while we build; can be stripped later) ----
