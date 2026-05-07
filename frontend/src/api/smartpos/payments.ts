@@ -192,6 +192,7 @@ export interface Expense {
   currency: string;
   description: string | null;
   notes: string | null;
+  receiptUrl?: string | null;
 }
 
 export async function listExpenses(
@@ -216,6 +217,7 @@ export interface ExpenseInput {
   currency?: string;
   description?: string;
   notes?: string;
+  receiptUrl?: string;
 }
 
 export async function getExpense(id: UUID): Promise<Expense> {
