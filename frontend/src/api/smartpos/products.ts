@@ -229,16 +229,16 @@ export async function createUnit(body: Omit<Unit, 'id'>): Promise<Unit> {
 }
 
 const DEFAULT_UNITS = [
-  { name: 'Pieces', shortName: 'pcs' },
-  { name: 'Kilogram', shortName: 'kg' },
-  { name: 'Liter', shortName: 'L' },
-  { name: 'Meter', shortName: 'm' },
-  { name: 'Box', shortName: 'box' },
-  { name: 'Pack', shortName: 'pk' },
-  { name: 'Bottle', shortName: 'btl' },
-  { name: 'Can', shortName: 'can' },
-  { name: 'Dozen', shortName: 'doz' },
-  { name: 'Pair', shortName: 'pr' },
+  { name: 'Pieces', shortName: 'pcs', conversionFactor: 1 },
+  { name: 'Kilogram', shortName: 'kg', conversionFactor: 1 },
+  { name: 'Liter', shortName: 'L', conversionFactor: 1 },
+  { name: 'Meter', shortName: 'm', conversionFactor: 1 },
+  { name: 'Box', shortName: 'box', conversionFactor: 1 },
+  { name: 'Pack', shortName: 'pk', conversionFactor: 1 },
+  { name: 'Bottle', shortName: 'btl', conversionFactor: 1 },
+  { name: 'Can', shortName: 'can', conversionFactor: 1 },
+  { name: 'Dozen', shortName: 'doz', conversionFactor: 1 },
+  { name: 'Pair', shortName: 'pr', conversionFactor: 1 },
 ];
 
 export async function seedDefaultUnits(): Promise<Unit[]> {
