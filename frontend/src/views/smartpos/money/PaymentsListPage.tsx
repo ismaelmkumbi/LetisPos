@@ -60,7 +60,9 @@ export default function PaymentsListPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshToken, setRefreshToken] = useState(0);
+  const [search, setSearch] = useState('');
   const [referenceType, setReferenceType] = useState<ReferenceType | ''>('');
+  const [method, setMethod] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -86,7 +88,9 @@ export default function PaymentsListPage() {
     let cancelled = false;
     setLoading(true);
     listPayments({
+      search: search || undefined,
       referenceType: (referenceType || undefined) as ReferenceType | undefined,
+      method: method || undefined,
       dateFrom: dateFrom || undefined,
       dateTo: dateTo || undefined,
       page,
@@ -107,7 +111,7 @@ export default function PaymentsListPage() {
     return () => {
       cancelled = true;
     };
-  }, [referenceType, dateFrom, dateTo, page, refreshToken, user?.tenantId]);
+  }, [search, referenceType, method, dateFrom, dateTo, page, refreshToken, user?.tenantId]);
 
   // Stats
   const stats = useMemo(() => {
@@ -120,7 +124,9 @@ export default function PaymentsListPage() {
   }, [rows]);
 
   const clearAll = () => {
+    setSearch('');
     setReferenceType('');
+    setMethod('');
     setDateFrom('');
     setDateTo('');
     setPage(0);
@@ -128,15 +134,12 @@ export default function PaymentsListPage() {
 
   const activeFilters: ActiveFilter[] = useMemo(() => {
     const out: ActiveFilter[] = [];
+    if (search.trim())
+      out.push({ key: 'search', label: `Search: ${search.trim()}`, clear: () => { setSearch(''); setPage(0); } });
     if (referenceType)
-      out.push({
-        key: 'type',
-        label: `Type: ${referenceType.replace(/_/g, ' ')}`,
-        clear: () => {
-          setReferenceType('');
-          setPage(0);
-        },
-      });
+      out.push({ key: 'type', label: `Type: ${referenceType.replace(/_/g, ' ')}`, clear: () => { setReferenceType(''); setPage(0); } });
+    if (method)
+      out.push({ key: 'method', label: `Method: ${method}`, clear: () => { setMethod(''); setPage(0); } });
     if (dateFrom)
       out.push({
         key: 'from',
@@ -156,7 +159,7 @@ export default function PaymentsListPage() {
         },
       });
     return out;
-  }, [referenceType, dateFrom, dateTo]);
+  }, [search, referenceType, method, dateFrom, dateTo]);
 
   // Dialog
   const openRecord = () => {
@@ -359,10 +362,10 @@ export default function PaymentsListPage() {
       </Stack>
 
       <FilterBar
-        searchPlaceholder=""
-        searchValue=""
-        onSearchChange={() => {}}
-        searchAriaLabel=""
+        searchPlaceholder="Search by reference…"
+        searchValue={search}
+        onSearchChange={(v) => { setSearch(v); setPage(0); }}
+        searchAriaLabel="Search payments by reference"
         filtersOpen={filtersOpen}
         onFiltersToggle={() => setFiltersOpen(!filtersOpen)}
         activeFilters={activeFilters}
@@ -387,6 +390,21 @@ export default function PaymentsListPage() {
           <MenuItem value="EXPENSE">Expense</MenuItem>
           <MenuItem value="DEPOSIT">Deposit</MenuItem>
           <MenuItem value="TRANSFER">Transfer</MenuItem>
+        </TextField>
+        <TextField
+          select
+          size="small"
+          value={method}
+          label="Method"
+          onChange={(e) => { setMethod(e.target.value); setPage(0); }}
+          sx={{ minWidth: 150, '& .MuiOutlinedInput-root': { borderRadius: '10px', height: 42 } }}
+        >
+          <MenuItem value="">All methods</MenuItem>
+          <MenuItem value="CASH">Cash</MenuItem>
+          <MenuItem value="CARD">Card</MenuItem>
+          <MenuItem value="TRANSFER">Transfer</MenuItem>
+          <MenuItem value="MPESA">M-Pesa</MenuItem>
+          <MenuItem value="CHECK">Check</MenuItem>
         </TextField>
         <TextField
           size="small"
