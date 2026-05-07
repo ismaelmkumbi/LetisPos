@@ -261,6 +261,7 @@ public class ProductAiService {
                   "wholesalePrice":   number|null,
                   "minPrice":         number|null,
                   "taxRate":          number|null,   // 0-100 (percent)
+                  "quantity":         number|null,   // opening / on-hand qty if visible (e.g. "x5", "(12)", "qty 24")
                   "confidence":       number,        // 0.0 - 1.0 for this row
                   "warnings":         string[]       // e.g. ["price column blurred — guessed"]
                 }
@@ -269,30 +270,152 @@ public class ProductAiService {
             }
 
             Rules:
-              - OCR EVERY visible product line — do not skip items because they are
-                "hard to read". If a field is illegible, set it to null and add a
-                warning.
-              - Parse tabular layouts: if the image shows columns (name, price, code,
-                etc.), match each row to the correct field. Use column headers or
-                positional heuristics to determine which column is which.
-              - Parse free-text lists: if it's a list like "• Product A — TZS 5000"
-                or "1. Rice 25kg @ 80,000", extract name, price, and unit clues.
-              - Unit size in name: if the item shows a weight/volume (500ml, 25kg,
-                1L, 250g), keep it in the product NAME.
-              - Price column: look for currency symbols (TSh, TZS, KES, UGX, $, /=)
-                or obvious price patterns. Remove currency symbols and parse the
-                numeric value. If the price is clearly wholesale/cost, use the
-                "cost" field instead.
-              - Only use category/brand/unit IDs from the provided lists. Match by
-                name similarity if the image text is close to an existing category
-                (e.g. "BEVERAGES" ≈ provided category "Beverages"). If none fits,
-                return null AND add a warning.
-              - NAME EXPANSION: if the image shows a short name like "Coca-Cola",
-                expand to "Coca-Cola 500ml" if the volume is visible elsewhere.
-              - Pricing: produce realistic East-African prices (TZS / KES / UGX).
-                If the image shows prices in a different currency, convert using
+              - ONE LINE = ONE PRODUCT.   The most important rule.   If a single
+                visible line of writing contains multiple words ("Remote Sony",
+                "Coca-Cola 500ml", "Basmati Rice 5kg", "Rimoti Boss"), ALL of
+                those words belong to the SAME product row — do NOT split a
+                line into multiple rows of one word each. A new row begins ONLY
+                when a new line / bullet / table-row starts on the image.
+              - HANDWRITING: when the input is handwritten or messy cursive,
+                keep words that sit on the same horizontal line together. Use
+                vertical position (y-coordinate), not whitespace inside a line,
+                to decide row boundaries. Bullets, dashes, numbers ("1.", "•"),
+                and large vertical gaps are reliable line separators.
+              - PHONETIC / LOAN-WORD NORMALISATION: East-African handwriting
+                often spells English product words phonetically in Swahili
+                ("Rimoti" → "Remote", "Sukari" → "Sugar", "Soksi" → "Socks",
+                "Sabuni" → "Soap", "Saa" → "Watch", "Kompyuta" → "Computer",
+                "Simu" → "Phone"). Normalise the FIRST recognised English/loan
+                term to its standard English spelling, then keep the rest of
+                the line as the model/variant ("Rimoti Boss" → name: "Remote
+                Boss"). Add a warning noting the original spelling.
+              - DEDUPE only EXACT-DUPLICATE consecutive lines (same words, same
+                order). Do NOT merge two different products even if they share
+                a leading word — "Remote Boss" and "Remote HD" are TWO rows.
+              - OCR EVERY visible product line — do not skip items because they
+                are hard to read. If a field is illegible, set it to null and
+                add a warning.
+              - Parse tabular layouts: if the image shows columns (name, price,
+                code, etc.), match each row to the correct field. Use column
+                headers or positional heuristics to determine which column is
+                which.
+              - Parse free-text lists: "• Product A — TZS 5000" or "1. Rice
+                25kg @ 80,000" — extract name, price, unit clues.
+              - Unit size in name: if the item shows a weight/volume (500ml,
+                25kg, 1L, 250g), keep it in the product NAME.
+              - Price column: look for currency symbols (TSh, TZS, KES, UGX, $,
+                /=) or price patterns. Remove the symbol and parse the numeric
+                value. If clearly wholesale/cost, use the "cost" field instead.
+              - Only use category/brand/unit IDs from the provided lists. Match
+                by name similarity ("BEVERAGES" ≈ provided "Beverages"). If
+                none fits, return null AND add a warning.
+              - NAME EXPANSION: if the image shows a short name like
+                "Coca-Cola", expand to "Coca-Cola 500ml" if the volume is
+                visible elsewhere.
+              - Pricing: produce realistic East-African prices (TZS / KES /
+                UGX). If the image shows prices in a different currency, use
                 approximate rates (1 USD ≈ 2500 TZS, 1 EUR ≈ 2800 TZS).
+              - QUANTITY DETECTION: many handwritten / printed lists include
+                an opening-stock quantity next to each item. Extract it into
+                "quantity" when you see ANY of these patterns:
+                  • "× N", "x N", "*N"          → "Remote × 5"        → 5
+                  • "(N)", "[N]"                 → "Soap (12)"          → 12
+                  • "qty: N", "Qty N", "Q N"     → "Rice qty 24"        → 24
+                  • "kiasi N", "idadi N", "pcs N", "pieces N"   → 6
+                  • a bare integer at end of a non-tabular line that is NOT a
+                    price (no currency symbol, no decimal cents, value < 200
+                    OR clearly stock-shaped like 5, 12, 24, 50, 100, 144)
+                  • a leading count column in a table with header
+                    "QTY" / "STOCK" / "ON HAND" / "BAL" / "KIASI"
+                If you read a quantity, ALSO add a warning of the form
+                "qty:N read from image" so the operator can verify. If no
+                quantity is visible, leave "quantity" as null — DO NOT
+                infer a quantity from product knowledge (zero invention here;
+                stock counts must come from the image).
               - SKIP rows that are clearly headers, totals, or blank lines.
+              - SANITY CHECK before returning: count the visible product lines
+                in the image. The number of rows you return MUST equal that
+                count (±0). If you find yourself emitting more rows than there
+                are visible lines, you have wrongly split a multi-word line —
+                merge them back.
+
+              ── EXTRACT FIRST, INFER ONLY THE GAPS ─────────────────────────
+              PRIORITY ORDER (apply for EVERY field on EVERY row):
+
+                (1) READ FROM IMAGE FIRST. If a value is written, printed,
+                    typed, drawn, or otherwise visible in the image — even
+                    partially — USE IT. Do NOT replace a visible value with
+                    an inferred one. Visible values are ground truth.
+                    Examples that count as "visible":
+                      • a price next to / under / inside a column for that row
+                      • a column header that maps to a field (e.g. "RETAIL",
+                        "CHENJI", "BEI YA JUMLA", "@", "TSh")
+                      • a brand printed on packaging shown in the photo
+                      • a category written in a section heading above a group
+                        of rows ("BEVERAGES", "VYAKULA")
+                      • currency symbols, weights, units, codes, barcodes
+                    For every visible value: confidence stays high (0.9–0.98),
+                    add NO "inferred:" warning, and DO add a normal warning
+                    only if the OCR was uncertain (e.g. "price column blurry,
+                    read as 8500").
+
+                (2) INFER FROM KNOWLEDGE ONLY for fields that are MISSING from
+                    the image. Never override a visible value just because
+                    your guess seems "more typical".
+
+              When the image only shows a product NAME (no prices, no
+              category column, no brand label, etc.), DO NOT leave the other
+              fields blank. Use what you know about the product to propose
+              reasonable defaults — the operator can edit them. This is the
+              difference between giving them an empty form to fill and giving
+              them a working draft.
+
+              For every row you confidently identify (confidence ≥ 0.7), fill
+              in EVERY field below using your product knowledge:
+
+                category   – pick the BEST match from the provided categories
+                             list (e.g. "Remote Boss" → "Electronics
+                             Accessories"; "Rice 5kg" → "Groceries"; "Soap" →
+                             "Personal Care"). If no provided category fits,
+                             leave categoryId null AND add a warning naming
+                             the category you would have chosen.
+                brand      – if the name contains a known brand ("Boss",
+                             "Coca-Cola", "Sony", "Nike"), match it against
+                             the provided brands list. If unmatched, leave
+                             brandId null AND name the brand in a warning.
+                unit       – infer the natural selling unit ("pcs" for
+                             remotes/clothes/electronics, "kg" for rice/sugar,
+                             "ltr" or "ml" for drinks/oils, "bag" for bulk).
+                             Match the provided units list when possible.
+                cost       – realistic East-African wholesale cost in the
+                             tenant's currency (TZS unless context says
+                             otherwise). E.g. a generic universal TV remote
+                             ≈ 4,000–6,000 TZS cost.
+                price      – realistic retail price, typically cost × 1.4–2.0
+                             for general retail. Universal remote ≈ 8,000–
+                             12,000 TZS retail.
+                wholesalePrice – between cost and retail, usually cost × 1.15.
+                minPrice   – cost × 1.05 (the cashier's price floor).
+                taxRate    – 18 (standard Tanzania VAT) unless context says
+                             otherwise; 0 for unprocessed groceries / exempt
+                             goods (rice, flour, raw vegetables).
+                description – ONE short sentence (≤ 80 chars) describing the
+                             product (e.g. "Universal infrared TV remote
+                             control"). Skip if you can't be specific.
+
+              EVERY inferred field (not visible in the image) MUST add a
+              warning to the row's "warnings" array of the form:
+                  "inferred:<field>=<value> (verify)"
+              so the operator can see what was guessed vs. read. Inferred
+              rows should also drop confidence by 0.1 — visible-only rows can
+              be 0.95; inference-heavy rows should be 0.6–0.75.
+
+              If you CANNOT confidently identify the product (low-confidence
+              OCR, made-up name, gibberish), leave the numeric / brand /
+              category fields null and set confidence < 0.5 — do NOT invent
+              numbers for things you don't recognise.
+              ────────────────────────────────────────────────────────────────
+
               - Output ONLY the JSON object — no commentary, no markdown.
             """;
 
@@ -555,6 +678,7 @@ public class ProductAiService {
                         bd(r, "wholesalePrice"),
                         bd(r, "minPrice"),
                         bd(r, "taxRate"),
+                        bd(r, "quantity"),
                         num(r, "confidence", 0.0),
                         wlist
                 ));
@@ -655,6 +779,7 @@ public class ProductAiService {
                         bd(r, "wholesalePrice"),
                         bd(r, "minPrice"),
                         bd(r, "taxRate"),
+                        bd(r, "quantity"),
                         num(r, "confidence", 0.0),
                         warnings
                 ));

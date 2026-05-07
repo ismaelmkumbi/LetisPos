@@ -61,11 +61,46 @@ async function refreshAccessToken(): Promise<string | null> {
     const { accessToken, refreshToken } = res.data;
     tokenStore.set(accessToken);
     tokenStore.setRefresh(refreshToken);
+    schedulePreemptiveRefresh(accessToken);
     return accessToken;
   } catch {
     return null;
   }
 }
+
+// ---- Proactive refresh ----
+// Decode the JWT's exp claim and schedule a refresh ~60 seconds before it
+// expires so the user never sees a natural-expiry 401. Falls back silently if
+// the token is malformed (the reactive 401 interceptor below still saves us).
+let preemptiveTimer: ReturnType<typeof setTimeout> | null = null;
+
+function decodeJwtExpMs(token: string): number | null {
+  try {
+    const payload = token.split('.')[1];
+    if (!payload) return null;
+    const json = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/')));
+    return typeof json.exp === 'number' ? json.exp * 1000 : null;
+  } catch {
+    return null;
+  }
+}
+
+export function schedulePreemptiveRefresh(token: string | null = tokenStore.get()): void {
+  if (preemptiveTimer) { clearTimeout(preemptiveTimer); preemptiveTimer = null; }
+  if (!token) return;
+  const expMs = decodeJwtExpMs(token);
+  if (expMs == null) return;
+  // Fire 60s before expiry, with a 5s floor so we never schedule in the past.
+  const fireInMs = Math.max(5_000, expMs - Date.now() - 60_000);
+  preemptiveTimer = setTimeout(() => {
+    if (!refreshInFlight) {
+      refreshInFlight = refreshAccessToken().finally(() => { refreshInFlight = null; });
+    }
+  }, fireInMs);
+}
+
+// Kick off a timer for any token that's already in localStorage at app boot.
+schedulePreemptiveRefresh();
 
 api.interceptors.response.use(
   (r) => r,

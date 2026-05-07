@@ -69,8 +69,9 @@ smartpos:
       # Dev key. In production mount via Vault/K8s secret and rotate quarterly.
       # Generated with: openssl genpkey -algorithm RSA -pkcs8 -out priv.pem -pkeyopt rsa_keygen_bits:2048
       issuer: smartpos-auth
-      access-token-ttl-minutes: 15
-      refresh-token-ttl-days: 7
+      # Override per env: SMARTPOS_AUTH_JWT_ACCESS_TOKEN_TTL_MINUTES=15 in prod.
+      access-token-ttl-minutes: ${ACCESS_TOKEN_TTL_MINUTES:60}
+      refresh-token-ttl-days: ${REFRESH_TOKEN_TTL_DAYS:7}
       # Path to PEM keys. If blank, a keypair is generated on startup (DEV ONLY).
       private-key-path: ${JWT_PRIVATE_KEY_PATH:}
       public-key-path: ${JWT_PUBLIC_KEY_PATH:}

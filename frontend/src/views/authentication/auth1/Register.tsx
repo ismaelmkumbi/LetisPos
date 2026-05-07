@@ -1,136 +1,133 @@
-import React from 'react';
-import { Box, Stack, Typography } from '@mui/material';
-import {
-  IconBox,
-  IconBuilding,
-  IconChartBar,
-  IconShieldCheck,
-} from '@tabler/icons-react';
-
+import { Box, Typography, keyframes } from '@mui/material';
 import PageContainer from 'src/components/container/PageContainer';
 import BrandLogo, { LetisMark } from 'src/components/smartpos/BrandLogo';
 import { brand } from 'src/theme/smartpos/brand';
-
 import AuthRegister from '../authForms/AuthRegister';
 
-interface PointProps {
-  icon: React.ReactNode;
-  title: string;
-  body: string;
-}
+/* ─── Keyframes ─────────────────────────────────────────────────────────────── */
 
-const Point = ({ icon, title, body }: PointProps) => (
-  <Stack direction="row" spacing={1.5} alignItems="flex-start">
-    <Box
-      sx={{
-        width: 38,
-        height: 38,
-        borderRadius: '50%',
-        bgcolor: '#FFFFFF',
-        color: brand.primary[600],
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        flexShrink: 0,
-        boxShadow: '0 10px 28px rgba(15,23,42,0.08)',
-      }}
-    >
-      {icon}
-    </Box>
-    <Box>
-      <Typography sx={{ fontSize: 14.5, fontWeight: 800, color: brand.neutral[900], lineHeight: 1.25 }}>
-        {title}
-      </Typography>
-      <Typography sx={{ mt: 0.2, fontSize: 13, color: brand.neutral[500], lineHeight: 1.45 }}>
-        {body}
-      </Typography>
-    </Box>
-  </Stack>
-);
+const fadeInUp = keyframes`
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+`;
+
+const fadeIn = keyframes`
+  from { opacity: 0; }
+  to   { opacity: 1; }
+`;
+
+const float = keyframes`
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-8px); }
+`;
+
+const anim = (name: string, delay = 0) =>
+  `${name} 0.55s cubic-bezier(0.16, 1, 0.3, 1) ${delay}ms both`;
+
+/* ─── Abstract illustration: workspace building blocks ─── */
 
 const SetupIllustration = () => (
   <Box
+    component="svg"
+    viewBox="0 0 400 240"
+    role="img"
+    aria-label="Letis POS workspace setup illustration"
     sx={{
-      display: { xs: 'none', md: 'block' },
-      mt: 4,
-      p: 2,
-      borderRadius: 4,
-      bgcolor: 'rgba(255,255,255,0.68)',
-      border: `1px solid ${brand.neutral[200]}`,
-      boxShadow: '0 24px 70px rgba(15,23,42,0.10)',
-      backdropFilter: 'blur(10px)',
+      width: '100%',
+      maxWidth: { xs: 260, sm: 320, md: 380 },
+      display: { xs: 'none', xxs: 'block' },
+      mx: { xs: 'auto', md: 0 },
+      filter: 'drop-shadow(0 16px 32px rgba(15,23,42,0.08))',
+      animation: `${anim(fadeInUp, 280)}, ${float} 6s ease-in-out 1s infinite`,
     }}
   >
-    <Box
-      component="svg"
-      viewBox="0 0 560 320"
-      role="img"
-      aria-label="Letis POS workspace setup preview"
-      sx={{ display: 'block', width: '100%', maxWidth: 460, mx: 'auto' }}
-    >
-      <defs>
-        <linearGradient id="registerPanel" x1="82" y1="34" x2="478" y2="286" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#FFFFFF" />
-          <stop offset="1" stopColor="#ECFDF5" />
-        </linearGradient>
-        <linearGradient id="registerGreen" x1="142" y1="96" x2="386" y2="232" gradientUnits="userSpaceOnUse">
-          <stop stopColor={brand.primary[500]} />
-          <stop offset="1" stopColor={brand.primary[700]} />
-        </linearGradient>
-      </defs>
-      <ellipse cx="280" cy="286" rx="190" ry="22" fill="#0F172A" opacity="0.08" />
-      <rect x="74" y="34" width="412" height="238" rx="32" fill="url(#registerPanel)" />
-      <rect x="100" y="62" width="360" height="52" rx="18" fill="#FFFFFF" />
-      <circle cx="130" cy="88" r="11" fill={brand.primary[500]} />
-      <rect x="154" y="80" width="116" height="12" rx="6" fill="#CBD5E1" />
-      <rect x="340" y="75" width="84" height="26" rx="13" fill={brand.primary[100]} />
-      <rect x="110" y="138" width="142" height="96" rx="22" fill="#FFFFFF" />
-      <path d="M142 205L166 178L188 194L220 158" fill="none" stroke="url(#registerGreen)" strokeWidth="11" strokeLinecap="round" strokeLinejoin="round" />
-      <rect x="278" y="138" width="172" height="42" rx="18" fill="#FFFFFF" />
-      <rect x="304" y="154" width="86" height="10" rx="5" fill="#BAEBD2" />
-      <circle cx="418" cy="159" r="11" fill={brand.primary[100]} />
-      <path d="M413 159L417 164L425 154" fill="none" stroke={brand.primary[700]} strokeWidth="4" strokeLinecap="round" />
-      <rect x="278" y="196" width="172" height="38" rx="17" fill="#FFFFFF" />
-      <rect x="304" y="210" width="118" height="9" rx="4.5" fill="#D9E6DE" />
-    </Box>
+    <defs>
+      <linearGradient id="rgGrad1" x1="0" y1="0" x2="1" y2="1">
+        <stop stopColor={brand.primary[400]} />
+        <stop offset="1" stopColor={brand.primary[600]} />
+      </linearGradient>
+      <linearGradient id="rgGrad2" x1="0" y1="0" x2="0" y2="1">
+        <stop stopColor={brand.primary[50]} />
+        <stop offset="1" stopColor={brand.primary[100]} />
+      </linearGradient>
+      <radialGradient id="rgGlow" cx="0.5" cy="0.5" r="0.5">
+        <stop stopColor={brand.primary[100]} stopOpacity="0.5" />
+        <stop offset="1" stopColor={brand.primary[50]} stopOpacity="0" />
+      </radialGradient>
+    </defs>
+    <ellipse cx="200" cy="120" rx="170" ry="95" fill="url(#rgGlow)" />
+    <rect x="44" y="38" width="180" height="148" rx="18" fill="#FFFFFF" />
+    <rect x="44" y="38" width="180" height="40" rx="18" fill={brand.neutral[50]} />
+    <circle cx="68" cy="58" r="5" fill={brand.primary[400]} />
+    <rect x="82" y="53" width="80" height="8" rx="4" fill={brand.neutral[200]} />
+    <rect x="64" y="98" width="140" height="10" rx="5" fill={brand.neutral[100]} />
+    <rect x="64" y="118" width="100" height="10" rx="5" fill={brand.neutral[100]} />
+    <rect x="64" y="148" width="44" height="24" rx="8" fill={brand.primary[100]} />
+    <rect x="120" y="148" width="44" height="24" rx="8" fill={brand.primary[50]} stroke={brand.primary[200]} strokeWidth="1" />
+    <rect x="176" y="148" width="28" height="24" rx="8" fill={brand.neutral[50]} stroke={brand.neutral[200]} strokeWidth="1" />
+    <rect x="252" y="54" width="100" height="62" rx="16" fill="#FFFFFF" />
+    <circle cx="282" cy="80" r="14" fill={brand.primary[50]} stroke={brand.primary[200]} strokeWidth="1.5" />
+    <circle cx="306" cy="80" r="14" fill={brand.accent[100]} stroke={brand.accent[300]} strokeWidth="1.5" />
+    <circle cx="330" cy="80" r="14" fill={brand.neutral[100]} stroke={brand.neutral[200]} strokeWidth="1.5" />
+    <rect x="268" y="104" width="68" height="6" rx="3" fill={brand.neutral[200]} />
+    <rect x="252" y="134" width="100" height="52" rx="14" fill="#FFFFFF" />
+    <path d="M268 172L284 160L300 166L316 148L332 154" fill="none" stroke="url(#rgGrad1)" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" />
+    <circle cx="332" cy="154" r="6" fill="#FFFFFF" stroke={brand.primary[600]} strokeWidth="2.5" />
+    <rect x="14" y="160" width="32" height="32" rx="10" fill={brand.primary[50]} stroke={brand.primary[100]} strokeWidth="1" opacity="0.7" />
+    <path d="M23 176l6 6l12-12" fill="none" stroke={brand.primary[500]} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.6" />
   </Box>
 );
+
+/* ─── Page ─── */
 
 const Register = () => (
   <PageContainer title="Create Letis POS workspace" description="Create a Letis POS workspace">
     <Box
       sx={{
-        minHeight: '100vh',
         display: 'flex',
         flexDirection: { xs: 'column', md: 'row' },
-        bgcolor: '#FFFFFF',
+        minHeight: '100dvh',
+        bgcolor: '#FBFCFD',
       }}
     >
+      {/* ── Left panel ── */}
       <Box
         sx={{
           flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: { xs: 'center', md: 'flex-start' },
+          px: { xs: 2.5, sm: 5, md: 8, lg: 10 },
+          py: { xs: 2.5, sm: 3, md: 6 },
           position: 'relative',
           overflow: 'hidden',
-          display: { xs: 'none', md: 'flex' },
-          flexDirection: 'column',
-          px: { xs: 3, sm: 5, md: 8, lg: 10 },
-          py: { xs: 4, md: 7 },
-          background: 'linear-gradient(135deg, #FFFFFF 0%, #F8FAFC 48%, #ECFDF5 100%)',
+          background: `linear-gradient(160deg, #FFFFFF 0%, #F8FAFC 40%, ${brand.primary[50]} 100%)`,
+          '&::before': {
+            content: '""',
+            position: 'absolute',
+            top: -80, left: -40, width: 280, height: 280,
+            borderRadius: '50%',
+            background: `radial-gradient(closest-side, ${brand.primary[50]}, transparent)`,
+            pointerEvents: 'none',
+          },
         }}
       >
-        <Box sx={{ position: 'relative', zIndex: 1 }}>
-          <BrandLogo size="lg" />
-        </Box>
+        <Box sx={{ position: 'relative', zIndex: 1, width: '100%', maxWidth: 480 }}>
+          <Box sx={{ mb: { xs: 2.5, md: 5 }, animation: anim(fadeInUp, 0) }}>
+            <BrandLogo size="md" />
+          </Box>
 
-        <Box sx={{ position: 'relative', zIndex: 1, mt: { xs: 5, md: 7 }, maxWidth: 520 }}>
           <Typography
             component="h1"
             sx={{
-              fontWeight: 800,
-              lineHeight: 1.04,
-              letterSpacing: '-0.035em',
-              fontSize: { xs: '2.1rem', sm: '2.55rem', lg: '3.15rem' },
+              fontWeight: 900,
+              letterSpacing: '-0.04em',
+              lineHeight: 1.06,
+              fontSize: { xs: '1.5rem', sm: '2rem', md: '2.5rem', lg: '2.8rem' },
               color: brand.neutral[900],
+              maxWidth: 420,
+              animation: anim(fadeInUp, 80),
             }}
           >
             Set up your
@@ -140,68 +137,61 @@ const Register = () => (
             </Box>
           </Typography>
 
-          <Typography sx={{ mt: 2.25, maxWidth: 440, fontSize: 15.5, lineHeight: 1.55, color: brand.neutral[600] }}>
-            Create the business account, invite your team later, and start with a clean tenant setup.
+          <Typography
+            sx={{
+              mt: 1.25,
+              fontSize: { xs: '0.82rem', sm: '0.9rem', md: '0.95rem' },
+              lineHeight: 1.55,
+              color: brand.neutral[500],
+              maxWidth: 380,
+              animation: anim(fadeInUp, 160),
+            }}
+          >
+            Create your business account, invite your team later, and start fresh with a clean tenant.
           </Typography>
 
-          <Stack spacing={2.25} sx={{ mt: 4, maxWidth: 430 }}>
-            <Point icon={<IconBuilding size={20} stroke={1.8} />} title="Business workspace" body="A separate tenant for your stores and users." />
-            <Point icon={<IconBox size={20} stroke={1.8} />} title="Inventory ready" body="Products, stock, and warehouses stay scoped." />
-            <Point icon={<IconChartBar size={20} stroke={1.8} />} title="Reports from day one" body="Sales and performance follow the workspace." />
-            <Point icon={<IconShieldCheck size={20} stroke={1.8} />} title="Secure access" body="Your first account becomes the workspace admin." />
-          </Stack>
-
-          <SetupIllustration />
+          <Box sx={{ mt: { xs: 2, md: 4 } }}>
+            <SetupIllustration />
+          </Box>
         </Box>
       </Box>
 
+      {/* ── Right panel ── */}
       <Box
         sx={{
           flex: 1,
           display: 'flex',
-          alignItems: 'center',
+          alignItems: { xs: 'flex-start', sm: 'center' },
           justifyContent: 'center',
-          minHeight: { xs: '100dvh', md: 'auto' },
-          px: { xs: 1.75, sm: 5, md: 6 },
-          py: { xs: 2, sm: 4, md: 8 },
+          px: { xs: 2, sm: 6 },
+          py: { xs: 1.5, sm: 5, md: 6 },
           bgcolor: '#FFFFFF',
+          animation: anim(fadeInUp, 150),
         }}
       >
-        <Box
-          sx={{
-            width: '100%',
-            maxWidth: 480,
-            p: { xs: 2, sm: 4.5, md: 5 },
-            borderRadius: { xs: 0, sm: '16px' },
-            bgcolor: '#FFFFFF',
-            border: { xs: 'none', sm: `1px solid ${brand.neutral[200]}` },
-            boxShadow: { xs: 'none', sm: '0 24px 70px rgba(15,23,42,0.10)' },
-          }}
-        >
+        <Box sx={{ width: '100%', maxWidth: 440 }}>
           <Box
             sx={{
-              width: 70,
-              height: 70,
+              width: { xs: 52, sm: 64 }, height: { xs: 52, sm: 64 },
               borderRadius: '50%',
               bgcolor: brand.primary[50],
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              mx: 'auto',
-              mb: { xs: 1.75, sm: 2.25 },
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              mx: 'auto', mb: { xs: 1.5, sm: 2 },
+              animation: anim(fadeIn, 300),
             }}
           >
-            <LetisMark size={38} />
+            <LetisMark size={36} />
           </Box>
 
           <Typography
             component="h2"
             sx={{
               textAlign: 'center',
-              fontSize: { xs: '1.45rem', sm: '1.8rem' },
+              fontSize: { xs: '1.25rem', sm: '1.5rem' },
               fontWeight: 800,
               letterSpacing: '-0.02em',
               color: brand.neutral[900],
+              animation: anim(fadeInUp, 350),
             }}
           >
             Create workspace
@@ -209,16 +199,19 @@ const Register = () => (
           <Typography
             sx={{
               textAlign: 'center',
-              fontSize: 14.5,
+              fontSize: '0.85rem',
               color: brand.neutral[500],
-              mt: 0.5,
-              mb: { xs: 2.5, sm: 3.25 },
+              mt: 0.4,
+              mb: { xs: 2, sm: 3 },
+              animation: anim(fadeInUp, 400),
             }}
           >
             Business details first, admin account next.
           </Typography>
 
-          <AuthRegister />
+          <Box sx={{ animation: anim(fadeInUp, 450) }}>
+            <AuthRegister />
+          </Box>
         </Box>
       </Box>
     </Box>
