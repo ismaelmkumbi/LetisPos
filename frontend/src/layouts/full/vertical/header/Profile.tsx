@@ -1,167 +1,265 @@
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
+/**
+ * Letis POS — Header profile dropdown.
+ *
+ * Wired to AuthContext. Shows real user identity, tenant info,
+ * quick links, and sign-out. Professional SaaS-grade design.
+ */
 import React, { useState } from 'react';
 import { Link } from 'react-router';
 import {
-  Box,
-  Menu,
-  Avatar,
-  Typography,
-  Divider,
-  Button,
-  IconButton,
-  Stack
+  Avatar, Box, Button, Chip, Divider, IconButton, ListItemIcon,
+  Menu, MenuItem, Stack, Typography, keyframes,
 } from '@mui/material';
-import * as dropdownData from './data';
+import {
+  IconLogout, IconSettings, IconUserCircle,
+} from '@tabler/icons-react';
+import { useAuth } from 'src/context/smartpos/AuthContext';
+import { brand } from 'src/theme/smartpos/brand';
 
-import { IconMail } from '@tabler/icons-react';
+const scaleIn = keyframes`
+  from { opacity: 0; transform: scale(0.92) translateY(-4px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+`;
 
-import ProfileImg from 'src/assets/images/profile/user-1.jpg';
-import unlimitedImg from 'src/assets/images/backgrounds/unlimited-bg.png';
+const menuItemSx = {
+  borderRadius: '10px',
+  mx: 0.75,
+  mb: 0.25,
+  py: 1.1,
+  px: 1.25,
+  '&:hover': { bgcolor: brand.primary[50] },
+};
 
 const Profile = () => {
-  const [anchorEl2, setAnchorEl2] = useState(null);
-  const handleClick2 = (event: any) => {
-    setAnchorEl2(event.currentTarget);
-  };
-  const handleClose2 = () => {
-    setAnchorEl2(null);
+  const { user, logout, tenants } = useAuth();
+  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
+  const open = Boolean(anchorEl);
+
+  const handleOpen = (e: React.MouseEvent<HTMLElement>) => setAnchorEl(e.currentTarget);
+  const handleClose = () => setAnchorEl(null);
+
+  const initials = (() => {
+    if (!user) return '?';
+    const fn = user.firstName;
+    const ln = user.lastName;
+    if (fn || ln) return `${(fn ?? '')[0] ?? ''}${(ln ?? '')[0] ?? ''}`.toUpperCase() || 'U';
+    return user.email.slice(0, 2).toUpperCase();
+  })();
+
+  const displayName = (() => {
+    if (!user) return 'Guest';
+    const full = `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim();
+    return full || user.email.split('@')[0];
+  })();
+
+  const roles = user?.roles ?? [];
+  const currentTenant = tenants.find((t) => t.id === user?.tenantId);
+
+  const handleLogout = async () => {
+    handleClose();
+    try { await logout(); } catch { /* clearing locally */ }
   };
 
   return (
     <Box>
       <IconButton
-        size="large"
-        aria-label="show 11 new notifications"
-        color="inherit"
-        aria-controls="msgs-menu"
+        onClick={handleOpen}
+        aria-label="User profile"
+        aria-controls={open ? 'profile-menu' : undefined}
         aria-haspopup="true"
+        aria-expanded={open}
         sx={{
-          ...(typeof anchorEl2 === 'object' && {
-            color: 'primary.main',
-          }),
-        }}
-        onClick={handleClick2}
-      >
-        <Avatar
-          src={ProfileImg}
-          alt={ProfileImg}
-          sx={{
-            width: 35,
-            height: 35,
-          }}
-        />
-      </IconButton>
-      {/* ------------------------------------------- */}
-      {/* Message Dropdown */}
-      {/* ------------------------------------------- */}
-      <Menu
-        id="msgs-menu"
-        anchorEl={anchorEl2}
-        keepMounted
-        open={Boolean(anchorEl2)}
-        onClose={handleClose2}
-        anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
-        transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-        sx={{
-          '& .MuiMenu-paper': {
-            width: '360px',
-            p: 4,
+          width: 44,
+          height: 44,
+          borderRadius: '10px',
+          border: `1px solid ${open ? brand.primary[300] : brand.neutral[200]}`,
+          bgcolor: open ? brand.primary[50] : '#FFFFFF',
+          transition: 'all 0.2s ease',
+          '&:hover': {
+            bgcolor: brand.primary[50],
+            borderColor: brand.primary[200],
           },
         }}
       >
-        <Typography variant="h5">User Profile</Typography>
-        <Stack direction="row" py={3} spacing={2} alignItems="center">
-          <Avatar src={ProfileImg} alt={ProfileImg} sx={{ width: 95, height: 95 }} />
-          <Box>
-            <Typography variant="subtitle2" color="textPrimary" fontWeight={600}>
-              Mathew Anderson
-            </Typography>
-            <Typography variant="subtitle2" color="textSecondary">
-              Designer
-            </Typography>
-            <Typography
-              variant="subtitle2"
-              color="textSecondary"
-              display="flex"
-              alignItems="center"
-              gap={1}
+        <Avatar
+          sx={{
+            width: 30,
+            height: 30,
+            fontSize: '0.75rem',
+            fontWeight: 800,
+            letterSpacing: '0.02em',
+            background: `linear-gradient(135deg, ${brand.primary[500]} 0%, ${brand.primary[700]} 100%)`,
+            color: '#FFFFFF',
+          }}
+        >
+          {initials}
+        </Avatar>
+      </IconButton>
+
+      <Menu
+        id="profile-menu"
+        anchorEl={anchorEl}
+        open={open}
+        onClose={handleClose}
+        anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+        transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+        slotProps={{
+          paper: {
+            sx: {
+              mt: 1,
+              width: 320,
+              borderRadius: '16px',
+              border: `1px solid ${brand.neutral[200]}`,
+              boxShadow: '0 20px 50px rgba(15,23,42,0.12)',
+              overflow: 'visible',
+              animation: `${scaleIn} 0.2s cubic-bezier(0.16, 1, 0.3, 1) both`,
+            },
+          },
+        }}
+      >
+        {/* User identity header */}
+        <Box sx={{ px: 3, pt: 3, pb: 2 }}>
+          <Stack direction="row" spacing={2} alignItems="center">
+            <Avatar
+              sx={{
+                width: 56,
+                height: 56,
+                fontSize: '1.1rem',
+                fontWeight: 800,
+                background: `linear-gradient(135deg, ${brand.primary[500]} 0%, ${brand.primary[700]} 100%)`,
+                color: '#FFFFFF',
+                boxShadow: `0 8px 20px -8px ${brand.primary[600]}`,
+              }}
             >
-              <IconMail width={15} height={15} />
-              info@modernize.com
-            </Typography>
-          </Box>
-        </Stack>
-        <Divider />
-        {dropdownData.profile.map((profile) => (
-          <Box key={profile.title}>
-            <Box sx={{ py: 2, px: 0 }} className="hover-text-primary">
-              <Link to={profile.href}>
-                <Stack direction="row" spacing={2}>
-                  <Box
-                    width="45px"
-                    height="45px"
-                    bgcolor="primary.light"
-                    display="flex"
-                    alignItems="center"
-                    justifyContent="center"
-                  >
-                    <Avatar
-                      src={profile.icon}
-                      alt={profile.icon}
+              {initials}
+            </Avatar>
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              <Typography sx={{ fontWeight: 700, color: brand.neutral[900], fontSize: '0.95rem' }} noWrap>
+                {displayName}
+              </Typography>
+              <Typography sx={{ fontSize: '0.78rem', color: brand.neutral[500] }} noWrap>
+                {user?.email ?? '—'}
+              </Typography>
+              {roles.length > 0 && (
+                <Stack direction="row" spacing={0.5} sx={{ mt: 0.75 }} flexWrap="wrap" useFlexGap>
+                  {roles.map((role) => (
+                    <Chip
+                      key={role}
+                      label={role}
+                      size="small"
                       sx={{
-                        width: 24,
-                        height: 24,
-                        borderRadius: 0,
+                        height: 20,
+                        fontSize: '0.6rem',
+                        fontWeight: 700,
+                        letterSpacing: '0.03em',
+                        borderRadius: '5px',
+                        bgcolor: brand.primary[50],
+                        color: brand.primary[700],
                       }}
                     />
-                  </Box>
-                  <Box>
-                    <Typography
-                      variant="subtitle2"
-                      fontWeight={600}
-                      color="textPrimary"
-                      className="text-hover"
-                      noWrap
-                      sx={{
-                        width: '240px',
-                      }}
-                    >
-                      {profile.title}
-                    </Typography>
-                    <Typography
-                      color="textSecondary"
-                      variant="subtitle2"
-                      sx={{
-                        width: '240px',
-                      }}
-                      noWrap
-                    >
-                      {profile.subtitle}
-                    </Typography>
-                  </Box>
+                  ))}
                 </Stack>
-              </Link>
+              )}
             </Box>
-          </Box>
-        ))}
-        <Box mt={2}>
-          <Box bgcolor="primary.light" p={3} mb={3} overflow="hidden" position="relative">
-            <Box display="flex" justifyContent="space-between">
-              <Box>
-                <Typography variant="h5" mb={2}>
-                  Unlimited <br />
-                  Access
-                </Typography>
-                <Button variant="contained" color="primary">
-                  Upgrade
-                </Button>
-              </Box>
-              <img src={unlimitedImg} alt="unlimited" className="signup-bg"></img>
+          </Stack>
+
+          {/* Tenant info */}
+          {currentTenant && (
+            <Box
+              sx={{
+                mt: 2,
+                px: 1.75,
+                py: 1.25,
+                borderRadius: '10px',
+                bgcolor: brand.neutral[50],
+                border: `1px solid ${brand.neutral[100]}`,
+              }}
+            >
+              <Stack direction="row" spacing={1.5} alignItems="center">
+                <Avatar
+                  sx={{
+                    width: 28,
+                    height: 28,
+                    fontSize: '0.65rem',
+                    fontWeight: 800,
+                    borderRadius: '7px',
+                    bgcolor: brand.accent[600],
+                    color: '#FFFFFF',
+                  }}
+                >
+                  {(currentTenant.name ?? 'T')[0].toUpperCase()}
+                </Avatar>
+                <Box sx={{ minWidth: 0 }}>
+                  <Typography sx={{ fontSize: '0.78rem', fontWeight: 700, color: brand.neutral[800] }} noWrap>
+                    {currentTenant.name ?? 'Current workspace'}
+                  </Typography>
+                  <Typography sx={{ fontSize: '0.7rem', color: brand.neutral[500] }} noWrap>
+                    {currentTenant.slug ?? user?.tenantName ?? ''}
+                  </Typography>
+                </Box>
+              </Stack>
             </Box>
-          </Box>
-          <Button to="/auth/login" variant="outlined" color="primary" component={Link} fullWidth>
-            Logout
+          )}
+        </Box>
+
+        <Divider />
+
+        {/* Menu items */}
+        <Box sx={{ pt: 1.5, pb: 1 }}>
+          <MenuItem
+            component={Link}
+            to="/smartpos/settings"
+            onClick={handleClose}
+            sx={menuItemSx}
+          >
+            <ListItemIcon sx={{ minWidth: 36 }}>
+              <IconSettings size={18} color={brand.neutral[600]} />
+            </ListItemIcon>
+            <Typography sx={{ fontSize: '0.85rem', fontWeight: 600, color: brand.neutral[800] }}>
+              Settings
+            </Typography>
+          </MenuItem>
+
+          <MenuItem
+            component={Link}
+            to="/smartpos/settings"
+            onClick={handleClose}
+            sx={menuItemSx}
+          >
+            <ListItemIcon sx={{ minWidth: 36 }}>
+              <IconUserCircle size={18} color={brand.neutral[600]} />
+            </ListItemIcon>
+            <Typography sx={{ fontSize: '0.85rem', fontWeight: 600, color: brand.neutral[800] }}>
+              My profile
+            </Typography>
+          </MenuItem>
+        </Box>
+
+        <Divider />
+
+        {/* Logout */}
+        <Box sx={{ px: 2, pt: 1.5, pb: 2 }}>
+          <Button
+            variant="outlined"
+            fullWidth
+            startIcon={<IconLogout size={16} stroke={2} />}
+            onClick={handleLogout}
+            sx={{
+              py: 1.2,
+              borderRadius: '10px',
+              fontSize: '0.85rem',
+              fontWeight: 600,
+              textTransform: 'none',
+              color: brand.neutral[700],
+              borderColor: brand.neutral[200],
+              '&:hover': {
+                borderColor: brand.error.main,
+                color: brand.error.main,
+                bgcolor: brand.error.light,
+              },
+            }}
+          >
+            Sign out
           </Button>
         </Box>
       </Menu>

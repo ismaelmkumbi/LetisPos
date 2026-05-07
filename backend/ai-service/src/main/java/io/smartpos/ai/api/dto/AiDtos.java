@@ -145,6 +145,7 @@ public final class AiDtos {
             BigDecimal wholesalePrice,
             BigDecimal minPrice,
             BigDecimal taxRate,
+            BigDecimal quantity,
             Double confidence,
             List<String> warnings
     ) {}

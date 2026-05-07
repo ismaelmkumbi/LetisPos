@@ -129,9 +129,22 @@ const Search = () => {
         aria-controls={open ? 'navigation-search' : undefined}
         aria-haspopup="dialog"
         onClick={() => setOpen(true)}
-        size="large"
+        sx={{
+          width: 44,
+          height: 44,
+          borderRadius: '10px',
+          border: `1px solid ${brand.neutral[200]}`,
+          bgcolor: '#FFFFFF',
+          color: brand.neutral[600],
+          transition: 'all 0.2s ease',
+          '&:hover': {
+            bgcolor: brand.primary[50],
+            borderColor: brand.primary[200],
+            color: brand.primary[600],
+          },
+        }}
       >
-        <IconSearch size="17" />
+        <IconSearch size={17} />
       </IconButton>
 
       <Dialog

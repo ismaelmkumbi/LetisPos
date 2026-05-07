@@ -1,4 +1,4 @@
-import { api, tokenStore } from './client';
+import { api, tokenStore, schedulePreemptiveRefresh } from './client';
 
 export interface AuthUserSummary {
   id: string;
@@ -37,6 +37,7 @@ export async function login(email: string, password: string): Promise<LoginRespo
   tokenStore.set(data.accessToken);
   tokenStore.setRefresh(data.refreshToken);
   tokenStore.setTenantId(data.user?.tenantId || null);
+  schedulePreemptiveRefresh(data.accessToken);
   return data;
 }
 

@@ -1,117 +1,195 @@
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
+/**
+ * Letis POS — Notification bell.
+ *
+ * Polished dropdown with badge count and refined styling.
+ * Uses static demo data — connect to API notifications when ready.
+ */
 import React, { useState } from 'react';
 import {
-  IconButton,
-  Box,
-  Badge,
-  Menu,
-  MenuItem,
-  Avatar,
-  Typography,
-  Button,
-  Chip,
-  Stack
+  Avatar, Badge, Box, Button, Chip,
+  IconButton, Menu, MenuItem, Stack, Typography, keyframes,
 } from '@mui/material';
-import * as dropdownData from './data';
-import Scrollbar from 'src/components/custom-scroll/Scrollbar';
-
 import { IconBellRinging } from '@tabler/icons-react';
 import { Link } from 'react-router';
+import * as dropdownData from './data';
+import Scrollbar from 'src/components/custom-scroll/Scrollbar';
+import { brand } from 'src/theme/smartpos/brand';
+
+const scaleIn = keyframes`
+  from { opacity: 0; transform: scale(0.92) translateY(-4px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+`;
+
+const pulse = keyframes`
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.12); }
+`;
 
 const Notifications = () => {
-  const [anchorEl2, setAnchorEl2] = useState(null);
+  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
+  const open = Boolean(anchorEl);
+  const newCount = 5;
 
-  const handleClick2 = (event: any) => {
-    setAnchorEl2(event.currentTarget);
-  };
-
-  const handleClose2 = () => {
-    setAnchorEl2(null);
-  };
+  const handleOpen = (e: React.MouseEvent<HTMLElement>) => setAnchorEl(e.currentTarget);
+  const handleClose = () => setAnchorEl(null);
 
   return (
     <Box>
       <IconButton
-        size="large"
-        aria-label="show 11 new notifications"
-        color="inherit"
-        aria-controls="msgs-menu"
+        onClick={handleOpen}
+        aria-label={`Notifications — ${newCount} new`}
+        aria-controls={open ? 'notifications-menu' : undefined}
         aria-haspopup="true"
+        aria-expanded={open}
         sx={{
-          color: anchorEl2 ? 'primary.main' : 'text.secondary',
-        }}
-        onClick={handleClick2}
-      >
-        <Badge variant="dot" color="primary">
-          <IconBellRinging size="21" stroke="1.5" />
-        </Badge>
-      </IconButton>
-      {/* ------------------------------------------- */}
-      {/* Message Dropdown */}
-      {/* ------------------------------------------- */}
-      <Menu
-        id="msgs-menu"
-        anchorEl={anchorEl2}
-        keepMounted
-        open={Boolean(anchorEl2)}
-        onClose={handleClose2}
-        anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
-        transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-        sx={{
-          '& .MuiMenu-paper': {
-            width: '360px',
+          width: 44,
+          height: 44,
+          borderRadius: '10px',
+          border: `1px solid ${open ? brand.primary[300] : brand.neutral[200]}`,
+          bgcolor: open ? brand.primary[50] : '#FFFFFF',
+          color: open ? brand.primary[600] : brand.neutral[600],
+          transition: 'all 0.2s ease',
+          '&:hover': {
+            bgcolor: brand.primary[50],
+            borderColor: brand.primary[200],
+            color: brand.primary[600],
           },
         }}
       >
-        <Stack direction="row" py={2} px={4} justifyContent="space-between" alignItems="center">
-          <Typography variant="h6">Notifications</Typography>
-          <Chip label="5 new" color="primary" size="small" />
+        <Badge
+          variant="dot"
+          color="error"
+          overlap="circular"
+          sx={{
+            '& .MuiBadge-dot': {
+              width: 9,
+              height: 9,
+              borderRadius: '50%',
+              border: '2px solid #FFFFFF',
+              animation: `${pulse} 2s ease-in-out infinite`,
+            },
+          }}
+        >
+          <IconBellRinging size={18} stroke={1.6} />
+        </Badge>
+      </IconButton>
+
+      <Menu
+        id="notifications-menu"
+        anchorEl={anchorEl}
+        open={open}
+        onClose={handleClose}
+        anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+        transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+        slotProps={{
+          paper: {
+            sx: {
+              mt: 1,
+              width: 380,
+              borderRadius: '16px',
+              border: `1px solid ${brand.neutral[200]}`,
+              boxShadow: '0 20px 50px rgba(15,23,42,0.12)',
+              overflow: 'hidden',
+              animation: `${scaleIn} 0.2s cubic-bezier(0.16, 1, 0.3, 1) both`,
+            },
+          },
+        }}
+      >
+        {/* Header */}
+        <Stack
+          direction="row"
+          alignItems="center"
+          justifyContent="space-between"
+          sx={{ px: 3, pt: 2.5, pb: 1.5 }}
+        >
+          <Typography sx={{ fontSize: '0.95rem', fontWeight: 800, color: brand.neutral[900] }}>
+            Notifications
+          </Typography>
+          <Chip
+            label={`${newCount} new`}
+            size="small"
+            sx={{
+              height: 24,
+              fontWeight: 700,
+              fontSize: '0.68rem',
+              borderRadius: '6px',
+              bgcolor: brand.primary[50],
+              color: brand.primary[700],
+            }}
+          />
         </Stack>
-        <Scrollbar sx={{ height: '385px' }}>
-          {dropdownData.notifications.map((notification, index) => (
-            <Box key={index}>
-              <MenuItem sx={{ py: 2, px: 4 }}>
-                <Stack direction="row" spacing={2}>
-                  <Avatar
-                    src={notification.avatar}
-                    alt={notification.avatar}
+
+        {/* Items */}
+        <Scrollbar sx={{ height: 320 }}>
+          {dropdownData.notifications.map((item, i) => (
+            <MenuItem
+              key={i}
+              onClick={handleClose}
+              sx={{
+                py: 1.5,
+                px: 3,
+                mx: 1,
+                mb: 0.25,
+                borderRadius: '10px',
+                '&:hover': { bgcolor: brand.neutral[50] },
+              }}
+            >
+              <Stack direction="row" spacing={1.75} alignItems="flex-start" sx={{ width: '100%' }}>
+                <Avatar
+                  src={item.avatar}
+                  sx={{ width: 42, height: 42, flexShrink: 0 }}
+                />
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <Typography
                     sx={{
-                      width: 48,
-                      height: 48,
+                      fontSize: '0.82rem',
+                      fontWeight: 600,
+                      color: brand.neutral[800],
+                      lineHeight: 1.35,
                     }}
-                  />
-                  <Box>
-                    <Typography
-                      variant="subtitle2"
-                      color="textPrimary"
-                      fontWeight={600}
-                      noWrap
-                      sx={{
-                        width: '240px',
-                      }}
-                    >
-                      {notification.title}
-                    </Typography>
-                    <Typography
-                      color="textSecondary"
-                      variant="subtitle2"
-                      sx={{
-                        width: '240px',
-                      }}
-                      noWrap
-                    >
-                      {notification.subtitle}
-                    </Typography>
-                  </Box>
-                </Stack>
-              </MenuItem>
-            </Box>
+                  >
+                    {item.title}
+                  </Typography>
+                  <Typography
+                    sx={{
+                      mt: 0.3,
+                      fontSize: '0.75rem',
+                      color: brand.neutral[500],
+                      lineHeight: 1.35,
+                    }}
+                  >
+                    {item.subtitle}
+                  </Typography>
+                </Box>
+              </Stack>
+            </MenuItem>
           ))}
         </Scrollbar>
-        <Box p={3} pb={1}>
-          <Button to="/apps/email" variant="outlined" component={Link} color="primary" fullWidth>
-            See all Notifications
+
+        {/* Footer */}
+        <Box sx={{ px: 2, pt: 1.5, pb: 2, borderTop: `1px solid ${brand.neutral[100]}` }}>
+          <Button
+            component={Link}
+            to="/smartpos/notifications"
+            variant="outlined"
+            fullWidth
+            onClick={handleClose}
+            sx={{
+              py: 1.1,
+              borderRadius: '10px',
+              fontSize: '0.82rem',
+              fontWeight: 600,
+              textTransform: 'none',
+              color: brand.neutral[700],
+              borderColor: brand.neutral[200],
+              '&:hover': {
+                borderColor: brand.primary[300],
+                color: brand.primary[600],
+                bgcolor: brand.primary[50],
+              },
+            }}
+          >
+            View all notifications
           </Button>
         </Box>
       </Menu>
