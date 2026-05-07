@@ -10,6 +10,7 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
+import { useNavigate } from 'react-router';
 import { IconPlus, IconMail, IconPhone, IconUser, IconCurrencyDollar } from '@tabler/icons-react';
 
 import { listSuppliers, deleteSupplier, toggleSupplierActive } from 'src/api/smartpos/suppliers';
@@ -26,6 +27,7 @@ const fmt = formatMoney;
 
 export default function SuppliersListPage() {
   const { user } = useAuth();
+  const nav = useNavigate();
   const [rows, setRows] = useState<Supplier[]>([]);
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
@@ -370,10 +372,7 @@ export default function SuppliersListPage() {
         totalPages={totalPages}
         onPageChange={setPage}
         getRowKey={(s) => s.id}
-        onRowClick={(s) => {
-          setEditing(s);
-          setDrawerOpen(true);
-        }}
+        onRowClick={(s) => nav(`/smartpos/suppliers/${s.id}`)}
         tableKey="suppliers"
         enableSorting
         enableColumnVisibility
