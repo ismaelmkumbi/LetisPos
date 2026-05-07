@@ -70,13 +70,20 @@ export default function PurchaseBuilderPage() {
   const isEditable = !existingStatus || existingStatus === 'DRAFT' || existingStatus === 'ORDERED';
 
   useEffect(() => {
-    Promise.all([listWarehouses(), listSuppliers({ size: 500 })])
-      .then(([w, s]) => {
+    listWarehouses()
+      .then((w) => {
         setWarehouses(w);
         if (!warehouseId && w[0]) setWarehouseId(w[0].id);
-        setSuppliers(s.content);
       })
-      .catch(() => {});
+      .catch((err) => {
+        console.error('Failed to load warehouses', err);
+        setError('Failed to load warehouses. Check your connection and try again.');
+      });
+    listSuppliers({ size: 500 })
+      .then((s) => setSuppliers(s.content))
+      .catch((err) => {
+        console.error('Failed to load suppliers', err);
+      });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -138,10 +145,6 @@ export default function PurchaseBuilderPage() {
     }
     if (!warehouseId) {
       setError('Warehouse is required.');
-      return;
-    }
-    if (!supplierId) {
-      setError('Supplier is required.');
       return;
     }
     setSubmitting(true);
@@ -255,7 +258,7 @@ export default function PurchaseBuilderPage() {
                     onChange={(_, v) => setSupplierId(v?.id ?? null)}
                     getOptionLabel={(s) => s.name}
                     disabled={!isEditable}
-                    renderInput={(params) => <TextField {...params} label="Supplier" required />}
+                    renderInput={(params) => <TextField {...params} label="Supplier (optional)" />}
                     sx={{ minWidth: 260, flex: 1 }}
                   />
                 </Stack>
