@@ -32,6 +32,7 @@ import { Link, useNavigate } from 'react-router';
 
 import { register } from 'src/api/smartpos/auth';
 import { seedDefaultUnits } from 'src/api/smartpos/products';
+import { seedDefaultCOA } from 'src/api/smartpos/accounting';
 import { brand } from 'src/theme/smartpos/brand';
 
 interface Props {
@@ -123,8 +124,9 @@ const AuthRegister: React.FC<Props> = ({ title, subtitle, subtext }) => {
         tenantSlug: tenantSlug.trim() || undefined,
       });
       navigate('/auth/login', { state: { registered: true } });
-      // Pre-seed default units in the background
+      // Pre-seed default data in the background
       seedDefaultUnits().catch(() => {});
+      seedDefaultCOA().catch(() => {});
     } catch (err) {
       type AxiosLike = { response?: { status?: number; data?: { detail?: string; title?: string } } };
       const e = err as AxiosLike;
