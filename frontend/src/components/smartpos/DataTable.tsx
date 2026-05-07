@@ -799,9 +799,8 @@ export function DataTable<T>({
                 const totalCells = row.getVisibleCells().length + (expandable ? 1 : 0) + (getRowStatus ? 1 : 0);
                 const rowStatus = getRowStatus?.(original) ?? null;
                 return (
-                  <>
+                  <React.Fragment key={rowKey}>
                     <TableRow
-                      key={rowKey}
                       hover={!!onRowClick}
                       onClick={onRowClick ? () => onRowClick(original) : undefined}
                       sx={{
@@ -877,7 +876,7 @@ export function DataTable<T>({
                         </TableCell>
                       </TableRow>
                     )}
-                  </>
+                  </React.Fragment>
                 );
               })
             )}
