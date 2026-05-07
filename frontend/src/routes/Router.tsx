@@ -102,6 +102,9 @@ const SmartPosCustomers = Loadable(
 const SmartPosSuppliers = Loadable(
   lazy(() => import('../views/smartpos/suppliers/SuppliersListPage')),
 );
+const SmartPosSupplierDetail = Loadable(
+  lazy(() => import('../views/smartpos/suppliers/SupplierDetailPage')),
+);
 const SmartPosWarehouses = Loadable(
   lazy(() => import('../views/smartpos/warehouses/WarehousesListPage')),
 );
@@ -425,6 +428,7 @@ const Router = [
       { path: 'settings/notifications', element: <SmartPosNotifications /> },
       { path: 'customers', element: <SmartPosCustomers /> },
       { path: 'suppliers', element: <SmartPosSuppliers /> },
+      { path: 'suppliers/:id', element: <SmartPosSupplierDetail /> },
       { path: 'warehouses', element: <SmartPosWarehouses /> },
       { path: 'warehouses/:id', element: <SmartPosWarehouseDetail /> },
       { path: 'stock', element: <SmartPosStockLevels /> },
