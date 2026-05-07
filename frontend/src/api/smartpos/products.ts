@@ -227,6 +227,34 @@ export async function createUnit(body: Omit<Unit, 'id'>): Promise<Unit> {
   const { data } = await api.post<Unit>('/api/v1/units', body);
   return data;
 }
+
+const DEFAULT_UNITS = [
+  { name: 'Pieces', shortName: 'pcs' },
+  { name: 'Kilogram', shortName: 'kg' },
+  { name: 'Liter', shortName: 'L' },
+  { name: 'Meter', shortName: 'm' },
+  { name: 'Box', shortName: 'box' },
+  { name: 'Pack', shortName: 'pk' },
+  { name: 'Bottle', shortName: 'btl' },
+  { name: 'Can', shortName: 'can' },
+  { name: 'Dozen', shortName: 'doz' },
+  { name: 'Pair', shortName: 'pr' },
+];
+
+export async function seedDefaultUnits(): Promise<Unit[]> {
+  const results: Unit[] = [];
+  for (const unit of DEFAULT_UNITS) {
+    try {
+      const created = await createUnit(unit);
+      results.push(created);
+    } catch (err) {
+      // Unit may already exist — skip
+      console.warn('seedDefaultUnits: failed to create unit', unit.name, err);
+    }
+  }
+  return results;
+}
+
 export async function updateUnit(id: UUID, body: Omit<Unit, 'id'>): Promise<Unit> {
   const { data } = await api.put<Unit>(`/api/v1/units/${id}`, body);
   return data;
