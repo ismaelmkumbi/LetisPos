@@ -6,7 +6,10 @@ export function useSetupGate({ skip }: { skip?: boolean } = {}) {
   const [needsSetup, setNeedsSetup] = useState(false);
 
   useEffect(() => {
-    if (skip) return;
+    if (skip) {
+      setLoading(false);
+      return;
+    }
     let cancelled = false;
     listProducts({ size: 1 })
       .then((p) => {
