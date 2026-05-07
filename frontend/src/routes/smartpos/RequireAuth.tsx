@@ -1,6 +1,7 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router';
 import { useAuth } from 'src/context/smartpos/AuthContext';
+import { useSetupGate } from './useSetupGate';
 
 /**
  * Wrap any route element that requires authentication.
@@ -18,6 +19,22 @@ export function RequireAuth({
   const location = useLocation();
 
   if (loading) return null; // could render a splash
+
+  const { needsSetup, loading: setupLoading } = useSetupGate();
+  const setupAllowedRoutes = [
+    '/smartpos/setup',
+    '/smartpos/products',
+    '/smartpos/categories',
+    '/smartpos/products/units',
+    '/smartpos/settings',
+  ];
+
+  if (!setupLoading && needsSetup) {
+    const isSetupRoute = setupAllowedRoutes.some((r) => location.pathname.startsWith(r));
+    if (!isSetupRoute) {
+      return <Navigate to="/smartpos/setup" state={{ from: location }} replace />;
+    }
+  }
 
   if (!user) {
     return <Navigate to="/auth/login" replace state={{ from: location }} />;
