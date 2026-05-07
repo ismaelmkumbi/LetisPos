@@ -1,11 +1,7 @@
 /**
  * Letis POS — Sign-in form.
  *
- * Premium look: icon-prefixed email + password fields, password show/hide,
- * Remember me + Forgot password row, primary CTA with lock, divider,
- * Continue with Google, and a "Don't have an account? Create account" link.
- *
- * Wires submit to the real backend through AuthContext.
+ * Light-themed, refined. Wires submit to the real backend through AuthContext.
  */
 import React, { useState } from 'react';
 import {
@@ -34,39 +30,51 @@ import { useAuth } from 'src/context/smartpos/AuthContext';
 import { brand } from 'src/theme/smartpos/brand';
 
 interface Props {
-  /** Optional override slots — kept for backwards compatibility. */
   title?: React.ReactNode;
   subtitle?: React.ReactNode;
   subtext?: React.ReactNode;
 }
 
-/** Inline Google "G" — keeps the form independent of any image asset. */
-const GoogleG: React.FC<{ size?: number }> = ({ size = 20 }) => (
+/** Inline Google "G" */
+const GoogleG: React.FC<{ size?: number }> = ({ size = 18 }) => (
   <svg width={size} height={size} viewBox="0 0 48 48" aria-hidden="true">
-    <path
-      fill="#FFC107"
-      d="M43.6 20.5H42V20H24v8h11.3C33.7 32.3 29.2 35.5 24 35.5c-6.4 0-11.5-5.1-11.5-11.5S17.6 12.5 24 12.5c2.9 0 5.6 1.1 7.7 2.9l5.7-5.7C33.6 6.3 29 4.5 24 4.5 13.2 4.5 4.5 13.2 4.5 24S13.2 43.5 24 43.5 43.5 34.8 43.5 24c0-1.2-.1-2.3-.4-3.5z"
-    />
-    <path
-      fill="#FF3D00"
-      d="M6.3 14.7l6.6 4.8C14.7 16 19 12.5 24 12.5c2.9 0 5.6 1.1 7.7 2.9l5.7-5.7C33.6 6.3 29 4.5 24 4.5 16.3 4.5 9.7 8.9 6.3 14.7z"
-    />
-    <path
-      fill="#4CAF50"
-      d="M24 43.5c5 0 9.5-1.7 13-4.7l-6-5.1c-2 1.4-4.5 2.3-7 2.3-5.2 0-9.6-3.2-11.3-7.6l-6.5 5C9.5 39 16.2 43.5 24 43.5z"
-    />
-    <path
-      fill="#1976D2"
-      d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.3-4.3 5.7l6 5.1c-.4.4 6.5-4.7 6.5-14.8 0-1.2-.1-2.3-.4-3.5z"
-    />
+    <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.3 29.2 35.5 24 35.5c-6.4 0-11.5-5.1-11.5-11.5S17.6 12.5 24 12.5c2.9 0 5.6 1.1 7.7 2.9l5.7-5.7C33.6 6.3 29 4.5 24 4.5 13.2 4.5 4.5 13.2 4.5 24S13.2 43.5 24 43.5 43.5 34.8 43.5 24c0-1.2-.1-2.3-.4-3.5z" />
+    <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 16 19 12.5 24 12.5c2.9 0 5.6 1.1 7.7 2.9l5.7-5.7C33.6 6.3 29 4.5 24 4.5 16.3 4.5 9.7 8.9 6.3 14.7z" />
+    <path fill="#4CAF50" d="M24 43.5c5 0 9.5-1.7 13-4.7l-6-5.1c-2 1.4-4.5 2.3-7 2.3-5.2 0-9.6-3.2-11.3-7.6l-6.5 5C9.5 39 16.2 43.5 24 43.5z" />
+    <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.3-4.3 5.7l6 5.1c-.4.4 6.5-4.7 6.5-14.8 0-1.2-.1-2.3-.4-3.5z" />
   </svg>
 );
+
+const fieldSx = {
+  '& .MuiOutlinedInput-root': {
+    borderRadius: '10px',
+    bgcolor: '#FFFFFF',
+    fontSize: '0.875rem',
+    height: { xs: 44, sm: 46 },
+    '& fieldset': { borderColor: brand.neutral[200] },
+    '&:hover fieldset': { borderColor: brand.neutral[300] },
+    '&.Mui-focused fieldset': {
+      borderColor: brand.primary[500],
+      borderWidth: 1.5,
+    },
+  },
+  '& .MuiOutlinedInput-input': { py: 1.2 },
+} as const;
+
+const labelSx = {
+  display: 'block',
+  fontSize: '0.8rem',
+  fontWeight: 600,
+  color: brand.neutral[800],
+  mb: 0.6,
+};
 
 const AuthLoginForm: React.FC<Props> = ({ title, subtitle, subtext }) => {
   const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const from = (location.state as { from?: { pathname: string } } | null)?.from?.pathname ?? '/';
+  const from = (location.state as { from?: { pathname: string } } | null)?.from?.pathname ?? '/smartpos/dashboard';
+  const justRegistered = (location.state as { registered?: boolean } | null)?.registered;
 
   const [email, setEmail] = useState<string>('admin@smartpos.local');
   const [password, setPassword] = useState<string>('');
@@ -95,46 +103,26 @@ const AuthLoginForm: React.FC<Props> = ({ title, subtitle, subtext }) => {
     }
   };
 
-  /* ──────────────────────────── shared field styling ──────────────────────────── */
-  const fieldSx = {
-    '& .MuiOutlinedInput-root': {
-      borderRadius: 2,
-      bgcolor: '#FFFFFF',
-      fontSize: 14.5,
-      '& fieldset': { borderColor: brand.neutral[200] },
-      '&:hover fieldset': { borderColor: brand.neutral[300] },
-      '&.Mui-focused fieldset': {
-        borderColor: brand.primary[600],
-        borderWidth: 1.5,
-      },
-    },
-    '& .MuiOutlinedInput-input': { py: 1.4 },
-  } as const;
-
   return (
     <Box component="form" onSubmit={handleSubmit} noValidate>
       {title}
       {subtext}
 
+      {justRegistered && (
+        <Alert severity="success" sx={{ mb: 2.5, borderRadius: '10px' }}>
+          Workspace created — sign in below.
+        </Alert>
+      )}
+
       {error && (
-        <Alert severity="error" sx={{ mb: 2.5, borderRadius: 2 }}>
+        <Alert severity="error" sx={{ mb: 2.5, borderRadius: '10px' }}>
           {error}
         </Alert>
       )}
 
-      <Stack spacing={2.25}>
+      <Stack spacing={{ xs: 1.5, sm: 2 }}>
         <Box>
-          <Typography
-            component="label"
-            htmlFor="email"
-            sx={{
-              display: 'block',
-              fontSize: 13.5,
-              fontWeight: 600,
-              color: brand.neutral[800],
-              mb: 0.75,
-            }}
-          >
+          <Typography component="label" htmlFor="email" sx={labelSx}>
             Email address
           </Typography>
           <TextField
@@ -151,7 +139,7 @@ const AuthLoginForm: React.FC<Props> = ({ title, subtitle, subtext }) => {
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start" sx={{ color: brand.neutral[400] }}>
-                  <IconMail size={18} stroke={1.8} />
+                  <IconMail size={17} stroke={1.6} />
                 </InputAdornment>
               ),
             }}
@@ -159,17 +147,7 @@ const AuthLoginForm: React.FC<Props> = ({ title, subtitle, subtext }) => {
         </Box>
 
         <Box>
-          <Typography
-            component="label"
-            htmlFor="password"
-            sx={{
-              display: 'block',
-              fontSize: 13.5,
-              fontWeight: 600,
-              color: brand.neutral[800],
-              mb: 0.75,
-            }}
-          >
+          <Typography component="label" htmlFor="password" sx={labelSx}>
             Password
           </Typography>
           <TextField
@@ -186,7 +164,7 @@ const AuthLoginForm: React.FC<Props> = ({ title, subtitle, subtext }) => {
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start" sx={{ color: brand.neutral[400] }}>
-                  <IconLock size={18} stroke={1.8} />
+                  <IconLock size={17} stroke={1.6} />
                 </InputAdornment>
               ),
               endAdornment: (
@@ -198,7 +176,7 @@ const AuthLoginForm: React.FC<Props> = ({ title, subtitle, subtext }) => {
                     aria-label={showPassword ? 'Hide password' : 'Show password'}
                     sx={{ color: brand.neutral[400] }}
                   >
-                    {showPassword ? <IconEye size={18} /> : <IconEyeOff size={18} />}
+                    {showPassword ? <IconEye size={17} /> : <IconEyeOff size={17} />}
                   </IconButton>
                 </InputAdornment>
               ),
@@ -220,7 +198,7 @@ const AuthLoginForm: React.FC<Props> = ({ title, subtitle, subtext }) => {
               />
             }
             label={
-              <Typography sx={{ fontSize: 13.5, color: brand.neutral[700] }}>
+              <Typography sx={{ fontSize: '0.8rem', color: brand.neutral[700] }}>
                 Remember me
               </Typography>
             }
@@ -229,7 +207,7 @@ const AuthLoginForm: React.FC<Props> = ({ title, subtitle, subtext }) => {
             component={Link}
             to="/auth/forgot-password"
             sx={{
-              fontSize: 13.5,
+              fontSize: '0.8rem',
               fontWeight: 600,
               color: brand.primary[600],
               textDecoration: 'none',
@@ -248,27 +226,28 @@ const AuthLoginForm: React.FC<Props> = ({ title, subtitle, subtext }) => {
         disabled={submitting || !email || !password}
         startIcon={
           submitting ? (
-            <CircularProgress size={18} color="inherit" />
+            <CircularProgress size={16} color="inherit" />
           ) : (
-            <IconLock size={18} stroke={2} />
+            <IconLock size={16} stroke={2} />
           )
         }
         sx={{
-          mt: 3,
-          py: 1.55,
-          fontSize: 15,
+          mt: { xs: 2, sm: 2.5 },
+          py: 1.4,
+          fontSize: '0.9rem',
           fontWeight: 700,
           textTransform: 'none',
-          borderRadius: 2,
-          bgcolor: brand.primary[600],
-          boxShadow: `0 6px 20px -8px ${brand.primary[600]}99`,
+          borderRadius: '10px',
+          background: `linear-gradient(135deg, ${brand.primary[500]} 0%, ${brand.primary[700]} 100%)`,
+          boxShadow: `0 10px 22px -12px ${brand.primary[600]}`,
+          transition: 'all 0.2s ease',
           '&:hover': {
-            bgcolor: brand.primary[700],
-            boxShadow: `0 8px 24px -8px ${brand.primary[700]}AA`,
+            background: `linear-gradient(135deg, ${brand.primary[600]} 0%, ${brand.primary[800]} 100%)`,
+            boxShadow: `0 12px 26px -10px ${brand.primary[700]}`,
           },
           '&.Mui-disabled': {
-            bgcolor: brand.primary[200],
-            color: '#FFFFFF',
+            bgcolor: brand.neutral[200],
+            color: brand.neutral[400],
           },
         }}
       >
@@ -277,9 +256,9 @@ const AuthLoginForm: React.FC<Props> = ({ title, subtitle, subtext }) => {
 
       <Divider
         sx={{
-          my: 2.75,
+          my: { xs: 1.75, sm: 2.25 },
           color: brand.neutral[400],
-          fontSize: 13,
+          fontSize: '0.75rem',
           '&::before, &::after': { borderColor: brand.neutral[200] },
         }}
       >
@@ -289,14 +268,14 @@ const AuthLoginForm: React.FC<Props> = ({ title, subtitle, subtext }) => {
       <Button
         variant="outlined"
         fullWidth
-        startIcon={<GoogleG size={18} />}
+        startIcon={<GoogleG size={16} />}
         sx={{
-          py: 1.45,
-          fontSize: 14.5,
+          py: 1.3,
+          fontSize: '0.85rem',
           fontWeight: 600,
           textTransform: 'none',
-          borderRadius: 2,
-          color: brand.neutral[800],
+          borderRadius: '10px',
+          color: brand.neutral[700],
           borderColor: brand.neutral[200],
           bgcolor: '#FFFFFF',
           '&:hover': {
@@ -308,15 +287,15 @@ const AuthLoginForm: React.FC<Props> = ({ title, subtitle, subtext }) => {
         Continue with Google
       </Button>
 
-      <Stack direction="row" spacing={0.75} justifyContent="center" sx={{ mt: 3 }}>
-        <Typography sx={{ fontSize: 13.5, color: brand.neutral[500] }}>
-          Don't have an account?
+      <Stack direction="row" spacing={0.5} justifyContent="center" sx={{ mt: { xs: 2, sm: 2.5 } }}>
+        <Typography sx={{ fontSize: '0.8rem', color: brand.neutral[500] }}>
+          Don&apos;t have an account?
         </Typography>
         <Typography
           component={Link}
           to="/auth/register"
           sx={{
-            fontSize: 13.5,
+            fontSize: '0.8rem',
             fontWeight: 700,
             color: brand.primary[600],
             textDecoration: 'none',
