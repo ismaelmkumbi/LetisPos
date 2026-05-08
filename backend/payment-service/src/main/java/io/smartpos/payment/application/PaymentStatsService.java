@@ -84,13 +84,9 @@ public class PaymentStatsService {
             WHERE p.status = 'COMPLETED'
               AND p.tenantId = :tenantId
             """);
-        if (from != null) jpql.append(" AND p.date >= :dateFrom ");
-        if (to != null) jpql.append(" AND p.date <= :dateTo ");
-        jpql.append("""
-            
-            GROUP BY p.method
-            ORDER BY SUM(p.amount) DESC
-            """);
+        if (from != null) jpql.append(" AND p.date >= :dateFrom");
+        if (to != null) jpql.append(" AND p.date <= :dateTo");
+        jpql.append(" GROUP BY p.method ORDER BY SUM(p.amount) DESC");
 
         var query = em.createQuery(jpql.toString());
         query.setParameter("tenantId", TenantContext.require());
