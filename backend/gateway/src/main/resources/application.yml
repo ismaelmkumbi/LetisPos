@@ -121,6 +121,8 @@ spring:
               - "http://localhost:*"
               - "http://127.0.0.1:*"
               - "https://*.smartpos.io"
+              - "https://*.letispos.com"
+              - "https://letispos.com"
             allowed-methods:
               - "*"
             allowed-headers:
