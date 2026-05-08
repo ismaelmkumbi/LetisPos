@@ -205,7 +205,11 @@ function DashboardGreetingBar({
             borderRadius: '10px',
             bgcolor: brand.neutral[50],
             border: `1px solid ${brand.neutral[200]}`,
-            flexWrap: 'wrap',
+            overflow: 'auto',
+            WebkitOverflowScrolling: 'touch',
+            '&::-webkit-scrollbar': { display: 'none' },
+            scrollbarWidth: 'none',
+            maxWidth: { xs: '100%', sm: 'none' },
           }}
         >
           {PERIODS.map((p) => (
@@ -565,11 +569,27 @@ export default function DashboardPage() {
         <DashboardSkeleton />
       ) : (
         <>
-          <Grid container spacing={2} sx={{ mb: 2 }}>
-            <Grid size={{ xs: 12, lg: 4 }}>
+          <Box
+            sx={{
+              mb: 2,
+              mx: { xs: -1.5, sm: 0 },
+              px: { xs: 1.5, sm: 0 },
+              overflow: { xs: 'auto', lg: 'visible' },
+              WebkitOverflowScrolling: 'touch',
+              scrollSnapType: { xs: 'x mandatory', lg: 'none' },
+              '&::-webkit-scrollbar': { display: 'none' },
+              scrollbarWidth: 'none',
+            }}
+          >
+            <Grid
+              container
+              spacing={2}
+              sx={{ flexWrap: { xs: 'nowrap', lg: 'wrap' }, mx: 0, width: { xs: 'max-content', lg: '100%' } }}
+            >
+            <Grid size={{ xs: 12, lg: 4 }} sx={{ minWidth: { xs: 280, lg: 'auto' }, scrollSnapAlign: 'start' }}>
               <BusinessPulseCard data={data} salesSeries={salesSeries} period={period} />
             </Grid>
-            <Grid size={{ xs: 12, sm: 6, lg: 2 }}>
+            <Grid size={{ xs: 12, sm: 6, lg: 2 }} sx={{ minWidth: { xs: 180, lg: 'auto' }, scrollSnapAlign: 'start' }}>
               <MetricCard
                 label="Cash in Hand"
                 value={formatMoney(data?.payments.totalIn ?? 0)}
@@ -579,7 +599,7 @@ export default function DashboardPage() {
                 series={salesSeries}
               />
             </Grid>
-            <Grid size={{ xs: 12, sm: 6, lg: 2 }}>
+            <Grid size={{ xs: 12, sm: 6, lg: 2 }} sx={{ minWidth: { xs: 180, lg: 'auto' }, scrollSnapAlign: 'start' }}>
               <MetricCard
                 label="Net Sales"
                 value={formatMoney(data?.sales.net ?? 0)}
@@ -589,7 +609,7 @@ export default function DashboardPage() {
                 series={salesSeries}
               />
             </Grid>
-            <Grid size={{ xs: 12, sm: 6, lg: 2 }}>
+            <Grid size={{ xs: 12, sm: 6, lg: 2 }} sx={{ minWidth: { xs: 180, lg: 'auto' }, scrollSnapAlign: 'start' }}>
               <MetricCard
                 label="Orders"
                 value={formatNumber(data?.sales.count ?? 0)}
@@ -599,7 +619,7 @@ export default function DashboardPage() {
                 series={orderSeries}
               />
             </Grid>
-            <Grid size={{ xs: 12, sm: 6, lg: 2 }}>
+            <Grid size={{ xs: 12, sm: 6, lg: 2 }} sx={{ minWidth: { xs: 180, lg: 'auto' }, scrollSnapAlign: 'start' }}>
               <MetricCard
                 label="Purchases"
                 value={formatMoney(data?.purchases.gross ?? 0)}
@@ -610,6 +630,7 @@ export default function DashboardPage() {
               />
             </Grid>
           </Grid>
+          </Box>
 
           <Grid container spacing={2} sx={{ mb: 2 }}>
             <Grid size={{ xs: 12, md: 4 }}>
