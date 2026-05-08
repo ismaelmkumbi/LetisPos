@@ -216,6 +216,8 @@ export function DataTable<T>({
   renderExpanded,
 }: DataTableProps<T>) {
   const theme = useTheme();
+  const { activeMode: _dt } = useContext(CustomizerContext);
+  const isDark = _dt === 'dark';
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const isCompact = density === 'compact' || dense;
   // ── Expandable row state ──────────────────────────────────────────────────

@@ -52,8 +52,6 @@ const chipSx = {
 };
 
 export default function FilterBar({
-  const { activeMode: _dm } = useContext(CustomizerContext);
-  const isDark = _dm === 'dark';
   searchPlaceholder = 'Search…',
   searchValue,
   onSearchChange,
@@ -65,6 +63,8 @@ export default function FilterBar({
   children,
   searchInputRef,
 }: FilterBarProps) {
+  const { activeMode: _dm } = useContext(CustomizerContext);
+  const isDark = _dm === 'dark';
   const hasActiveFilters = activeFilters.length > 0;
 
   return (

@@ -36,11 +36,11 @@ export interface EditDrawerProps {
 }
 
 export function EditDrawer({
-  const { activeMode: _dm } = useContext(CustomizerContext);
-  const isDark = _dm === 'dark';
   open, title, subtitle, onClose, onSubmit, submitting, submitLabel = 'Save',
   disabled, width, size, statusIndicator, extraActions, children,
 }: EditDrawerProps) {
+  const { activeMode: _dm } = useContext(CustomizerContext);
+  const isDark = _dm === 'dark';
   const drawerWidth = width ?? SIZE_WIDTHS[size ?? 'md'];
 
   return (
