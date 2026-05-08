@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type React from 'react';
 import {
   Alert,
@@ -353,6 +353,7 @@ export default function DashboardPage() {
   const [paymentMix, setPaymentMix] = useState<PaymentMethodMixRow[]>([]);
   const [paymentMixUnavailable, setPaymentMixUnavailable] = useState(false);
   const [recentSales, setRecentSales] = useState<Sale[]>([]);
+  const loadedRef = useRef(false);
 
   useEffect(() => {
     if (onboardingState.isComplete) {
@@ -395,7 +396,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     let cancelled = false;
-    if (data) {
+    if (loadedRef.current) {
       setRefreshing(true);
     } else {
       setLoading(true);
@@ -423,6 +424,7 @@ export default function DashboardPage() {
         }
 
         setData(dashboardResult.value);
+        loadedRef.current = true;
         setPaymentMix(paymentMixResult.status === 'fulfilled' ? paymentMixResult.value : []);
         setPaymentMixUnavailable(paymentMixResult.status === 'rejected');
         setRecentSales(salesResult.status === 'fulfilled' ? salesResult.value.content : []);
