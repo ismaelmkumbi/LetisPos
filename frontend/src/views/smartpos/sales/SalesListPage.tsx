@@ -325,7 +325,8 @@ export default function SalesListPage() {
         </Stack>
       )}
 
-      <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2, flexWrap: 'wrap', gap: 1 }}>
+      <Box sx={{ mb: 2, overflowX: 'auto', WebkitOverflowScrolling: 'touch', '&::-webkit-scrollbar': { display: 'none' }, scrollbarWidth: 'none' }}>
+      <Stack direction="row" spacing={1} alignItems="center" sx={{ flexWrap: 'nowrap' }}>
         <Button
           variant="outlined"
           size="small"
@@ -358,6 +359,7 @@ export default function SalesListPage() {
           <MenuItem value="RETURNED">Returned</MenuItem>
         </TextField>
       </Stack>
+      </Box>
 
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>

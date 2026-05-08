@@ -138,33 +138,47 @@ export default function FilterBar({
         </Button>
       </Stack>
 
-      {/* Collapsible filter controls */}
+      {/* Collapsible filter controls — horizontally scrollable on mobile */}
       <Collapse in={filtersOpen}>
-        <Stack
-          direction="row"
-          spacing={1.25}
-          alignItems="center"
-          flexWrap="wrap"
-          useFlexGap
-          sx={{ px: 2, pb: 1.5, pt: 0 }}
+        <Box
+          sx={{
+            px: 2, pb: 1.5, pt: 0,
+            overflowX: 'auto',
+            WebkitOverflowScrolling: 'touch',
+            scrollSnapType: 'x proximity',
+            '&::-webkit-scrollbar': { display: 'none' },
+            scrollbarWidth: 'none',
+          }}
         >
-          {children}
-        </Stack>
+          <Stack
+            direction="row"
+            spacing={1.25}
+            alignItems="center"
+            flexWrap={{ xs: 'nowrap', md: 'wrap' }}
+            useFlexGap
+          >
+            {children}
+          </Stack>
+        </Box>
       </Collapse>
 
-      {/* Active filter chips — always visible */}
+      {/* Active filter chips — horizontally scrollable on mobile */}
       {activeFilters.length > 0 && (
+        <Box
+          sx={{
+            px: 2, pb: 1.5,
+            borderTop: filtersOpen ? `1px solid ${brand.neutral[100]}` : 'none',
+            overflowX: 'auto',
+            WebkitOverflowScrolling: 'touch',
+            '&::-webkit-scrollbar': { display: 'none' },
+            scrollbarWidth: 'none',
+          }}
+        >
         <Stack
           direction="row"
           spacing={1}
           alignItems="center"
-          flexWrap="wrap"
-          useFlexGap
-          sx={{
-            px: 2,
-            pb: 1.5,
-            borderTop: filtersOpen ? `1px solid ${brand.neutral[100]}` : 'none',
-          }}
+          flexWrap="nowrap"
         >
           {activeFilters.map((f) => (
             <Chip
@@ -190,6 +204,7 @@ export default function FilterBar({
             Clear all
           </Button>
         </Stack>
+        </Box>
       )}
     </Paper>
   );

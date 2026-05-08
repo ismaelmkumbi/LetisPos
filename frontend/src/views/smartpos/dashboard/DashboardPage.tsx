@@ -130,10 +130,10 @@ function DashboardGreetingBar({
   const { salutation, wave, name } = greeting(user?.firstName);
 
   const pillSx = (active: boolean) => ({
-    height: 34,
-    px: 1.6,
+    height: { xs: 32, sm: 34 },
+    px: { xs: 1.2, sm: 1.6 },
     borderRadius: '8px',
-    fontSize: 13,
+    fontSize: { xs: 12, sm: 13 },
     fontWeight: active ? 700 : 500,
     textTransform: 'none' as const,
     bgcolor: active ? brand.primary[600] : 'transparent',
@@ -141,6 +141,7 @@ function DashboardGreetingBar({
     border: 'none',
     boxShadow: active ? `0 4px 12px -4px ${brand.primary[600]}88` : 'none',
     minWidth: 0,
+    flexShrink: 0,
     '&:hover': {
       bgcolor: active ? brand.primary[700] : brand.neutral[100],
       color: active ? '#fff' : brand.neutral[800],
