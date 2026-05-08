@@ -1,5 +1,7 @@
 import React from 'react';
 import { Box, Container, Typography, Grid, Stack } from '@mui/material';
+import BrandLogo from 'src/components/smartpos/BrandLogo';
+import { useLpTheme } from '../LandingpageTheme';
 
 const footerLinks = {
   Product: ['Point of Sale', 'Inventory', 'Accounting', 'Reports', 'AI Insights', 'Integrations'],
@@ -8,6 +10,9 @@ const footerLinks = {
 };
 
 const Footer: React.FC = () => {
+  const { theme } = useLpTheme();
+  const logoColor = theme === 'refined-enterprise' ? 'onDark' : 'default';
+
   return (
     <Box
       component="footer"
@@ -20,17 +25,9 @@ const Footer: React.FC = () => {
       <Container maxWidth="lg">
         <Grid container spacing={6}>
           <Grid size={{ xs: 12, md: 4 }}>
-            <Typography
-              sx={{
-                fontFamily: 'var(--lp-font-display)',
-                fontSize: '1.5rem',
-                fontWeight: 700,
-                mb: 2,
-                letterSpacing: '-0.02em',
-              }}
-            >
-              Letis
-            </Typography>
+            <Box sx={{ mb: 2 }}>
+              <BrandLogo variant="inline" size="md" color={logoColor} />
+            </Box>
             <Typography
               sx={{
                 fontFamily: 'var(--lp-font-body)',

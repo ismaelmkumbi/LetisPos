@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Box, BoxProps } from '@mui/material';
 import { useInView } from 'framer-motion';
 
@@ -18,9 +18,9 @@ const LazySection: React.FC<LazySectionProps> = ({
   const inView = useInView(ref, { once: true, margin: '-200px' });
   const [hasRendered, setHasRendered] = useState(false);
 
-  if (inView && !hasRendered) {
-    setHasRendered(true);
-  }
+  useEffect(() => {
+    if (inView) setHasRendered(true);
+  }, [inView]);
 
   return (
     <Box ref={ref} sx={{ minHeight: hasRendered ? 'auto' : minHeight, ...sx }} {...rest}>
