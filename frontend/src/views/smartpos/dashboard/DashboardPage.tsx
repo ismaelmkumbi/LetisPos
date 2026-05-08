@@ -49,6 +49,8 @@ import { brand } from 'src/theme/smartpos/brand';
 import { formatMoney, formatNumber } from 'src/utils/smartpos/currency';
 import { useAuth } from 'src/context/smartpos/AuthContext';
 import { useOnboarding } from 'src/context/smartpos/OnboardingContext';
+import { CustomizerContext } from 'src/context/CustomizerContext';
+import { useContext } from 'react';
 import type { UUID } from 'src/api/smartpos/types';
 import OnboardingBanner from './OnboardingBanner';
 import CelebrationModal from 'src/views/smartpos/onboarding/CelebrationModal';
@@ -114,6 +116,7 @@ interface GreetingBarProps {
   warehouseId: string;
   warehouses: Warehouse[];
   dateRangeLabel: string;
+  isDark: boolean;
   onPeriodChange: (p: Period) => void;
   onWarehouseChange: (id: string) => void;
 }
@@ -123,6 +126,7 @@ function DashboardGreetingBar({
   warehouseId,
   warehouses,
   dateRangeLabel,
+  isDark,
   onPeriodChange,
   onWarehouseChange,
 }: GreetingBarProps) {
@@ -155,8 +159,8 @@ function DashboardGreetingBar({
         mb: 2.5,
         p: { xs: 2, md: 2.5 },
         borderRadius: '14px',
-        border: `1px solid ${brand.neutral[200]}`,
-        bgcolor: '#FFFFFF',
+        border: `1px solid ${isDark ? brand.neutral[700] : brand.neutral[200]}`,
+        bgcolor: isDark ? brand.neutral[800] : '#FFFFFF',
         boxShadow: '0 2px 12px rgba(15,23,42,0.04)',
         display: 'flex',
         flexDirection: { xs: 'column', md: 'row' },
@@ -204,8 +208,8 @@ function DashboardGreetingBar({
             gap: 0.4,
             p: 0.5,
             borderRadius: '10px',
-            bgcolor: brand.neutral[50],
-            border: `1px solid ${brand.neutral[200]}`,
+            bgcolor: isDark ? brand.neutral[900] : brand.neutral[50],
+            border: `1px solid ${isDark ? brand.neutral[700] : brand.neutral[200]}`,
             overflow: 'auto',
             WebkitOverflowScrolling: 'touch',
             '&::-webkit-scrollbar': { display: 'none' },
@@ -240,7 +244,7 @@ function DashboardGreetingBar({
                 borderRadius: '9px',
                 fontWeight: 600,
                 fontSize: 13.5,
-                '& fieldset': { borderColor: brand.neutral[200] },
+                '& fieldset': { borderColor: isDark ? brand.neutral[700] : brand.neutral[200] },
                 '&:hover fieldset': { borderColor: brand.primary[300] },
                 '&.Mui-focused fieldset': { borderColor: brand.primary[500] },
               },
@@ -263,16 +267,16 @@ function DashboardGreetingBar({
             height: 38,
             px: 1.6,
             borderRadius: '9px',
-            borderColor: brand.neutral[200],
+            borderColor: isDark ? brand.neutral[700] : brand.neutral[200],
             color: brand.neutral[700],
             fontWeight: 700,
             fontSize: 13,
             textTransform: 'none',
             whiteSpace: 'nowrap',
-            bgcolor: '#fff',
+            bgcolor: isDark ? brand.neutral[800] : '#fff',
             '&:hover': {
               borderColor: brand.primary[300],
-              bgcolor: brand.primary[50],
+              bgcolor: isDark ? brand.primary[900] : brand.primary[50],
               color: brand.primary[700],
             },
           }}
@@ -284,14 +288,14 @@ function DashboardGreetingBar({
   );
 }
 
-const cardSx = {
-  border: `1px solid ${brand.neutral[200]}`,
+const cardSx = (isDark: boolean) => ({
+  border: `1px solid ${isDark ? brand.neutral[700] : brand.neutral[200]}`,
   borderRadius: '12px',
-  bgcolor: '#FFFFFF',
-  boxShadow: '0 18px 40px rgba(15,23,42,0.045)',
-} as const;
+  bgcolor: isDark ? brand.neutral[800] : '#FFFFFF',
+  boxShadow: isDark ? 'none' : '0 18px 40px rgba(15,23,42,0.045)',
+}) as const;
 
-const muted = brand.neutral[500];
+const muted = (isDark: boolean) => isDark ? brand.neutral[400] : brand.neutral[500];
 const titleColor = brand.neutral[900];
 
 function moneyShort(value: number): string {
@@ -346,6 +350,8 @@ function sparkOptions(color: string): ApexOptions {
 export default function DashboardPage() {
   const { user } = useAuth();
   const { state: onboardingState } = useOnboarding();
+  const { activeMode } = useContext(CustomizerContext);
+  const isDark = activeMode === 'dark';
   const [showCelebration, setShowCelebration] = useState(false);
   const [showWizard, setShowWizard] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
@@ -474,19 +480,19 @@ export default function DashboardPage() {
       stroke: { curve: 'smooth', width: 2.6 },
       dataLabels: { enabled: false },
       grid: {
-        borderColor: brand.neutral[200],
+        borderColor: isDark ? brand.neutral[700] : brand.neutral[200],
         strokeDashArray: 0,
         padding: { left: 8, right: 12 },
       },
       markers: { size: 4, hover: { size: 6 }, strokeWidth: 3 },
       xaxis: {
         categories: data?.salesSeries?.map((row) => row.date) ?? [],
-        labels: { style: { colors: muted, fontSize: '11px' } },
+        labels: { style: { colors: muted(isDark), fontSize: '11px' } },
         axisBorder: { show: false },
         axisTicks: { show: false },
       },
       yaxis: {
-        labels: { formatter: (v) => moneyShort(v), style: { colors: muted, fontSize: '11px' } },
+        labels: { formatter: (v) => moneyShort(v), style: { colors: muted(isDark), fontSize: '11px' } },
       },
       legend: {
         position: 'top',
@@ -547,6 +553,7 @@ export default function DashboardPage() {
         warehouseId={warehouseId}
         warehouses={warehouses}
         dateRangeLabel={dateRangeLabel}
+        isDark={isDark}
         onPeriodChange={(p) => setFilter('period', p)}
         onWarehouseChange={(id) => setFilter('warehouseId', id)}
       />
@@ -677,7 +684,7 @@ export default function DashboardPage() {
 
           <Grid container spacing={2} sx={{ mb: 2 }}>
             <Grid size={{ xs: 12, lg: 8 }}>
-              <Card elevation={0} sx={{ ...cardSx, height: '100%' }}>
+              <Card elevation={0} sx={{ ...cardSx(isDark), height: '100%' }}>
                 <CardContent sx={{ p: 2.25 }}>
                   <Stack
                     direction="row"
@@ -698,7 +705,7 @@ export default function DashboardPage() {
                         label={PERIOD_LABELS[period]}
                         size="small"
                         sx={{
-                          bgcolor: brand.primary[50],
+                          bgcolor: isDark ? brand.primary[900] : brand.primary[50],
                           color: brand.primary[700],
                           fontWeight: 700,
                         }}
@@ -732,7 +739,7 @@ export default function DashboardPage() {
 
           <Grid container spacing={2}>
             <Grid size={{ xs: 12, lg: 4 }}>
-              <Card elevation={0} sx={{ ...cardSx, height: '100%' }}>
+              <Card elevation={0} sx={{ ...cardSx(isDark), height: '100%' }}>
                 <CardContent sx={{ p: 2.25 }}>
                   <Typography sx={{ fontWeight: 800, color: titleColor, fontSize: 18, mb: 1.5 }}>
                     Financial Health
@@ -775,7 +782,7 @@ export default function DashboardPage() {
               </Card>
             </Grid>
             <Grid size={{ xs: 12, lg: 3 }}>
-              <Card elevation={0} sx={{ ...cardSx, height: '100%' }}>
+              <Card elevation={0} sx={{ ...cardSx(isDark), height: '100%' }}>
                 <CardContent sx={{ p: 2.25 }}>
                   <Typography sx={{ fontWeight: 800, color: titleColor, fontSize: 18, mb: 1.5 }}>
                     Operations Overview
@@ -814,7 +821,7 @@ export default function DashboardPage() {
               </Card>
             </Grid>
             <Grid size={{ xs: 12, lg: 5 }}>
-              <Card elevation={0} sx={{ ...cardSx, height: '100%' }}>
+              <Card elevation={0} sx={{ ...cardSx(isDark), height: '100%' }}>
                 <CardContent sx={{ p: 2.25 }}>
                   <Stack
                     direction="row"
@@ -896,6 +903,8 @@ function BusinessPulseCard({
   salesSeries: number[];
   period: Period;
 }) {
+  const { activeMode: _am } = useContext(CustomizerContext);
+  const isDark = _am === 'dark';
   const loss = data ? Math.min(data.netProfit, 0) : 0;
   const options = sparkOptions(brand.error.main);
   const periodLabel = PERIOD_LABELS[period].toLowerCase();
@@ -903,9 +912,11 @@ function BusinessPulseCard({
     <Card
       elevation={0}
       sx={{
-        ...cardSx,
+        ...cardSx(isDark),
         minHeight: 250,
-        background: 'linear-gradient(135deg, #FFF7ED 0%, #FFFFFF 58%, #FEE2E2 100%)',
+        background: isDark
+          ? `linear-gradient(135deg, ${brand.neutral[800]} 0%, ${brand.neutral[900]} 58%, #1C0F0F 100%)`
+          : 'linear-gradient(135deg, #FFF7ED 0%, #FFFFFF 58%, #FEE2E2 100%)',
       }}
     >
       <CardContent sx={{ p: 2.5, height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -1002,8 +1013,10 @@ function MetricCard({
   color: string;
   series: number[];
 }) {
+  const { activeMode: _am2 } = useContext(CustomizerContext);
+  const isDark = _am2 === 'dark';
   return (
-    <Card elevation={0} sx={{ ...cardSx, minHeight: 250 }}>
+    <Card elevation={0} sx={{ ...cardSx(isDark), minHeight: 250 }}>
       <CardContent sx={{ p: 2.25, display: 'flex', flexDirection: 'column', height: '100%' }}>
         <Box
           sx={{
@@ -1031,9 +1044,9 @@ function MetricCard({
             </Typography>
           </Stack>
         ) : (
-          <Typography sx={{ color: muted, fontSize: 12, mt: 1 }}>Live total</Typography>
+          <Typography sx={{ color: muted(isDark), fontSize: 12, mt: 1 }}>Live total</Typography>
         )}
-        <Typography sx={{ color: muted, fontSize: 12 }}>selected period</Typography>
+        <Typography sx={{ color: muted(isDark), fontSize: 12 }}>selected period</Typography>
         <Box sx={{ mt: 'auto', mx: -1, mb: -1 }}>
           {series.length ? (
             <Chart
@@ -1116,8 +1129,10 @@ function AlertStrip({
 }
 
 function RecentTransactions({ rows }: { rows: Sale[] }) {
+  const { activeMode: _am3 } = useContext(CustomizerContext);
+  const isDark = _am3 === 'dark';
   return (
-    <Card elevation={0} sx={{ ...cardSx, height: '100%' }}>
+    <Card elevation={0} sx={{ ...cardSx(isDark), height: '100%' }}>
       <CardContent sx={{ p: 2.25 }}>
         <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1.25 }}>
           <Typography sx={{ fontWeight: 800, color: titleColor, fontSize: 18 }}>
@@ -1153,11 +1168,11 @@ function RecentTransactions({ rows }: { rows: Sale[] }) {
                   <Typography noWrap sx={{ color: titleColor, fontWeight: 800, fontSize: 13 }}>
                     {row.ref}
                   </Typography>
-                  <Typography noWrap sx={{ color: muted, fontSize: 12 }}>
+                  <Typography noWrap sx={{ color: muted(isDark), fontSize: 12 }}>
                     {row.customerId ? 'Customer sale' : 'Walk-in sale'} - {row.paymentStatus}
                   </Typography>
                 </Box>
-                <Typography sx={{ color: muted, fontSize: 12 }}>
+                <Typography sx={{ color: muted(isDark), fontSize: 12 }}>
                   {formatSaleTime(row.date)}
                 </Typography>
                 <Typography
@@ -1197,6 +1212,8 @@ function SmallStat({
   tone: 'success' | 'warning' | 'error' | 'info' | 'purple';
   icon?: React.ReactNode;
 }) {
+  const { activeMode: _s } = useContext(CustomizerContext);
+  const isDark = _s === 'dark';
   const map = {
     success: { bg: brand.primary[50], color: brand.primary[600] },
     warning: { bg: brand.warning.light, color: brand.warning.main },
@@ -1210,8 +1227,8 @@ function SmallStat({
       sx={{
         p: 1.5,
         borderRadius: '10px',
-        border: `1px solid ${brand.neutral[200]}`,
-        bgcolor: '#fff',
+        border: `1px solid ${isDark ? brand.neutral[700] : brand.neutral[200]}`,
+        bgcolor: isDark ? brand.neutral[800] : '#fff',
         minHeight: 100,
       }}
     >
@@ -1243,7 +1260,7 @@ function SmallStat({
         }}
       >
         Live{' '}
-        <Box component="span" sx={{ color: muted, fontWeight: 500 }}>
+        <Box component="span" sx={{ color: muted(isDark), fontWeight: 500 }}>
           selected period
         </Box>
       </Typography>
@@ -1301,6 +1318,8 @@ function EmptyPanel({
   height: number;
   compact?: boolean;
 }) {
+  const { activeMode: _ep } = useContext(CustomizerContext);
+  const isDark = _ep === 'dark';
   return (
     <Box
       sx={{
@@ -1322,7 +1341,7 @@ function EmptyPanel({
           {title}
         </Typography>
       )}
-      <Typography sx={{ color: muted, fontSize: compact ? 11 : 12, mt: title ? 0.25 : 0 }}>
+      <Typography sx={{ color: muted(isDark), fontSize: compact ? 11 : 12, mt: title ? 0.25 : 0 }}>
         {subtitle}
       </Typography>
     </Box>
@@ -1335,11 +1354,13 @@ function profitMargin(data: Dashboard | null) {
 }
 
 function DashboardSkeleton() {
+  const { activeMode: _sk } = useContext(CustomizerContext);
+  const isDark = _sk === 'dark';
   return (
     <Grid container spacing={2}>
       {Array.from({ length: 10 }, (_, index) => (
         <Grid key={index} size={{ xs: 12, sm: 6, lg: index === 0 ? 4 : 2 }}>
-          <Card elevation={0} sx={{ ...cardSx, minHeight: index === 0 ? 250 : 160 }}>
+          <Card elevation={0} sx={{ ...cardSx(isDark), minHeight: index === 0 ? 250 : 160 }}>
             <CardContent>
               <Skeleton width="35%" />
               <Skeleton width="75%" height={36} />
