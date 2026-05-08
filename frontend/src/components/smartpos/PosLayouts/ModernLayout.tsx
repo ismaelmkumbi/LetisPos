@@ -1,3 +1,4 @@
+import { useContext } from 'react';
 /**
  * Letis POS — Modern checkout layout.
  *
@@ -111,6 +112,7 @@ import CashRegisterIndicator from 'src/components/smartpos/CashRegisterIndicator
 import TotalRow from './TotalRow';
 import BrandLogo from 'src/components/smartpos/BrandLogo';
 import { useAuth } from 'src/context/smartpos/AuthContext';
+import { CustomizerContext } from 'src/context/CustomizerContext';
 import { brand } from 'src/theme/smartpos/brand';
 import { formatMoney } from 'src/utils/smartpos/currency';
 import {
@@ -131,6 +133,8 @@ const fmt = formatMoney;
 // ═══════════════════════════════════════════════════════════════════════════
 
 export default function ModernLayout(props: PosLayoutProps) {
+  const { activeMode: _pos } = useContext(CustomizerContext);
+  const isDark = _pos === 'dark';
   const { t } = useTranslation('smartpos');
   const { user } = useAuth();
 
@@ -198,7 +202,7 @@ export default function ModernLayout(props: PosLayoutProps) {
         minHeight: 0,
         display: 'flex',
         flexDirection: 'column',
-        bgcolor: '#F7F8FA',
+        bgcolor: isDark ? brand.neutral[900] : '#F7F8FA',
         overflow: 'hidden',
       }}
     >
@@ -438,7 +442,7 @@ function KioskTopBar(p: KioskTopBarProps) {
         alignItems: 'center',
         gap: 1,
         px: 1.75,
-        bgcolor: '#fff',
+        bgcolor: isDark ? brand.neutral[800] : '#fff',
         borderBottom: `1px solid ${brand.neutral[200]}`,
         overflowX: 'auto',
         overflowY: 'hidden',
@@ -479,7 +483,7 @@ function KioskTopBar(p: KioskTopBarProps) {
         <TextField
           select size="small" value={p.warehouseId}
           onChange={(e) => p.onWarehouseChange(e.target.value)}
-          sx={{ minWidth: 140, '& .MuiOutlinedInput-root': { height: 38, borderRadius: '8px', bgcolor: brand.neutral[50], fontSize: '0.8rem', '& fieldset': { borderColor: brand.neutral[200] }, '&:hover fieldset': { borderColor: brand.primary[300] }, '&.Mui-focused fieldset': { borderColor: brand.primary[400] } } }}
+          sx={{ minWidth: 140, '& .MuiOutlinedInput-root': { height: 38, borderRadius: '8px', bgcolor: isDark ? brand.neutral[900] : brand.neutral[50], fontSize: '0.8rem', '& fieldset': { borderColor: isDark ? brand.neutral[700] : brand.neutral[200] }, '&:hover fieldset': { borderColor: brand.primary[300] }, '&.Mui-focused fieldset': { borderColor: brand.primary[400] } } }}
         >
           {p.warehouses.map((w) => (
             <MenuItem key={w.id} value={w.id} dense>{w.name}</MenuItem>
@@ -489,7 +493,7 @@ function KioskTopBar(p: KioskTopBarProps) {
           select size="small" value={p.categoryId}
           onChange={(e) => p.onCategoryChange(e.target.value)}
           slotProps={{ select: { displayEmpty: true } }}
-          sx={{ minWidth: 130, '& .MuiOutlinedInput-root': { height: 38, borderRadius: '8px', bgcolor: brand.neutral[50], fontSize: '0.8rem', '& fieldset': { borderColor: brand.neutral[200] }, '&:hover fieldset': { borderColor: brand.primary[300] }, '&.Mui-focused fieldset': { borderColor: brand.primary[400] } } }}
+          sx={{ minWidth: 130, '& .MuiOutlinedInput-root': { height: 38, borderRadius: '8px', bgcolor: isDark ? brand.neutral[900] : brand.neutral[50], fontSize: '0.8rem', '& fieldset': { borderColor: isDark ? brand.neutral[700] : brand.neutral[200] }, '&:hover fieldset': { borderColor: brand.primary[300] }, '&.Mui-focused fieldset': { borderColor: brand.primary[400] } } }}
         >
           <MenuItem value="">All Categories</MenuItem>
           {p.categories.map((c) => <MenuItem key={c.id} value={c.id} dense>{c.name}</MenuItem>)}
@@ -498,7 +502,7 @@ function KioskTopBar(p: KioskTopBarProps) {
           select size="small" value={p.brandId}
           onChange={(e) => p.onBrandChange(e.target.value)}
           slotProps={{ select: { displayEmpty: true } }}
-          sx={{ minWidth: 120, '& .MuiOutlinedInput-root': { height: 38, borderRadius: '8px', bgcolor: brand.neutral[50], fontSize: '0.8rem', '& fieldset': { borderColor: brand.neutral[200] }, '&:hover fieldset': { borderColor: brand.primary[300] }, '&.Mui-focused fieldset': { borderColor: brand.primary[400] } } }}
+          sx={{ minWidth: 120, '& .MuiOutlinedInput-root': { height: 38, borderRadius: '8px', bgcolor: isDark ? brand.neutral[900] : brand.neutral[50], fontSize: '0.8rem', '& fieldset': { borderColor: isDark ? brand.neutral[700] : brand.neutral[200] }, '&:hover fieldset': { borderColor: brand.primary[300] }, '&.Mui-focused fieldset': { borderColor: brand.primary[400] } } }}
         >
           <MenuItem value="">All Brands</MenuItem>
           {p.brands.map((b) => <MenuItem key={b.id} value={b.id} dense>{b.name}</MenuItem>)}
@@ -529,14 +533,14 @@ function KioskTopBar(p: KioskTopBarProps) {
                 ),
               },
             }}
-            sx={{ '& .MuiOutlinedInput-root': { height: 38, borderRadius: '8px', bgcolor: brand.neutral[50], fontSize: '0.8rem', '& fieldset': { borderColor: brand.neutral[200] }, '&:hover fieldset': { borderColor: brand.primary[300] }, '&.Mui-focused fieldset': { borderColor: brand.primary[400] } } }}
+            sx={{ '& .MuiOutlinedInput-root': { height: 38, borderRadius: '8px', bgcolor: isDark ? brand.neutral[900] : brand.neutral[50], fontSize: '0.8rem', '& fieldset': { borderColor: isDark ? brand.neutral[700] : brand.neutral[200] }, '&:hover fieldset': { borderColor: brand.primary[300] }, '&.Mui-focused fieldset': { borderColor: brand.primary[400] } } }}
           />
         )}
       />
 
       <Tooltip title="Quick add customer" arrow>
         <IconButton size="small" onClick={() => setQuickAddOpen(true)}
-          sx={{ width: 34, height: 34, borderRadius: '8px', border: `1px solid ${brand.neutral[200]}`, color: brand.neutral[500], '&:hover': { bgcolor: brand.primary[50], color: brand.primary[600], borderColor: brand.primary[300] } }}>
+          sx={{ width: 34, height: 34, borderRadius: '8px', border: `1px solid ${brand.neutral[200]}`, color: isDark ? brand.neutral[400] : brand.neutral[500], '&:hover': { bgcolor: brand.primary[50], color: brand.primary[600], borderColor: brand.primary[300] } }}>
           <IconUserPlus size={16} />
         </IconButton>
       </Tooltip>
@@ -569,7 +573,7 @@ function KioskTopBar(p: KioskTopBarProps) {
           sx={{
             width: 38, height: 34, flexShrink: 0, borderRadius: '8px',
             '& .MuiOutlinedInput-notchedOutline': { borderColor: 'transparent' },
-            '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: brand.neutral[200] },
+            '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: isDark ? brand.neutral[700] : brand.neutral[200] },
             '& .MuiSelect-select': { display: 'flex', alignItems: 'center', justifyContent: 'center', py: 0, px: '8px !important' },
           }}
         >
@@ -595,10 +599,10 @@ function KioskTopBar(p: KioskTopBarProps) {
           {p.user?.firstName?.charAt(0)?.toUpperCase() || p.user?.email?.charAt(0)?.toUpperCase() || 'U'}
       </Avatar>
         <Box sx={{ display: { xs: 'none', xl: 'block' }, minWidth: 106 }}>
-          <Typography sx={{ fontWeight: 800, color: brand.neutral[900], lineHeight: 1.1 }}>
+          <Typography sx={{ fontWeight: 800, color: isDark ? brand.neutral[50] : brand.neutral[900], lineHeight: 1.1 }}>
             {p.user ? [p.user.firstName, p.user.lastName].filter(Boolean).join(' ') || p.user.email : 'User'}
           </Typography>
-          <Typography sx={{ fontSize: '0.78rem', color: brand.neutral[500], fontWeight: 600 }}>
+          <Typography sx={{ fontSize: '0.78rem', color: isDark ? brand.neutral[400] : brand.neutral[500], fontWeight: 600 }}>
             {p.user?.roles?.[0] || 'Staff'}
           </Typography>
         </Box>
@@ -626,8 +630,8 @@ function KioskIconButton({
     flexShrink: 0,
     borderRadius: '10px',
     border: `1px solid ${brand.neutral[200]}`,
-    color: brand.neutral[800],
-    bgcolor: '#fff',
+    color: isDark ? brand.neutral[200] : brand.neutral[800],
+    bgcolor: isDark ? brand.neutral[800] : '#fff',
     '&:hover': { bgcolor: brand.primary[50], color: brand.primary[700], borderColor: brand.primary[200] },
   } as const;
   return (
@@ -714,10 +718,10 @@ function CheckoutPanel(p: CheckoutPanelProps) {
             <IconShoppingCart size={18} />
           </Avatar>
           <Box>
-            <Typography sx={{ fontWeight: 800, fontSize: '1.05rem', lineHeight: 1.1, color: brand.neutral[900] }}>
+            <Typography sx={{ fontWeight: 800, fontSize: '1.05rem', lineHeight: 1.1, color: isDark ? brand.neutral[50] : brand.neutral[900] }}>
               Checkout
             </Typography>
-            <Typography variant="caption" sx={{ color: brand.neutral[500] }}>
+            <Typography variant="caption" sx={{ color: isDark ? brand.neutral[400] : brand.neutral[500] }}>
               Fast sale register
             </Typography>
           </Box>
@@ -742,7 +746,7 @@ function CheckoutPanel(p: CheckoutPanelProps) {
             },
           }}
         >
-          <Box sx={{ pr: 1, fontSize: '0.72rem', fontWeight: 600, color: brand.neutral[500], textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+          <Box sx={{ pr: 1, fontSize: '0.72rem', fontWeight: 600, color: isDark ? brand.neutral[400] : brand.neutral[500], textTransform: 'uppercase', letterSpacing: '0.08em' }}>
             items
           </Box>
         </Badge>
@@ -786,10 +790,10 @@ function CheckoutPanel(p: CheckoutPanelProps) {
             >
               <IconShoppingCart size={20} />
             </Avatar>
-            <Typography variant="body2" sx={{ fontWeight: 700, color: brand.neutral[700], mb: 0.5 }}>
+            <Typography variant="body2" sx={{ fontWeight: 700, color: isDark ? brand.neutral[300] : brand.neutral[700], mb: 0.5 }}>
               Cart is empty
             </Typography>
-            <Typography variant="caption" sx={{ color: brand.neutral[500] }}>
+            <Typography variant="caption" sx={{ color: isDark ? brand.neutral[400] : brand.neutral[500] }}>
               Scan or click a product to begin
             </Typography>
           </Box>
@@ -908,7 +912,7 @@ function CheckoutPanel(p: CheckoutPanelProps) {
             borderTop: `1px solid ${brand.neutral[200]}`,
           }}
         >
-          <Typography sx={{ fontSize: '1.05rem', fontWeight: 900, color: brand.neutral[900], textTransform: 'uppercase' }}>
+          <Typography sx={{ fontSize: '1.05rem', fontWeight: 900, color: isDark ? brand.neutral[50] : brand.neutral[900], textTransform: 'uppercase' }}>
             Total
           </Typography>
           <Typography sx={{ fontSize: '1.55rem', fontWeight: 900, color: brand.primary[700], letterSpacing: 0 }}>
@@ -960,7 +964,7 @@ function CartItem({
         p: 1.4,
         border: `1px solid ${brand.neutral[200]}`,
         borderRadius: '12px',
-        bgcolor: '#fff',
+        bgcolor: isDark ? brand.neutral[800] : '#fff',
         boxShadow: 'none',
         transition: 'border-color 0.15s ease',
         '&:hover': {
@@ -981,7 +985,7 @@ function CartItem({
             sx={{
               width: 24, height: 24, borderRadius: '6px',
               color: brand.neutral[400],
-              bgcolor: '#fff',
+              bgcolor: isDark ? brand.neutral[800] : '#fff',
               '&:hover': { color: brand.primary[600], bgcolor: brand.primary[50] },
             }}
           >
@@ -995,7 +999,7 @@ function CartItem({
             sx={{
               width: 24, height: 24, borderRadius: '6px',
               color: brand.neutral[400],
-              bgcolor: '#fff',
+              bgcolor: isDark ? brand.neutral[800] : '#fff',
               '&:hover': { color: brand.error.main, bgcolor: brand.error.light },
             }}
           >
@@ -1013,12 +1017,12 @@ function CartItem({
               bgcolor: brand.operational[stockState].dot,
             }}
           />
-          <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: brand.neutral[900], lineHeight: 1.25, letterSpacing: '-0.01em' }} noWrap>
+          <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: isDark ? brand.neutral[50] : brand.neutral[900], lineHeight: 1.25, letterSpacing: '-0.01em' }} noWrap>
             {line.productName}
           </Typography>
         </Stack>
         {line.productCode && (
-          <Typography variant="caption" sx={{ color: brand.neutral[500], fontWeight: 600 }}>
+          <Typography variant="caption" sx={{ color: isDark ? brand.neutral[400] : brand.neutral[500], fontWeight: 600 }}>
             SKU: {line.productCode}
           </Typography>
         )}
@@ -1030,7 +1034,7 @@ function CartItem({
           border: `1px solid ${brand.neutral[200]}`,
           borderRadius: '10px',
           overflow: 'hidden',
-          bgcolor: '#fff',
+          bgcolor: isDark ? brand.neutral[800] : '#fff',
           boxShadow: `inset 0 0 0 1px ${brand.neutral[50]}`,
         }}>
           <IconButton
@@ -1038,7 +1042,7 @@ function CartItem({
             onClick={onDec}
             sx={{
               width: 26, height: 26, borderRadius: 0,
-              color: brand.neutral[600],
+              color: isDark ? brand.neutral[300] : brand.neutral[600],
               '&:hover': { bgcolor: brand.primary[50], color: brand.primary[700] },
             }}
           >
@@ -1049,7 +1053,7 @@ function CartItem({
             borderLeft: `1px solid ${brand.neutral[200]}`,
             borderRight: `1px solid ${brand.neutral[200]}`,
             py: '2px',
-            color: brand.neutral[900],
+            color: isDark ? brand.neutral[50] : brand.neutral[900],
           }}>
             {line.qty}
           </Typography>
@@ -1058,7 +1062,7 @@ function CartItem({
             onClick={onInc}
             sx={{
               width: 26, height: 26, borderRadius: 0,
-              color: brand.neutral[600],
+              color: isDark ? brand.neutral[300] : brand.neutral[600],
               '&:hover': { bgcolor: brand.primary[50], color: brand.primary[700] },
             }}
           >
@@ -1088,16 +1092,16 @@ function CartItem({
             fontSize: '0.75rem',
             fontWeight: 700,
             borderRadius: '9px',
-            bgcolor: brand.neutral[50],
-            '& .MuiOutlinedInput-notchedOutline': { borderColor: brand.neutral[200] },
-            '& .MuiSelect-icon': { color: brand.neutral[500], right: 6 },
+            bgcolor: isDark ? brand.neutral[900] : brand.neutral[50],
+            '& .MuiOutlinedInput-notchedOutline': { borderColor: isDark ? brand.neutral[700] : brand.neutral[200] },
+            '& .MuiSelect-icon': { color: isDark ? brand.neutral[400] : brand.neutral[500], right: 6 },
           }}
         >
           <MenuItem value="retail">Retail Price</MenuItem>
           <MenuItem value="wholesale">Wholesale</MenuItem>
           <MenuItem value="member">Member</MenuItem>
         </Select>
-        <Typography variant="caption" sx={{ color: brand.neutral[500], whiteSpace: 'nowrap', fontWeight: 700 }}>
+        <Typography variant="caption" sx={{ color: isDark ? brand.neutral[400] : brand.neutral[500], whiteSpace: 'nowrap', fontWeight: 700 }}>
           {fmt(line.unitPrice)} × {line.qty}
         </Typography>
       </Stack>
@@ -1151,7 +1155,7 @@ function TopFilters(p: TopFiltersProps) {
                 ...premiumFieldSx['& .MuiOutlinedInput-root'],
                 height: 48,
                 borderRadius: '10px',
-                bgcolor: '#fff',
+                bgcolor: isDark ? brand.neutral[800] : '#fff',
                 '& input': { fontWeight: 600, fontSize: '0.92rem' },
               },
             }}
@@ -1187,8 +1191,8 @@ function TopFilters(p: TopFiltersProps) {
                 ...premiumFieldSx['& .MuiOutlinedInput-root'],
                 height: 48,
                 borderRadius: '10px',
-                bgcolor: '#fff',
-                '& fieldset': { borderColor: brand.neutral[200] },
+                bgcolor: isDark ? brand.neutral[800] : '#fff',
+                '& fieldset': { borderColor: isDark ? brand.neutral[700] : brand.neutral[200] },
               },
             }}
             slotProps={{
@@ -1313,7 +1317,7 @@ function ProductGrid({
           py: 8,
         border: `1.5px dashed ${brand.neutral[200]}`,
           borderRadius: '8px',
-          bgcolor: '#fff',
+          bgcolor: isDark ? brand.neutral[800] : '#fff',
           boxShadow: `0 14px 34px -26px ${brand.neutral[900]}44`,
         }}
       >
@@ -1321,17 +1325,17 @@ function ProductGrid({
           sx={{
             width: 56, height: 56,
             mx: 'auto', mb: 1.5,
-            bgcolor: brand.neutral[100],
-            color: brand.neutral[500],
+            bgcolor: isDark ? brand.neutral[800] : brand.neutral[100],
+            color: isDark ? brand.neutral[400] : brand.neutral[500],
             borderRadius: '14px',
           }}
         >
           <IconSearch size={24} />
         </Avatar>
-        <Typography variant="body2" sx={{ fontWeight: 700, color: brand.neutral[700] }}>
+        <Typography variant="body2" sx={{ fontWeight: 700, color: isDark ? brand.neutral[300] : brand.neutral[700] }}>
           No products match your filters
         </Typography>
-        <Typography variant="caption" sx={{ color: brand.neutral[500] }}>
+        <Typography variant="caption" sx={{ color: isDark ? brand.neutral[400] : brand.neutral[500] }}>
           Try clearing the search or category filter
         </Typography>
       </Box>
@@ -1358,7 +1362,7 @@ function ProductGrid({
             borderTop: `1px solid ${brand.neutral[100]}`,
           }}
         >
-          <Typography sx={{ fontSize: '0.72rem', color: brand.neutral[500], fontWeight: 700 }}>
+          <Typography sx={{ fontSize: '0.72rem', color: isDark ? brand.neutral[400] : brand.neutral[500], fontWeight: 700 }}>
             Page {currentPage} · {products.length} products
           </Typography>
           <Pagination
@@ -1372,7 +1376,7 @@ function ProductGrid({
                 borderRadius: '8px',
                 fontSize: '0.75rem',
                 fontWeight: 800,
-                color: brand.neutral[600],
+                color: isDark ? brand.neutral[300] : brand.neutral[600],
               },
               '& .Mui-selected': {
                 bgcolor: `${brand.primary[600]} !important`,
@@ -1416,7 +1420,7 @@ function ProductCard({ product, stock, onAdd }: { product: Product; stock?: Stoc
         overflow: 'hidden',
         border: `1px solid ${brand.neutral[200]}`,
         borderRadius: '10px',
-        bgcolor: '#fff',
+        bgcolor: isDark ? brand.neutral[800] : '#fff',
         opacity: outOfStock ? 0.5 : 1,
         transition: 'border-color 0.15s ease, opacity 0.15s ease',
         cursor: outOfStock ? 'not-allowed' : 'pointer',
@@ -1437,7 +1441,7 @@ function ProductCard({ product, stock, onAdd }: { product: Product; stock?: Stoc
       <Box
         sx={{
           aspectRatio: '1/1',
-          bgcolor: brand.neutral[50],
+          bgcolor: isDark ? brand.neutral[900] : brand.neutral[50],
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -1514,7 +1518,7 @@ function ProductCard({ product, stock, onAdd }: { product: Product; stock?: Stoc
           sx={{
             fontWeight: 800,
             fontSize: '0.86rem',
-            color: brand.neutral[900],
+            color: isDark ? brand.neutral[50] : brand.neutral[900],
             lineHeight: 1.3,
             mb: 0.25,
           }}
@@ -1522,7 +1526,7 @@ function ProductCard({ product, stock, onAdd }: { product: Product; stock?: Stoc
         >
           {product.name}
         </Typography>
-        <Typography variant="caption" sx={{ color: brand.neutral[500], display: 'block', mb: 0.8, fontWeight: 600 }} noWrap>
+        <Typography variant="caption" sx={{ color: isDark ? brand.neutral[400] : brand.neutral[500], display: 'block', mb: 0.8, fontWeight: 600 }} noWrap>
           SKU: {product.code}
         </Typography>
         <Stack direction="row" alignItems="center" justifyContent="space-between">
@@ -1590,7 +1594,7 @@ function PosBeepSoundPicker() {
             borderRadius: '10px',
             border: `1px solid ${brand.neutral[200]}`,
             color: variant === 'off' ? brand.neutral[400] : brand.primary[600],
-            bgcolor: '#fff',
+            bgcolor: isDark ? brand.neutral[800] : '#fff',
             '&:hover': { bgcolor: brand.primary[50], borderColor: brand.primary[200] },
             ...focusVisibleSx,
           }}
@@ -1736,7 +1740,7 @@ function PaymentScreen(p: PaymentScreenProps) {
           <Button
             startIcon={<IconArrowLeft size={18} />}
             onClick={p.onBack}
-            sx={{ color: brand.neutral[800], fontWeight: 800, textTransform: 'none' }}
+            sx={{ color: isDark ? brand.neutral[200] : brand.neutral[800], fontWeight: 800, textTransform: 'none' }}
           >
             Back to Cart
           </Button>
@@ -1762,7 +1766,7 @@ function PaymentScreen(p: PaymentScreenProps) {
             <TotalRow label="Shipping" value={fmt(p.shipping)} />
           </Stack>
           <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mt: 1.4, pt: 1.4, borderTop: `1px solid ${brand.neutral[200]}` }}>
-            <Typography sx={{ fontSize: '1rem', fontWeight: 900, color: brand.neutral[900], textTransform: 'uppercase' }}>
+            <Typography sx={{ fontSize: '1rem', fontWeight: 900, color: isDark ? brand.neutral[50] : brand.neutral[900], textTransform: 'uppercase' }}>
               Total Payable
             </Typography>
             <Typography sx={{ fontSize: '1.45rem', fontWeight: 900, color: brand.primary[700] }}>
@@ -1790,10 +1794,10 @@ function PaymentScreen(p: PaymentScreenProps) {
           sx={{ px: 2.5, py: 2, borderBottom: `1px solid ${brand.neutral[200]}` }}
         >
           <Box>
-            <Typography sx={{ fontSize: '1.45rem', fontWeight: 900, color: brand.neutral[900], lineHeight: 1.05 }}>
+            <Typography sx={{ fontSize: '1.45rem', fontWeight: 900, color: isDark ? brand.neutral[50] : brand.neutral[900], lineHeight: 1.05 }}>
               Payment
             </Typography>
-            <Typography sx={{ mt: 0.4, color: brand.neutral[500], fontWeight: 600 }}>
+            <Typography sx={{ mt: 0.4, color: isDark ? brand.neutral[400] : brand.neutral[500], fontWeight: 600 }}>
               Choose payment method and complete the sale
             </Typography>
           </Box>
@@ -1801,7 +1805,7 @@ function PaymentScreen(p: PaymentScreenProps) {
             variant="outlined"
             startIcon={<IconX size={18} />}
             onClick={p.onBack}
-            sx={{ height: 46, borderRadius: '10px', textTransform: 'none', color: brand.neutral[800], borderColor: brand.neutral[200], fontWeight: 800 }}
+            sx={{ height: 46, borderRadius: '10px', textTransform: 'none', color: isDark ? brand.neutral[200] : brand.neutral[800], borderColor: isDark ? brand.neutral[700] : brand.neutral[200], fontWeight: 800 }}
           >
             Cancel Payment
           </Button>
@@ -1817,7 +1821,7 @@ function PaymentScreen(p: PaymentScreenProps) {
           }}
         >
           <Box sx={{ px: 2.5, py: 2.5, overflowY: 'auto', ...softScrollSx }}>
-            <Typography sx={{ fontSize: '1rem', fontWeight: 900, color: brand.neutral[900], mb: 1.5 }}>
+            <Typography sx={{ fontSize: '1rem', fontWeight: 900, color: isDark ? brand.neutral[50] : brand.neutral[900], mb: 1.5 }}>
               Select Payment Method
             </Typography>
             <Box
@@ -1838,7 +1842,7 @@ function PaymentScreen(p: PaymentScreenProps) {
             {p.paymentChoice === 'SPLIT' ? (
               <Box sx={{ mt: 2 }}>
                 <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1.2 }}>
-                  <Typography sx={{ fontWeight: 900, color: brand.neutral[900] }}>
+                  <Typography sx={{ fontWeight: 900, color: isDark ? brand.neutral[50] : brand.neutral[900] }}>
                     Split Payment
                   </Typography>
                   <Chip
@@ -1857,7 +1861,7 @@ function PaymentScreen(p: PaymentScreenProps) {
                     direction="row"
                     spacing={1}
                     alignItems="center"
-                    sx={{ mb: 1, p: 1.2, borderRadius: '8px', bgcolor: '#fff', border: `1px solid ${brand.neutral[200]}` }}
+                    sx={{ mb: 1, p: 1.2, borderRadius: '8px', bgcolor: isDark ? brand.neutral[800] : '#fff', border: `1px solid ${brand.neutral[200]}` }}
                   >
                     <TextField
                       select
@@ -1896,13 +1900,13 @@ function PaymentScreen(p: PaymentScreenProps) {
                   Add payment method
                 </Button>
                 {splitPayments.length > 0 && (
-                  <Box sx={{ mt: 1.5, p: 1.3, borderRadius: '8px', bgcolor: '#fff', border: `1px solid ${brand.neutral[200]}` }}>
+                  <Box sx={{ mt: 1.5, p: 1.3, borderRadius: '8px', bgcolor: isDark ? brand.neutral[800] : '#fff', border: `1px solid ${brand.neutral[200]}` }}>
                     <Stack direction="row" justifyContent="space-between">
-                      <Typography sx={{ fontWeight: 700, color: brand.neutral[700] }}>Total tendered</Typography>
+                      <Typography sx={{ fontWeight: 700, color: isDark ? brand.neutral[300] : brand.neutral[700] }}>Total tendered</Typography>
                       <Typography sx={{ fontWeight: 900, color: brand.primary[700] }}>{fmt(splitTotal)}</Typography>
                     </Stack>
                     <Stack direction="row" justifyContent="space-between" sx={{ mt: 0.5 }}>
-                      <Typography sx={{ fontWeight: 700, color: brand.neutral[700] }}>Change due</Typography>
+                      <Typography sx={{ fontWeight: 700, color: isDark ? brand.neutral[300] : brand.neutral[700] }}>Change due</Typography>
                       <Typography sx={{ fontWeight: 900, color: brand.success.dark }}>{fmt(Math.max(0, splitTotal - p.grand))}</Typography>
                     </Stack>
                   </Box>
@@ -1918,21 +1922,21 @@ function PaymentScreen(p: PaymentScreenProps) {
                   background: 'linear-gradient(135deg, #ECFDF5 0%, #FFFFFF 100%)',
                 }}
               >
-                <Typography sx={{ fontWeight: 900, color: brand.neutral[900], mb: 1.2 }}>
+                <Typography sx={{ fontWeight: 900, color: isDark ? brand.neutral[50] : brand.neutral[900], mb: 1.2 }}>
                   {p.paymentChoice === 'CASH' ? 'Cash Payment' : p.paymentChoice === 'CARD' ? 'Card Payment' : p.paymentChoice === 'MOBILE' ? 'Mobile Payment' : p.paymentChoice === 'BANK' ? 'Bank Transfer' : 'USSD Payment'}
                 </Typography>
                 <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1.25fr' }, gap: 1.2 }}>
-                  <Box sx={{ p: 1.3, borderRadius: '8px', bgcolor: '#fff', border: `1px solid ${brand.neutral[200]}` }}>
-                    <Typography sx={{ color: brand.neutral[600], fontWeight: 700, mb: 0.7 }}>Amount Due</Typography>
+                  <Box sx={{ p: 1.3, borderRadius: '8px', bgcolor: isDark ? brand.neutral[800] : '#fff', border: `1px solid ${brand.neutral[200]}` }}>
+                    <Typography sx={{ color: isDark ? brand.neutral[300] : brand.neutral[600], fontWeight: 700, mb: 0.7 }}>Amount Due</Typography>
                     <Typography sx={{ fontSize: '1.45rem', color: brand.primary[700], fontWeight: 900 }}>{fmt(p.grand)}</Typography>
                   </Box>
-                  <Box sx={{ p: 1.3, borderRadius: '8px', bgcolor: '#fff', border: `1px solid ${brand.neutral[200]}` }}>
-                    <Typography sx={{ color: brand.neutral[600], fontWeight: 700, mb: 0.7 }}>Cash Received</Typography>
-                    <Typography sx={{ fontSize: '1.65rem', color: brand.neutral[900], fontWeight: 900 }}>{tenderedNumber ? fmt(tenderedNumber) : 'TSh 0'}</Typography>
+                  <Box sx={{ p: 1.3, borderRadius: '8px', bgcolor: isDark ? brand.neutral[800] : '#fff', border: `1px solid ${brand.neutral[200]}` }}>
+                    <Typography sx={{ color: isDark ? brand.neutral[300] : brand.neutral[600], fontWeight: 700, mb: 0.7 }}>Cash Received</Typography>
+                    <Typography sx={{ fontSize: '1.65rem', color: isDark ? brand.neutral[50] : brand.neutral[900], fontWeight: 900 }}>{tenderedNumber ? fmt(tenderedNumber) : 'TSh 0'}</Typography>
                   </Box>
                 </Box>
                 <Box sx={{ mt: 1.3 }}>
-                  <Typography sx={{ color: brand.neutral[700], fontWeight: 800 }}>Change</Typography>
+                  <Typography sx={{ color: isDark ? brand.neutral[300] : brand.neutral[700], fontWeight: 800 }}>Change</Typography>
                   <Typography sx={{ mt: 0.3, fontSize: '1.45rem', color: brand.primary[700], fontWeight: 900 }}>{fmt(p.change)}</Typography>
                 </Box>
               </Box>
@@ -1941,7 +1945,7 @@ function PaymentScreen(p: PaymentScreenProps) {
 
           {p.paymentChoice !== 'SPLIT' && (
             <Box sx={{ borderLeft: { lg: `1px solid ${brand.neutral[200]}` }, px: 2.5, py: 2.5, overflowY: 'auto', ...softScrollSx }}>
-              <Typography sx={{ fontSize: '1rem', fontWeight: 900, color: brand.neutral[900], mb: 1.5 }}>
+              <Typography sx={{ fontSize: '1rem', fontWeight: 900, color: isDark ? brand.neutral[50] : brand.neutral[900], mb: 1.5 }}>
                 Enter Cash Received
               </Typography>
               <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 1.25 }}>
@@ -2007,15 +2011,15 @@ function PaymentScreen(p: PaymentScreenProps) {
 function PaymentCartRow({ line }: { line: Line }) {
   return (
     <Stack direction="row" spacing={1.2} alignItems="center" sx={{ pb: 1.2, borderBottom: `1px solid ${brand.neutral[100]}` }}>
-      <Avatar variant="rounded" sx={{ width: 56, height: 56, borderRadius: '8px', bgcolor: brand.neutral[50], color: brand.primary[700], fontWeight: 900 }}>
+      <Avatar variant="rounded" sx={{ width: 56, height: 56, borderRadius: '8px', bgcolor: isDark ? brand.neutral[900] : brand.neutral[50], color: brand.primary[700], fontWeight: 900 }}>
         {line.productName.charAt(0)}
       </Avatar>
       <Box sx={{ minWidth: 0, flex: 1 }}>
-        <Typography sx={{ color: brand.neutral[900], fontWeight: 800 }} noWrap>{line.productName}</Typography>
-        <Typography sx={{ color: brand.neutral[500], fontSize: '0.8rem', fontWeight: 600 }}>SKU: {line.productCode || line.productId.slice(0, 8)}</Typography>
-        <Typography sx={{ color: brand.neutral[700], fontSize: '0.86rem', fontWeight: 700 }}>{line.qty} x Retail Price</Typography>
+        <Typography sx={{ color: isDark ? brand.neutral[50] : brand.neutral[900], fontWeight: 800 }} noWrap>{line.productName}</Typography>
+        <Typography sx={{ color: isDark ? brand.neutral[400] : brand.neutral[500], fontSize: '0.8rem', fontWeight: 600 }}>SKU: {line.productCode || line.productId.slice(0, 8)}</Typography>
+        <Typography sx={{ color: isDark ? brand.neutral[300] : brand.neutral[700], fontSize: '0.86rem', fontWeight: 700 }}>{line.qty} x Retail Price</Typography>
       </Box>
-      <Typography sx={{ color: brand.neutral[900], fontWeight: 900 }}>{fmt(line.unitPrice * line.qty)}</Typography>
+      <Typography sx={{ color: isDark ? brand.neutral[50] : brand.neutral[900], fontWeight: 900 }}>{fmt(line.unitPrice * line.qty)}</Typography>
     </Stack>
   );
 }
@@ -2051,8 +2055,8 @@ function PaymentMethodCard({
         <Chip label={badge} size="small" sx={{ position: 'absolute', top: 8, right: 8, bgcolor: brand.primary[600], color: '#fff', fontWeight: 700, height: 18, fontSize: '0.625rem' }} />
       )}
       <Box sx={{ color: active ? brand.primary[600] : brand.neutral[500], mb: 1.5, display: 'flex' }}>{icon}</Box>
-      <Typography sx={{ fontWeight: 700, color: brand.neutral[900], fontSize: '0.8125rem' }}>{title}</Typography>
-      <Typography sx={{ color: brand.neutral[500], fontSize: '0.75rem', fontWeight: 500 }}>{subtitle}</Typography>
+      <Typography sx={{ fontWeight: 700, color: isDark ? brand.neutral[50] : brand.neutral[900], fontSize: '0.8125rem' }}>{title}</Typography>
+      <Typography sx={{ color: isDark ? brand.neutral[400] : brand.neutral[500], fontSize: '0.75rem', fontWeight: 500 }}>{subtitle}</Typography>
     </Box>
   );
 }
@@ -2070,7 +2074,7 @@ function KeypadButton({ label, hint, icon, danger, onClick }: { label?: string; 
       sx={{
         height: 86,
         borderRadius: '8px',
-        borderColor: brand.neutral[200],
+        borderColor: isDark ? brand.neutral[700] : brand.neutral[200],
         color: danger ? brand.error.main : brand.neutral[900],
         textTransform: 'none',
         display: 'flex',
@@ -2114,8 +2118,8 @@ function PaymentMeta({ icon, label, value }: { icon: React.ReactNode; label: str
     <Stack direction="row" spacing={1.2} alignItems="center" sx={{ p: 1.2, borderRight: { sm: `1px solid ${brand.neutral[200]}` } }}>
       <Box sx={{ color: brand.info.dark }}>{icon}</Box>
       <Box sx={{ minWidth: 0 }}>
-        <Typography sx={{ fontSize: '0.76rem', color: brand.neutral[500], fontWeight: 700 }}>{label}</Typography>
-        <Typography sx={{ color: brand.neutral[900], fontWeight: 900 }} noWrap>{value}</Typography>
+        <Typography sx={{ fontSize: '0.76rem', color: isDark ? brand.neutral[400] : brand.neutral[500], fontWeight: 700 }}>{label}</Typography>
+        <Typography sx={{ color: isDark ? brand.neutral[50] : brand.neutral[900], fontWeight: 900 }} noWrap>{value}</Typography>
       </Box>
     </Stack>
   );
@@ -2152,7 +2156,7 @@ function FooterBar(p: FooterBarProps) {
         alignItems: 'center',
         justifyContent: 'space-between',
         gap: { xs: 0.5, md: 1.5 },
-        bgcolor: '#fff',
+        bgcolor: isDark ? brand.neutral[800] : '#fff',
         borderTop: `1px solid ${brand.neutral[200]}`,
         flexShrink: 0,
       }}
@@ -2174,7 +2178,7 @@ function FooterBar(p: FooterBarProps) {
               px: { xs: 0.6, md: 1 },
               py: 0.35,
               borderRadius: '6px',
-              bgcolor: brand.neutral[50],
+              bgcolor: isDark ? brand.neutral[900] : brand.neutral[50],
               border: `1px solid ${brand.neutral[200]}`,
               flexShrink: 0,
             }}
@@ -2241,7 +2245,7 @@ function FooterBar(p: FooterBarProps) {
             sx={{
               fontSize: '0.625rem',
               fontWeight: 700,
-              color: brand.neutral[500],
+              color: isDark ? brand.neutral[400] : brand.neutral[500],
               textTransform: 'uppercase',
               letterSpacing: '0.06em',
               display: { xs: 'none', md: 'inline' },
@@ -2330,7 +2334,7 @@ function FooterAction({
           textTransform: 'none',
           fontSize: '0.78rem',
           fontWeight: 800,
-          color: brand.neutral[700],
+          color: isDark ? brand.neutral[300] : brand.neutral[700],
           borderRadius: '12px',
           px: { xs: 0.85, md: 1.35 },
           py: 0.65,

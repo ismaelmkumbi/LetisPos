@@ -1,3 +1,4 @@
+import { useContext } from 'react';
 /**
  * Split POS layout — always-visible cart on desktop, persistent bottom bar on mobile.
  *
@@ -24,6 +25,7 @@ import TotalRow from './TotalRow';
 import { listCategories, listBrands } from 'src/api/smartpos/products';
 import type { Brand as BrandRef, Category } from 'src/api/smartpos/types';
 import { posSurface, premiumFieldSx, softScrollSx, focusVisibleSx } from './shared';
+import { CustomizerContext } from 'src/context/CustomizerContext';
 import { brand } from 'src/theme/smartpos/brand';
 import { formatMoney } from 'src/utils/smartpos/currency';
 
@@ -42,7 +44,7 @@ const TABS = [
 const selectFieldSx = {
   minWidth: 130,
   '& .MuiOutlinedInput-root': {
-    height: 36, borderRadius: '8px', bgcolor: '#fff', fontSize: '0.78rem', fontWeight: 600,
+    height: 36, borderRadius: '8px', bgcolor: brand.neutral[800], fontSize: '0.78rem', fontWeight: 600,
     '& fieldset': { borderColor: brand.neutral[200] },
     '&:hover fieldset': { borderColor: brand.primary[300] },
     '&.Mui-focused fieldset': { borderColor: brand.primary[500] },
@@ -50,6 +52,8 @@ const selectFieldSx = {
 } as const;
 
 export default function SplitLayout(props: PosLayoutProps) {
+  const { activeMode: _pos } = useContext(CustomizerContext);
+  const isDark = _pos === 'dark';
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [cartOpen, setCartOpen] = useState(false);
@@ -96,26 +100,26 @@ export default function SplitLayout(props: PosLayoutProps) {
       <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto', px: 2, ...softScrollSx }}>
         {props.lines.length === 0 ? (
           <Box sx={{ textAlign: 'center', py: 8 }}>
-            <Box sx={{ width: 56, height: 56, borderRadius: '16px', bgcolor: brand.neutral[100], display: 'grid', placeItems: 'center', mx: 'auto', mb: 2 }}>
+            <Box sx={{ width: 56, height: 56, borderRadius: '16px', bgcolor: isDark ? brand.neutral[800] : brand.neutral[100], display: 'grid', placeItems: 'center', mx: 'auto', mb: 2 }}>
               <IconShoppingCart size={24} color={brand.neutral[400]} />
             </Box>
-            <Typography sx={{ fontWeight: 700, color: brand.neutral[700], mb: 0.5 }}>Cart is empty</Typography>
-            <Typography variant="caption" sx={{ color: brand.neutral[500] }}>Tap products to add them</Typography>
+            <Typography sx={{ fontWeight: 700, color: isDark ? brand.neutral[300] : brand.neutral[700], mb: 0.5 }}>Cart is empty</Typography>
+            <Typography variant="caption" sx={{ color: isDark ? brand.neutral[400] : brand.neutral[500] }}>Tap products to add them</Typography>
           </Box>
         ) : (
           <Stack spacing={0.75} sx={{ py: 2 }}>
             {props.lines.map((line, i) => (
               <Box key={`${line.productId}-${i}`}
                 onClick={() => { setEditLineIdx(i); setEditLine(line); }}
-                sx={{ p: 1.5, border: `1px solid ${brand.neutral[200]}`, borderRadius: '12px', cursor: 'pointer', bgcolor: '#fff', transition: 'all 0.15s ease', '&:hover': { borderColor: brand.primary[300], bgcolor: brand.primary[50] }, '&:active': { transform: 'scale(0.99)' } }}>
+                sx={{ p: 1.5, border: `1px solid ${brand.neutral[200]}`, borderRadius: '12px', cursor: 'pointer', bgcolor: isDark ? brand.neutral[800] : '#fff', transition: 'all 0.15s ease', '&:hover': { borderColor: brand.primary[300], bgcolor: brand.primary[50] }, '&:active': { transform: 'scale(0.99)' } }}>
                 <Stack direction="row" justifyContent="space-between" alignItems="center">
                   <Box sx={{ minWidth: 0, flex: 1, mr: 1 }}>
                     <Typography sx={{ fontWeight: 700, fontSize: '0.84rem', mb: 0.25 }} noWrap>{line.productName}</Typography>
-                    <Typography variant="caption" sx={{ color: brand.neutral[500], fontWeight: 600 }}>{fmt(line.unitPrice)} × {line.qty} = {fmt(line.unitPrice * line.qty)}</Typography>
+                    <Typography variant="caption" sx={{ color: isDark ? brand.neutral[400] : brand.neutral[500], fontWeight: 600 }}>{fmt(line.unitPrice)} × {line.qty} = {fmt(line.unitPrice * line.qty)}</Typography>
                   </Box>
                   <Stack direction="row" alignItems="center" spacing={0}>
                     <IconButton size="small" onClick={(e) => { e.stopPropagation(); props.onDecQty(i); }}
-                      sx={{ width: 32, height: 32, borderRadius: '8px', bgcolor: brand.neutral[50], '&:hover': { bgcolor: brand.neutral[100] } }}><IconMinus size={14} /></IconButton>
+                      sx={{ width: 32, height: 32, borderRadius: '8px', bgcolor: isDark ? brand.neutral[900] : brand.neutral[50], '&:hover': { bgcolor: isDark ? brand.neutral[800] : brand.neutral[100] } }}><IconMinus size={14} /></IconButton>
                     <Typography sx={{ minWidth: 28, textAlign: 'center', fontWeight: 800, fontSize: '0.9rem' }}>{line.qty}</Typography>
                     <IconButton size="small" onClick={(e) => { e.stopPropagation(); props.onIncQty(i); }}
                       sx={{ width: 32, height: 32, borderRadius: '8px', bgcolor: brand.primary[50], color: brand.primary[600], '&:hover': { bgcolor: brand.primary[100] } }}><IconPlus size={14} /></IconButton>
@@ -178,7 +182,7 @@ export default function SplitLayout(props: PosLayoutProps) {
 
   const productsPanel = (
     <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
-      <Box sx={{ px: 1.5, py: 1, bgcolor: '#fff', borderBottom: `1px solid ${brand.neutral[200]}`, display: 'flex', gap: 1, alignItems: 'center', flexShrink: 0, overflowX: 'auto', WebkitOverflowScrolling: 'touch', '&::-webkit-scrollbar': { display: 'none' }, scrollbarWidth: 'none' }}>
+      <Box sx={{ px: 1.5, py: 1, bgcolor: isDark ? brand.neutral[800] : '#fff', borderBottom: `1px solid ${brand.neutral[200]}`, display: 'flex', gap: 1, alignItems: 'center', flexShrink: 0, overflowX: 'auto', WebkitOverflowScrolling: 'touch', '&::-webkit-scrollbar': { display: 'none' }, scrollbarWidth: 'none' }}>
         <TextField select size="small" value={props.warehouseId} onChange={(e) => props.onWarehouseChange(e.target.value)} sx={selectFieldSx}>
           {props.warehouses.map((w) => (<MenuItem key={w.id} value={w.id} dense>{w.name}</MenuItem>))}
         </TextField>
@@ -207,7 +211,7 @@ export default function SplitLayout(props: PosLayoutProps) {
         </Box>
       </Box>
 
-      <Box sx={{ px: 1.5, py: 1, bgcolor: '#fff', borderBottom: `1px solid ${brand.neutral[100]}`, overflowX: 'auto', flexShrink: 0, WebkitOverflowScrolling: 'touch', '&::-webkit-scrollbar': { display: 'none' }, scrollbarWidth: 'none' }}>
+      <Box sx={{ px: 1.5, py: 1, bgcolor: isDark ? brand.neutral[800] : '#fff', borderBottom: `1px solid ${brand.neutral[100]}`, overflowX: 'auto', flexShrink: 0, WebkitOverflowScrolling: 'touch', '&::-webkit-scrollbar': { display: 'none' }, scrollbarWidth: 'none' }}>
         <Stack direction="row" spacing={0.5}>
           {TABS.map((tab) => {
             const active = activeTab === tab.key || (tab.key === 'all' && !activeTab);
@@ -216,7 +220,7 @@ export default function SplitLayout(props: PosLayoutProps) {
                 onClick={() => props.onTabChange(tab.key === 'all' ? 'all' : tab.key)} size="small"
                 sx={{ height: 32, px: 1, fontWeight: active ? 700 : 500, fontSize: '0.75rem', borderRadius: '8px', flexShrink: 0,
                   ...(active ? { bgcolor: brand.primary[600], color: '#fff', '&:hover': { bgcolor: brand.primary[700] } }
-                    : { bgcolor: brand.neutral[50], color: brand.neutral[600], border: `1px solid ${brand.neutral[200]}`, '&:hover': { bgcolor: brand.neutral[100] } }) }} />
+                    : { bgcolor: isDark ? brand.neutral[900] : brand.neutral[50], color: isDark ? brand.neutral[300] : brand.neutral[600], border: `1px solid ${brand.neutral[200]}`, '&:hover': { bgcolor: isDark ? brand.neutral[800] : brand.neutral[100] } }) }} />
             );
           })}
         </Stack>
@@ -242,11 +246,11 @@ export default function SplitLayout(props: PosLayoutProps) {
   );
 
   return (
-    <Box sx={{ height: '100%', display: 'flex', bgcolor: '#F7F8FA', overflow: 'hidden' }}>
+    <Box sx={{ height: '100%', display: 'flex', bgcolor: isDark ? brand.neutral[900] : '#F7F8FA', overflow: 'hidden' }}>
       {!isMobile ? (
         <>
           {productsPanel}
-          <Box sx={{ width: CART_WIDTH, flexShrink: 0, bgcolor: '#fff', borderLeft: `1px solid ${brand.neutral[200]}`, display: 'flex', flexDirection: 'column' }}>
+          <Box sx={{ width: CART_WIDTH, flexShrink: 0, bgcolor: isDark ? brand.neutral[800] : '#fff', borderLeft: `1px solid ${brand.neutral[200]}`, display: 'flex', flexDirection: 'column' }}>
             {renderCartContent()}
           </Box>
         </>

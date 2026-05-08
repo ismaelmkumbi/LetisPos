@@ -6,7 +6,9 @@
  * - All layouts share same business logic & checkout flow
  * - Responsive: adapts intelligently on mobile
  */
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { brand } from 'src/theme/smartpos/brand';
+import { CustomizerContext } from 'src/context/CustomizerContext';
 import {
   Box,
   Button,
@@ -70,6 +72,8 @@ type CartHold = {
 };
 export default function PosTerminalPage() {
   const { user } = useAuth();
+  const { activeMode } = useContext(CustomizerContext);
+  const isDark = activeMode === 'dark';
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [warehouseId, setWarehouseId] = useState<string>('');
   const [products, setProducts] = useState<Product[]>([]);
@@ -608,7 +612,7 @@ export default function PosTerminalPage() {
   const ChosenLayout = LayoutComponent[layout] || SplitLayout;
 
   return (
-    <Box sx={{ height: '100vh', overflow: 'hidden', bgcolor: '#F7F8FA' }}>
+    <Box sx={{ height: '100vh', overflow: 'hidden', bgcolor: isDark ? brand.neutral[900] : '#F7F8FA' }}>
       <ChosenLayout {...(layoutProps as PosLayoutProps)} />
 
       <Dialog open={draftsOpen} onClose={() => setDraftsOpen(false)} fullWidth maxWidth="sm">
