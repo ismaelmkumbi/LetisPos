@@ -1,3 +1,4 @@
+import { useContext } from 'react';
 /**
  * ProductsImportDialog — AI-assisted bulk import of products.
  *
@@ -75,6 +76,7 @@ import {
   type ImportRow,
 } from 'src/api/smartpos/aiProducts';
 import type { Brand, Category, Unit } from 'src/api/smartpos/types';
+import { CustomizerContext } from 'src/context/CustomizerContext';
 import { brand } from 'src/theme/smartpos/brand';
 import { tokenStore } from 'src/api/smartpos/client';
 import { extractPdfText, parsePdfRows } from 'src/utils/smartpos/pdfExtract';
@@ -945,7 +947,7 @@ export default function ProductsImportDialog({
                   p: 1.5,
                   borderRadius: '10px',
                   border: `1px solid ${brand.neutral[200]}`,
-                  bgcolor: '#fff',
+                  bgcolor: isDark ? brand.neutral[800] : '#fff',
                 }}
               >
                 <Stack direction="row" spacing={1} flexWrap="wrap" rowGap={1}>
@@ -1326,7 +1328,7 @@ export default function ProductsImportDialog({
                           fontSize: '0.6875rem',
                           fontWeight: 700,
                           color: brand.neutral[600],
-                          bgcolor: brand.neutral[50],
+                          bgcolor: isDark ? brand.neutral[900] : brand.neutral[50],
                           textTransform: 'uppercase',
                           letterSpacing: '0.04em',
                         }}
