@@ -1,32 +1,40 @@
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
 import React from 'react';
-import PageContainer from 'src/components/container/PageContainer';
+import { Box } from '@mui/material';
+import { LpThemeProvider } from './LandingpageTheme';
+import ThemeToggle from './components/ThemeToggle';
+import Header from './sections/Header';
+import Hero from './sections/Hero';
+import TrustBar from './sections/TrustBar';
+import ModulesGrid from './sections/ModulesGrid';
+import HowItWorks from './sections/HowItWorks';
+import AiHighlight from './sections/AiHighlight';
+import Testimonials from './sections/Testimonials';
+import Pricing from './sections/Pricing';
+import Faq from './sections/Faq';
+import FinalCta from './sections/FinalCta';
+import Footer from './sections/Footer';
+import './Landingpage.css';
 
-// components
-import Banner from '../../../components/landingpage/banner/Banner';
-import C2a from '../../../components/landingpage/c2a/C2a';
-import C2a2 from '../../../components/landingpage/c2a/C2a2';
-import DemoSlider from '../../../components/landingpage/demo-slider/DemoSlider';
-import Features from '../../../components/landingpage/features/Features';
-import Footer from '../../../components/landingpage/footer/Footer';
-import Frameworks from '../../../components/landingpage/frameworks/Frameworks';
-import LpHeader from '../../../components/landingpage/header/Header';
-import Testimonial from '../../../components/landingpage/testimonial/Testimonial';
-
-const Landingpage = () => {
+const Landingpage: React.FC = () => {
   return (
-    <PageContainer title="Landingpage" description="this is Landingpage">
-      <LpHeader />
-      <Banner />
-      <DemoSlider />
-      <Frameworks />
-      <Testimonial />
-      <Features />
-      <C2a />
-      <C2a2 />
-      <Footer />
-    </PageContainer>
+    <LpThemeProvider>
+      <Box className="lp-page">
+        <Header />
+        <main>
+          <Hero />
+          <TrustBar />
+          <ModulesGrid />
+          <HowItWorks />
+          <AiHighlight />
+          <Testimonials />
+          <Pricing />
+          <Faq />
+          <FinalCta />
+        </main>
+        <Footer />
+        <ThemeToggle />
+      </Box>
+    </LpThemeProvider>
   );
 };
 

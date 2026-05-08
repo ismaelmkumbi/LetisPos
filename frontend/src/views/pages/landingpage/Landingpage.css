@@ -1,0 +1,37 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap');
+
+:root {
+  --lp-bg: #0F172A;
+  --lp-text: #F8FAFC;
+  --lp-text-muted: #94A3B8;
+  --lp-accent: #4ADE80;
+  --lp-accent-soft: rgba(74, 222, 128, 0.10);
+  --lp-accent-hover: #22C55E;
+  --lp-surface: #111827;
+  --lp-surface-hover: #1E293B;
+  --lp-border: rgba(226, 232, 240, 0.10);
+  --lp-hero-bg: #0F172A;
+  --lp-hero-text: #F8FAFC;
+  --lp-cta-bg: #16A34A;
+  --lp-cta-text: #FFFFFF;
+  --lp-cta-secondary-bg: transparent;
+  --lp-cta-secondary-text: #E2E8F0;
+  --lp-cta-secondary-border: #334155;
+  --lp-font-display: 'Georgia', 'Times New Roman', serif;
+  --lp-font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+.lp-page {
+  background: var(--lp-bg);
+  color: var(--lp-text);
+  font-family: var(--lp-font-body);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.lp-page * {
+  box-sizing: border-box;
+}
