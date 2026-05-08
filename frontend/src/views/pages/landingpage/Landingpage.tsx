@@ -1,9 +1,9 @@
 import React from 'react';
 import { Box } from '@mui/material';
+import { IconArrowRight, IconLogin2 } from '@tabler/icons-react';
 import { LpThemeProvider } from './LandingpageTheme';
 import { DemoDialogProvider } from './components/DemoDialog';
 import ThemeToggle from './components/ThemeToggle';
-import LazySection from './components/LazySection';
 import Header from './sections/Header';
 import Hero from './sections/Hero';
 import TrustBar from './sections/TrustBar';
@@ -21,37 +21,80 @@ const Landingpage: React.FC = () => {
   return (
     <LpThemeProvider>
       <DemoDialogProvider>
-        <Box className="lp-page">
+        <Box className="lp-page" sx={{ pb: { xs: 9, md: 0 } }}>
           <Header />
           <main>
             <Hero />
             <TrustBar />
-            <LazySection minHeight="500px">
-              <ModulesGrid />
-            </LazySection>
-            <LazySection minHeight="300px">
-              <HowItWorks />
-            </LazySection>
-            <LazySection minHeight="400px">
-              <AiHighlight />
-            </LazySection>
-            <LazySection minHeight="350px">
-              <Testimonials />
-            </LazySection>
-            <LazySection minHeight="550px">
-              <Pricing />
-            </LazySection>
-            <LazySection minHeight="400px">
-              <Faq />
-            </LazySection>
-            <LazySection minHeight="300px">
-              <FinalCta />
-            </LazySection>
+            <ModulesGrid />
+            <HowItWorks />
+            <AiHighlight />
+            <Testimonials />
+            <Pricing />
+            <Faq />
+            <FinalCta />
           </main>
-          <LazySection minHeight="300px">
-            <Footer />
-          </LazySection>
+          <Footer />
           <ThemeToggle />
+          <Box
+            sx={{
+              display: { xs: 'grid', md: 'none' },
+              gridTemplateColumns: '0.82fr 1.18fr',
+              gap: 1,
+              position: 'fixed',
+              left: 12,
+              right: 12,
+              bottom: 12,
+              zIndex: 1200,
+              p: 0.75,
+              borderRadius: '16px',
+              border: '1px solid var(--lp-border)',
+              bgcolor: 'rgba(15, 23, 42, 0.92)',
+              backdropFilter: 'blur(16px)',
+              boxShadow: '0 18px 50px rgba(0,0,0,0.35)',
+            }}
+          >
+            <Box
+              component="a"
+              href="/auth/login"
+              sx={{
+                minHeight: 44,
+                borderRadius: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 0.75,
+                color: '#FFFFFF',
+                textDecoration: 'none',
+                fontSize: '0.88rem',
+                fontWeight: 800,
+                border: '1px solid rgba(255,255,255,0.16)',
+              }}
+            >
+              <IconLogin2 size={17} />
+              Sign in
+            </Box>
+            <Box
+              component="a"
+              href="/auth/register"
+              sx={{
+                minHeight: 44,
+                borderRadius: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 0.75,
+                bgcolor: 'var(--lp-cta-bg)',
+                color: 'var(--lp-cta-text)',
+                textDecoration: 'none',
+                fontSize: '0.88rem',
+                fontWeight: 900,
+              }}
+            >
+              Start free
+              <IconArrowRight size={17} />
+            </Box>
+          </Box>
         </Box>
       </DemoDialogProvider>
     </LpThemeProvider>
