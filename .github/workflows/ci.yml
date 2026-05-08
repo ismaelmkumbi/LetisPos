@@ -261,7 +261,6 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
-          script_stop: true
           script: |
             set -euo pipefail
             PROJECT_DIR="${{ secrets.VPS_PROJECT_PATH || '/var/www/LetisPos' }}"
@@ -302,7 +301,7 @@ jobs:
 
             # ── Restart each changed systemd unit ─────────────────────
             for svc in $CHANGED; do
-              UNIT="letispos-${svc}"
+              UNIT="letispos-${svc%-service}"
               echo "==> Restarting $UNIT"
               systemctl restart "$UNIT"
               sleep 4
