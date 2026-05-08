@@ -126,7 +126,10 @@ spring:
             allowed-methods:
               - "*"
             allowed-headers:
-              - "*"
+              - "Authorization"
+              - "Content-Type"
+              - "X-Tenant-ID"
+              - "X-Requested-With"
             allow-credentials: true
 
   security:
