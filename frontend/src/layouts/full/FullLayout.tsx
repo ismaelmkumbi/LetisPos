@@ -14,6 +14,8 @@ import { CommandPalette } from 'src/components/smartpos/CommandPalette';
 import { KeyboardShortcutsHelp } from 'src/components/smartpos/KeyboardShortcuts';
 import { FloatingActions } from 'src/components/smartpos/FloatingActions';
 import { BreadcrumbNav } from 'src/components/smartpos/BreadcrumbNav';
+import MobileBottomNav from 'src/components/smartpos/MobileBottomNav';
+import MoreMenuSheet from 'src/components/smartpos/MoreMenuSheet';
 
 const MainWrapper = styled('div')(() => ({
   display: 'flex',
@@ -24,12 +26,16 @@ const MainWrapper = styled('div')(() => ({
 const PageWrapper = styled('div')(({ theme }) => ({
   display: 'flex',
   flexGrow: 1,
-  paddingBottom: '48px',
+  paddingBottom: '72px',
   flexDirection: 'column',
   zIndex: 1,
   width: '100%',
   backgroundColor: theme.palette.background.default,
+  backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 256 256\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noise\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\' numOctaves=\'4\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23noise)\' opacity=\'0.03\'/%3E%3C/svg%3E")',
   transition: 'margin-left 0.25s ease',
+  [theme.breakpoints.down('md')]: {
+    paddingBottom: '76px',
+  },
 }));
 
 const FullLayout: FC = () => {
@@ -125,6 +131,10 @@ const FullLayout: FC = () => {
 
           {/* Floating Action Button for quick actions */}
           <FloatingActions />
+
+          {/* Mobile bottom nav + more menu sheet */}
+          <MobileBottomNav />
+          <MoreMenuSheet />
         </>
       )}
     </>

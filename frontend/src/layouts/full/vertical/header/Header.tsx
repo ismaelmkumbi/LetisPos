@@ -15,14 +15,13 @@ import Profile from './Profile';
 import Search from './Search';
 import Language from './Language';
 import Navigation from './Navigation';
-import MobileRightSidebar from './MobileRightSidebar';
 import { CustomizerContext } from 'src/context/CustomizerContext';
 import { brand } from 'src/theme/smartpos/brand';
 import { Link as RouterLink, useLocation } from 'react-router';
 
 const Header = () => {
   const lgUp = useMediaQuery((theme: any) => theme.breakpoints.up('lg'));
-  const lgDown = useMediaQuery((theme: any) => theme.breakpoints.down('lg'));
+  const mdDown = useMediaQuery((theme: any) => theme.breakpoints.down('md'));
   const smUp = useMediaQuery((theme: any) => theme.breakpoints.up('sm'));
   const { pathname } = useLocation();
   const onSmartPos = pathname.startsWith('/smartpos');
@@ -34,10 +33,9 @@ const Header = () => {
   const isDark = activeMode === 'dark';
   const theme = useTheme();
 
-  /* ─── Shared icon button style ─── */
   const iconBtnSx = {
-    width: 44,
-    height: 44,
+    width: 40,
+    height: 40,
     borderRadius: '10px',
     border: `1px solid ${isDark ? brand.neutral[700] : brand.neutral[200]}`,
     bgcolor: isDark ? brand.neutral[800] : '#FFFFFF',
@@ -51,7 +49,7 @@ const Header = () => {
   };
 
   const sidebarToggle = (
-    <Tooltip title={isCollapse === 'full-sidebar' ? 'Collapse sidebar' : 'Expand sidebar'}>
+    <Tooltip title={lgUp ? (isCollapse === 'full-sidebar' ? 'Collapse' : 'Expand') : 'Menu'}>
       <IconButton
         size="small"
         onClick={() => {
@@ -74,14 +72,15 @@ const Header = () => {
       to="/smartpos/sales/new"
       variant="contained"
       size="small"
-      startIcon={<IconPlus size={15} />}
+      startIcon={smUp ? <IconPlus size={15} /> : undefined}
       sx={{
-        height: 42,
+        height: 38,
+        minWidth: mdDown ? 38 : 'auto',
         background: `linear-gradient(135deg, ${brand.primary[500]} 0%, ${brand.primary[700]} 100%)`,
         color: '#fff',
         fontWeight: 700,
-        fontSize: '0.85rem',
-        px: 2.2,
+        fontSize: '0.813rem',
+        px: mdDown ? 0 : 2.2,
         borderRadius: '10px',
         whiteSpace: 'nowrap',
         boxShadow: `0 6px 16px -8px ${brand.primary[600]}`,
@@ -93,7 +92,7 @@ const Header = () => {
         },
       }}
     >
-      New Sale
+      {mdDown ? <IconPlus size={18} /> : 'New Sale'}
     </Button>
   );
 
@@ -105,12 +104,66 @@ const Header = () => {
         sx={iconBtnSx}
       >
         {activeMode === 'light'
-          ? <IconMoon size={17} stroke={1.5} />
-          : <IconSun size={17} stroke={1.5} />}
+          ? <IconMoon size={16} stroke={1.5} />
+          : <IconSun size={16} stroke={1.5} />}
       </IconButton>
     </Tooltip>
   );
 
+  // SmartPOS header — cleaner, fewer elements on mobile
+  if (onSmartPos) {
+    return (
+      <AppBar
+        position="sticky"
+        color="default"
+        elevation={0}
+        sx={{
+          height: TopbarHeight,
+          minHeight: TopbarHeight,
+          background: isDark
+            ? `rgba(15, 23, 42, 0.82)`
+            : `rgba(255, 255, 255, 0.78)`,
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
+          borderBottom: `1px solid ${isDark ? brand.neutral[700] : brand.neutral[200]}`,
+          boxShadow: 'none',
+          zIndex: theme.zIndex.drawer - 1,
+        }}
+      >
+        <Toolbar
+          sx={{
+            minHeight: `${TopbarHeight}px !important`,
+            px: { xs: 1.5, sm: 2, lg: 2.75 },
+            gap: 1,
+          }}
+        >
+          {sidebarToggle}
+
+          <Box flexGrow={1} />
+
+          {isDashboard && newSaleButton}
+
+          {isDashboard && !mdDown && (
+            <Divider
+              orientation="vertical"
+              flexItem
+              sx={{ mx: 0.25, my: 1.7, borderColor: isDark ? brand.neutral[600] : brand.neutral[200] }}
+            />
+          )}
+
+          <Stack direction="row" spacing={0.6} alignItems="center">
+            {!mdDown && <Search />}
+            {lgUp && <Language />}
+            {modeToggle}
+            <Notifications />
+            <Profile />
+          </Stack>
+        </Toolbar>
+      </AppBar>
+    );
+  }
+
+  // Non-SmartPOS header
   return (
     <AppBar
       position="sticky"
@@ -129,64 +182,33 @@ const Header = () => {
         zIndex: theme.zIndex.drawer - 1,
       }}
     >
-      {onSmartPos ? (
-        <Toolbar
-          sx={{
-            minHeight: `${TopbarHeight}px !important`,
-            px: { xs: 1.5, sm: 2, lg: 2.75 },
-            gap: 1,
-          }}
-        >
-          {sidebarToggle}
+      <Toolbar
+        sx={{
+          height: TopbarHeight,
+          minHeight: `${TopbarHeight}px !important`,
+          px: { xs: 1.5, sm: 2, lg: 3 },
+          gap: 1,
+          flexWrap: 'nowrap',
+          py: 0,
+        }}
+      >
+        {sidebarToggle}
 
-          <Box flexGrow={1} />
+        <Box sx={{ flex: lgUp ? '0 1 320px' : 1 }}>
+          <Search />
+        </Box>
 
-          {isDashboard && smUp && newSaleButton}
+        {lgUp && <Navigation />}
 
-          <Divider
-            orientation="vertical"
-            flexItem
-            sx={{ mx: 0.25, my: 1.7, borderColor: isDark ? brand.neutral[600] : brand.neutral[200] }}
-          />
+        <Box flexGrow={1} sx={{ display: { xs: 'none', xl: 'block' } }} />
 
-          <Stack direction="row" spacing={0.6} alignItems="center">
-            <Search />
-            <Language />
-            {modeToggle}
-            <Notifications />
-            <Profile />
-          </Stack>
-        </Toolbar>
-      ) : (
-        <Toolbar
-          sx={{
-            height: TopbarHeight,
-            minHeight: `${TopbarHeight}px !important`,
-            px: { xs: 1.5, sm: 2, lg: 3 },
-            gap: 1,
-            flexWrap: 'nowrap',
-            py: 0,
-          }}
-        >
-          {sidebarToggle}
-
-          <Box sx={{ flex: lgUp ? '0 1 320px' : 1 }}>
-            <Search />
-          </Box>
-
-          {lgUp && <Navigation />}
-
-          <Box flexGrow={1} sx={{ display: { xs: 'none', xl: 'block' } }} />
-
-          <Stack direction="row" spacing={0.75} alignItems="center" sx={{ ml: 0, minWidth: 0 }}>
-            <Language />
-            {modeToggle}
-            <Notifications />
-            {lgDown && <MobileRightSidebar />}
-            <Profile />
-          </Stack>
-        </Toolbar>
-      )}
+        <Stack direction="row" spacing={0.75} alignItems="center" sx={{ ml: 0, minWidth: 0 }}>
+          {lgUp && <Language />}
+          {modeToggle}
+          <Notifications />
+          <Profile />
+        </Stack>
+      </Toolbar>
     </AppBar>
   );
 };

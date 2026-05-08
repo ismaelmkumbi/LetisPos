@@ -101,7 +101,7 @@ const Sidebar = () => {
       onClose={() => setIsMobileSidebar(false)}
       onOpen={() => setIsMobileSidebar(true)}
       disableSwipeToOpen={false}
-      swipeAreaWidth={20}
+      swipeAreaWidth={28}
       hysteresis={0.3}
       transitionDuration={300}
       slotProps={{
@@ -110,6 +110,7 @@ const Sidebar = () => {
             ...paperSx,
             width: SidebarWidth,
             boxShadow: theme.shadows[16],
+            pb: 'env(safe-area-inset-bottom, 0px)',
           },
         },
         backdrop: {
@@ -133,7 +134,13 @@ const Sidebar = () => {
         >
           <Logo />
         </Box>
-        <Scrollbar sx={{ flex: 1 }}>
+        <Scrollbar
+          sx={{
+            flex: 1,
+            minHeight: 0,
+            '& .simplebar-content': { minHeight: '100%', display: 'flex', flexDirection: 'column' },
+          }}
+        >
           <SidebarItems />
         </Scrollbar>
         <Box sx={{ borderTop: `1px solid ${borderColor}`, flexShrink: 0 }}>
