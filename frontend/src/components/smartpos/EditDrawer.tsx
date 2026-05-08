@@ -48,6 +48,8 @@ export function EditDrawer({
         sx: {
           width: { xs: '100%', sm: drawerWidth },
           maxWidth: '100vw',
+          height: { xs: '100%', sm: 'auto' },
+          maxHeight: { xs: '100dvh', sm: '90vh' },
           display: 'flex',
           flexDirection: 'column',
         },
