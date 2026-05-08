@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, ReactNode } from 'react';
 
-export type PosLayout = 'classic' | 'compact' | 'sidebar' | 'modal' | 'modern';
+export type PosLayout = 'split' | 'classic' | 'compact' | 'sidebar' | 'modal' | 'split';
 
 interface PosLayoutContextType {
   layout: PosLayout;
@@ -13,11 +13,11 @@ const STORAGE_KEY = 'smartpos.posLayout';
 
 export function PosLayoutProvider({ children }: { children: ReactNode }) {
   const [layout, setLayoutState] = useState<PosLayout>(() => {
-    if (typeof window === 'undefined') return 'modern';
+    if (typeof window === 'undefined') return 'split';
     const stored = localStorage.getItem(STORAGE_KEY) as PosLayout | null;
-    return stored && ['classic', 'compact', 'sidebar', 'modal', 'modern'].includes(stored)
+    return stored && ['split', 'classic', 'compact', 'sidebar', 'modal', 'modern'].includes(stored)
       ? stored
-      : 'modern';
+      : 'split';
   });
 
   const setLayout = (newLayout: PosLayout) => {

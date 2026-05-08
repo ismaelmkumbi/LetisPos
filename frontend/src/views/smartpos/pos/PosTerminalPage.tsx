@@ -49,6 +49,7 @@ import ClassicLayout from 'src/components/smartpos/PosLayouts/ClassicLayout';
 import CompactLayout from 'src/components/smartpos/PosLayouts/CompactLayout';
 import SidebarLayout from 'src/components/smartpos/PosLayouts/SidebarLayout';
 import ModalLayout from 'src/components/smartpos/PosLayouts/ModalLayout';
+import SplitLayout from 'src/components/smartpos/PosLayouts/SplitLayout';
 
 import { usePosLayout } from 'src/context/smartpos/PosLayoutContext';
 import { useAuth } from 'src/context/smartpos/AuthContext';
@@ -597,13 +598,14 @@ export default function PosTerminalPage() {
 
   const { layout } = usePosLayout();
   const LayoutComponent: Record<string, React.ComponentType<PosLayoutProps>> = {
+    split: SplitLayout as React.ComponentType<PosLayoutProps>,
     modern: ModernLayout as React.ComponentType<PosLayoutProps>,
     classic: ClassicLayout as React.ComponentType<PosLayoutProps>,
     compact: CompactLayout as React.ComponentType<PosLayoutProps>,
     sidebar: SidebarLayout as React.ComponentType<PosLayoutProps>,
     modal: ModalLayout as React.ComponentType<PosLayoutProps>,
   };
-  const ChosenLayout = LayoutComponent[layout];
+  const ChosenLayout = LayoutComponent[layout] || SplitLayout;
 
   return (
     <Box sx={{ height: '100vh', overflow: 'hidden', bgcolor: '#F7F8FA' }}>
