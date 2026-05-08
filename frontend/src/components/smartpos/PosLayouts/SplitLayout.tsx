@@ -76,7 +76,7 @@ export default function SplitLayout(props: PosLayoutProps) {
   }, [props.totals.subtotal, props.totals.tax, props.totals.discount]);
 
   const renderCartContent = () => (
-    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
       <Stack direction="row" alignItems="center" justifyContent="space-between"
         sx={{ px: 2.5, py: 2, borderBottom: `1px solid ${brand.neutral[100]}`, flexShrink: 0 }}>
         <Stack direction="row" alignItems="center" spacing={1}>
@@ -93,7 +93,7 @@ export default function SplitLayout(props: PosLayoutProps) {
         </Stack>
       </Stack>
 
-      <Box sx={{ flex: 1, overflowY: 'auto', px: 2, ...softScrollSx }}>
+      <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto', px: 2, ...softScrollSx }}>
         {props.lines.length === 0 ? (
           <Box sx={{ textAlign: 'center', py: 8 }}>
             <Box sx={{ width: 56, height: 56, borderRadius: '16px', bgcolor: brand.neutral[100], display: 'grid', placeItems: 'center', mx: 'auto', mb: 2 }}>
@@ -130,7 +130,7 @@ export default function SplitLayout(props: PosLayoutProps) {
       </Box>
 
       {props.lines.length > 0 && (
-        <Box sx={{ borderTop: `1px solid ${brand.neutral[200]}`, px: 2, pt: 1.5, pb: isMobile ? 1 : 2, flexShrink: 0 }}>
+        <Box sx={{ borderTop: `1px solid ${brand.neutral[200]}`, px: 2, pt: 1.5, pb: isMobile ? 'calc(16px + env(safe-area-inset-bottom, 8px))' : 2, flexShrink: 0 }}>
           <Stack spacing={0.5} sx={{ mb: 1.5 }}>
             <TotalRow label="Subtotal" value={fmt(totals.subtotal)} size="small" />
             <TotalRow label="Tax" value={fmt(totals.tax)} size="small" />
@@ -275,7 +275,7 @@ export default function SplitLayout(props: PosLayoutProps) {
             </Box>
           )}
           <Drawer anchor="bottom" open={cartOpen} onClose={() => setCartOpen(false)}
-            PaperProps={{ sx: { height: '85dvh', borderTopLeftRadius: 20, borderTopRightRadius: 20, display: 'flex', flexDirection: 'column' } }}>
+            PaperProps={{ sx: { maxHeight: 'calc(100dvh - 56px)', height: '85dvh', borderTopLeftRadius: 20, borderTopRightRadius: 20, display: 'flex', flexDirection: 'column', overflow: 'hidden' } }}>
             {renderCartContent()}
           </Drawer>
         </>
