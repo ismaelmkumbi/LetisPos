@@ -10,7 +10,7 @@ spring:
   datasource:
     # See product-service notes — preferQueryMode=simple sidesteps a
     # Postgres null-parameter type-inference quirk in JPQL queries.
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/sales_db?preferQueryMode=simple}
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/sales_db?preferQueryMode=${DB_PREFER_QUERY_MODE:simple}}
     username: ${DB_USER:sales_user}
     password: ${DB_PASSWORD:sales_pass}
     hikari:
