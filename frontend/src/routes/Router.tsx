@@ -352,6 +352,9 @@ const BlogPage = Loadable(lazy(() => import('../views/pages/frontend-pages/Blog'
 const BlogPost = Loadable(lazy(() => import('../views/pages/frontend-pages/BlogPost')));
 
 const Router = [
+  // ---- Landing page (public) ----
+  { path: '/', element: <Landingpage /> },
+
   // ---- SmartPOS POS terminal — full-screen kiosk, no admin sidebar/header ----
   {
     path: '/smartpos/pos',
@@ -476,7 +479,6 @@ const Router = [
     path: '/',
     element: <FullLayout />,
     children: [
-      { path: '/', element: <Navigate to="/smartpos/dashboard" /> },
       { path: '/dashboards/modern', exact: true, element: <ModernDash /> },
       { path: '/dashboards/ecommerce', exact: true, element: <EcommerceDash /> },
       { path: '/apps/contacts', element: <Contacts /> },
