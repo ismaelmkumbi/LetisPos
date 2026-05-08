@@ -1,11 +1,15 @@
+import { useContext } from 'react';
 /**
  * Shared utilities, CSS constants, and helpers for all POS layouts.
  */
+import { CustomizerContext } from 'src/context/CustomizerContext';
 import { brand } from 'src/theme/smartpos/brand';
 import type { Line } from './types';
 
 /** Unit price from tier when line has basePrice / unitCost from catalog. */
 export function unitPriceForTier(line: Line, tier: NonNullable<Line['priceTier']>): number {
+  const { activeMode: _pos } = useContext(CustomizerContext);
+  const isDark = _pos === 'dark';
   const base = line.basePrice ?? line.unitPrice;
   if (tier === 'retail') return Math.round(base * 100) / 100;
   if (tier === 'wholesale') {
@@ -26,27 +30,27 @@ export const PRODUCT_PAGE_SIZE = 10;
 export const posSurface = {
   border: `1px solid ${brand.neutral[200]}`,
   borderRadius: '18px',
-  bgcolor: '#fff',
+  bgcolor: isDark ? brand.neutral[800] : '#fff',
   boxShadow: `0 1px 2px ${brand.neutral[900]}08, 0 18px 48px -28px ${brand.primary[900]}33`,
 } as const;
 
 export const premiumFieldSx = {
   '& .MuiOutlinedInput-root': {
     borderRadius: '10px',
-    bgcolor: '#fff',
+    bgcolor: isDark ? brand.neutral[800] : '#fff',
     fontSize: '0.86rem',
     transition: 'border-color 0.18s ease, background 0.18s ease',
-    '& fieldset': { borderColor: brand.neutral[200] },
+    '& fieldset': { borderColor: isDark ? brand.neutral[700] : brand.neutral[200] },
     '&:hover fieldset': { borderColor: brand.primary[300] },
     '&.Mui-focused': {
-      bgcolor: '#fff',
+      bgcolor: isDark ? brand.neutral[800] : '#fff',
     },
     '&.Mui-focused fieldset': { borderColor: brand.primary[500], borderWidth: '2px' },
   },
   '& .MuiInputLabel-root': {
     fontSize: '0.78rem',
     fontWeight: 700,
-    color: brand.neutral[500],
+    color: isDark ? brand.neutral[400] : brand.neutral[500],
   },
 } as const;
 

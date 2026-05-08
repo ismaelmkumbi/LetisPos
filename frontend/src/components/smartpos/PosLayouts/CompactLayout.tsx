@@ -1,3 +1,4 @@
+import { useContext } from 'react';
 /**
  * Compact POS layout — product grid + floating cart FAB → bottom Drawer.
  *
@@ -24,6 +25,7 @@ import TotalRow from './TotalRow';
 import { listCategories, listBrands } from 'src/api/smartpos/products';
 import type { Brand as BrandRef, Category } from 'src/api/smartpos/types';
 import { posSurface, premiumFieldSx, softScrollSx, focusVisibleSx } from './shared';
+import { CustomizerContext } from 'src/context/CustomizerContext';
 import { brand } from 'src/theme/smartpos/brand';
 import { formatMoney } from 'src/utils/smartpos/currency';
 
@@ -40,7 +42,7 @@ const TABS = [
 const selectFieldSx = {
   minWidth: 130,
   '& .MuiOutlinedInput-root': {
-    height: 36, borderRadius: '8px', bgcolor: '#fff', fontSize: '0.78rem', fontWeight: 600,
+    height: 36, borderRadius: '8px', bgcolor: brand.neutral[800], fontSize: '0.78rem', fontWeight: 600,
     '& fieldset': { borderColor: brand.neutral[200] },
     '&:hover fieldset': { borderColor: brand.primary[300] },
     '&.Mui-focused fieldset': { borderColor: brand.primary[500] },
@@ -48,6 +50,8 @@ const selectFieldSx = {
 } as const;
 
 export default function CompactLayout(props: PosLayoutProps) {
+  const { activeMode: _pos } = useContext(CustomizerContext);
+  const isDark = _pos === 'dark';
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -79,11 +83,11 @@ export default function CompactLayout(props: PosLayoutProps) {
   }, [itemCount]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: '#F7F8FA', overflow: 'hidden' }}>
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: isDark ? brand.neutral[900] : '#F7F8FA', overflow: 'hidden' }}>
       {/* ═══ Top bar — horizontally scrollable on mobile ═══ */}
       <Box
         sx={{
-          px: 1.5, py: 1, bgcolor: '#fff',
+          px: 1.5, py: 1, bgcolor: isDark ? brand.neutral[800] : '#fff',
           borderBottom: `1px solid ${brand.neutral[200]}`,
           display: 'flex', gap: 1, alignItems: 'center',
           flexShrink: 0, overflowX: 'auto',
@@ -152,7 +156,7 @@ export default function CompactLayout(props: PosLayoutProps) {
       {/* ═══ Product filter tabs ═══ */}
       <Box
         sx={{
-          px: 1.5, py: 1, bgcolor: '#fff',
+          px: 1.5, py: 1, bgcolor: isDark ? brand.neutral[800] : '#fff',
           borderBottom: `1px solid ${brand.neutral[100]}`,
           overflowX: 'auto', flexShrink: 0,
           WebkitOverflowScrolling: 'touch',
@@ -175,7 +179,7 @@ export default function CompactLayout(props: PosLayoutProps) {
                   borderRadius: '8px', flexShrink: 0,
                   ...(active
                     ? { bgcolor: brand.primary[600], color: '#fff', '&:hover': { bgcolor: brand.primary[700] } }
-                    : { bgcolor: brand.neutral[50], color: brand.neutral[600], border: `1px solid ${brand.neutral[200]}`, '&:hover': { bgcolor: brand.neutral[100] } }
+                    : { bgcolor: isDark ? brand.neutral[900] : brand.neutral[50], color: isDark ? brand.neutral[300] : brand.neutral[600], border: `1px solid ${brand.neutral[200]}`, '&:hover': { bgcolor: isDark ? brand.neutral[800] : brand.neutral[100] } }
                   ),
                 }}
               />
@@ -344,11 +348,11 @@ export default function CompactLayout(props: PosLayoutProps) {
         <Box sx={{ flex: 1, overflowY: 'auto', px: 2, ...softScrollSx }}>
           {props.lines.length === 0 ? (
             <Box sx={{ textAlign: 'center', py: 8 }}>
-              <Box sx={{ width: 56, height: 56, borderRadius: '16px', bgcolor: brand.neutral[100], display: 'grid', placeItems: 'center', mx: 'auto', mb: 2 }}>
+              <Box sx={{ width: 56, height: 56, borderRadius: '16px', bgcolor: isDark ? brand.neutral[800] : brand.neutral[100], display: 'grid', placeItems: 'center', mx: 'auto', mb: 2 }}>
                 <IconShoppingCart size={24} color={brand.neutral[400]} />
               </Box>
-              <Typography sx={{ fontWeight: 700, color: brand.neutral[700], mb: 0.5 }}>Cart is empty</Typography>
-              <Typography variant="caption" sx={{ color: brand.neutral[500] }}>
+              <Typography sx={{ fontWeight: 700, color: isDark ? brand.neutral[300] : brand.neutral[700], mb: 0.5 }}>Cart is empty</Typography>
+              <Typography variant="caption" sx={{ color: isDark ? brand.neutral[400] : brand.neutral[500] }}>
                 Tap products from the grid to add them
               </Typography>
             </Box>
@@ -360,7 +364,7 @@ export default function CompactLayout(props: PosLayoutProps) {
                   onClick={() => { setEditLineIdx(i); setEditLine(line); }}
                   sx={{
                     p: 1.5, border: `1px solid ${brand.neutral[200]}`,
-                    borderRadius: '12px', cursor: 'pointer', bgcolor: '#fff',
+                    borderRadius: '12px', cursor: 'pointer', bgcolor: isDark ? brand.neutral[800] : '#fff',
                     transition: 'all 0.15s ease',
                     '&:hover': { borderColor: brand.primary[300], bgcolor: brand.primary[50] },
                     '&:active': { transform: 'scale(0.99)' },
@@ -373,7 +377,7 @@ export default function CompactLayout(props: PosLayoutProps) {
                       <Typography sx={{ fontWeight: 700, fontSize: '0.84rem', mb: 0.25 }} noWrap>
                         {line.productName}
                       </Typography>
-                      <Typography variant="caption" sx={{ color: brand.neutral[500], fontWeight: 600 }}>
+                      <Typography variant="caption" sx={{ color: isDark ? brand.neutral[400] : brand.neutral[500], fontWeight: 600 }}>
                         {fmt(line.unitPrice)} × {line.qty} = {fmt(line.unitPrice * line.qty)}
                       </Typography>
                     </Box>
@@ -382,7 +386,7 @@ export default function CompactLayout(props: PosLayoutProps) {
                     <Stack direction="row" alignItems="center" spacing={0} sx={{ flexShrink: 0 }}>
                       <IconButton size="small"
                         onClick={(e) => { e.stopPropagation(); props.onDecQty(i); }}
-                        sx={{ width: 32, height: 32, borderRadius: '8px', bgcolor: brand.neutral[50], '&:hover': { bgcolor: brand.neutral[100] } }}
+                        sx={{ width: 32, height: 32, borderRadius: '8px', bgcolor: isDark ? brand.neutral[900] : brand.neutral[50], '&:hover': { bgcolor: isDark ? brand.neutral[800] : brand.neutral[100] } }}
                       >
                         <IconMinus size={14} />
                       </IconButton>

@@ -1,3 +1,4 @@
+import { useContext } from 'react';
 /**
  * Sidebar POS layout — always-visible cart panel on the left, products on the right.
  *
@@ -42,6 +43,7 @@ import TotalRow from './TotalRow';
 import { listCategories, listBrands } from 'src/api/smartpos/products';
 import type { Brand as BrandRef, Category } from 'src/api/smartpos/types';
 import { posSurface, premiumFieldSx, softScrollSx, focusVisibleSx } from './shared';
+import { CustomizerContext } from 'src/context/CustomizerContext';
 import { brand } from 'src/theme/smartpos/brand';
 import { formatMoney } from 'src/utils/smartpos/currency';
 
@@ -52,7 +54,7 @@ const filterFieldSx = {
   '& .MuiOutlinedInput-root': {
     height: 38,
     borderRadius: '8px',
-    bgcolor: '#fff',
+    bgcolor: brand.neutral[800],
     fontSize: '0.82rem',
     '& fieldset': { borderColor: brand.neutral[200] },
     '&:hover fieldset': { borderColor: brand.primary[300] },
@@ -61,6 +63,8 @@ const filterFieldSx = {
 } as const;
 
 export default function SidebarLayout(props: PosLayoutProps) {
+  const { activeMode: _pos } = useContext(CustomizerContext);
+  const isDark = _pos === 'dark';
   const [editLineIdx, setEditLineIdx] = useState<number | null>(null);
   const [editLine, setEditLine] = useState<Line | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -83,14 +87,14 @@ export default function SidebarLayout(props: PosLayoutProps) {
   }, [props.totals.subtotal, props.totals.tax, props.totals.discount]);
 
   return (
-    <Box sx={{ height: '100%', display: 'flex', bgcolor: '#F7F8FA', overflow: 'hidden' }}>
+    <Box sx={{ height: '100%', display: 'flex', bgcolor: isDark ? brand.neutral[900] : '#F7F8FA', overflow: 'hidden' }}>
       {/* ── Left cart panel ────────────────────────────────── */}
       <Box sx={{
         width: 300,
         flexShrink: 0,
         display: 'flex',
         flexDirection: 'column',
-        bgcolor: '#fff',
+        bgcolor: isDark ? brand.neutral[800] : '#fff',
         borderRight: `1px solid ${brand.neutral[200]}`,
         overflow: 'hidden',
       }}>
@@ -101,7 +105,7 @@ export default function SidebarLayout(props: PosLayoutProps) {
           </Avatar>
           <Box sx={{ flex: 1 }}>
             <Typography sx={{ fontWeight: 800, fontSize: '0.9rem', lineHeight: 1.1 }}>Order</Typography>
-            <Typography variant="caption" sx={{ color: brand.neutral[500] }}>{itemCount} items</Typography>
+            <Typography variant="caption" sx={{ color: isDark ? brand.neutral[400] : brand.neutral[500] }}>{itemCount} items</Typography>
           </Box>
           <CashRegisterIndicator
             session={props.registerSession ?? null}
@@ -116,7 +120,7 @@ export default function SidebarLayout(props: PosLayoutProps) {
           {props.lines.length === 0 ? (
             <Box sx={{ textAlign: 'center', py: 5, border: `1.5px dashed ${brand.neutral[200]}`, borderRadius: '12px', bgcolor: brand.primary[50] }}>
               <IconShoppingCart size={28} color={brand.neutral[300]} />
-              <Typography variant="caption" sx={{ display: 'block', mt: 0.5, color: brand.neutral[500], fontWeight: 600 }}>Empty cart</Typography>
+              <Typography variant="caption" sx={{ display: 'block', mt: 0.5, color: isDark ? brand.neutral[400] : brand.neutral[500], fontWeight: 600 }}>Empty cart</Typography>
             </Box>
           ) : (
             <Stack spacing={1}>
@@ -170,7 +174,7 @@ export default function SidebarLayout(props: PosLayoutProps) {
       {/* ── Right products area ────────────────────────────── */}
       <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
         {/* Search + barcode + filters bar */}
-        <Box sx={{ px: 1.5, py: 1, bgcolor: '#fff', borderBottom: `1px solid ${brand.neutral[200]}`, display: 'flex', gap: 1, flexShrink: 0, flexWrap: 'wrap' }}>
+        <Box sx={{ px: 1.5, py: 1, bgcolor: isDark ? brand.neutral[800] : '#fff', borderBottom: `1px solid ${brand.neutral[200]}`, display: 'flex', gap: 1, flexShrink: 0, flexWrap: 'wrap' }}>
           <TextField
             select
             size="small"

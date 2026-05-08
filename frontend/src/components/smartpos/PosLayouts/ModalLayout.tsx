@@ -1,3 +1,4 @@
+import { useContext } from 'react';
 /**
  * Modal POS layout — full products grid, checkout in a fullScreen Dialog.
  *
@@ -45,6 +46,7 @@ import TotalRow from './TotalRow';
 import { listCategories, listBrands } from 'src/api/smartpos/products';
 import type { Brand as BrandRef, Category } from 'src/api/smartpos/types';
 import { posSurface, premiumFieldSx, softScrollSx, focusVisibleSx, FOOTER_HEIGHT } from './shared';
+import { CustomizerContext } from 'src/context/CustomizerContext';
 import { brand } from 'src/theme/smartpos/brand';
 import { formatMoney } from 'src/utils/smartpos/currency';
 
@@ -55,7 +57,7 @@ const filterFieldSx = {
   '& .MuiOutlinedInput-root': {
     height: 38,
     borderRadius: '8px',
-    bgcolor: '#fff',
+    bgcolor: brand.neutral[800],
     fontSize: '0.82rem',
     '& fieldset': { borderColor: brand.neutral[200] },
     '&:hover fieldset': { borderColor: brand.primary[300] },
@@ -64,6 +66,8 @@ const filterFieldSx = {
 } as const;
 
 export default function ModalLayout(props: PosLayoutProps) {
+  const { activeMode: _pos } = useContext(CustomizerContext);
+  const isDark = _pos === 'dark';
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [editLineIdx, setEditLineIdx] = useState<number | null>(null);
   const [editLine, setEditLine] = useState<Line | null>(null);
@@ -88,9 +92,9 @@ export default function ModalLayout(props: PosLayoutProps) {
   }, [props.totals.subtotal, props.totals.tax, props.totals.discount]);
 
   return (
-    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: '#F7F8FA', overflow: 'hidden' }}>
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: isDark ? brand.neutral[900] : '#F7F8FA', overflow: 'hidden' }}>
       {/* Top bar */}
-      <Box sx={{ px: 1.5, py: 1, bgcolor: '#fff', borderBottom: `1px solid ${brand.neutral[200]}`, display: 'flex', gap: 1, alignItems: 'center', flexShrink: 0, flexWrap: 'wrap' }}>
+      <Box sx={{ px: 1.5, py: 1, bgcolor: isDark ? brand.neutral[800] : '#fff', borderBottom: `1px solid ${brand.neutral[200]}`, display: 'flex', gap: 1, alignItems: 'center', flexShrink: 0, flexWrap: 'wrap' }}>
         <TextField
           select
           size="small"
@@ -187,7 +191,7 @@ export default function ModalLayout(props: PosLayoutProps) {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        bgcolor: '#fff',
+        bgcolor: isDark ? brand.neutral[800] : '#fff',
         borderTop: `1px solid ${brand.neutral[200]}`,
         boxShadow: `0 -6px 18px -12px ${brand.neutral[900]}44`,
         zIndex: 1100,
@@ -196,7 +200,7 @@ export default function ModalLayout(props: PosLayoutProps) {
           <Badge badgeContent={itemCount} color="primary" sx={{ '& .MuiBadge-badge': { fontWeight: 800 } }}>
             <IconShoppingCart size={22} color={brand.primary[600]} />
           </Badge>
-          <Typography sx={{ fontWeight: 800, color: brand.neutral[700] }}>{itemCount} items</Typography>
+          <Typography sx={{ fontWeight: 800, color: isDark ? brand.neutral[300] : brand.neutral[700] }}>{itemCount} items</Typography>
         </Stack>
         <Button
           variant="contained"
@@ -225,13 +229,13 @@ export default function ModalLayout(props: PosLayoutProps) {
         onClose={() => setCheckoutOpen(false)}
         TransitionProps={{ timeout: 300 }}
       >
-        <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: '#F7F8FA' }}>
+        <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: isDark ? brand.neutral[900] : '#F7F8FA' }}>
           {/* Header */}
-          <Box sx={{ px: 2, py: 1.5, bgcolor: '#fff', borderBottom: `1px solid ${brand.neutral[200]}`, display: 'flex', alignItems: 'center', gap: 1.5, flexShrink: 0 }}>
+          <Box sx={{ px: 2, py: 1.5, bgcolor: isDark ? brand.neutral[800] : '#fff', borderBottom: `1px solid ${brand.neutral[200]}`, display: 'flex', alignItems: 'center', gap: 1.5, flexShrink: 0 }}>
             <IconButton onClick={() => setCheckoutOpen(false)}><IconArrowLeft size={20} /></IconButton>
             <Box sx={{ flex: 1 }}>
               <Typography sx={{ fontWeight: 900, fontSize: '1.05rem' }}>Checkout</Typography>
-              <Typography variant="caption" sx={{ color: brand.neutral[500], fontWeight: 600 }}>{itemCount} items</Typography>
+              <Typography variant="caption" sx={{ color: isDark ? brand.neutral[400] : brand.neutral[500], fontWeight: 600 }}>{itemCount} items</Typography>
             </Box>
             <Chip label={`Total: ${fmt(totals.grand)}`} sx={{ fontWeight: 800, bgcolor: brand.primary[50], color: brand.primary[700], borderRadius: '999px' }} />
           </Box>
@@ -239,7 +243,7 @@ export default function ModalLayout(props: PosLayoutProps) {
           {/* Cart items */}
           <Box sx={{ flex: 1, overflowY: 'auto', p: 2, ...softScrollSx }}>
             {props.lines.length === 0 ? (
-              <Typography sx={{ textAlign: 'center', py: 4, color: brand.neutral[500] }}>No items in cart</Typography>
+              <Typography sx={{ textAlign: 'center', py: 4, color: isDark ? brand.neutral[400] : brand.neutral[500] }}>No items in cart</Typography>
             ) : (
               <Stack spacing={1.5}>
                 {props.lines.map((line, i) => (
@@ -247,7 +251,7 @@ export default function ModalLayout(props: PosLayoutProps) {
                     key={`${line.productId}-${i}`}
                     sx={{
                       p: 1.5,
-                      bgcolor: '#fff',
+                      bgcolor: isDark ? brand.neutral[800] : '#fff',
                       borderRadius: '10px',
                       border: `1px solid ${brand.neutral[200]}`,
                     }}
@@ -255,7 +259,7 @@ export default function ModalLayout(props: PosLayoutProps) {
                     <Stack direction="row" justifyContent="space-between" alignItems="center">
                       <Box sx={{ minWidth: 0, flex: 1 }}>
                         <Typography sx={{ fontWeight: 700, fontSize: '0.86rem' }} noWrap>{line.productName}</Typography>
-                        <Typography variant="caption" sx={{ color: brand.neutral[500] }}>{fmt(line.unitPrice)} × {line.qty}</Typography>
+                        <Typography variant="caption" sx={{ color: isDark ? brand.neutral[400] : brand.neutral[500] }}>{fmt(line.unitPrice)} × {line.qty}</Typography>
                       </Box>
                       <Stack direction="row" alignItems="center" spacing={0.25}>
                         <IconButton size="small" onClick={() => props.onDecQty(i)} sx={{ width: 26, height: 26 }}><IconMinus size={12} /></IconButton>
@@ -271,7 +275,7 @@ export default function ModalLayout(props: PosLayoutProps) {
           </Box>
 
           {/* Totals + Payment */}
-          <Box sx={{ bgcolor: '#fff', borderTop: `1px solid ${brand.neutral[200]}`, p: 2, flexShrink: 0 }}>
+          <Box sx={{ bgcolor: isDark ? brand.neutral[800] : '#fff', borderTop: `1px solid ${brand.neutral[200]}`, p: 2, flexShrink: 0 }}>
             <Stack spacing={0.75} sx={{ mb: 2 }}>
               <TotalRow label="Subtotal" value={fmt(totals.subtotal)} />
               <TotalRow label={`Tax (${Math.round(totals.tax / Math.max(1, totals.subtotal) * 100)}%)`} value={fmt(totals.tax)} />
@@ -279,7 +283,7 @@ export default function ModalLayout(props: PosLayoutProps) {
             </Stack>
 
             <Stack spacing={1} sx={{ mb: 2 }}>
-              <Typography variant="caption" sx={{ fontWeight: 700, color: brand.neutral[500] }}>Payment Method</Typography>
+              <Typography variant="caption" sx={{ fontWeight: 700, color: isDark ? brand.neutral[400] : brand.neutral[500] }}>Payment Method</Typography>
               <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 0.75 }}>
                 {(['CASH', 'CARD', 'MOBILE'] as PaymentChoice[]).map((m) => (
                   <Chip
