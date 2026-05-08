@@ -7,6 +7,7 @@ import AiRecommendations from 'src/components/smartpos/reports/AiRecommendations
 import AiReportChat from 'src/components/smartpos/reports/AiReportChat';
 import { getInventorySummary, getInventoryValuation, getDeadStock, type InventorySummary, type InventoryValuationReport, type DeadStockReport } from 'src/api/smartpos/reports';
 import { listWarehouses, type Warehouse } from 'src/api/smartpos/inventory';
+import type { UUID } from 'src/api/smartpos/types';
 import { brand } from 'src/theme/smartpos/brand';
 import { formatMoney, formatNumber } from 'src/utils/smartpos/currency';
 import type { ApexOptions } from 'apexcharts';
@@ -29,9 +30,9 @@ export default function InventoryReportPage() {
   useEffect(() => {
     let cancelled = false;
     Promise.all([
-      getInventorySummary(filters.warehouseId as any || undefined),
-      getInventoryValuation({ method: 'AVG', warehouseId: filters.warehouseId as any || undefined }),
-      getDeadStock({ warehouseId: filters.warehouseId as any || undefined }),
+      getInventorySummary(filters.warehouseId as UUID || undefined),
+      getInventoryValuation({ method: 'AVG', warehouseId: filters.warehouseId as UUID || undefined }),
+      getDeadStock({ warehouseId: filters.warehouseId as UUID || undefined }),
     ])
       .then(([s, v, d]) => { if (!cancelled) { setSummary(s); setValuation(v); setDeadStock(d); } });
     return () => { cancelled = true; };

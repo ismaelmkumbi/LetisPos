@@ -13,7 +13,7 @@ import { IconUser } from '@tabler/icons-react';
 
 import {
   createQuotation, setQuotationStatus, convertQuotation,
-  type Quotation, type QuotationStatus,
+  type Quotation, type QuotationStatus, type SaleLine,
 } from 'src/api/smartpos/sales';
 import { listCustomers } from 'src/api/smartpos/customers';
 import { listProducts } from 'src/api/smartpos/products';
@@ -31,6 +31,11 @@ export interface QuotationEditDrawerProps {
   initial: Quotation | null;
   onClose: () => void;
   onSaved: () => void;
+}
+
+/** Extended quotation shape that includes optional API-returned fields. */
+interface QuotationWithExtras extends Quotation {
+  expiryDate?: string;
 }
 
 const STATUS_HINTS: Partial<Record<QuotationStatus, string>> = {
@@ -66,7 +71,7 @@ export function QuotationEditDrawer({ open, initial, onClose, onSaved }: Quotati
     if (initial) {
       setCustomerId(initial.customerId);
       setWarehouseId(initial.warehouseId);
-      setLines((initial.lines ?? []).map((l: any) => ({
+      setLines((initial.lines ?? []).map((l: SaleLine) => ({
         productId: l.productId,
         productName: l.productName ?? '',
         unitPrice: l.unitPrice ?? 0,
@@ -74,7 +79,7 @@ export function QuotationEditDrawer({ open, initial, onClose, onSaved }: Quotati
         taxRate: l.taxRate ?? 0,
       })));
       setNotes(initial.notes ?? '');
-      setExpiryDate((initial as any).expiryDate ?? '');
+      setExpiryDate((initial as QuotationWithExtras).expiryDate ?? '');
     } else {
       setCustomerId(null);
       setWarehouseId('' as UUID);
@@ -93,7 +98,7 @@ export function QuotationEditDrawer({ open, initial, onClose, onSaved }: Quotati
     try {
       await createQuotation({
         warehouseId,
-        customerId: customerId ?? undefined as any,
+        customerId: customerId ?? undefined,
         lines: lines.map((l) => ({
           productId: l.productId,
           variantId: l.variantId,

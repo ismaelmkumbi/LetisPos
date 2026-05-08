@@ -13,7 +13,7 @@ import {
 import { useNavigate } from 'react-router';
 import { IconPlus, IconMail, IconPhone, IconUser, IconCurrencyDollar } from '@tabler/icons-react';
 
-import { listSuppliers, deleteSupplier, toggleSupplierActive } from 'src/api/smartpos/suppliers';
+import { listSuppliers, toggleSupplierActive } from 'src/api/smartpos/suppliers';
 import type { Supplier } from 'src/api/smartpos/types';
 import PageHeader from 'src/components/smartpos/PageHeader';
 import FilterBar, { type ActiveFilter } from 'src/components/smartpos/FilterBar';
@@ -75,16 +75,6 @@ export default function SuppliersListPage() {
   const handleToggleActive = async (s: Supplier) => {
     try {
       await toggleSupplierActive(s.id);
-      refresh();
-    } catch {
-      /* swallow */
-    }
-  };
-
-  const handleDelete = async (s: Supplier) => {
-    if (!window.confirm(`Delete "${s.name}"? This cannot be undone.`)) return;
-    try {
-      await deleteSupplier(s.id);
       refresh();
     } catch {
       /* swallow */

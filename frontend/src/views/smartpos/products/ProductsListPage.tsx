@@ -329,10 +329,10 @@ export default function ProductsListPage() {
   }, [search, page, refreshToken, statusFilter, categoryFilter, brandFilter, sort]);
 
   // ── Lookup helpers ─────────────────────────────────────────────────────────
-  const catName = (id: string | null | undefined) =>
-    id ? (categories.find((c) => c.id === id)?.name ?? null) : null;
-  const brandName = (id: string | null | undefined) =>
-    id ? (brands.find((b) => b.id === id)?.name ?? null) : null;
+  const catName = useCallback((id: string | null | undefined) =>
+    id ? (categories.find((c) => c.id === id)?.name ?? null) : null, [categories]);
+  const brandName = useCallback((id: string | null | undefined) =>
+    id ? (brands.find((b) => b.id === id)?.name ?? null) : null, [brands]);
 
   // ── Batch dialogs ──────────────────────────────────────────────────────────
   const [batchCategoryOpen, setBatchCategoryOpen] = useState(false);
@@ -434,12 +434,12 @@ export default function ProductsListPage() {
       setBatchStockOpen(false);
     }
   };
-  const actionBtnSx = {
+  const actionBtnSx = useMemo(() => ({
     p: 0.5,
     borderRadius: '8px',
     color: brand.neutral[400],
     '&:hover': { color: brand.primary[600], bgcolor: brand.primary[50] },
-  };
+  }), []);
 
   const columns: Column<Product>[] = useMemo(
     () => [
@@ -824,16 +824,16 @@ export default function ProductsListPage() {
           </Stack>
         ),
       },
-      // eslint-disable-next-line react-hooks/exhaustive-deps
     ],
     [
-      brands,
-      categories,
-      navigate,
+      actionBtnSx,
+      brandName,
+      catName,
+      duplicateProduct,
       handleMouseEnter,
       handleMouseLeave,
-      duplicateProduct,
-      sel.selectionColumn,
+      navigate,
+      sel,
       stockLevelMap,
     ],
   );

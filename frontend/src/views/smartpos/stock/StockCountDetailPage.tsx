@@ -65,7 +65,7 @@ export default function StockCountDetailPage() {
 
   const hasEdits = Object.keys(editingLines).length > 0;
 
-  const handleSubmitLines = async () => {
+  const handleSubmitLines = useCallback(async () => {
     if (!id || !hasEdits) return;
     setSubmitting(true);
     try {
@@ -81,7 +81,7 @@ export default function StockCountDetailPage() {
     } finally {
       setSubmitting(false);
     }
-  };
+  }, [id, hasEdits, editingLines]);
 
   const handlePost = async () => {
     if (!id) return;
@@ -193,7 +193,7 @@ export default function StockCountDetailPage() {
         );
       },
     },
-  ], [count?.status, editingLines]);
+  ], [count?.status, editingLines, handleSubmitLines]);
 
   if (loading) {
     return (

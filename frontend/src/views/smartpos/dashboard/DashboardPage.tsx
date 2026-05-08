@@ -448,7 +448,7 @@ export default function DashboardPage() {
     return () => {
       cancelled = true;
     };
-  }, [period, warehouseId, user?.tenantId]);
+  }, [period, warehouseId, user?.tenantId, data]);
 
   const salesSeries = useMemo(() => seriesOrFallback(data), [data]);
   const revenueTrend = useMemo(() => trend(salesSeries), [salesSeries]);
