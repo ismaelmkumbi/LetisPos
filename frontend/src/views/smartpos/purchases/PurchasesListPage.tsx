@@ -542,7 +542,7 @@ export default function PurchasesListPage() {
         </Tooltip>
       ),
     },
-  ], [page, sel, suppliers]);
+  ], [page, sel]);
 
   // ── Render ───────────────────────────────────────────────────────────────────
 

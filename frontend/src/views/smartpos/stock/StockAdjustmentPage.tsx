@@ -47,7 +47,6 @@ export default function StockAdjustmentPage() {
   const [error, setError] = useState<string | null>(null);
   const [totalPages, setTotalPages] = useState(1);
   const [totalElements, setTotalElements] = useState(0);
-  const [refreshToken, setRefreshToken] = useState(0);
 
   // Filters
   const [warehouses, setWarehouses] = useState<{ id: UUID; name: string }[]>([]);
@@ -76,7 +75,7 @@ export default function StockAdjustmentPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, warehouseFilter, dateFrom, dateTo, refreshToken]);
+  }, [page, warehouseFilter, dateFrom, dateTo]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -104,7 +103,7 @@ export default function StockAdjustmentPage() {
         notes: createForm.notes || undefined,
         lines,
       });
-      setRefreshToken((n) => n + 1);
+      fetchData();
       setDrawerOpen(false);
       setCreateForm({ warehouseId: '', date: new Date().toISOString().slice(0, 10), reason: '', notes: '' });
       setLines([]);

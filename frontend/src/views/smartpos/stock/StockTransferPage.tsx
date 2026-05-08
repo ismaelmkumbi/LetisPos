@@ -54,7 +54,6 @@ export default function StockTransferPage() {
   const [error, setError] = useState<string | null>(null);
   const [totalPages, setTotalPages] = useState(1);
   const [totalElements, setTotalElements] = useState(0);
-  const [refreshToken, setRefreshToken] = useState(0);
 
   const [warehouses, setWarehouses] = useState<{ id: UUID; name: string }[]>([]);
   const [completing, setCompleting] = useState<Set<string>>(new Set());
@@ -77,21 +76,21 @@ export default function StockTransferPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, statusFilter, refreshToken]);
+  }, [page, statusFilter]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  const handleComplete = async (t: Transfer) => {
+  const handleComplete = useCallback(async (t: Transfer) => {
     setCompleting((s) => new Set(s).add(t.id));
     try {
       await completeTransfer(t.id);
-      setRefreshToken((n) => n + 1);
+      fetchData();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to complete transfer');
     } finally {
       setCompleting((s) => { const n = new Set(s); n.delete(t.id); return n; });
     }
-  };
+  }, [fetchData]);
 
   // Create dialog
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -121,7 +120,7 @@ export default function StockTransferPage() {
         notes: createForm.notes || undefined,
         lines,
       });
-      setRefreshToken((n) => n + 1);
+      fetchData();
       setDialogOpen(false);
       setCreateForm({ fromWarehouseId: '', toWarehouseId: '', date: new Date().toISOString().slice(0, 10), notes: '' });
       setLines([]);
@@ -152,7 +151,7 @@ export default function StockTransferPage() {
     return () => window.removeEventListener('keydown', handler);
   }, [search]);
 
-  const wh = (id: UUID) => warehouses.find((w) => w.id === id)?.name ?? id.slice(0, 8);
+  const wh = useCallback((id: UUID) => warehouses.find((w) => w.id === id)?.name ?? id.slice(0, 8), [warehouses]);
 
   const columns: Column<Transfer>[] = useMemo(() => [
     {
@@ -227,7 +226,7 @@ export default function StockTransferPage() {
         </Tooltip>
       ) : null,
     },
-  ], [warehouses, completing]);
+  ], [completing, wh, handleComplete]);
 
   return (
     <Box>

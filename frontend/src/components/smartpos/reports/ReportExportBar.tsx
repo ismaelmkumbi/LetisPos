@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Button, Chip, CircularProgress, Stack, Typography } from '@mui/material';
 import { IconFileTypePdf, IconFileSpreadsheet, IconFileTypeCsv, IconDownload } from '@tabler/icons-react';
 import { submitExportJob, pollExportJob, type ExportFormat, type ExportReportKey, type ExportJob } from 'src/api/smartpos/reports';
+import type { UUID } from 'src/api/smartpos/types';
 import { brand } from 'src/theme/smartpos/brand';
 
 interface Props {
@@ -25,7 +26,7 @@ export default function ReportExportBar({ reportKey, dateFrom, dateTo, warehouse
     setExporting(format);
     setJob(null);
     try {
-      const submitted = await submitExportJob({ reportKey, format, dateFrom, dateTo, warehouseId: warehouseId as any });
+      const submitted = await submitExportJob({ reportKey, format, dateFrom, dateTo, warehouseId: warehouseId as UUID });
       const finished = await pollExportJob(submitted.id, { onTick: (j) => setJob(j) });
       setJob(finished);
     } finally {

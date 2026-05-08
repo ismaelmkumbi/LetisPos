@@ -30,7 +30,7 @@ import {
 import { listProducts } from 'src/api/smartpos/products';
 import { listSuppliers } from 'src/api/smartpos/suppliers';
 import { listWarehouses, type Warehouse } from 'src/api/smartpos/inventory';
-import { listAccounts, listPayments, recordPayment, type Payment } from 'src/api/smartpos/payments';
+import { listAccounts, listPayments, recordPayment, type Payment, type PaymentMethod } from 'src/api/smartpos/payments';
 import type { Supplier } from 'src/api/smartpos/types';
 
 import PageHeader from 'src/components/smartpos/PageHeader';
@@ -188,7 +188,7 @@ export default function PurchaseBuilderPage() {
         referenceId: id,
         accountId: payAccountId,
         amount: payAmount,
-        method: payMethod as any,
+        method: payMethod as PaymentMethod,
         notes: payNotes || undefined,
       });
       setPayments((prev) => [...prev, pmt]);

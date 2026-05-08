@@ -7,6 +7,7 @@ import AiRecommendations from 'src/components/smartpos/reports/AiRecommendations
 import AiReportChat from 'src/components/smartpos/reports/AiReportChat';
 import { getSalesSummary, getTopProducts, getTopCustomers, getSalesByDimension, type SalesSummary, type TopProduct, type TopCustomer, type SalesByDimensionReport } from 'src/api/smartpos/reports';
 import { listWarehouses, type Warehouse } from 'src/api/smartpos/inventory';
+import type { UUID } from 'src/api/smartpos/types';
 import { brand } from 'src/theme/smartpos/brand';
 import { formatMoney, formatNumber } from 'src/utils/smartpos/currency';
 import type { ApexOptions } from 'apexcharts';
@@ -31,8 +32,8 @@ export default function SalesReportPage() {
   useEffect(() => {
     let cancelled = false;
     Promise.all([
-      getSalesSummary({ dateFrom: filters.dateFrom, dateTo: filters.dateTo, warehouseId: filters.warehouseId as any || undefined }),
-      getTopProducts({ dateFrom: filters.dateFrom, dateTo: filters.dateTo, warehouseId: filters.warehouseId as any || undefined, limit: 20 }),
+      getSalesSummary({ dateFrom: filters.dateFrom, dateTo: filters.dateTo, warehouseId: filters.warehouseId as UUID || undefined }),
+      getTopProducts({ dateFrom: filters.dateFrom, dateTo: filters.dateTo, warehouseId: filters.warehouseId as UUID || undefined, limit: 20 }),
       getTopCustomers({ dateFrom: filters.dateFrom, dateTo: filters.dateTo, limit: 20 }),
       getSalesByDimension({ dateFrom: filters.dateFrom, dateTo: filters.dateTo, dimension: 'CATEGORY' }),
     ])

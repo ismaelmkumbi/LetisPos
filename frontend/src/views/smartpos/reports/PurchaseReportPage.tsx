@@ -7,6 +7,7 @@ import AiRecommendations from 'src/components/smartpos/reports/AiRecommendations
 import AiReportChat from 'src/components/smartpos/reports/AiReportChat';
 import { getPurchaseSummary, type PurchaseSummary, type TopSupplier } from 'src/api/smartpos/reports';
 import { listWarehouses, type Warehouse } from 'src/api/smartpos/inventory';
+import type { UUID } from 'src/api/smartpos/types';
 import { brand } from 'src/theme/smartpos/brand';
 import { formatMoney, formatNumber } from 'src/utils/smartpos/currency';
 
@@ -21,7 +22,7 @@ export default function PurchaseReportPage() {
   useEffect(() => { listWarehouses().then((w) => setWarehouses(w.filter((r) => r.active))).catch(() => {}); }, []);
   useEffect(() => {
     let cancelled = false;
-    getPurchaseSummary({ dateFrom: filters.dateFrom, dateTo: filters.dateTo, warehouseId: filters.warehouseId as any })
+    getPurchaseSummary({ dateFrom: filters.dateFrom, dateTo: filters.dateTo, warehouseId: filters.warehouseId as UUID || undefined })
       .then((d) => { if (!cancelled) setData(d); });
     return () => { cancelled = true; };
   }, [filters.dateFrom, filters.dateTo, filters.warehouseId]);

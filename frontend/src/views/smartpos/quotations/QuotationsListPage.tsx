@@ -20,6 +20,11 @@ import QuotationEditDrawer from './QuotationEditDrawer';
 const fmt = formatMoney;
 const PAGE_SIZE = 20;
 
+interface QuotationRow extends Quotation {
+  customerName?: string;
+  expiryDate?: string;
+}
+
 const TONE: Record<QuotationStatus, { bg: string; fg: string }> = {
   DRAFT:     { bg: brand.neutral[100], fg: brand.neutral[700] },
   SENT:      { bg: brand.info.light,   fg: brand.info.dark },
@@ -124,7 +129,7 @@ export default function QuotationsListPage() {
       key: 'customer', label: 'Customer',
       render: (q) => (
         <Typography variant="body2" sx={{ fontWeight: 500 }}>
-          {(q as any).customerName ?? '—'}
+          {(q as QuotationRow).customerName ?? '—'}
         </Typography>
       ),
     },
@@ -164,7 +169,7 @@ export default function QuotationsListPage() {
     {
       key: 'expiry', label: 'Expires', width: 120,
       render: (q) => {
-        const d = (q as any).expiryDate;
+        const d = (q as QuotationRow).expiryDate;
         if (!d) return <Typography sx={{ color: brand.neutral[400], fontSize: '0.8125rem' }}>—</Typography>;
         const expiry = new Date(d);
         const isExpired = expiry < new Date();

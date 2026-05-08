@@ -4,11 +4,11 @@
  * The "create return" path still lives inside the Sale detail view: select
  * a sale, then issue a return against it. This page just lists the results.
  */
-import { type ElementType, useEffect, useMemo, useState } from 'react';
+import { useCallback, type ElementType, useEffect, useMemo, useState } from 'react';
 import {
   Alert, Box, Button, Chip, MenuItem, Stack, TextField, Typography,
 } from '@mui/material';
-import { IconExternalLink, IconReceipt2, IconArrowBackUp } from '@tabler/icons-react';
+import { IconExternalLink, IconArrowBackUp } from '@tabler/icons-react';
 import { Link as RouterLink, useNavigate } from 'react-router';
 
 import {
@@ -89,10 +89,12 @@ export default function ReturnsPage() {
     return () => { cancelled = true; };
   }, [from, to, status, customerId, warehouseId, page]);
 
-  const customerName = (id: UUID | null) =>
-    id ? (customers.find((c) => c.id === id)?.name ?? id.slice(0, 8) + '…') : '—';
-  const warehouseName = (id: UUID) =>
-    warehouses.find((w) => w.id === id)?.name ?? id.slice(0, 8) + '…';
+  const customerName = useCallback((id: UUID | null) =>
+    id ? (customers.find((c) => c.id === id)?.name ?? id.slice(0, 8) + '…') : '—',
+  [customers]);
+  const warehouseName = useCallback((id: UUID) =>
+    warehouses.find((w) => w.id === id)?.name ?? id.slice(0, 8) + '…',
+  [warehouses]);
 
   const cols: Column<SaleReturn>[] = useMemo(() => [
     {
@@ -197,7 +199,7 @@ export default function ReturnsPage() {
         );
       },
     },
-  ], [page, customers, warehouses]);
+  ], [page, customerName, warehouseName]);
 
   return (
     <Box>

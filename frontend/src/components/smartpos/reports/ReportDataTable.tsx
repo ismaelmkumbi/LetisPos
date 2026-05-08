@@ -5,6 +5,14 @@ import {
 } from '@mui/material';
 import { brand } from 'src/theme/smartpos/brand';
 
+function nodeText(node: React.ReactNode): string {
+  if (typeof node === 'string' || typeof node === 'number') return String(node);
+  if (node && typeof node === 'object' && 'props' in node) {
+    return String((node as { props?: { children?: React.ReactNode } }).props?.children ?? '');
+  }
+  return '';
+}
+
 export interface Column<T> {
   id: string;
   label: string;
@@ -41,8 +49,8 @@ export default function ReportDataTable<T>({
       columns.some((c) => {
         const node = c.render(r);
         if (node == null) return false;
-        const text = typeof node === 'string' ? node : (node as any)?.props?.children ?? '';
-        return String(text).toLowerCase().includes(q);
+        const text = nodeText(node);
+        return text.toLowerCase().includes(q);
       }),
     );
   }, [rows, search, columns]);
@@ -54,8 +62,8 @@ export default function ReportDataTable<T>({
     return [...filtered].sort((a, b) => {
       const va = col.render(a);
       const vb = col.render(b);
-      const sa = typeof va === 'string' ? va : (va as any)?.props?.children ?? '';
-      const sb = typeof vb === 'string' ? vb : (vb as any)?.props?.children ?? '';
+      const sa = nodeText(va);
+      const sb = nodeText(vb);
       const cmp = String(sa).localeCompare(String(sb), undefined, { numeric: true });
       return sortDir === 'asc' ? cmp : -cmp;
     });
