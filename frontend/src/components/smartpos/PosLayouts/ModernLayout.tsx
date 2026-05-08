@@ -679,7 +679,7 @@ function CheckoutPanel(p: CheckoutPanelProps) {
     <Card
       elevation={0}
       sx={{
-        ...posSurface,
+        ...posSurface(isDark),
         // Pinned to its grid cell on md+, but on xs the column has scrollable
         // overflowY so the card grows to its natural height (no clipped Tax /
         // Shipping rows at the bottom).
@@ -1150,9 +1150,9 @@ function TopFilters(p: TopFiltersProps) {
             value={p.search}
             onChange={(e) => p.onSearchChange(e.target.value)}
             sx={{
-              ...premiumFieldSx,
+              ...premiumFieldSx(isDark),
               '& .MuiOutlinedInput-root': {
-                ...premiumFieldSx['& .MuiOutlinedInput-root'],
+                ...premiumFieldSx(isDark)['& .MuiOutlinedInput-root'],
                 height: 48,
                 borderRadius: '10px',
                 bgcolor: isDark ? brand.neutral[800] : '#fff',
@@ -1186,9 +1186,9 @@ function TopFilters(p: TopFiltersProps) {
               if (e.key === 'Escape') p.onBarcodeChange('');
             }}
             sx={{
-              ...premiumFieldSx,
+              ...premiumFieldSx(isDark),
               '& .MuiOutlinedInput-root': {
-                ...premiumFieldSx['& .MuiOutlinedInput-root'],
+                ...premiumFieldSx(isDark)['& .MuiOutlinedInput-root'],
                 height: 48,
                 borderRadius: '10px',
                 bgcolor: isDark ? brand.neutral[800] : '#fff',
@@ -1295,7 +1295,7 @@ function ProductGrid({
           <Card
             key={i}
             elevation={0}
-            sx={{ ...posSurface, borderRadius: '8px', overflow: 'hidden' }}
+            sx={{ ...posSurface(isDark), borderRadius: '8px', overflow: 'hidden' }}
           >
             <Skeleton variant="rectangular" sx={{ aspectRatio: '1/1', width: '100%' }} />
             <Box sx={{ p: 1.5 }}>
@@ -1723,7 +1723,7 @@ function PaymentScreen(p: PaymentScreenProps) {
       <Card
         elevation={0}
         sx={{
-          ...posSurface,
+          ...posSurface(isDark),
           borderRadius: '8px',
           overflow: 'hidden',
           display: 'flex',
@@ -1779,7 +1779,7 @@ function PaymentScreen(p: PaymentScreenProps) {
       <Card
         elevation={0}
         sx={{
-          ...posSurface,
+          ...posSurface(isDark),
           borderRadius: '8px',
           overflow: 'hidden',
           display: 'flex',
@@ -1868,7 +1868,7 @@ function PaymentScreen(p: PaymentScreenProps) {
                       size="small"
                       value={sp.method}
                       onChange={(e) => updateSplitPayment(index, { method: e.target.value as PaymentChoice })}
-                      sx={{ minWidth: 140, ...premiumFieldSx }}
+                      sx={{ minWidth: 140, ...premiumFieldSx(isDark) }}
                     >
                       <MenuItem value="CASH">Cash</MenuItem>
                       <MenuItem value="CARD">Card</MenuItem>
@@ -1882,7 +1882,7 @@ function PaymentScreen(p: PaymentScreenProps) {
                       value={sp.amount || ''}
                       onChange={(e) => updateSplitPayment(index, { amount: Number(e.target.value) || 0 })}
                       placeholder="Amount"
-                      sx={{ flex: 1, ...premiumFieldSx }}
+                      sx={{ flex: 1, ...premiumFieldSx(isDark) }}
                       InputProps={{ startAdornment: <InputAdornment position="start">TSh</InputAdornment> }}
                     />
                     <IconButton size="small" onClick={() => removeSplitPayment(index)} sx={{ color: brand.error.main }}>

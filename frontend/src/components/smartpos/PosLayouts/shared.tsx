@@ -27,14 +27,14 @@ export const CHECKOUT_PANEL_MIN_WIDTH = 420;
 export const FOOTER_HEIGHT = 72;
 export const PRODUCT_PAGE_SIZE = 10;
 
-export const posSurface = {
-  border: `1px solid ${brand.neutral[200]}`,
+export const posSurface = (isDark: boolean) => ({
+  border: `1px solid ${isDark ? brand.neutral[700] : brand.neutral[200]}`,
   borderRadius: '18px',
   bgcolor: isDark ? brand.neutral[800] : '#fff',
-  boxShadow: `0 1px 2px ${brand.neutral[900]}08, 0 18px 48px -28px ${brand.primary[900]}33`,
-} as const;
+  boxShadow: isDark ? 'none' : `0 1px 2px ${brand.neutral[900]}08, 0 18px 48px -28px ${brand.primary[900]}33`,
+}) as const;
 
-export const premiumFieldSx = {
+export const premiumFieldSx = (isDark: boolean) => ({
   '& .MuiOutlinedInput-root': {
     borderRadius: '10px',
     bgcolor: isDark ? brand.neutral[800] : '#fff',
@@ -52,7 +52,7 @@ export const premiumFieldSx = {
     fontWeight: 700,
     color: isDark ? brand.neutral[400] : brand.neutral[500],
   },
-} as const;
+}) as const;
 
 export const softScrollSx = {
   '&::-webkit-scrollbar': { width: 6, height: 6 },
