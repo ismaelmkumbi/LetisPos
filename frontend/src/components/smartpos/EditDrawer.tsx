@@ -9,6 +9,8 @@ import {
   Box, Button, CircularProgress, Drawer, IconButton, Stack, Typography,
 } from '@mui/material';
 import { IconX } from '@tabler/icons-react';
+import { useContext } from 'react';
+import { CustomizerContext } from 'src/context/CustomizerContext';
 import { brand } from 'src/theme/smartpos/brand';
 import { StatusIndicator, type OperationalState } from './StatusIndicator';
 
@@ -34,6 +36,8 @@ export interface EditDrawerProps {
 }
 
 export function EditDrawer({
+  const { activeMode: _dm } = useContext(CustomizerContext);
+  const isDark = _dm === 'dark';
   open, title, subtitle, onClose, onSubmit, submitting, submitLabel = 'Save',
   disabled, width, size, statusIndicator, extraActions, children,
 }: EditDrawerProps) {
@@ -70,7 +74,7 @@ export function EditDrawer({
             )}
           </Stack>
           {subtitle && (
-            <Typography variant="caption" sx={{ color: brand.neutral[500] }} noWrap>
+            <Typography variant="caption" sx={{ color: isDark ? brand.neutral[400] : brand.neutral[500] }} noWrap>
               {subtitle}
             </Typography>
           )}
@@ -100,7 +104,7 @@ export function EditDrawer({
       <Box sx={{
         px: 3, py: 2,
         borderTop: `1px solid ${brand.neutral[200]}`,
-        bgcolor: brand.neutral[50],
+        bgcolor: isDark ? brand.neutral[900] : brand.neutral[50],
       }}>
         <Stack direction="row" spacing={1} justifyContent={extraActions ? 'space-between' : 'flex-end'}>
           {extraActions && <Stack direction="row" spacing={1}>{extraActions}</Stack>}

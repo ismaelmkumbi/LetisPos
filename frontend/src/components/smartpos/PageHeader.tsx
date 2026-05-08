@@ -1,6 +1,8 @@
 import { Box, Button, Chip, Stack, Typography } from '@mui/material';
 import { IconChevronRight } from '@tabler/icons-react';
 import { Link } from 'react-router';
+import { useContext } from 'react';
+import { CustomizerContext } from 'src/context/CustomizerContext';
 import { brand } from 'src/theme/smartpos/brand';
 import { StatusIndicator, type OperationalState } from './StatusIndicator';
 
@@ -37,7 +39,7 @@ const BADGE_TONES = {
   success: { bg: brand.success.light,  color: brand.success.dark },
   warning: { bg: brand.warning.light,  color: brand.warning.dark },
   error:   { bg: brand.error.light,    color: brand.error.dark },
-  neutral: { bg: brand.neutral[100],   color: brand.neutral[700] },
+  neutral: { bg: brand.neutral[100],   color: isDark ? brand.neutral[300] : brand.neutral[700] },
 };
 
 const ACTION_STYLES = {
@@ -63,13 +65,15 @@ const ACTION_STYLES = {
     variant: 'outlined' as const,
     sx: {
       borderColor: brand.neutral[300],
-      color: brand.neutral[700],
-      '&:hover': { borderColor: brand.primary[400], color: brand.primary[700], bgcolor: brand.primary[50] },
+      color: isDark ? brand.neutral[300] : brand.neutral[700],
+      '&:hover': { borderColor: brand.primary[400], color: brand.primary[700], bgcolor: isDark ? brand.primary[900] : brand.primary[50] },
     },
   },
 };
 
 export function PageHeader({
+  const { activeMode: _dm } = useContext(CustomizerContext);
+  const isDark = _dm === 'dark';
   title, subtitle, badge, action, actions,
   breadcrumbs, status, metrics, liveIndicator,
 }: PageHeaderProps) {
@@ -89,7 +93,7 @@ export function PageHeader({
                   to={b.href}
                   variant="caption"
                   sx={{
-                    color: brand.neutral[500],
+                    color: isDark ? brand.neutral[400] : brand.neutral[500],
                     fontWeight: 500,
                     textDecoration: 'none',
                     '&:hover': { color: brand.primary[600] },
@@ -98,7 +102,7 @@ export function PageHeader({
                   {b.label}
                 </Typography>
               ) : (
-                <Typography variant="caption" sx={{ color: brand.neutral[700], fontWeight: 600 }}>
+                <Typography variant="caption" sx={{ color: isDark ? brand.neutral[300] : brand.neutral[700], fontWeight: 600 }}>
                   {b.label}
                 </Typography>
               )}
@@ -122,7 +126,7 @@ export function PageHeader({
                   fontWeight: 900,
                   letterSpacing: '-0.5px',
                   lineHeight: 1.1,
-                  color: brand.neutral[900],
+                  color: isDark ? brand.neutral[50] : brand.neutral[900],
                   fontSize: { xs: '1.8rem', md: '2.1rem' },
                 }}
               >
@@ -150,7 +154,7 @@ export function PageHeader({
             {subtitle && (
               <Typography
                 variant="body2"
-                sx={{ color: brand.neutral[500], mt: 0.75, lineHeight: 1.4, fontWeight: 600, fontSize: '0.9rem' }}
+                sx={{ color: isDark ? brand.neutral[400] : brand.neutral[500], mt: 0.75, lineHeight: 1.4, fontWeight: 600, fontSize: '0.9rem' }}
               >
                 {subtitle}
               </Typography>
@@ -160,10 +164,10 @@ export function PageHeader({
               <Stack direction="row" spacing={1.5} sx={{ mt: 1 }}>
                 {metrics.map((m, i) => (
                   <Box key={i} sx={{ display: 'flex', alignItems: 'baseline', gap: 0.5 }}>
-                    <Typography variant="caption" sx={{ color: brand.neutral[500], fontWeight: 500 }}>
+                    <Typography variant="caption" sx={{ color: isDark ? brand.neutral[400] : brand.neutral[500], fontWeight: 500 }}>
                       {m.label}
                     </Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 700, color: brand.neutral[800] }}>
+                    <Typography variant="body2" sx={{ fontWeight: 700, color: isDark ? brand.neutral[200] : brand.neutral[800] }}>
                       {m.value}
                     </Typography>
                   </Box>
@@ -184,7 +188,7 @@ export function PageHeader({
                     },
                   }}
                 />
-                <Typography variant="caption" sx={{ color: brand.neutral[500], fontWeight: 500 }}>
+                <Typography variant="caption" sx={{ color: isDark ? brand.neutral[400] : brand.neutral[500], fontWeight: 500 }}>
                   {liveIndicator.text}
                 </Typography>
               </Stack>

@@ -35,6 +35,8 @@ import {
   flexRender, getCoreRowModel, useReactTable,
   type ColumnDef, type SortingState, type VisibilityState,
 } from '@tanstack/react-table';
+import { useContext } from 'react';
+import { CustomizerContext } from 'src/context/CustomizerContext';
 import { brand } from 'src/theme/smartpos/brand';
 import { StatusIndicator, type OperationalState } from './StatusIndicator';
 import * as XLSX from 'xlsx';
@@ -115,11 +117,13 @@ const STATUS_STYLES: Record<StatusTone, { bg: string; color: string }> = {
   warning: { bg: brand.warning.light,  color: brand.warning.dark },
   error:   { bg: brand.error.light,    color: brand.error.dark },
   info:    { bg: brand.info.light,     color: brand.info.dark },
-  neutral: { bg: brand.neutral[100],   color: brand.neutral[700] },
+  neutral: { bg: brand.neutral[100],   color: isDark ? brand.neutral[300] : brand.neutral[700] },
   primary: { bg: brand.primary[50],    color: brand.primary[700] },
 };
 
 export function StatusBadge({ label, tone = 'neutral' }: { label: string; tone?: StatusTone }) {
+  const { activeMode: _dm } = useContext(CustomizerContext);
+  const isDark = _dm === 'dark';
   const s = STATUS_STYLES[tone];
   return (
     <Chip
@@ -304,14 +308,14 @@ export function DataTable<T>({
   // ── Shared styles ───────────────────────────────────────────────────────────
   const exportBtnSx = {
     borderRadius: '8px',
-    borderColor: brand.neutral[200],
-    color: brand.neutral[700],
+    borderColor: isDark ? brand.neutral[700] : brand.neutral[200],
+    color: isDark ? brand.neutral[300] : brand.neutral[700],
     fontWeight: 600,
     fontSize: '0.75rem',
     textTransform: 'none' as const,
     py: 0.25, px: 1,
     minHeight: 28,
-    '&:hover': { borderColor: brand.primary[400], color: brand.primary[700], bgcolor: brand.primary[50] },
+    '&:hover': { borderColor: brand.primary[400], color: brand.primary[700], bgcolor: isDark ? brand.primary[900] : brand.primary[50] },
   };
 
   // ── Toolbar (rendered only when at least one enhancement is enabled) ──────
@@ -380,12 +384,12 @@ export function DataTable<T>({
     <Card
       elevation={0}
       sx={{
-        border: `1px solid ${brand.neutral[200]}`,
+        border: `1px solid ${isDark ? brand.neutral[700] : brand.neutral[200]}`,
         borderRadius: '8px',
         overflow: 'hidden',
         display: 'flex',
         flexDirection: 'column',
-        bgcolor: '#fff',
+        bgcolor: isDark ? brand.neutral[800] : '#fff',
         boxShadow: `0 1px 2px ${brand.neutral[900]}08, 0 24px 60px -44px ${brand.neutral[900]}55`,
       }}
     >
@@ -400,7 +404,7 @@ export function DataTable<T>({
             px: 1.25,
             py: 1,
             borderBottom: `1px solid ${brand.neutral[200]}`,
-            bgcolor: '#fff',
+            bgcolor: isDark ? brand.neutral[800] : '#fff',
           }}
         >
           <Box sx={{ minWidth: 0 }}>
@@ -408,7 +412,7 @@ export function DataTable<T>({
               <Typography
                 variant="caption"
                 sx={{
-                  color: brand.neutral[500], fontWeight: 700,
+                  color: isDark ? brand.neutral[400] : brand.neutral[500], fontWeight: 700,
                   textTransform: 'uppercase', letterSpacing: '0.06em',
                 }}
               >
@@ -428,14 +432,14 @@ export function DataTable<T>({
                     onClick={(e) => setColMenuAnchor(e.currentTarget)}
                     sx={{
                       borderRadius: '8px',
-                      borderColor: brand.neutral[200],
-                      color: brand.neutral[700],
+                      borderColor: isDark ? brand.neutral[700] : brand.neutral[200],
+                      color: isDark ? brand.neutral[300] : brand.neutral[700],
                       fontWeight: 600,
                       fontSize: '0.75rem',
                       textTransform: 'none',
                       py: 0.25, px: 1,
                       minHeight: 28,
-                      '&:hover': { borderColor: brand.primary[400], color: brand.primary[700], bgcolor: brand.primary[50] },
+                      '&:hover': { borderColor: brand.primary[400], color: brand.primary[700], bgcolor: isDark ? brand.primary[900] : brand.primary[50] },
                     }}
                   >
                     Columns
@@ -448,14 +452,14 @@ export function DataTable<T>({
                   PaperProps={{
                     sx: {
                       mt: 0.5, p: 0.5, minWidth: 220,
-                      borderRadius: '12px', border: `1px solid ${brand.neutral[200]}`,
+                      borderRadius: '12px', border: `1px solid ${isDark ? brand.neutral[700] : brand.neutral[200]}`,
                       boxShadow: '0 8px 24px rgba(15, 23, 42, 0.08)',
                     },
                   }}
                 >
                   <Typography variant="caption" sx={{
                     px: 1.5, pt: 0.75, pb: 0.5, display: 'block',
-                    color: brand.neutral[500], fontWeight: 700,
+                    color: isDark ? brand.neutral[400] : brand.neutral[500], fontWeight: 700,
                     textTransform: 'uppercase', letterSpacing: '0.06em',
                   }}>
                     Visible columns
@@ -548,10 +552,10 @@ export function DataTable<T>({
         <Stack spacing={1} sx={{ flex: 1, px: 1.5, overflow: 'auto' }}>
           {loading ? (
             Array.from({ length: SKELETON_ROWS }).map((_, i) => (
-              <Card key={`sk-${i}`} sx={{ p: 2, borderRadius: 2, border: `1px solid ${brand.neutral[200]}` }}>
+              <Card key={`sk-${i}`} sx={{ p: 2, borderRadius: 2, border: `1px solid ${isDark ? brand.neutral[700] : brand.neutral[200]}` }}>
                 {columns.slice(0, 4).map((col) => (
                   <Stack key={col.key} direction="row" justifyContent="space-between" sx={{ mb: 1 }}>
-                    <Typography variant="caption" sx={{ color: brand.neutral[500], fontWeight: 600, fontSize: '0.625rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{col.label}</Typography>
+                    <Typography variant="caption" sx={{ color: isDark ? brand.neutral[400] : brand.neutral[500], fontWeight: 600, fontSize: '0.625rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{col.label}</Typography>
                     <Skeleton variant="text" width={`${40 + Math.random() * 30}%`} height={14} />
                   </Stack>
                 ))}
@@ -562,14 +566,14 @@ export function DataTable<T>({
               {emptyIcon ? (
                 <Box sx={{ color: brand.neutral[300], mb: 0.5 }}>{emptyIcon}</Box>
               ) : (
-                <Box sx={{ width: 48, height: 48, borderRadius: '14px', bgcolor: brand.neutral[100], display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 0.5 }}>
+                <Box sx={{ width: 48, height: 48, borderRadius: '14px', bgcolor: isDark ? brand.neutral[800] : brand.neutral[100], display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 0.5 }}>
                   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={brand.neutral[400]} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                     <circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" />
                   </svg>
                 </Box>
               )}
-              <Typography variant="body2" sx={{ fontWeight: 600, color: brand.neutral[700] }}>{emptyText}</Typography>
-              <Typography variant="caption" sx={{ color: brand.neutral[500] }}>Try adjusting your filters or search terms</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600, color: isDark ? brand.neutral[300] : brand.neutral[700] }}>{emptyText}</Typography>
+              <Typography variant="caption" sx={{ color: isDark ? brand.neutral[400] : brand.neutral[500] }}>Try adjusting your filters or search terms</Typography>
               {emptyAction && (
                 <Button size="small" variant="outlined" onClick={emptyAction.onClick} sx={{ mt: 1 }}>{emptyAction.label}</Button>
               )}
@@ -584,26 +588,26 @@ export function DataTable<T>({
                   onClick={onRowClick ? () => onRowClick(row) : undefined}
                   sx={{
                     p: 2, borderRadius: 2,
-                    border: `1px solid ${brand.neutral[200]}`,
-                    bgcolor: '#fff',
+                    border: `1px solid ${isDark ? brand.neutral[700] : brand.neutral[200]}`,
+                    bgcolor: isDark ? brand.neutral[800] : '#fff',
                     cursor: onRowClick ? 'pointer' : 'default',
                     transition: 'all 0.14s ease',
-                    '&:active': { bgcolor: brand.primary[50], borderColor: brand.primary[200] },
+                    '&:active': { bgcolor: isDark ? brand.primary[900] : brand.primary[50], borderColor: brand.primary[200] },
                   }}
                 >
                   {rowStatus && (
                     <Stack direction="row" spacing={0.75} alignItems="center" sx={{ mb: 1.5, pb: 1.5, borderBottom: `1px solid ${brand.neutral[100]}` }}>
                       <StatusIndicator state={rowStatus.state} label="" size="sm" />
-                      <Typography variant="caption" sx={{ color: brand.neutral[600], fontWeight: 600 }}>{rowStatus.label}</Typography>
+                      <Typography variant="caption" sx={{ color: isDark ? brand.neutral[300] : brand.neutral[600], fontWeight: 600 }}>{rowStatus.label}</Typography>
                     </Stack>
                   )}
                   <Stack spacing={1}>
                     {columns.filter((c) => c.key !== '_select' && c.key !== 'actions').slice(0, 5).map((col) => (
                       <Stack key={col.key} direction="row" justifyContent="space-between" alignItems="flex-start" spacing={1}>
-                        <Typography variant="caption" sx={{ color: brand.neutral[500], fontWeight: 600, fontSize: '0.625rem', textTransform: 'uppercase', letterSpacing: '0.05em', flexShrink: 0, mt: 0.3 }}>
+                        <Typography variant="caption" sx={{ color: isDark ? brand.neutral[400] : brand.neutral[500], fontWeight: 600, fontSize: '0.625rem', textTransform: 'uppercase', letterSpacing: '0.05em', flexShrink: 0, mt: 0.3 }}>
                           {col.label}
                         </Typography>
-                        <Typography variant="body2" sx={{ fontWeight: 600, color: brand.neutral[800], textAlign: 'right', fontSize: '0.813rem', lineHeight: 1.4, wordBreak: 'break-word' }}>
+                        <Typography variant="body2" sx={{ fontWeight: 600, color: isDark ? brand.neutral[200] : brand.neutral[800], textAlign: 'right', fontSize: '0.813rem', lineHeight: 1.4, wordBreak: 'break-word' }}>
                           {col.render ? col.render(row, ri) : String((row as any)[col.key] ?? '—')}
                         </Typography>
                       </Stack>
@@ -656,7 +660,7 @@ export function DataTable<T>({
                         px: cellPx,
                         backgroundColor: brand.neutral[50],
                         fontWeight: 800,
-                        color: brand.neutral[800],
+                        color: isDark ? brand.neutral[200] : brand.neutral[800],
                         fontSize: '0.82rem',
                         letterSpacing: 0,
                         borderBottom: `1px solid ${brand.neutral[200]}`,
@@ -699,7 +703,7 @@ export function DataTable<T>({
                               ml: 0.25, cursor: 'pointer',
                               color: brand.neutral[300],
                               borderRadius: '4px',
-                              '&:hover': { color: brand.neutral[600], bgcolor: brand.neutral[100] },
+                              '&:hover': { color: isDark ? brand.neutral[300] : brand.neutral[600], bgcolor: isDark ? brand.neutral[800] : brand.neutral[100] },
                             }}
                           >
                             <IconChevronDown size={10} stroke={2} />
@@ -792,7 +796,7 @@ export function DataTable<T>({
                         onClick={() => { col?.toggleVisibility(false); setHeaderMenuAnchor(null); }}
                         dense
                       >
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: brand.neutral[600] }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: isDark ? brand.neutral[300] : brand.neutral[600] }}>
                           <IconEyeOff size={14} />
                           Hide column
                         </Box>
@@ -836,7 +840,7 @@ export function DataTable<T>({
                       <Box
                         sx={{
                           width: 48, height: 48, borderRadius: '14px',
-                          bgcolor: brand.neutral[100],
+                          bgcolor: isDark ? brand.neutral[800] : brand.neutral[100],
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
                           mb: 0.5,
                         }}
@@ -846,10 +850,10 @@ export function DataTable<T>({
                         </svg>
                       </Box>
                     )}
-                    <Typography variant="body2" sx={{ fontWeight: 600, color: brand.neutral[700] }}>
+                    <Typography variant="body2" sx={{ fontWeight: 600, color: isDark ? brand.neutral[300] : brand.neutral[700] }}>
                       {emptyText}
                     </Typography>
-                    <Typography variant="caption" sx={{ color: brand.neutral[500] }}>
+                    <Typography variant="caption" sx={{ color: isDark ? brand.neutral[400] : brand.neutral[500] }}>
                       Try adjusting your filters or search terms
                     </Typography>
                     {emptyAction && (
@@ -882,7 +886,7 @@ export function DataTable<T>({
                         height: rowHeight,
                         cursor: onRowClick ? 'pointer' : 'default',
                         transition: 'background 0.14s ease, box-shadow 0.14s ease',
-                        bgcolor: '#fff',
+                        bgcolor: isDark ? brand.neutral[800] : '#fff',
                         '&.MuiTableRow-hover:hover': {
                           backgroundColor: brand.primary[50],
                           boxShadow: `inset 3px 0 0 ${brand.primary[600]}`,
@@ -932,7 +936,7 @@ export function DataTable<T>({
                               overflow: 'hidden',
                               textOverflow: 'ellipsis',
                               whiteSpace: col?.key === 'actions' || col?.key === '_select' ? 'initial' : 'nowrap',
-                              color: brand.neutral[800],
+                              color: isDark ? brand.neutral[200] : brand.neutral[800],
                             }}
                           >
                             {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -942,7 +946,7 @@ export function DataTable<T>({
                     </TableRow>
                     {expandable && isExpanded && (
                       <TableRow key={`${rowKey}-exp`}>
-                        <TableCell colSpan={totalCells} sx={{ py: 0, border: 0, bgcolor: brand.neutral[50] }}>
+                        <TableCell colSpan={totalCells} sx={{ py: 0, border: 0, bgcolor: isDark ? brand.neutral[900] : brand.neutral[50] }}>
                           <Collapse in>
                             <Box sx={{ px: 2.5, py: 2 }}>
                               {renderExpanded?.(original)}
@@ -970,19 +974,19 @@ export function DataTable<T>({
             px: 1.5,
             py: 1.4,
             borderTop: `1px solid ${brand.neutral[200]}`,
-            bgcolor: brand.neutral[50],
+            bgcolor: isDark ? brand.neutral[900] : brand.neutral[50],
             flexWrap: 'wrap',
             gap: 1,
           }}
         >
           {totalElements !== undefined ? (
-            <Typography variant="caption" sx={{ color: brand.neutral[500], fontWeight: 500 }}>
+            <Typography variant="caption" sx={{ color: isDark ? brand.neutral[400] : brand.neutral[500], fontWeight: 500 }}>
               Showing{' '}
-              <Typography component="span" variant="caption" sx={{ fontWeight: 700, color: brand.neutral[700] }}>
+              <Typography component="span" variant="caption" sx={{ fontWeight: 700, color: isDark ? brand.neutral[300] : brand.neutral[700] }}>
                 {startRow} to {endRow}
               </Typography>{' '}
               of{' '}
-              <Typography component="span" variant="caption" sx={{ fontWeight: 700, color: brand.neutral[700] }}>
+              <Typography component="span" variant="caption" sx={{ fontWeight: 700, color: isDark ? brand.neutral[300] : brand.neutral[700] }}>
                 {totalElements.toLocaleString()}
               </Typography>{' '}
               products
@@ -1003,12 +1007,12 @@ export function DataTable<T>({
                   borderRadius: '8px',
                   fontWeight: 800,
                   fontSize: '0.75rem',
-                  border: `1px solid ${brand.neutral[200]}`,
-                  bgcolor: '#fff',
+                  border: `1px solid ${isDark ? brand.neutral[700] : brand.neutral[200]}`,
+                  bgcolor: isDark ? brand.neutral[800] : '#fff',
                 },
                 '& .Mui-selected': {
                   bgcolor: `${brand.primary[600]} !important`,
-                  color: '#fff',
+                  color: isDark ? '#e2e8f0' : '#fff',
                   borderColor: `${brand.primary[600]} !important`,
                   boxShadow: `0 10px 22px -14px ${brand.primary[700]}`,
                 },
