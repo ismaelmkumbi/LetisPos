@@ -44,7 +44,7 @@ export interface FilterBarProps {
 const chipSx = {
   height: 32,
   borderRadius: '8px',
-  bgcolor: isDark ? brand.primary[900] : brand.primary[50],
+  bgcolor: brand.primary[50],
   border: `1px solid ${brand.primary[200]}`,
   fontWeight: 600,
   color: brand.primary[700],

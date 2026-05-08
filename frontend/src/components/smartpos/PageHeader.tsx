@@ -39,7 +39,7 @@ const BADGE_TONES = {
   success: { bg: brand.success.light,  color: brand.success.dark },
   warning: { bg: brand.warning.light,  color: brand.warning.dark },
   error:   { bg: brand.error.light,    color: brand.error.dark },
-  neutral: { bg: brand.neutral[100],   color: isDark ? brand.neutral[300] : brand.neutral[700] },
+  neutral: { bg: brand.neutral[100],   color: brand.neutral[700] },
 };
 
 const ACTION_STYLES = {
@@ -65,8 +65,8 @@ const ACTION_STYLES = {
     variant: 'outlined' as const,
     sx: {
       borderColor: brand.neutral[300],
-      color: isDark ? brand.neutral[300] : brand.neutral[700],
-      '&:hover': { borderColor: brand.primary[400], color: brand.primary[700], bgcolor: isDark ? brand.primary[900] : brand.primary[50] },
+      color: brand.neutral[700],
+      '&:hover': { borderColor: brand.primary[400], color: brand.primary[700], bgcolor: brand.primary[50] },
     },
   },
 };

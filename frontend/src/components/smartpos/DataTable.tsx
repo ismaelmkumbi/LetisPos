@@ -117,7 +117,7 @@ const STATUS_STYLES: Record<StatusTone, { bg: string; color: string }> = {
   warning: { bg: brand.warning.light,  color: brand.warning.dark },
   error:   { bg: brand.error.light,    color: brand.error.dark },
   info:    { bg: brand.info.light,     color: brand.info.dark },
-  neutral: { bg: brand.neutral[100],   color: isDark ? brand.neutral[300] : brand.neutral[700] },
+  neutral: { bg: brand.neutral[100],   color: brand.neutral[700] },
   primary: { bg: brand.primary[50],    color: brand.primary[700] },
 };
 
