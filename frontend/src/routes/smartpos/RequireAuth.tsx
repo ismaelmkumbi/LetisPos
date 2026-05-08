@@ -1,7 +1,9 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router';
+import { Box, CircularProgress } from '@mui/material';
 import { useAuth } from 'src/context/smartpos/AuthContext';
 import { useSetupGate } from './useSetupGate';
+import { brand } from 'src/theme/smartpos/brand';
 
 const SETUP_ALLOWED_ROUTES = [
   '/smartpos/setup',
@@ -22,8 +24,14 @@ export function RequireAuth({
   const location = useLocation();
   const { needsSetup, loading: setupLoading } = useSetupGate({ skip: loading || !user });
 
-  // Combine loading states for initial blank render
-  if (loading || setupLoading) return null;
+  // Show spinner while auth or setup check is in progress
+  if (loading || setupLoading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100dvh' }}>
+        <CircularProgress size={32} sx={{ color: brand.primary[500] }} />
+      </Box>
+    );
+  }
 
   if (!user) {
     return <Navigate to="/auth/login" replace state={{ from: location }} />;
