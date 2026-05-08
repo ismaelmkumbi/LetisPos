@@ -109,7 +109,7 @@ export default function ModalLayout(props: PosLayoutProps) {
           placeholder="Search products…"
           value={props.search}
           onChange={(e) => props.onSearchChange(e.target.value)}
-          sx={{ flex: 1, minWidth: 140, ...premiumFieldSx }}
+          sx={{ flex: 1, minWidth: 140, ...premiumFieldSx(isDark) }}
           slotProps={{ input: { startAdornment: <InputAdornment position="start"><IconSearch size={16} color={brand.neutral[400]} /></InputAdornment> } }}
         />
         <TextField
@@ -119,7 +119,7 @@ export default function ModalLayout(props: PosLayoutProps) {
           inputRef={props.barcodeRef}
           onChange={(e) => props.onBarcodeChange(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') props.onBarcodeScan(); if (e.key === 'Escape') props.onBarcodeChange(''); }}
-          sx={{ width: 140, flexShrink: 0, ...premiumFieldSx }}
+          sx={{ width: 140, flexShrink: 0, ...premiumFieldSx(isDark) }}
           slotProps={{ input: { startAdornment: <InputAdornment position="start"><IconBarcode size={16} color={brand.primary[600]} /></InputAdornment> } }}
         />
         <TextField select size="small" value={props.categoryId} onChange={(e) => props.onCategoryChange(e.target.value)} slotProps={{ select: { displayEmpty: true } }} sx={filterFieldSx}>
@@ -143,7 +143,7 @@ export default function ModalLayout(props: PosLayoutProps) {
         {props.productsLoading ? (
           <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(155px, 1fr))', gap: 1.5 }}>
             {Array.from({ length: 12 }).map((_, i) => (
-              <Card key={i} elevation={0} sx={posSurface}>
+              <Card key={i} elevation={0} sx={posSurface(isDark)}>
                 <Skeleton variant="rectangular" sx={{ aspectRatio: '1/1', width: '100%' }} />
                 <Box sx={{ p: 1 }}><Skeleton variant="text" sx={{ width: '80%', height: 14 }} /></Box>
               </Card>
@@ -160,7 +160,7 @@ export default function ModalLayout(props: PosLayoutProps) {
                   elevation={0}
                   onClick={() => { if (!outOfStock) props.onAddProduct(p); }}
                   sx={{
-                    ...posSurface,
+                    ...posSurface(isDark),
                     cursor: outOfStock ? 'not-allowed' : 'pointer',
                     opacity: outOfStock ? 0.5 : 1,
                     transition: 'transform 0.15s ease',
