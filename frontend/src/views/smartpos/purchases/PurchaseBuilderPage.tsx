@@ -478,7 +478,7 @@ export default function PurchaseBuilderPage() {
                   >
                     {submitting ? 'Processing…' : 'Save & receive'}
                   </Button>
-                  {id && existingStatus !== 'RECEIVED' && (
+                  {id && (
                     <Button
                       fullWidth
                       variant="text"
