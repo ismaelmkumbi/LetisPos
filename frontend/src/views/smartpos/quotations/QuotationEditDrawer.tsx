@@ -109,7 +109,6 @@ export function QuotationEditDrawer({ open, initial, onClose, onSaved }: Quotati
         })),
         notes: notes || undefined,
         discount: 0,
-        discount: 0,
       });
       onSaved();
     } catch (e) {
