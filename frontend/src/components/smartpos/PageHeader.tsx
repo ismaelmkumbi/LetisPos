@@ -72,11 +72,11 @@ const ACTION_STYLES = {
 };
 
 export function PageHeader({
-  const { activeMode: _dm } = useContext(CustomizerContext);
-  const isDark = _dm === 'dark';
   title, subtitle, badge, action, actions,
   breadcrumbs, status, metrics, liveIndicator,
 }: PageHeaderProps) {
+  const { activeMode: _dm } = useContext(CustomizerContext);
+  const isDark = _dm === 'dark';
   const allActions = actions ?? (action ? [action] : []);
 
   return (

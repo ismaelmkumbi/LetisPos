@@ -16,12 +16,12 @@ export interface BulkActionBarProps {
 }
 
 export default function BulkActionBar({
-  const { activeMode: _dm } = useContext(CustomizerContext);
-  const isDark = _dm === 'dark';
   selectedCount,
   onClear,
   children,
 }: BulkActionBarProps) {
+  const { activeMode: _dm } = useContext(CustomizerContext);
+  const isDark = _dm === 'dark';
   return (
     <Stack
       direction="row"
