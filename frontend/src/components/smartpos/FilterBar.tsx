@@ -75,7 +75,7 @@ export default function FilterBar({
       }}
     >
       {/* Search row */}
-      <Stack direction="row" spacing={1.25} alignItems="center" sx={{ px: 2, py: 1.5 }}>
+      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.25} alignItems={{ xs: 'stretch', sm: 'center' }} sx={{ px: 2, py: 1.5 }}>
         <TextField
           size="small"
           placeholder={searchPlaceholder}

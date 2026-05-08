@@ -24,7 +24,7 @@ import { Fragment } from 'react';
 import {
   Box, Button, Card, Checkbox, Collapse, Divider, FormControlLabel, Menu,
   MenuItem, Pagination, Skeleton, Stack, Table, TableBody, TableCell,
-  TableHead, TableRow, Tooltip, Typography, Chip,
+  TableHead, TableRow, Tooltip, Typography, Chip, useMediaQuery, useTheme,
 } from '@mui/material';
 import {
   IconArrowDown, IconArrowsSort, IconArrowUp, IconChevronDown, IconChevronRight,
@@ -211,6 +211,8 @@ export function DataTable<T>({
   expandable = false,
   renderExpanded,
 }: DataTableProps<T>) {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const isCompact = density === 'compact' || dense;
   // ── Expandable row state ──────────────────────────────────────────────────
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
@@ -541,7 +543,79 @@ export function DataTable<T>({
         </Stack>
       )}
 
-      {/* ── Table ── */}
+      {/* ── Mobile Card View ── */}
+      {isMobile ? (
+        <Stack spacing={1} sx={{ flex: 1, px: 1.5, overflow: 'auto' }}>
+          {loading ? (
+            Array.from({ length: SKELETON_ROWS }).map((_, i) => (
+              <Card key={`sk-${i}`} sx={{ p: 2, borderRadius: 2, border: `1px solid ${brand.neutral[200]}` }}>
+                {columns.slice(0, 4).map((col) => (
+                  <Stack key={col.key} direction="row" justifyContent="space-between" sx={{ mb: 1 }}>
+                    <Typography variant="caption" sx={{ color: brand.neutral[500], fontWeight: 600, fontSize: '0.625rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{col.label}</Typography>
+                    <Skeleton variant="text" width={`${40 + Math.random() * 30}%`} height={14} />
+                  </Stack>
+                ))}
+              </Card>
+            ))
+          ) : rows.length === 0 ? (
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, py: 8 }}>
+              {emptyIcon ? (
+                <Box sx={{ color: brand.neutral[300], mb: 0.5 }}>{emptyIcon}</Box>
+              ) : (
+                <Box sx={{ width: 48, height: 48, borderRadius: '14px', bgcolor: brand.neutral[100], display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 0.5 }}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={brand.neutral[400]} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" />
+                  </svg>
+                </Box>
+              )}
+              <Typography variant="body2" sx={{ fontWeight: 600, color: brand.neutral[700] }}>{emptyText}</Typography>
+              <Typography variant="caption" sx={{ color: brand.neutral[500] }}>Try adjusting your filters or search terms</Typography>
+              {emptyAction && (
+                <Button size="small" variant="outlined" onClick={emptyAction.onClick} sx={{ mt: 1 }}>{emptyAction.label}</Button>
+              )}
+            </Box>
+          ) : (
+            rows.map((row, ri) => {
+              const rowKey = getRowKey ? getRowKey(row, ri) : String(ri);
+              const rowStatus = getRowStatus?.(row) ?? null;
+              return (
+                <Card
+                  key={rowKey}
+                  onClick={onRowClick ? () => onRowClick(row) : undefined}
+                  sx={{
+                    p: 2, borderRadius: 2,
+                    border: `1px solid ${brand.neutral[200]}`,
+                    bgcolor: '#fff',
+                    cursor: onRowClick ? 'pointer' : 'default',
+                    transition: 'all 0.14s ease',
+                    '&:active': { bgcolor: brand.primary[50], borderColor: brand.primary[200] },
+                  }}
+                >
+                  {rowStatus && (
+                    <Stack direction="row" spacing={0.75} alignItems="center" sx={{ mb: 1.5, pb: 1.5, borderBottom: `1px solid ${brand.neutral[100]}` }}>
+                      <StatusIndicator state={rowStatus.state} label="" size="sm" />
+                      <Typography variant="caption" sx={{ color: brand.neutral[600], fontWeight: 600 }}>{rowStatus.label}</Typography>
+                    </Stack>
+                  )}
+                  <Stack spacing={1}>
+                    {columns.filter((c) => c.key !== '_select' && c.key !== 'actions').slice(0, 5).map((col) => (
+                      <Stack key={col.key} direction="row" justifyContent="space-between" alignItems="flex-start" spacing={1}>
+                        <Typography variant="caption" sx={{ color: brand.neutral[500], fontWeight: 600, fontSize: '0.625rem', textTransform: 'uppercase', letterSpacing: '0.05em', flexShrink: 0, mt: 0.3 }}>
+                          {col.label}
+                        </Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 600, color: brand.neutral[800], textAlign: 'right', fontSize: '0.813rem', lineHeight: 1.4, wordBreak: 'break-word' }}>
+                          {col.render ? col.render(row, ri) : String((row as any)[col.key] ?? '—')}
+                        </Typography>
+                      </Stack>
+                    ))}
+                  </Stack>
+                </Card>
+              );
+            })
+          )}
+        </Stack>
+      ) : (
+      /* ── Desktop Table ── */
       <Box sx={{ overflowX: 'auto', flex: 1, ...(resizing ? { cursor: 'col-resize' } : {}) }}>
         <Table
           size={dense ? 'small' : 'medium'}
@@ -884,6 +958,7 @@ export function DataTable<T>({
           </TableBody>
         </Table>
       </Box>
+      )}
 
       {/* ── Footer: row count + pagination ── */}
       {(showPagination || (totalElements !== undefined && rows.length > 0)) && (
