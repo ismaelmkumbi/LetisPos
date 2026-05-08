@@ -4,6 +4,8 @@ import {
   Paper, Stack, TextField,
 } from '@mui/material';
 import { IconFilter, IconSearch } from '@tabler/icons-react';
+import { useContext } from 'react';
+import { CustomizerContext } from 'src/context/CustomizerContext';
 import { brand } from 'src/theme/smartpos/brand';
 
 export interface ActiveFilter {
@@ -42,7 +44,7 @@ export interface FilterBarProps {
 const chipSx = {
   height: 32,
   borderRadius: '8px',
-  bgcolor: brand.primary[50],
+  bgcolor: isDark ? brand.primary[900] : brand.primary[50],
   border: `1px solid ${brand.primary[200]}`,
   fontWeight: 600,
   color: brand.primary[700],
@@ -50,6 +52,8 @@ const chipSx = {
 };
 
 export default function FilterBar({
+  const { activeMode: _dm } = useContext(CustomizerContext);
+  const isDark = _dm === 'dark';
   searchPlaceholder = 'Search…',
   searchValue,
   onSearchChange,
@@ -69,8 +73,8 @@ export default function FilterBar({
       sx={{
         mb: 2,
         borderRadius: '12px',
-        border: `1px solid ${brand.neutral[200]}`,
-        bgcolor: '#fff',
+        border: `1px solid ${isDark ? brand.neutral[700] : brand.neutral[200]}`,
+        bgcolor: isDark ? brand.neutral[800] : '#fff',
         overflow: 'hidden',
       }}
     >
@@ -112,7 +116,7 @@ export default function FilterBar({
               ? {
                   background: `linear-gradient(135deg, ${brand.primary[500]} 0%, ${brand.primary[700]} 100%)`,
                 }
-              : { borderColor: brand.neutral[200], color: brand.neutral[700] }),
+              : { borderColor: isDark ? brand.neutral[700] : brand.neutral[200], color: isDark ? brand.neutral[300] : brand.neutral[700] }),
           }}
         >
           Filters
@@ -194,7 +198,7 @@ export default function FilterBar({
             onClick={onClearAll}
             size="small"
             sx={{
-              color: brand.neutral[500],
+              color: isDark ? brand.neutral[400] : brand.neutral[500],
               fontWeight: 600,
               textTransform: 'none',
               px: 0.75,
