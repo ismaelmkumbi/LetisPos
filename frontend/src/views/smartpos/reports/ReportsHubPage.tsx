@@ -2,6 +2,7 @@ import { Box, Card, CardActionArea, CardContent, Grid, Typography } from '@mui/m
 import { Link as RouterLink } from 'react-router';
 import { IconChartBar, IconReceipt, IconPackage, IconPercentage, IconShoppingCart, IconCoin, IconUsers, IconChartInfographic, IconDownload } from '@tabler/icons-react';
 import PageHeader from 'src/components/smartpos/PageHeader';
+import BusinessPulseCard from 'src/components/smartpos/reports/BusinessPulseCard';
 import { brand } from 'src/theme/smartpos/brand';
 
 const REPORTS = [
@@ -19,7 +20,12 @@ const REPORTS = [
 export default function ReportsHubPage() {
   return (
     <Box>
-      <PageHeader title="Reports" subtitle="Explore and export business intelligence across all dimensions" />
+      <PageHeader title="Insights" subtitle="AI-powered analysis from your business data" />
+
+      <BusinessPulseCard />
+
+      <Typography sx={{ fontWeight: 800, fontSize: '0.9rem', mb: 1.5, mt: 3 }}>Explore Reports</Typography>
+
       <Grid container spacing={2}>
         {REPORTS.map((r) => (
           <Grid size={{ xs: 12, sm: 6, md: 4 }} key={r.to}>

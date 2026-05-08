@@ -2,8 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { Grid } from '@mui/material';
 import { ReportPageShell, ReportFilterBar, ReportKpiRow, ReportChartCard, ReportDataTable, ReportExportBar } from 'src/components/smartpos/reports';
 import type { ReportFilters, KpiCard, Column } from 'src/components/smartpos/reports';
-import AiReportSummary from 'src/components/smartpos/reports/AiReportSummary';
-import AiRecommendations from 'src/components/smartpos/reports/AiRecommendations';
+import ExecutiveSummary from 'src/components/smartpos/reports/ExecutiveSummary';
+import SmartInsights from 'src/components/smartpos/reports/SmartInsights';
 import AiReportChat from 'src/components/smartpos/reports/AiReportChat';
 import { getSalesSummary, getTopProducts, getTopCustomers, getSalesByDimension, type SalesSummary, type TopProduct, type TopCustomer, type SalesByDimensionReport } from 'src/api/smartpos/reports';
 import { listWarehouses, type Warehouse } from 'src/api/smartpos/inventory';
@@ -85,9 +85,8 @@ export default function SalesReportPage() {
     <ReportPageShell title="Sales Report" subtitle="Revenue trends, top products, customers, and category breakdown">
       <ReportFilterBar filters={filters} onChange={setFilters} showPeriod showWarehouse
         warehouses={warehouses.map((w) => ({ id: w.id, name: w.name }))} />
-      <AiReportSummary reportKind="sales" factsJson={factsJson} />
-      <AiRecommendations reportKind="sales" factsJson={factsJson} />
       <ReportKpiRow cards={kpis} />
+      <ExecutiveSummary reportKind="SALES" factsJson={factsJson} />
       <Grid container spacing={2} sx={{ mb: 2 }}>
         <Grid size={{ xs: 12, lg: 8 }}>
           <ReportChartCard title="Revenue Trend" options={revenueOptions}
@@ -107,6 +106,8 @@ export default function SalesReportPage() {
           }} series={byDimension?.buckets?.map((b) => b.net) ?? []} type="donut" height={300} />
         </Grid>
       </Grid>
+      <SmartInsights reportKind="SALES" factsJson={factsJson} />
+
       <Grid container spacing={2} sx={{ mb: 2 }}>
         <Grid size={{ xs: 12, md: 6 }}>
           <ReportDataTable title="Top Products" columns={productColumns} rows={topProducts} getRowKey={(r) => r.productId} />

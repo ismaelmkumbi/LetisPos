@@ -7,3 +7,6 @@ export { default as ReportChartCard } from './ReportChartCard';
 export { default as ReportDataTable } from './ReportDataTable';
 export type { Column } from './ReportDataTable';
 export { default as ReportExportBar } from './ReportExportBar';
+export { default as BusinessPulseCard } from './BusinessPulseCard';
+export { default as ExecutiveSummary } from './ExecutiveSummary';
+export { default as SmartInsights } from './SmartInsights';
