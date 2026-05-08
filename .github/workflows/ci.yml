@@ -267,8 +267,9 @@ jobs:
             PROJECT_DIR="${{ secrets.VPS_PROJECT_PATH || '/var/www/LetisPos' }}"
             cd "$PROJECT_DIR"
 
-            echo "==> git pull"
-            git pull origin main --ff-only
+            echo "==> git fetch + reset to origin/main"
+            git fetch origin main
+            git reset --hard origin/main
 
             # ── Work out which services changed ────────────────────────
             CHANGED=""
