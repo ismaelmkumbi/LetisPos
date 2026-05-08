@@ -1,3 +1,4 @@
+import { useContext } from 'react';
 /**
  * ProductEditDrawer — full Stocky parity (Vue Add_product.vue → React).
  *
@@ -41,6 +42,7 @@ import type { BarcodeSymbology, Brand, Category, Unit } from 'src/api/smartpos/t
 import EditDrawer from 'src/components/smartpos/EditDrawer';
 import ComboItemsEditor from './ComboItemsEditor';
 import ProductImageDropzone from './ProductImageDropzone';
+import { CustomizerContext } from 'src/context/CustomizerContext';
 import { brand } from 'src/theme/smartpos/brand';
 import { formatMoney } from 'src/utils/smartpos/currency';
 
@@ -176,7 +178,7 @@ function PriceTile({
         InputProps={{
           startAdornment: <InputAdornment position="start">{prefix}</InputAdornment>,
           sx: {
-            bgcolor: '#fff',
+            bgcolor: isDark ? brand.neutral[800] : '#fff',
             borderRadius: '10px',
             fontWeight: 600,
             '& input': { fontSize: '0.95rem' },
@@ -653,7 +655,7 @@ export default function ProductEditDrawer({ open, initial, onClose, onSaved, onD
                               border: `1px solid ${brand.primary[200]}`,
                               transition: 'all 0.2s',
                               '&:hover': { bgcolor: brand.primary[100] },
-                              '&.Mui-disabled': { bgcolor: brand.neutral[50], color: brand.neutral[300] },
+                              '&.Mui-disabled': { bgcolor: isDark ? brand.neutral[900] : brand.neutral[50], color: brand.neutral[300] },
                             }}
                           >
                             <IconSparkles size={16} />
@@ -706,7 +708,7 @@ export default function ProductEditDrawer({ open, initial, onClose, onSaved, onD
                       size="small"
                       sx={{
                         height: 20, fontSize: '0.6875rem', fontWeight: 700,
-                        bgcolor: '#fff',
+                        bgcolor: isDark ? brand.neutral[800] : '#fff',
                         color: (src.confidence ?? 0) >= 0.7 ? brand.success.main
                               : (src.confidence ?? 0) >= 0.4 ? brand.warning.main
                               : brand.neutral[500],
@@ -754,7 +756,7 @@ export default function ProductEditDrawer({ open, initial, onClose, onSaved, onD
                           onClick={() => acceptSuggestion(k)}
                           sx={{
                             height: 24,
-                            bgcolor: '#fff',
+                            bgcolor: isDark ? brand.neutral[800] : '#fff',
                             color: brand.primary[700],
                             border: `1px solid ${brand.primary[200]}`,
                             fontSize: '0.6875rem',
@@ -950,7 +952,7 @@ export default function ProductEditDrawer({ open, initial, onClose, onSaved, onD
                           bgcolor: brand.primary[50], color: brand.primary[700],
                           borderRadius: '10px',
                           '&:hover': { bgcolor: brand.primary[100] },
-                          '&.Mui-disabled': { bgcolor: brand.neutral[100], color: brand.neutral[400] },
+                          '&.Mui-disabled': { bgcolor: isDark ? brand.neutral[800] : brand.neutral[100], color: brand.neutral[400] },
                         }}
                       >
                         <IconPlus size={18} />
@@ -1191,7 +1193,7 @@ export default function ProductEditDrawer({ open, initial, onClose, onSaved, onD
               {variantDrafts.length === 0 ? (
                 <Box sx={{
                   py: 2, px: 2, borderRadius: '10px',
-                  bgcolor: brand.neutral[50], border: `1px dashed ${brand.neutral[200]}`,
+                  bgcolor: isDark ? brand.neutral[900] : brand.neutral[50], border: `1px dashed ${brand.neutral[200]}`,
                   textAlign: 'center',
                 }}>
                   <Typography variant="caption" sx={{ color: brand.neutral[500] }}>
@@ -1206,7 +1208,7 @@ export default function ProductEditDrawer({ open, initial, onClose, onSaved, onD
                       sx={{
                         p: 1.5, borderRadius: '12px',
                         border: `1px solid ${brand.neutral[200]}`,
-                        bgcolor: brand.neutral[50],
+                        bgcolor: isDark ? brand.neutral[900] : brand.neutral[50],
                         position: 'relative',
                       }}
                     >

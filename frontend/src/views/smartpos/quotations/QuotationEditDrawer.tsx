@@ -1,3 +1,4 @@
+import { useContext } from 'react';
 /**
  * Quotation create/edit drawer.
  *
@@ -23,6 +24,7 @@ import type { Customer, UUID } from 'src/api/smartpos/types';
 import EditDrawer from 'src/components/smartpos/EditDrawer';
 import LineEditor from 'src/components/smartpos/LineEditor';
 import type { Line } from 'src/components/smartpos/PosLayouts/types';
+import { CustomizerContext } from 'src/context/CustomizerContext';
 import { brand } from 'src/theme/smartpos/brand';
 
 export interface QuotationEditDrawerProps {

@@ -85,7 +85,6 @@ import {
   IconSearch,
   IconSettings,
   IconShoppingCart,
-  IconAdjustmentsHorizontal,
   IconSparkles,
   IconStar,
   IconClock,
@@ -297,7 +296,12 @@ export default function ModernLayout(props: PosLayoutProps) {
             gap: 1.5,
             p: 1.5,
             alignItems: 'stretch',
-            overflow: 'hidden',
+            // On md+ each column scrolls independently within its own bounds.
+            // On xs both stacks vertically and the whole area scrolls — fixes
+            // the bottom of the cart (Tax / Shipping rows) being clipped by
+            // the footer when content exceeds the visible viewport.
+            overflowX: 'hidden',
+            overflowY: { xs: 'auto', md: 'hidden' },
           }}
         >
           {/* ───────────── Products section (right column on md+) ───────── */}
@@ -672,11 +676,14 @@ function CheckoutPanel(p: CheckoutPanelProps) {
       elevation={0}
       sx={{
         ...posSurface,
-        height: '100%',
-        maxHeight: '100%',
+        // Pinned to its grid cell on md+, but on xs the column has scrollable
+        // overflowY so the card grows to its natural height (no clipped Tax /
+        // Shipping rows at the bottom).
+        height: { xs: 'auto', md: '100%' },
+        maxHeight: { xs: 'none', md: '100%' },
         display: 'flex',
         flexDirection: 'column',
-        overflow: 'hidden',
+        overflow: { xs: 'visible', md: 'hidden' },
       }}
     >
       {/* ─── Header ─────────────────────────────────────────────────── */}
@@ -741,12 +748,15 @@ function CheckoutPanel(p: CheckoutPanelProps) {
         </Badge>
       </Box>
 
-      {/* ─── Cart items (scrollable) ────────────────────────────────── */}
+      {/* ─── Cart items ──────────────────────────────────────────────
+       * Internal scroll (md+) keeps the totals pinned at the bottom of
+       * the panel. On xs the parent grid scrolls instead, so this box
+       * flows naturally — no nested scrolls on phones. */}
       <Box
         sx={{
-          flex: 1,
-          minHeight: 180,
-          overflowY: 'auto',
+          flex: { xs: '0 0 auto', md: 1 },
+          minHeight: { xs: 'auto', md: 180 },
+          overflowY: { xs: 'visible', md: 'auto' },
           px: 2,
           pb: 1,
           ...softScrollSx,
@@ -876,8 +886,15 @@ function CheckoutPanel(p: CheckoutPanelProps) {
 
         <Stack spacing={0.7}>
           <TotalRow label="Subtotal" value={fmt(p.subtotal)} />
-          <TotalRow label="Discount" value={`- ${fmt(p.discountVal)}`} valueColor={p.discountVal > 0 ? brand.primary[700] : brand.neutral[400]} />
-          <TotalRow label={`Tax (${p.taxRate > 0 ? `${p.taxRate}%` : '0%'})`} value={fmt(p.tax)} />
+          <TotalRow
+            label="Discount"
+            value={`- ${fmt(p.discountVal)}`}
+            valueColor={p.discountVal > 0 ? brand.primary[700] : brand.neutral[400]}
+          />
+          <TotalRow
+            label={`Tax (${p.taxRate > 0 ? `${p.taxRate}%` : '0%'})`}
+            value={fmt(p.tax)}
+          />
           <TotalRow label="Shipping" value={fmt(p.shippingVal)} />
         </Stack>
 
@@ -1115,7 +1132,10 @@ function TopFilters(p: TopFiltersProps) {
         <Box
           sx={{
             display: 'grid',
-            gridTemplateColumns: { xs: '1fr', md: 'minmax(320px, 1fr) 116px 132px' },
+            // Search field stretches; barcode field sits next to it on md+.
+            // The dead "Filter" button was removed — it had no handler and
+            // pushed the barcode off-screen on mobile.
+            gridTemplateColumns: { xs: '1fr', md: 'minmax(320px, 1fr) 160px' },
             gap: 1.25,
             alignItems: 'center',
           }}
@@ -1182,21 +1202,6 @@ function TopFilters(p: TopFiltersProps) {
             }}
           />
 
-          <Button
-            variant="outlined"
-            startIcon={<IconAdjustmentsHorizontal size={17} />}
-            sx={{
-              height: 48,
-              borderRadius: '10px',
-              borderColor: brand.neutral[200],
-              color: brand.neutral[800],
-              fontWeight: 800,
-              textTransform: 'none',
-              '&:hover': { borderColor: brand.primary[300], bgcolor: brand.primary[50] },
-            }}
-          >
-            Filter
-          </Button>
         </Box>
       </CardContent>
     </Card>
@@ -2141,44 +2146,120 @@ function FooterBar(p: FooterBarProps) {
         position: 'relative',
         zIndex: 5,
         height: FOOTER_HEIGHT,
-        px: 2,
+        px: { xs: 1, md: 2 },
         py: 1.25,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        gap: 1.5,
+        gap: { xs: 0.5, md: 1.5 },
         bgcolor: '#fff',
         borderTop: `1px solid ${brand.neutral[200]}`,
         flexShrink: 0,
       }}
     >
       {/* Left: utility actions */}
-      <Stack direction="row" spacing={0.5} alignItems="center" sx={{ minWidth: 0 }}>
-        <Stack direction="row" spacing={0.5} alignItems="center"
-          sx={{ px: 1, py: 0.35, borderRadius: '6px', bgcolor: brand.neutral[50], border: `1px solid ${brand.neutral[200]}`, flexShrink: 0 }}>
-          <IconCircleFilled size={7} color={statusColor} />
-          <Typography sx={{ fontSize: '0.6875rem', fontWeight: 700, color: p.online ? brand.success.dark : brand.warning.dark, ml: 0.5 }}>
-            {p.online ? 'Online' : 'Offline'}
-          </Typography>
-          {!p.online && p.queueSize > 0 && (
-            <Chip label={p.queueSize} size="small" sx={{ ml: 0.5, height: 16, fontSize: '0.5625rem', fontWeight: 800, bgcolor: brand.warning.main, color: '#fff', '.MuiChip-label': { px: 0.5 } }} />
-          )}
-        </Stack>
+      <Stack
+        direction="row"
+        spacing={0.5}
+        alignItems="center"
+        sx={{ minWidth: 0, overflow: 'hidden' }}
+      >
+        {/* Online pill — icon-only on xs (label hidden), full on sm+ */}
+        <Tooltip title={p.online ? 'Online' : `Offline · ${p.queueSize} queued`} arrow>
+          <Stack
+            direction="row"
+            spacing={0.5}
+            alignItems="center"
+            sx={{
+              px: { xs: 0.6, md: 1 },
+              py: 0.35,
+              borderRadius: '6px',
+              bgcolor: brand.neutral[50],
+              border: `1px solid ${brand.neutral[200]}`,
+              flexShrink: 0,
+            }}
+          >
+            <IconCircleFilled size={7} color={statusColor} />
+            <Typography
+              sx={{
+                fontSize: '0.6875rem',
+                fontWeight: 700,
+                color: p.online ? brand.success.dark : brand.warning.dark,
+                ml: 0.5,
+                display: { xs: 'none', md: 'inline' },
+              }}
+            >
+              {p.online ? 'Online' : 'Offline'}
+            </Typography>
+            {!p.online && p.queueSize > 0 && (
+              <Chip
+                label={p.queueSize}
+                size="small"
+                sx={{
+                  ml: 0.5,
+                  height: 16,
+                  fontSize: '0.5625rem',
+                  fontWeight: 800,
+                  bgcolor: brand.warning.main,
+                  color: '#fff',
+                  '.MuiChip-label': { px: 0.5 },
+                }}
+              />
+            )}
+          </Stack>
+        </Tooltip>
         <FooterAction icon={<IconHome size={14} />} label="Home" to="/smartpos/dashboard" />
         <FooterAction icon={<IconRefresh size={14} />} label="Reset" onClick={p.onClear} />
         <FooterAction icon={<IconReceipt size={14} />} label="Drafts" onClick={p.onOpenHeldCarts} />
         <FooterAction icon={<IconShoppingCart size={14} />} label="Hold" onClick={p.onHoldCart} />
-        <PosBeepSoundPicker />
+        <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center' }}>
+          <PosBeepSoundPicker />
+        </Box>
       </Stack>
 
       {/* Right: total + CTA */}
-      <Stack direction="row" spacing={1.5} alignItems="center" sx={{ flexShrink: 0 }}>
-        <Stack direction="row" spacing={1} alignItems="baseline"
-          sx={{ px: 1.5, py: 0.6, borderRadius: '8px', bgcolor: brand.primary[50], border: `1px solid ${brand.primary[100]}` }}>
-          <Typography sx={{ fontSize: '0.625rem', fontWeight: 700, color: brand.neutral[500], textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+      <Stack
+        direction="row"
+        spacing={{ xs: 0.75, md: 1.5 }}
+        alignItems="center"
+        sx={{ flexShrink: 0 }}
+      >
+        <Stack
+          direction="row"
+          spacing={{ xs: 0, md: 1 }}
+          alignItems="baseline"
+          sx={{
+            px: { xs: 1, md: 1.5 },
+            py: 0.6,
+            borderRadius: '8px',
+            bgcolor: brand.primary[50],
+            border: `1px solid ${brand.primary[100]}`,
+          }}
+        >
+          {/* "TOTAL" label hidden on xs — the amount alone is enough */}
+          <Typography
+            sx={{
+              fontSize: '0.625rem',
+              fontWeight: 700,
+              color: brand.neutral[500],
+              textTransform: 'uppercase',
+              letterSpacing: '0.06em',
+              display: { xs: 'none', md: 'inline' },
+            }}
+          >
             Total
           </Typography>
-          <Typography sx={{ fontSize: '1.15rem', fontWeight: 900, color: brand.primary[700], letterSpacing: '-0.03em', lineHeight: 1 }}>
+          <Typography
+            sx={{
+              fontSize: { xs: '0.95rem', md: '1.15rem' },
+              fontWeight: 900,
+              color: brand.primary[700],
+              letterSpacing: '-0.03em',
+              lineHeight: 1,
+              fontVariantNumeric: 'tabular-nums',
+              whiteSpace: 'nowrap',
+            }}
+          >
             {fmt(p.grand)}
           </Typography>
         </Stack>
@@ -2190,12 +2271,12 @@ function FooterBar(p: FooterBarProps) {
           onClick={p.onCheckout}
           startIcon={p.submitting ? <CircularProgress size={15} color="inherit" /> : <IconCheck size={16} />}
           sx={{
-            minWidth: 170,
+            minWidth: { xs: 96, md: 170 },
             py: 1.15,
-            px: 2.5,
+            px: { xs: 1.5, md: 2.5 },
             borderRadius: '10px',
             fontWeight: 800,
-            fontSize: '0.875rem',
+            fontSize: { xs: '0.82rem', md: '0.875rem' },
             letterSpacing: '0.01em',
             textTransform: 'none',
             background: p.canCheckout
@@ -2210,9 +2291,23 @@ function FooterBar(p: FooterBarProps) {
             },
             '&.Mui-disabled': { background: brand.neutral[200], color: brand.neutral[400] },
             transition: 'all 0.18s ease',
+            '& .MuiButton-startIcon': { mr: { xs: 0.5, md: 1 } },
           }}
         >
-          {p.submitting ? p.labelProcessing : `Pay Now · ${p.itemCount} item${p.itemCount === 1 ? '' : 's'}`}
+          {p.submitting
+            ? p.labelProcessing
+            : (
+              <>
+                {/* Mobile: short label "Pay · N" */}
+                <Box component="span" sx={{ display: { xs: 'inline', md: 'none' } }}>
+                  Pay · {p.itemCount}
+                </Box>
+                {/* Tablet+: full label */}
+                <Box component="span" sx={{ display: { xs: 'none', md: 'inline' } }}>
+                  Pay Now · {p.itemCount} item{p.itemCount === 1 ? '' : 's'}
+                </Box>
+              </>
+            )}
         </Button>
       </Stack>
     </Box>
@@ -2222,31 +2317,39 @@ function FooterBar(p: FooterBarProps) {
 function FooterAction({
   icon, label, onClick, to,
 }: { icon: React.ReactNode; label: string; onClick?: () => void; to?: string }) {
+  // On xs the label is hidden (icon-only) and we add a tooltip so the meaning
+  // stays discoverable. On sm+ the label shows as before.
   return (
-    <Button
-      component={to ? Link : 'button'}
-      {...(to ? { to } : {})}
-      onClick={onClick}
-      startIcon={icon}
-      sx={{
-        textTransform: 'none',
-        fontSize: '0.78rem',
-        fontWeight: 800,
-        color: brand.neutral[700],
-        borderRadius: '12px',
-        px: 1.35,
-        py: 0.65,
-        minWidth: 'auto',
-        border: `1px solid transparent`,
-        ...focusVisibleSx,
-        '&:hover': {
-          bgcolor: brand.primary[50],
-          color: brand.primary[700],
-          borderColor: brand.primary[100],
-        },
-      }}
-    >
-      {label}
-    </Button>
+    <Tooltip title={label} arrow>
+      <Button
+        component={to ? Link : 'button'}
+        {...(to ? { to } : {})}
+        onClick={onClick}
+        startIcon={icon}
+        sx={{
+          textTransform: 'none',
+          fontSize: '0.78rem',
+          fontWeight: 800,
+          color: brand.neutral[700],
+          borderRadius: '12px',
+          px: { xs: 0.85, md: 1.35 },
+          py: 0.65,
+          minWidth: { xs: 36, md: 'auto' },
+          border: `1px solid transparent`,
+          // Hide the label text on xs — keep just the icon.
+          '& .MuiButton-startIcon': { mr: { xs: 0, md: 1 } },
+          ...focusVisibleSx,
+          '&:hover': {
+            bgcolor: brand.primary[50],
+            color: brand.primary[700],
+            borderColor: brand.primary[100],
+          },
+        }}
+      >
+        <Box component="span" sx={{ display: { xs: 'none', md: 'inline' } }}>
+          {label}
+        </Box>
+      </Button>
+    </Tooltip>
   );
 }
