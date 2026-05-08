@@ -1,8 +1,12 @@
 import React from 'react';
 import { Box, Container, Typography, Stack, Grid } from '@mui/material';
 import CtaButton from '../components/CtaButton';
+import DashboardMock from '../components/DashboardMock';
+import { useDemoDialog } from '../components/DemoDialog';
 
 const Hero: React.FC = () => {
+  const { openDemo } = useDemoDialog();
+
   return (
     <Box
       sx={{
@@ -48,7 +52,7 @@ const Hero: React.FC = () => {
               <CtaButton variant="primary" href="/auth/register" size="large">
                 Start free trial
               </CtaButton>
-              <CtaButton variant="secondary" size="large">
+              <CtaButton variant="secondary" size="large" onClick={openDemo}>
                 Book a demo
               </CtaButton>
             </Stack>
@@ -75,31 +79,8 @@ const Hero: React.FC = () => {
           </Grid>
 
           <Grid size={{ xs: 12, md: 5 }}>
-            <Box
-              sx={{
-                aspectRatio: '4/3',
-                bgcolor: 'var(--lp-surface)',
-                borderRadius: 3,
-                border: '1px solid var(--lp-border)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'var(--lp-text-muted)',
-                fontFamily: 'var(--lp-font-body)',
-                fontSize: '0.875rem',
-                position: 'relative',
-                overflow: 'hidden',
-                boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
-              }}
-            >
-              <Box sx={{ textAlign: 'center', px: 4 }}>
-                <Typography sx={{ fontFamily: 'var(--lp-font-display)', fontSize: '1rem', mb: 1, color: 'var(--lp-accent)' }}>
-                  Letis Dashboard
-                </Typography>
-                <Typography sx={{ fontSize: '0.813rem', color: 'var(--lp-text-muted)' }}>
-                  Real-time sales, inventory levels, and business insights — all in one view.
-                </Typography>
-              </Box>
+            <Box sx={{ boxShadow: '0 20px 60px rgba(0,0,0,0.35)', borderRadius: 2 }}>
+              <DashboardMock />
             </Box>
           </Grid>
         </Grid>

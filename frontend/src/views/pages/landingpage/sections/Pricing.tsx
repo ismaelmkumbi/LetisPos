@@ -3,6 +3,7 @@ import { Box, Container, Typography, Grid, Stack, Chip } from '@mui/material';
 import { IconCheck } from '@tabler/icons-react';
 import CtaButton from '../components/CtaButton';
 import SectionWrapper from '../components/SectionWrapper';
+import { useDemoDialog } from '../components/DemoDialog';
 
 const tiers = [
   {
@@ -64,6 +65,8 @@ const tiers = [
 ];
 
 const Pricing: React.FC = () => {
+  const { openDemo } = useDemoDialog();
+
   return (
     <SectionWrapper id="pricing">
       <Container maxWidth="lg">
@@ -190,7 +193,12 @@ const Pricing: React.FC = () => {
                   ))}
                 </Stack>
 
-                <CtaButton variant={tier.ctaVariant} fullWidth>
+                <CtaButton
+                  variant={tier.ctaVariant}
+                  fullWidth
+                  onClick={tier.cta === 'Book a demo' ? openDemo : undefined}
+                  href={tier.cta === 'Start free trial' ? '/auth/register' : undefined}
+                >
                   {tier.cta}
                 </CtaButton>
               </Box>

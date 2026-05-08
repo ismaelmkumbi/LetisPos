@@ -2,8 +2,11 @@ import React from 'react';
 import { Box, Container, Typography, Stack } from '@mui/material';
 import CtaButton from '../components/CtaButton';
 import SectionWrapper from '../components/SectionWrapper';
+import { useDemoDialog } from '../components/DemoDialog';
 
 const FinalCta: React.FC = () => {
+  const { openDemo } = useDemoDialog();
+
   return (
     <SectionWrapper>
       <Container maxWidth="md">
@@ -44,7 +47,7 @@ const FinalCta: React.FC = () => {
             <CtaButton variant="primary" href="/auth/register" size="large">
               Start free trial
             </CtaButton>
-            <CtaButton variant="secondary" size="large">
+            <CtaButton variant="secondary" size="large" onClick={openDemo}>
               Book a demo
             </CtaButton>
           </Stack>

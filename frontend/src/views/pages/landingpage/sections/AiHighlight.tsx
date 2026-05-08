@@ -2,6 +2,7 @@ import React from 'react';
 import { Box, Container, Typography, Grid, Stack } from '@mui/material';
 import { IconTrendingUp, IconAlertTriangle, IconFileReport } from '@tabler/icons-react';
 import SectionWrapper from '../components/SectionWrapper';
+import AiInsightsMock from '../components/AiInsightsMock';
 
 const capabilities = [
   {
@@ -83,30 +84,7 @@ const AiHighlight: React.FC = () => {
           </Grid>
 
           <Grid size={{ xs: 12, md: 7 }}>
-            <Box
-              sx={{
-                aspectRatio: '16/10',
-                bgcolor: 'var(--lp-surface)',
-                borderRadius: 3,
-                border: '1px solid var(--lp-border)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'var(--lp-text-muted)',
-                fontFamily: 'var(--lp-font-body)',
-                fontSize: '0.875rem',
-                overflow: 'hidden',
-              }}
-            >
-              <Box sx={{ textAlign: 'center', px: 4 }}>
-                <Typography sx={{ fontFamily: 'var(--lp-font-display)', fontSize: '1rem', mb: 1, color: 'var(--lp-accent)' }}>
-                  AI Insights Dashboard
-                </Typography>
-                <Typography sx={{ fontSize: '0.813rem', color: 'var(--lp-text-muted)' }}>
-                  Smart predictions and automated reports — generated from your data.
-                </Typography>
-              </Box>
-            </Box>
+            <AiInsightsMock />
           </Grid>
         </Grid>
       </Container>
