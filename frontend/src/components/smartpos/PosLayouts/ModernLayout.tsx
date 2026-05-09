@@ -234,6 +234,7 @@ export default function ModernLayout(props: PosLayoutProps) {
         registerLoading={props.registerLoading}
         onOpenRegister={props.onOpenRegister}
         onCloseRegister={props.onCloseRegister}
+        isDark={isDark}
       />
 
       {/* ═══ Banner ═════════════════════════════════════════════════════ */}
@@ -286,6 +287,7 @@ export default function ModernLayout(props: PosLayoutProps) {
           onBack={() => setPaymentOpen(false)}
           onComplete={completePayment}
           taxRate={props.lines.length > 0 ? Math.round(props.lines[0].taxRate) : 0}
+          isDark={isDark}
         />
       ) : (
         <Box
@@ -325,6 +327,7 @@ export default function ModernLayout(props: PosLayoutProps) {
               onBarcodeChange={props.onBarcodeChange}
               onBarcodeScan={props.onBarcodeScan}
               barcodeRef={props.barcodeRef}
+              isDark={isDark}
             />
 
             <ProductTabs activeTab={props.activeTab} onTabChange={handleTabChange} />
@@ -336,6 +339,7 @@ export default function ModernLayout(props: PosLayoutProps) {
                 stockMap={props.stockMap}
                 stockLoading={props.stockLoading}
                 onAdd={props.onAddProduct}
+                isDark={isDark}
               />
             </Box>
           </Box>
@@ -363,6 +367,7 @@ export default function ModernLayout(props: PosLayoutProps) {
               onDiscountTypeChange={props.onDiscountTypeChange}
               products={props.products}
               stockMap={props.stockMap}
+              isDark={isDark}
             />
           </Box>
         </Box>
@@ -384,6 +389,7 @@ export default function ModernLayout(props: PosLayoutProps) {
           itemCount={itemCount}
           labelPay={t('pos.charge')}
           labelProcessing={t('pos.processing')}
+          isDark={isDark}
         />
       )}
     </Box>
@@ -412,9 +418,11 @@ interface KioskTopBarProps {
   registerLoading?: boolean;
   onOpenRegister?: () => void;
   onCloseRegister?: () => void;
+  isDark: boolean;
 }
 
 function KioskTopBar(p: KioskTopBarProps) {
+  const isDark = p.isDark;
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
 
@@ -549,13 +557,13 @@ function KioskTopBar(p: KioskTopBarProps) {
 
       {/* Right-side icon cluster */}
       <Stack direction="row" spacing={0.25} alignItems="center" sx={{ flexShrink: 0 }}>
-        <KioskIconButton title="Keyboard shortcuts" onClick={() => p.onNotify?.('Press ? to view shortcuts')}>
+        <KioskIconButton title="Keyboard shortcuts" onClick={() => p.onNotify?.('Press ? to view shortcuts')} isDark={isDark}>
           <IconHelp size={16} />
         </KioskIconButton>
-        <KioskIconButton title="Today's sales" onClick={() => p.onTodaySales?.()}>
+        <KioskIconButton title="Today's sales" onClick={() => p.onTodaySales?.()} isDark={isDark}>
           <IconReceipt size={16} />
         </KioskIconButton>
-        <KioskIconButton title="Settings" to="/smartpos/settings">
+        <KioskIconButton title="Settings" to="/smartpos/settings" isDark={isDark}>
           <IconSettings size={16} />
         </KioskIconButton>
         <Select
@@ -580,7 +588,7 @@ function KioskTopBar(p: KioskTopBarProps) {
           <MenuItem value=""><em>Not paired</em></MenuItem>
           {p.terminals.map((t) => <MenuItem key={t.id} value={t.id}>{t.name} · {t.code}</MenuItem>)}
         </Select>
-        <KioskIconButton title={isFullscreen ? 'Exit full screen' : 'Enter full screen'} onClick={toggleFullscreen}>
+        <KioskIconButton title={isFullscreen ? 'Exit full screen' : 'Enter full screen'} onClick={toggleFullscreen} isDark={isDark}>
           {isFullscreen ? <IconArrowsMinimize size={16} /> : <IconArrowsMaximize size={16} />}
         </KioskIconButton>
       </Stack>
@@ -622,8 +630,8 @@ function KioskTopBar(p: KioskTopBarProps) {
 }
 
 function KioskIconButton({
-  title, children, onClick, to,
-}: { title: string; children: React.ReactNode; onClick?: () => void; to?: string }) {
+  title, children, onClick, to, isDark,
+}: { title: string; children: React.ReactNode; onClick?: () => void; to?: string; isDark: boolean }) {
   const sx = {
     width: 40,
     height: 40,
@@ -665,9 +673,11 @@ interface CheckoutPanelProps {
   onDiscountChange: (v: number) => void; onDiscountTypeChange: (t: 'FIXED' | 'PERCENT') => void;
   products: Product[];
   stockMap: Record<string, StockLevel>;
+  isDark: boolean;
 }
 
 function CheckoutPanel(p: CheckoutPanelProps) {
+  const isDark = p.isDark;
   const [editLineIdx, setEditLineIdx] = useState<number | null>(null);
   const [editLine, setEditLine] = useState<Line | null>(null);
   const [discountOpen, setDiscountOpen] = useState(false);
@@ -812,6 +822,7 @@ function CheckoutPanel(p: CheckoutPanelProps) {
                   setEditLine(line);
                 }}
                 onPatchLine={(patch) => p.onPatchLine?.(i, patch)}
+                isDark={isDark}
               />
             ))}
           </Stack>
@@ -942,13 +953,14 @@ function CheckoutPanel(p: CheckoutPanelProps) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 function CartItem({
-  line, stock, onInc, onDec, onRemove, onEditClick, onPatchLine,
+  line, stock, onInc, onDec, onRemove, onEditClick, onPatchLine, isDark,
 }: {
   line: Line;
   stock?: StockLevel;
   onInc: () => void; onDec: () => void; onRemove: () => void;
   onEditClick: () => void;
   onPatchLine: (patch: Partial<Line>) => void;
+  isDark: boolean;
 }) {
   const lineTotal = line.unitPrice * line.qty;
   const stockAvailable = stock?.available ?? 0;
@@ -1117,9 +1129,11 @@ interface TopFiltersProps {
   search: string; onSearchChange: (v: string) => void;
   barcode: string; onBarcodeChange: (v: string) => void; onBarcodeScan: () => void;
   barcodeRef: React.RefObject<HTMLInputElement | null>;
+  isDark: boolean;
 }
 
 function TopFilters(p: TopFiltersProps) {
+  const isDark = p.isDark;
   return (
     <Card
       elevation={0}
@@ -1262,8 +1276,8 @@ function IconBoxIcon() {
 // ═══════════════════════════════════════════════════════════════════════════
 
 function ProductGrid({
-  products, loading, onAdd, stockMap, stockLoading,
-}: { products: Product[]; loading: boolean; onAdd: (p: Product) => void; stockMap: Record<string, StockLevel>; stockLoading: boolean }) {
+  products, loading, onAdd, stockMap, stockLoading, isDark,
+}: { products: Product[]; loading: boolean; onAdd: (p: Product) => void; stockMap: Record<string, StockLevel>; stockLoading: boolean; isDark: boolean }) {
   const [page, setPage] = useState(1);
 
   useEffect(() => {
@@ -1346,7 +1360,7 @@ function ProductGrid({
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100%', gap: 1.25 }}>
       <Box sx={gridSx}>
         {paginatedProducts.map((p) => (
-          <ProductCard key={p.id} product={p} stock={stockMap[p.id]} onAdd={() => onAdd(p)} />
+          <ProductCard key={p.id} product={p} stock={stockMap[p.id]} onAdd={() => onAdd(p)} isDark={isDark} />
         ))}
       </Box>
 
@@ -1391,7 +1405,7 @@ function ProductGrid({
   );
 }
 
-function ProductCard({ product, stock, onAdd }: { product: Product; stock?: StockLevel; onAdd: () => void }) {
+function ProductCard({ product, stock, onAdd, isDark }: { product: Product; stock?: StockLevel; onAdd: () => void; isDark: boolean }) {
   const hasStock = stock !== undefined;
   const available = stock ? stock.available : -1;
   const outOfStock = !hasStock || available <= 0;
@@ -1562,7 +1576,7 @@ function ProductCard({ product, stock, onAdd }: { product: Product; stock?: Stoc
 //  POS item-add beep variant (localStorage)
 // ═══════════════════════════════════════════════════════════════════════════
 
-function PosBeepSoundPicker() {
+function PosBeepSoundPicker({ isDark }: { isDark: boolean }) {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [variant, setVariant] = useState<PosBeepVariantId>(() => getPosBeepVariant());
 
@@ -1670,9 +1684,11 @@ interface PaymentScreenProps {
   taxRate: number;
   splitPayments?: { method: PaymentChoice; amount: number }[];
   onSplitPaymentsChange?: (payments: { method: PaymentChoice; amount: number }[]) => void;
+  isDark: boolean;
 }
 
 function PaymentScreen(p: PaymentScreenProps) {
+  const isDark = p.isDark;
   const [splitPayments, setSplitPayments] = useState<{ method: PaymentChoice; amount: number }[]>([]);
   const tenderedNumber = Number(p.tendered) || 0;
 
@@ -1753,7 +1769,7 @@ function PaymentScreen(p: PaymentScreenProps) {
         <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto', px: 2, py: 1.5, ...softScrollSx }}>
           <Stack spacing={1.2}>
             {p.lines.map((line, index) => (
-              <PaymentCartRow key={`${line.productId}-${index}`} line={line} />
+              <PaymentCartRow key={`${line.productId}-${index}`} line={line} isDark={isDark} />
             ))}
           </Stack>
         </Box>
@@ -1831,12 +1847,12 @@ function PaymentScreen(p: PaymentScreenProps) {
                 gap: 1.5,
               }}
             >
-              <PaymentMethodCard choice="CASH" active={p.paymentChoice === 'CASH'} icon={<IconCoin size={30} />} title="Cash" subtitle="Pay with cash" onClick={p.onPaymentChoiceChange} />
-              <PaymentMethodCard choice="CARD" active={p.paymentChoice === 'CARD'} icon={<IconCreditCard size={30} />} title="Card" subtitle="Visa, Mastercard, etc." onClick={p.onPaymentChoiceChange} />
-              <PaymentMethodCard choice="MOBILE" active={p.paymentChoice === 'MOBILE'} icon={<IconDeviceMobile size={30} />} title="Mobile Money" subtitle="M-Pesa, Tigo Pesa, etc." onClick={p.onPaymentChoiceChange} />
-              <PaymentMethodCard choice="BANK" active={p.paymentChoice === 'BANK'} icon={<IconBuildingBank size={30} />} title="Bank Transfer" subtitle="Direct bank transfer" onClick={p.onPaymentChoiceChange} />
-              <PaymentMethodCard choice="USSD" active={p.paymentChoice === 'USSD'} icon={<IconCalculator size={30} />} title="USSD" subtitle="Pay via USSD code" onClick={p.onPaymentChoiceChange} />
-              <PaymentMethodCard choice="SPLIT" active={p.paymentChoice === 'SPLIT'} icon={<IconSparkles size={30} />} title="Mixed Payment" subtitle="Combine payment" badge="New" onClick={p.onPaymentChoiceChange} />
+              <PaymentMethodCard choice="CASH" active={p.paymentChoice === 'CASH'} icon={<IconCoin size={30} />} title="Cash" subtitle="Pay with cash" onClick={p.onPaymentChoiceChange} isDark={isDark} />
+              <PaymentMethodCard choice="CARD" active={p.paymentChoice === 'CARD'} icon={<IconCreditCard size={30} />} title="Card" subtitle="Visa, Mastercard, etc." onClick={p.onPaymentChoiceChange} isDark={isDark} />
+              <PaymentMethodCard choice="MOBILE" active={p.paymentChoice === 'MOBILE'} icon={<IconDeviceMobile size={30} />} title="Mobile Money" subtitle="M-Pesa, Tigo Pesa, etc." onClick={p.onPaymentChoiceChange} isDark={isDark} />
+              <PaymentMethodCard choice="BANK" active={p.paymentChoice === 'BANK'} icon={<IconBuildingBank size={30} />} title="Bank Transfer" subtitle="Direct bank transfer" onClick={p.onPaymentChoiceChange} isDark={isDark} />
+              <PaymentMethodCard choice="USSD" active={p.paymentChoice === 'USSD'} icon={<IconCalculator size={30} />} title="USSD" subtitle="Pay via USSD code" onClick={p.onPaymentChoiceChange} isDark={isDark} />
+              <PaymentMethodCard choice="SPLIT" active={p.paymentChoice === 'SPLIT'} icon={<IconSparkles size={30} />} title="Mixed Payment" subtitle="Combine payment" badge="New" onClick={p.onPaymentChoiceChange} isDark={isDark} />
             </Box>
 
             {p.paymentChoice === 'SPLIT' ? (
@@ -1950,11 +1966,11 @@ function PaymentScreen(p: PaymentScreenProps) {
               </Typography>
               <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 1.25 }}>
                 {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((digit) => (
-                  <KeypadButton key={digit} label={digit} hint={keypadHint(digit)} onClick={() => setDigit(digit)} />
+                  <KeypadButton key={digit} label={digit} hint={keypadHint(digit)} onClick={() => setDigit(digit)} isDark={isDark} />
                 ))}
-                <KeypadButton label="C" hint="Clear" danger onClick={() => p.onTenderedChange('')} />
-                <KeypadButton label="0" onClick={() => setDigit('0')} />
-                <KeypadButton icon={<IconBackspace size={24} />} onClick={backspace} />
+                <KeypadButton label="C" hint="Clear" danger onClick={() => p.onTenderedChange('')} isDark={isDark} />
+                <KeypadButton label="0" onClick={() => setDigit('0')} isDark={isDark} />
+                <KeypadButton icon={<IconBackspace size={24} />} onClick={backspace} isDark={isDark} />
               </Box>
 
               <Box sx={{ mt: 1.8, display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 1 }}>
@@ -1979,9 +1995,9 @@ function PaymentScreen(p: PaymentScreenProps) {
           sx={{ px: 2.5, py: 1.5, borderTop: `1px solid ${brand.neutral[200]}` }}
         >
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, minmax(0, 1fr))' }, gap: 1, flex: 1 }}>
-            <PaymentMeta icon={<IconUser size={21} />} label="Customer" value={p.customerName} />
-            <PaymentMeta icon={<IconSparkles size={21} />} label="Order Type" value="Retail Sale" />
-            <PaymentMeta icon={<IconReceipt size={21} />} label="Sale ID" value="#SL-2505-0001" />
+            <PaymentMeta icon={<IconUser size={21} />} label="Customer" value={p.customerName} isDark={isDark} />
+            <PaymentMeta icon={<IconSparkles size={21} />} label="Order Type" value="Retail Sale" isDark={isDark} />
+            <PaymentMeta icon={<IconReceipt size={21} />} label="Sale ID" value="#SL-2505-0001" isDark={isDark} />
           </Box>
           <Button
             variant="contained"
@@ -2008,7 +2024,7 @@ function PaymentScreen(p: PaymentScreenProps) {
   );
 }
 
-function PaymentCartRow({ line }: { line: Line }) {
+function PaymentCartRow({ line, isDark }: { line: Line; isDark: boolean }) {
   return (
     <Stack direction="row" spacing={1.2} alignItems="center" sx={{ pb: 1.2, borderBottom: `1px solid ${brand.neutral[100]}` }}>
       <Avatar variant="rounded" sx={{ width: 56, height: 56, borderRadius: '8px', bgcolor: isDark ? brand.neutral[900] : brand.neutral[50], color: brand.primary[700], fontWeight: 900 }}>
@@ -2025,9 +2041,9 @@ function PaymentCartRow({ line }: { line: Line }) {
 }
 
 function PaymentMethodCard({
-  choice, active, icon, title, subtitle, badge, onClick,
+  choice, active, icon, title, subtitle, badge, onClick, isDark,
 }: {
-  choice: PaymentChoice; active: boolean; icon: React.ReactNode; title: string; subtitle: string; badge?: string; onClick: (choice: PaymentChoice) => void;
+  choice: PaymentChoice; active: boolean; icon: React.ReactNode; title: string; subtitle: string; badge?: string; onClick: (choice: PaymentChoice) => void; isDark: boolean;
 }) {
   return (
     <Box
@@ -2066,7 +2082,7 @@ function keypadHint(value: string) {
   return hints[value];
 }
 
-function KeypadButton({ label, hint, icon, danger, onClick }: { label?: string; hint?: string; icon?: React.ReactNode; danger?: boolean; onClick: () => void }) {
+function KeypadButton({ label, hint, icon, danger, onClick, isDark }: { label?: string; hint?: string; icon?: React.ReactNode; danger?: boolean; onClick: () => void; isDark: boolean }) {
   return (
     <Button
       variant="outlined"
@@ -2113,7 +2129,7 @@ function TenderQuickPick({ value, label, active, onClick }: { value: number; lab
   );
 }
 
-function PaymentMeta({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+function PaymentMeta({ icon, label, value, isDark }: { icon: React.ReactNode; label: string; value: string; isDark: boolean }) {
   return (
     <Stack direction="row" spacing={1.2} alignItems="center" sx={{ p: 1.2, borderRight: { sm: `1px solid ${brand.neutral[200]}` } }}>
       <Box sx={{ color: brand.info.dark }}>{icon}</Box>
@@ -2139,9 +2155,11 @@ interface FooterBarProps {
   onCheckout: () => void;
   grand: number; itemCount: number;
   labelPay: string; labelProcessing: string;
+  isDark: boolean;
 }
 
 function FooterBar(p: FooterBarProps) {
+  const isDark = p.isDark;
   const statusColor = p.online ? brand.success.main : brand.warning.main;
 
   return (
@@ -2212,12 +2230,12 @@ function FooterBar(p: FooterBarProps) {
             )}
           </Stack>
         </Tooltip>
-        <FooterAction icon={<IconHome size={14} />} label="Home" to="/smartpos/dashboard" />
-        <FooterAction icon={<IconRefresh size={14} />} label="Reset" onClick={p.onClear} />
-        <FooterAction icon={<IconReceipt size={14} />} label="Drafts" onClick={p.onOpenHeldCarts} />
-        <FooterAction icon={<IconShoppingCart size={14} />} label="Hold" onClick={p.onHoldCart} />
+        <FooterAction icon={<IconHome size={14} />} label="Home" to="/smartpos/dashboard" isDark={isDark} />
+        <FooterAction icon={<IconRefresh size={14} />} label="Reset" onClick={p.onClear} isDark={isDark} />
+        <FooterAction icon={<IconReceipt size={14} />} label="Drafts" onClick={p.onOpenHeldCarts} isDark={isDark} />
+        <FooterAction icon={<IconShoppingCart size={14} />} label="Hold" onClick={p.onHoldCart} isDark={isDark} />
         <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center' }}>
-          <PosBeepSoundPicker />
+          <PosBeepSoundPicker isDark={isDark} />
         </Box>
       </Stack>
 
@@ -2319,8 +2337,8 @@ function FooterBar(p: FooterBarProps) {
 }
 
 function FooterAction({
-  icon, label, onClick, to,
-}: { icon: React.ReactNode; label: string; onClick?: () => void; to?: string }) {
+  icon, label, onClick, to, isDark,
+}: { icon: React.ReactNode; label: string; onClick?: () => void; to?: string; isDark: boolean }) {
   // On xs the label is hidden (icon-only) and we add a tooltip so the meaning
   // stays discoverable. On sm+ the label shows as before.
   return (

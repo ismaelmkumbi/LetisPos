@@ -22,6 +22,7 @@ import {
   cardSx, SectionTitle, FloatingSaveBar, CardSkeletonGroup,
 } from 'src/components/smartpos/SettingsHelpers';
 import { brand } from 'src/theme/smartpos/brand';
+import type { Theme } from '@mui/material/styles';
 import { premiumFieldSx } from 'src/components/smartpos/PosLayouts/shared';
 import {
   getPosSettings, updatePosSettings, resetPosSettings, type PosSettings,
@@ -30,7 +31,10 @@ import { listWarehouses, type Warehouse } from 'src/api/smartpos/inventory';
 import { useAuth } from 'src/context/smartpos/AuthContext';
 import type { UUID } from 'src/api/smartpos/types';
 
-const fieldSx = { ...premiumFieldSx, '& .MuiOutlinedInput-root': { ...premiumFieldSx['& .MuiOutlinedInput-root'], borderRadius: '10px' } };
+const fieldSx = (theme: Theme) => {
+  const base = premiumFieldSx(theme);
+  return { ...base, '& .MuiOutlinedInput-root': { ...base['& .MuiOutlinedInput-root'], borderRadius: '10px' } };
+};
 
 export default function LoyaltySettingsPage() {
   const { user } = useAuth();
@@ -137,7 +141,7 @@ export default function LoyaltySettingsPage() {
           options={warehouses}
           getOptionLabel={(w) => `${w.name}${w.city ? ` — ${w.city}` : ''}`}
           onChange={(_, v) => v && setWarehouseId(v.id)}
-          renderInput={(p) => <TextField {...p} size="small" sx={{ ...fieldSx, minWidth: 360 }} />}
+          renderInput={(p) => <TextField {...p} size="small" sx={(theme) => ({ ...fieldSx(theme), minWidth: 360 })} />}
           sx={{ maxWidth: 480 }}
         />
       </Box>
@@ -207,7 +211,7 @@ export default function LoyaltySettingsPage() {
                     }}
                     type="number"
                     size="small"
-                    sx={{ maxWidth: 220, ...fieldSx }}
+                    sx={(theme) => ({ maxWidth: 220, ...fieldSx(theme) })}
                     InputProps={{
                       endAdornment: (
                         <InputAdornment position="end">
@@ -226,7 +230,7 @@ export default function LoyaltySettingsPage() {
                     }}
                     type="number"
                     size="small"
-                    sx={{ maxWidth: 220, ...fieldSx }}
+                    sx={(theme) => ({ maxWidth: 220, ...fieldSx(theme) })}
                     InputProps={{
                       startAdornment: (
                         <InputAdornment position="start">
@@ -246,7 +250,7 @@ export default function LoyaltySettingsPage() {
                   }}
                   type="number"
                   size="small"
-                  sx={{ maxWidth: 240, ...fieldSx }}
+                  sx={(theme) => ({ maxWidth: 240, ...fieldSx(theme) })}
                   InputProps={{ endAdornment: <InputAdornment position="end">pts</InputAdornment> }}
                   helperText="Customer must have at least this many points to redeem"
                 />

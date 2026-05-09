@@ -188,12 +188,12 @@ export default function SplitLayout(props: PosLayoutProps) {
         </TextField>
         <TextField size="small" placeholder="Search products…" value={props.search}
           onChange={(e) => props.onSearchChange(e.target.value)}
-          sx={{ minWidth: 160, flex: { xs: '0 0 auto', sm: 1 }, maxWidth: { xs: 220, sm: 'none' }, ...premiumFieldSx(isDark) }}
+          sx={(theme) => ({ minWidth: 160, flex: { xs: '0 0 auto', sm: 1 }, maxWidth: { xs: 220, sm: 'none' }, ...premiumFieldSx(theme) })}
           slotProps={{ input: { startAdornment: <InputAdornment position="start"><IconSearch size={15} color={brand.neutral[400]} /></InputAdornment> } }} />
         <TextField size="small" placeholder="Barcode" value={props.barcode} inputRef={props.barcodeRef}
           onChange={(e) => props.onBarcodeChange(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') props.onBarcodeScan(); if (e.key === 'Escape') props.onBarcodeChange(''); }}
-          sx={{ width: 120, flexShrink: 0, ...premiumFieldSx(isDark) }}
+          sx={(theme) => ({ width: 120, flexShrink: 0, ...premiumFieldSx(theme) })}
           slotProps={{ input: { startAdornment: <InputAdornment position="start"><IconBarcode size={15} color={brand.primary[600]} /></InputAdornment> } }} />
         <TextField select size="small" value={props.categoryId} onChange={(e) => props.onCategoryChange(e.target.value)}
           slotProps={{ select: { displayEmpty: true } }} sx={selectFieldSx}>

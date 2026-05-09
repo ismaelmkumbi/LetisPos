@@ -1,6 +1,7 @@
 /**
  * Shared utilities, CSS constants, and helpers for all POS layouts.
  */
+import type { Theme } from '@mui/material/styles';
 import { brand } from 'src/theme/smartpos/brand';
 import type { Line } from './types';
 
@@ -30,7 +31,9 @@ export const posSurface = (isDark: boolean) => ({
   boxShadow: isDark ? 'none' : `0 1px 2px ${brand.neutral[900]}08, 0 18px 48px -28px ${brand.primary[900]}33`,
 }) as const;
 
-export const premiumFieldSx = (isDark: boolean) => ({
+export const premiumFieldSx = (themeOrDark: Theme | boolean) => {
+  const isDark = typeof themeOrDark === 'boolean' ? themeOrDark : themeOrDark.palette.mode === 'dark';
+  return ({
   '& .MuiOutlinedInput-root': {
     borderRadius: '10px',
     bgcolor: isDark ? brand.neutral[800] : '#fff',
@@ -49,6 +52,7 @@ export const premiumFieldSx = (isDark: boolean) => ({
     color: isDark ? brand.neutral[400] : brand.neutral[500],
   },
 }) as const;
+};
 
 export const softScrollSx = {
   '&::-webkit-scrollbar': { width: 6, height: 6 },
