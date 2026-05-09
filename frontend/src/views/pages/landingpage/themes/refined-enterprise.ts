@@ -18,7 +18,7 @@ export const refinedEnterprise: ThemeTokens = {
   ctaSecondaryBg: 'transparent',
   ctaSecondaryText: '#E2E8F0',
   ctaSecondaryBorder: '#334155',
-  fontDisplay: "'Georgia', 'Times New Roman', serif",
-  fontBody: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+  fontDisplay: "'Inter', 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', sans-serif",
+  fontBody: "'Inter', 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', sans-serif",
   googleFontsUrl: '',
 };

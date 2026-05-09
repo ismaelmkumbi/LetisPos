@@ -246,7 +246,8 @@ const AuthLoginForm: React.FC<Props> = ({ title, subtitle, subtext }) => {
             boxShadow: `0 12px 26px -10px ${brand.primary[700]}`,
           },
           '&.Mui-disabled': {
-            bgcolor: brand.neutral[200],
+            background: brand.neutral[200],
+            boxShadow: 'none',
             color: brand.neutral[400],
           },
         }}
