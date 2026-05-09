@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Box } from '@mui/material';
 import { IconArrowRight, IconLogin2 } from '@tabler/icons-react';
 import { LpThemeProvider } from './LandingpageTheme';
@@ -18,10 +18,28 @@ import Footer from './sections/Footer';
 import './Landingpage.css';
 
 const Landingpage: React.FC = () => {
+  const pageRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout>;
+    const onScroll = () => {
+      pageRef.current?.classList.add('scrolling');
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        pageRef.current?.classList.remove('scrolling');
+      }, 1500);
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      clearTimeout(timer);
+    };
+  }, []);
+
   return (
     <LpThemeProvider>
       <DemoDialogProvider>
-        <Box className="lp-page" sx={{ pb: { xs: 9, md: 0 } }}>
+        <Box ref={pageRef} className="lp-page" sx={{ pb: { xs: 9, md: 0 } }}>
           <Header />
           <main>
             <Hero />
