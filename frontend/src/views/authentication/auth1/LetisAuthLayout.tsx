@@ -38,8 +38,7 @@ const softFloat = keyframes`
   50% { transform: translateY(-7px); }
 `;
 
-const anim = (delay = 0) =>
-  `${fadeInUp} 0.55s cubic-bezier(0.16, 1, 0.3, 1) ${delay}ms both`;
+const anim = (delay = 0) => `${fadeInUp} 0.55s cubic-bezier(0.16, 1, 0.3, 1) ${delay}ms both`;
 
 const modeMeta: Record<AuthMode, { label: string; figureTitle: string; figureMetric: string }> = {
   login: {
@@ -96,8 +95,7 @@ function ProductShowcase({ mode }: { mode: AuthMode }) {
           inset: { xs: '16px 10px 36px 22px', sm: '10px 20px 48px 36px' },
           borderRadius: { xs: '28px', sm: '34px' },
           background: 'linear-gradient(145deg, #111827 0%, #1F2937 100%)',
-          boxShadow:
-            '0 34px 70px rgba(15,23,42,0.24), 0 14px 30px rgba(15,23,42,0.12)',
+          boxShadow: '0 34px 70px rgba(15,23,42,0.24), 0 14px 30px rgba(15,23,42,0.12)',
         }}
       />
 
@@ -150,7 +148,9 @@ function ProductShowcase({ mode }: { mode: AuthMode }) {
               }}
             >
               <Stack direction="row" justifyContent="space-between" alignItems="center">
-                <Typography sx={{ fontSize: '0.58rem', fontWeight: 900, color: brand.neutral[500] }}>
+                <Typography
+                  sx={{ fontSize: '0.58rem', fontWeight: 900, color: brand.neutral[500] }}
+                >
                   {meta.figureTitle}
                 </Typography>
                 <IconChartBar size={15} color={brand.primary[600]} />
@@ -192,10 +192,14 @@ function ProductShowcase({ mode }: { mode: AuthMode }) {
                     border: `1px solid ${index === 1 ? brand.primary[100] : brand.neutral[100]}`,
                   }}
                 >
-                  <Typography sx={{ fontSize: '0.62rem', fontWeight: 800, color: brand.neutral[600] }}>
+                  <Typography
+                    sx={{ fontSize: '0.62rem', fontWeight: 800, color: brand.neutral[600] }}
+                  >
                     {label}
                   </Typography>
-                  <Typography sx={{ fontSize: '0.62rem', fontWeight: 950, color: brand.neutral[900] }}>
+                  <Typography
+                    sx={{ fontSize: '0.62rem', fontWeight: 950, color: brand.neutral[900] }}
+                  >
                     {index === 0 ? 'TSh 0' : index === 1 ? '37' : '5'}
                   </Typography>
                 </Stack>
@@ -274,7 +278,13 @@ function ProductShowcase({ mode }: { mode: AuthMode }) {
           <Typography sx={{ fontSize: { xs: '0.42rem', sm: '0.5rem' }, fontWeight: 950 }}>
             Letis POS
           </Typography>
-          <Typography sx={{ fontSize: { xs: '0.3rem', sm: '0.36rem' }, fontWeight: 800, color: brand.neutral[500] }}>
+          <Typography
+            sx={{
+              fontSize: { xs: '0.3rem', sm: '0.36rem' },
+              fontWeight: 800,
+              color: brand.neutral[500],
+            }}
+          >
             INV-2026-000433
           </Typography>
         </Stack>
@@ -396,7 +406,9 @@ function BenefitRow({
         <Typography sx={{ fontSize: '0.82rem', fontWeight: 900, color: brand.neutral[900] }}>
           {title}
         </Typography>
-        <Typography sx={{ mt: 0.2, fontSize: '0.76rem', lineHeight: 1.45, color: brand.neutral[500] }}>
+        <Typography
+          sx={{ mt: 0.2, fontSize: '0.76rem', lineHeight: 1.45, color: brand.neutral[500] }}
+        >
           {text}
         </Typography>
       </Box>
@@ -432,7 +444,7 @@ export default function LetisAuthLayout({
             px: { xs: 2.4, sm: 5, md: 7, xl: 9 },
             py: { xs: 2.5, sm: 4, lg: 5.5 },
             minHeight: { xs: 'auto', lg: '100dvh' },
-            display: 'flex',
+            display: { xs: 'none', lg: 'flex' },
             alignItems: 'center',
             background:
               'radial-gradient(circle at 0% 0%, rgba(22,163,74,0.14), transparent 32%), linear-gradient(150deg, #FFFFFF 0%, #F8FAFC 44%, #EAF8F0 100%)',
@@ -533,11 +545,11 @@ export default function LetisAuthLayout({
         <Box
           sx={{
             position: 'relative',
-            px: { xs: 2.2, sm: 4, md: 7, xl: 9 },
-            py: { xs: 3, sm: 5 },
-            minHeight: { xs: 'auto', lg: '100dvh' },
+            px: { xs: 1.5, sm: 4, md: 7, xl: 9 },
+            py: { xs: 1.5, sm: 5 },
+            minHeight: '100dvh',
             display: 'flex',
-            alignItems: 'center',
+            alignItems: { xs: 'flex-start', sm: 'center' },
             justifyContent: 'center',
             background:
               'radial-gradient(circle at 80% 10%, rgba(22,163,74,0.08), transparent 34%), #FFFFFF',
@@ -565,38 +577,37 @@ export default function LetisAuthLayout({
             sx={{
               width: '100%',
               maxWidth: { xs: 440, lg: 500 },
-              borderRadius: { xs: '24px', sm: '32px' },
-              p: { xs: 2.3, sm: 4.2 },
+              borderRadius: { xs: '18px', sm: '32px' },
+              p: { xs: 1.6, sm: 4.2 },
               bgcolor: 'rgba(255,255,255,0.92)',
               border: `1px solid ${brand.neutral[100]}`,
-              boxShadow:
-                '0 34px 90px rgba(15,23,42,0.10), 0 14px 36px rgba(15,23,42,0.06)',
+              boxShadow: '0 34px 90px rgba(15,23,42,0.10), 0 14px 36px rgba(15,23,42,0.06)',
               backdropFilter: 'blur(16px)',
               animation: anim(170),
             }}
           >
             <Box
               sx={{
-                width: { xs: 58, sm: 70 },
-                height: { xs: 58, sm: 70 },
-                borderRadius: '22px',
+                width: { xs: 42, sm: 70 },
+                height: { xs: 42, sm: 70 },
+                borderRadius: { xs: '14px', sm: '22px' },
                 bgcolor: brand.primary[50],
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 mx: 'auto',
-                mb: 2.1,
+                mb: { xs: 1, sm: 2.1 },
                 boxShadow: `inset 0 0 0 1px ${brand.primary[100]}`,
               }}
             >
-              <LetisMark size={42} />
+              <LetisMark size={mode === 'register' ? 30 : 42} />
             </Box>
 
             <Typography
               component="h2"
               sx={{
                 textAlign: 'center',
-                fontSize: { xs: '1.55rem', sm: '1.85rem' },
+                fontSize: { xs: '1.25rem', sm: '1.85rem' },
                 fontWeight: 950,
                 letterSpacing: 0,
                 color: brand.neutral[900],
@@ -607,11 +618,11 @@ export default function LetisAuthLayout({
             <Typography
               sx={{
                 textAlign: 'center',
-                fontSize: '0.94rem',
-                lineHeight: 1.5,
+                fontSize: { xs: '0.82rem', sm: '0.94rem' },
+                lineHeight: { xs: 1.35, sm: 1.5 },
                 color: brand.neutral[500],
-                mt: 0.6,
-                mb: { xs: 2.5, sm: 3.2 },
+                mt: { xs: 0.3, sm: 0.6 },
+                mb: { xs: 1.3, sm: 3.2 },
               }}
             >
               {formDescription}

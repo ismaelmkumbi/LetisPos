@@ -122,8 +122,6 @@ const STATUS_STYLES: Record<StatusTone, { bg: string; color: string }> = {
 };
 
 export function StatusBadge({ label, tone = 'neutral' }: { label: string; tone?: StatusTone }) {
-  const { activeMode: _dm } = useContext(CustomizerContext);
-  const isDark = _dm === 'dark';
   const s = STATUS_STYLES[tone];
   return (
     <Chip
@@ -610,7 +608,7 @@ export function DataTable<T>({
                           {col.label}
                         </Typography>
                         <Typography variant="body2" sx={{ fontWeight: 600, color: isDark ? brand.neutral[200] : brand.neutral[800], textAlign: 'right', fontSize: '0.813rem', lineHeight: 1.4, wordBreak: 'break-word' }}>
-                          {col.render ? col.render(row, ri) : String((row as any)[col.key] ?? '—')}
+                          {col.render ? col.render(row, ri) : String((row as Record<string, unknown>)[col.key] ?? '—')}
                         </Typography>
                       </Stack>
                     ))}

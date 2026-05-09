@@ -8,7 +8,7 @@ spring:
     name: integration-service
 
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/integration_db}?preferQueryMode=${DB_PREFER_QUERY_MODE:simple}
+    url: ${DB_URL:jdbc:postgresql://localhost:5434/integration_db}?preferQueryMode=${DB_PREFER_QUERY_MODE:simple}
     username: ${DB_USER:integration_user}
     password: ${DB_PASSWORD:integration_pass}
     hikari:
