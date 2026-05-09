@@ -43,6 +43,10 @@ export default defineConfig({
 
     plugins: [svgr(), react()],
 
+    server: {
+        host: '0.0.0.0', // accessible from phones/tablets on the same LAN
+    },
+
     build: {
         chunkSizeWarningLimit: 700,
         rollupOptions: {
