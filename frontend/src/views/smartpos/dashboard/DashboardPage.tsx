@@ -156,16 +156,16 @@ function DashboardGreetingBar({
   return (
     <Box
       sx={{
-        mb: 2.5,
-        p: { xs: 2, md: 2.5 },
-        borderRadius: '14px',
+        mb: 1.5,
+        p: { xs: 1.75, md: 2 },
+        borderRadius: '12px',
         border: `1px solid ${isDark ? brand.neutral[700] : brand.neutral[200]}`,
         bgcolor: isDark ? brand.neutral[800] : '#FFFFFF',
         boxShadow: '0 2px 12px rgba(15,23,42,0.04)',
         display: 'flex',
         flexDirection: { xs: 'column', md: 'row' },
         alignItems: { xs: 'flex-start', md: 'center' },
-        gap: 2,
+        gap: 1.5,
       }}
     >
       {/* Greeting */}
@@ -174,7 +174,7 @@ function DashboardGreetingBar({
           <Typography
             sx={{
               fontWeight: 900,
-              fontSize: { xs: 20, md: 22 },
+              fontSize: { xs: 19, md: 21 },
               color: brand.neutral[900],
               letterSpacing: '-0.02em',
               lineHeight: 1.1,
@@ -186,7 +186,7 @@ function DashboardGreetingBar({
             {wave}
           </Box>
         </Stack>
-        <Typography sx={{ color: brand.neutral[500], fontSize: 13.5, mt: 0.3 }}>
+        <Typography sx={{ color: brand.neutral[500], fontSize: 13, mt: 0.3 }}>
           Here's what's happening with your business today.
         </Typography>
       </Box>
@@ -380,6 +380,7 @@ export default function DashboardPage() {
     }
   }, [onboardingState.percent, onboardingState.isComplete]);
 
+
   // Read initial values from URL, default to MONTH / all warehouses
   const initPeriod = searchParams.get('period') as Period | null;
   const [period, setPeriod] = useState<Period>(
@@ -547,7 +548,7 @@ export default function DashboardPage() {
   };
 
   return (
-    <Box sx={{ pb: 3 }}>
+    <Box sx={{ pb: 1 }}>
       <DashboardGreetingBar
         period={period}
         warehouseId={warehouseId}
@@ -577,115 +578,75 @@ export default function DashboardPage() {
         <DashboardSkeleton />
       ) : (
         <>
-          <Box
-            sx={{
-              mb: 2,
-              mx: { xs: -1.5, sm: 0 },
-              px: { xs: 1.5, sm: 0 },
-              overflow: { xs: 'auto', lg: 'visible' },
-              WebkitOverflowScrolling: 'touch',
-              scrollSnapType: { xs: 'x mandatory', lg: 'none' },
-              '&::-webkit-scrollbar': { display: 'none' },
-              scrollbarWidth: 'none',
-            }}
-          >
-            <Grid
-              container
-              spacing={2}
-              sx={{ flexWrap: { xs: 'nowrap', lg: 'wrap' }, mx: 0, width: { xs: 'max-content', lg: '100%' } }}
-            >
-            <Grid size={{ xs: 12, lg: 4 }} sx={{ minWidth: { xs: 280, lg: 'auto' }, scrollSnapAlign: 'start' }}>
-              <BusinessPulseCard data={data} salesSeries={salesSeries} period={period} />
-            </Grid>
-            <Grid size={{ xs: 12, sm: 6, lg: 2 }} sx={{ minWidth: { xs: 180, lg: 'auto' }, scrollSnapAlign: 'start' }}>
-              <MetricCard
-                label="Cash in Hand"
-                value={formatMoney(data?.payments.totalIn ?? 0)}
-                change={trendLabel(revenueTrend)}
-                icon={<IconWallet size={20} />}
-                color={brand.primary[600]}
-                series={salesSeries}
-              />
-            </Grid>
-            <Grid size={{ xs: 12, sm: 6, lg: 2 }} sx={{ minWidth: { xs: 180, lg: 'auto' }, scrollSnapAlign: 'start' }}>
-              <MetricCard
-                label="Net Sales"
-                value={formatMoney(data?.sales.net ?? 0)}
-                change={trendLabel(revenueTrend)}
-                icon={<IconBriefcase size={20} />}
-                color={brand.info.main}
-                series={salesSeries}
-              />
-            </Grid>
-            <Grid size={{ xs: 12, sm: 6, lg: 2 }} sx={{ minWidth: { xs: 180, lg: 'auto' }, scrollSnapAlign: 'start' }}>
-              <MetricCard
-                label="Orders"
-                value={formatNumber(data?.sales.count ?? 0)}
-                change={trendLabel(trend(orderSeries))}
-                icon={<IconShoppingCart size={20} />}
-                color={brand.warning.main}
-                series={orderSeries}
-              />
-            </Grid>
-            <Grid size={{ xs: 12, sm: 6, lg: 2 }} sx={{ minWidth: { xs: 180, lg: 'auto' }, scrollSnapAlign: 'start' }}>
-              <MetricCard
-                label="Purchases"
-                value={formatMoney(data?.purchases.gross ?? 0)}
-                change={null}
-                icon={<IconShoppingCart size={20} />}
-                color={brand.primary[600]}
-                series={[]}
-              />
-            </Grid>
-          </Grid>
-          </Box>
+          <Grid container spacing={1.5} alignItems="flex-start">
+            <Grid size={{ xs: 12, xl: 9 }}>
+              <Box
+                sx={{
+                  mb: 1.5,
+                  mx: { xs: -1.5, sm: 0 },
+                  px: { xs: 1.5, sm: 0 },
+                  overflow: { xs: 'auto', lg: 'visible' },
+                  WebkitOverflowScrolling: 'touch',
+                  scrollSnapType: { xs: 'x mandatory', lg: 'none' },
+                  '&::-webkit-scrollbar': { display: 'none' },
+                  scrollbarWidth: 'none',
+                }}
+              >
+                <Grid
+                  container
+                  spacing={1.5}
+                  sx={{ flexWrap: { xs: 'nowrap', lg: 'wrap' }, mx: 0, width: { xs: 'max-content', lg: '100%' } }}
+                >
+                  <Grid size={{ xs: 12, lg: 4 }} sx={{ minWidth: { xs: 280, lg: 'auto' }, scrollSnapAlign: 'start' }}>
+                    <BusinessPulseCard data={data} salesSeries={salesSeries} period={period} />
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6, lg: 2 }} sx={{ minWidth: { xs: 180, lg: 'auto' }, scrollSnapAlign: 'start' }}>
+                    <MetricCard
+                      label="Cash in Hand"
+                      value={formatMoney(data?.payments.totalIn ?? 0)}
+                      change={trendLabel(revenueTrend)}
+                      icon={<IconWallet size={20} />}
+                      color={brand.primary[600]}
+                      series={salesSeries}
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6, lg: 2 }} sx={{ minWidth: { xs: 180, lg: 'auto' }, scrollSnapAlign: 'start' }}>
+                    <MetricCard
+                      label="Net Sales"
+                      value={formatMoney(data?.sales.net ?? 0)}
+                      change={trendLabel(revenueTrend)}
+                      icon={<IconBriefcase size={20} />}
+                      color={brand.info.main}
+                      series={salesSeries}
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6, lg: 2 }} sx={{ minWidth: { xs: 180, lg: 'auto' }, scrollSnapAlign: 'start' }}>
+                    <MetricCard
+                      label="Orders"
+                      value={formatNumber(data?.sales.count ?? 0)}
+                      change={trendLabel(trend(orderSeries))}
+                      icon={<IconShoppingCart size={20} />}
+                      color={brand.warning.main}
+                      series={orderSeries}
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6, lg: 2 }} sx={{ minWidth: { xs: 180, lg: 'auto' }, scrollSnapAlign: 'start' }}>
+                    <MetricCard
+                      label="Purchases"
+                      value={formatMoney(data?.purchases.gross ?? 0)}
+                      change={null}
+                      icon={<IconShoppingCart size={20} />}
+                      color={brand.primary[600]}
+                      series={[]}
+                    />
+                  </Grid>
+                </Grid>
+              </Box>
 
-          <Grid container spacing={2} sx={{ mb: 2 }}>
-            <Grid size={{ xs: 12, md: 4 }}>
-              <AlertStrip
-                tone="warning"
-                icon={<IconAlertTriangle size={24} />}
-                title={`${formatNumber(data?.inventory.lowStockLines ?? 0)} items are low in stock`}
-                subtitle="Open stock levels and restock decisions"
-                to="/smartpos/stock"
-              />
-            </Grid>
-            <Grid size={{ xs: 12, md: 4 }}>
-              <AlertStrip
-                tone="error"
-                icon={<IconInfoCircle size={24} />}
-                title={
-                  data && data.netProfit < 0
-                    ? 'Profit is negative this period'
-                    : 'Review profit this period'
-                }
-                subtitle="Compare sales, purchases, and expenses"
-                to="/smartpos/reports"
-              />
-            </Grid>
-            <Grid size={{ xs: 12, md: 4 }}>
-              <AlertStrip
-                tone="success"
-                icon={<IconCircleCheck size={24} />}
-                title={
-                  revenueTrend
-                    ? `Sales ${revenueTrend.positive ? 'increased' : 'decreased'} by ${revenueTrend.value.toFixed(0)}%`
-                    : 'Sales trend is waiting for more data'
-                }
-                subtitle={
-                  revenueTrend
-                    ? 'Review the sales report behind this movement'
-                    : 'Record more sales to calculate movement'
-                }
-                to="/smartpos/reports"
-              />
-            </Grid>
-          </Grid>
-
-          <Grid container spacing={2} sx={{ mb: 2 }}>
-            <Grid size={{ xs: 12, lg: 8 }}>
+              <Grid container spacing={1.5} sx={{ mb: 1.5 }}>
+                <Grid size={{ xs: 12, lg: 8 }}>
               <Card elevation={0} sx={{ ...cardSx(isDark), height: '100%' }}>
-                <CardContent sx={{ p: 2.25 }}>
+                <CardContent sx={{ p: 2 }}>
                   <Stack
                     direction="row"
                     justifyContent="space-between"
@@ -716,31 +677,31 @@ export default function DashboardPage() {
                     </Stack>
                   </Stack>
                   {salesSeries.length ? (
-                    <Chart
-                      options={businessOptions}
-                      series={[{ name: 'Revenue', data: salesSeries }]}
-                      type="line"
-                      height={280}
-                    />
-                  ) : (
-                    <EmptyPanel
-                      title="No sales trend yet"
-                      subtitle="Confirmed sales will appear here as soon as they are recorded."
-                      height={280}
-                    />
-                  )}
-                </CardContent>
-              </Card>
-            </Grid>
-            <Grid size={{ xs: 12, lg: 4 }}>
-              <RecentTransactions rows={recentSales} />
-            </Grid>
-          </Grid>
+                      <Chart
+                        options={businessOptions}
+                        series={[{ name: 'Revenue', data: salesSeries }]}
+                        type="line"
+                        height={240}
+                      />
+                    ) : (
+                      <EmptyPanel
+                        title="No sales trend yet"
+                        subtitle="Confirmed sales will appear here as soon as they are recorded."
+                        height={240}
+                      />
+                    )}
+                  </CardContent>
+                </Card>
+                </Grid>
+                <Grid size={{ xs: 12, lg: 4 }}>
+                  <RecentTransactions rows={recentSales} />
+                </Grid>
+              </Grid>
 
-          <Grid container spacing={2}>
-            <Grid size={{ xs: 12, lg: 4 }}>
+              <Grid container spacing={1.5}>
+                <Grid size={{ xs: 12, lg: 4 }}>
               <Card elevation={0} sx={{ ...cardSx(isDark), height: '100%' }}>
-                <CardContent sx={{ p: 2.25 }}>
+                <CardContent sx={{ p: 2 }}>
                   <Typography sx={{ fontWeight: 800, color: titleColor, fontSize: 18, mb: 1.5 }}>
                     Financial Health
                   </Typography>
@@ -780,10 +741,10 @@ export default function DashboardPage() {
                   </Grid>
                 </CardContent>
               </Card>
-            </Grid>
-            <Grid size={{ xs: 12, lg: 3 }}>
+                </Grid>
+                <Grid size={{ xs: 12, lg: 3 }}>
               <Card elevation={0} sx={{ ...cardSx(isDark), height: '100%' }}>
-                <CardContent sx={{ p: 2.25 }}>
+                <CardContent sx={{ p: 2 }}>
                   <Typography sx={{ fontWeight: 800, color: titleColor, fontSize: 18, mb: 1.5 }}>
                     Operations Overview
                   </Typography>
@@ -819,10 +780,10 @@ export default function DashboardPage() {
                   </Grid>
                 </CardContent>
               </Card>
-            </Grid>
-            <Grid size={{ xs: 12, lg: 5 }}>
+                </Grid>
+                <Grid size={{ xs: 12, lg: 5 }}>
               <Card elevation={0} sx={{ ...cardSx(isDark), height: '100%' }}>
-                <CardContent sx={{ p: 2.25 }}>
+                <CardContent sx={{ p: 2 }}>
                   <Stack
                     direction="row"
                     justifyContent="space-between"
@@ -847,7 +808,7 @@ export default function DashboardPage() {
                           options={paymentOptions}
                           series={paymentSeries}
                           type="donut"
-                          height={230}
+                          height={198}
                         />
                       ) : (
                         <EmptyPanel
@@ -859,7 +820,7 @@ export default function DashboardPage() {
                               ? 'The dashboard will keep the rest of your live data available.'
                               : 'Completed payments will build this mix.'
                           }
-                          height={230}
+                          height={198}
                         />
                       )}
                     </Grid>
@@ -883,6 +844,17 @@ export default function DashboardPage() {
                   </Grid>
                 </CardContent>
               </Card>
+                </Grid>
+              </Grid>
+            </Grid>
+
+            <Grid size={{ xs: 12, xl: 3 }}>
+              <DashboardSideRail
+                data={data}
+                revenueTrend={revenueTrend}
+                isDark={isDark}
+                paymentTotal={paymentTotal}
+              />
             </Grid>
           </Grid>
         </>
@@ -913,7 +885,7 @@ function BusinessPulseCard({
       elevation={0}
       sx={{
         ...cardSx(isDark),
-        minHeight: 250,
+        minHeight: 204,
         background: isDark
           ? `linear-gradient(135deg, ${brand.neutral[800]} 0%, ${brand.neutral[900]} 58%, #1C0F0F 100%)`
           : 'linear-gradient(135deg, #FFF7ED 0%, #FFFFFF 58%, #FEE2E2 100%)',
@@ -927,7 +899,7 @@ function BusinessPulseCard({
             >
               Business Pulse
             </Typography>
-            <Typography sx={{ color: titleColor, fontSize: 18, fontWeight: 800, mt: 2 }}>
+        <Typography sx={{ color: titleColor, fontSize: 16, fontWeight: 800, mt: 1.5 }}>
               {loss < 0
                 ? `You are losing money ${periodLabel}`
                 : `Your business is profitable ${periodLabel}`}
@@ -935,7 +907,7 @@ function BusinessPulseCard({
             <Typography
               sx={{
                 color: loss < 0 ? brand.error.main : brand.primary[600],
-                fontSize: 30,
+              fontSize: 26,
                 fontWeight: 900,
                 mt: 1.25,
               }}
@@ -982,13 +954,13 @@ function BusinessPulseCard({
               options={options}
               series={[{ name: 'Revenue', data: salesSeries }]}
               type="area"
-              height={82}
+              height={62}
             />
           ) : (
             <EmptyPanel
               title="No revenue trend"
               subtitle="Sales series will appear here."
-              height={82}
+              height={62}
               compact
             />
           )}
@@ -1016,24 +988,24 @@ function MetricCard({
   const { activeMode: _am2 } = useContext(CustomizerContext);
   const isDark = _am2 === 'dark';
   return (
-    <Card elevation={0} sx={{ ...cardSx(isDark), minHeight: 250 }}>
-      <CardContent sx={{ p: 2.25, display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <Card elevation={0} sx={{ ...cardSx(isDark), minHeight: 204 }}>
+      <CardContent sx={{ p: 1.75, display: 'flex', flexDirection: 'column', height: '100%' }}>
         <Box
           sx={{
-            width: 48,
-            height: 48,
-            borderRadius: '12px',
+            width: 40,
+            height: 40,
+            borderRadius: '10px',
             bgcolor: `${color}12`,
             color,
             display: 'grid',
             placeItems: 'center',
-            mb: 2,
+            mb: 1.25,
           }}
         >
           {icon}
         </Box>
         <Typography sx={{ color: titleColor, fontWeight: 700, fontSize: 13 }}>{label}</Typography>
-        <Typography sx={{ color: titleColor, fontWeight: 900, fontSize: 21, mt: 1 }}>
+        <Typography sx={{ color: titleColor, fontWeight: 900, fontSize: 20, mt: 0.75 }}>
           {value}
         </Typography>
         {change ? (
@@ -1053,10 +1025,10 @@ function MetricCard({
               options={sparkOptions(color)}
               series={[{ name: label, data: series }]}
               type="area"
-              height={58}
+              height={46}
             />
           ) : (
-            <EmptyPanel title="" subtitle="No series" height={58} compact />
+            <EmptyPanel title="" subtitle="No series" height={46} compact />
           )}
         </Box>
       </CardContent>
@@ -1109,14 +1081,14 @@ function AlertStrip({
           '& .MuiCardActionArea-focusHighlight': { bgcolor: current.color },
         }}
       >
-        <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-          <Stack direction="row" spacing={1.5} alignItems="center">
+        <CardContent sx={{ p: 1.35, '&:last-child': { pb: 1.35 } }}>
+          <Stack direction="row" spacing={1.1} alignItems="center">
             <Box sx={{ color: current.color, display: 'grid', placeItems: 'center' }}>{icon}</Box>
             <Box sx={{ minWidth: 0, flex: 1 }}>
               <Typography sx={{ color: current.color, fontWeight: 800, fontSize: 13 }}>
                 {title}
               </Typography>
-              <Typography sx={{ color: brand.neutral[700], fontSize: 12, mt: 0.3 }}>
+              <Typography sx={{ color: brand.neutral[700], fontSize: 11.5, mt: 0.2 }}>
                 {subtitle}
               </Typography>
             </Box>
@@ -1125,6 +1097,143 @@ function AlertStrip({
         </CardContent>
       </CardActionArea>
     </Card>
+  );
+}
+
+function DashboardSideRail({
+  data,
+  revenueTrend,
+  isDark,
+  paymentTotal,
+}: {
+  data: Dashboard | null;
+  revenueTrend: Trend | null;
+  isDark: boolean;
+  paymentTotal: number;
+}) {
+  return (
+    <Stack
+      spacing={1.5}
+      sx={{
+        position: { xl: 'sticky' },
+        top: { xl: 82 },
+      }}
+    >
+      <Box>
+        <Typography sx={{ color: titleColor, fontWeight: 900, fontSize: 15, mb: 1 }}>
+          Today needs attention
+        </Typography>
+        <Stack spacing={1}>
+          <AlertStrip
+            tone="warning"
+            icon={<IconAlertTriangle size={22} />}
+            title={`${formatNumber(data?.inventory.lowStockLines ?? 0)} low-stock items`}
+            subtitle="Review stock levels and restock decisions"
+            to="/smartpos/stock"
+          />
+          <AlertStrip
+            tone="error"
+            icon={<IconInfoCircle size={22} />}
+            title={
+              data && data.netProfit < 0
+                ? 'Profit is negative'
+                : 'Review profit health'
+            }
+            subtitle="Compare sales, purchases, and expenses"
+            to="/smartpos/reports"
+          />
+          <AlertStrip
+            tone="success"
+            icon={<IconCircleCheck size={22} />}
+            title={
+              revenueTrend
+                ? `Sales ${revenueTrend.positive ? 'up' : 'down'} ${revenueTrend.value.toFixed(0)}%`
+                : 'Sales trend pending'
+            }
+            subtitle={revenueTrend ? 'Open the sales report' : 'Record more sales to calculate movement'}
+            to="/smartpos/reports"
+          />
+        </Stack>
+      </Box>
+
+      <Card elevation={0} sx={cardSx(isDark)}>
+        <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+          <Typography sx={{ color: titleColor, fontWeight: 900, fontSize: 15, mb: 1.25 }}>
+            Quick actions
+          </Typography>
+          <Stack spacing={1}>
+            <Button
+              component={RouterLink as any}
+              to="/smartpos/sales/new"
+              variant="contained"
+              fullWidth
+              sx={{
+                justifyContent: 'space-between',
+                borderRadius: '10px',
+                textTransform: 'none',
+                fontWeight: 800,
+                bgcolor: brand.primary[600],
+                '&:hover': { bgcolor: brand.primary[700] },
+              }}
+              endIcon={<IconChevronRight size={17} />}
+            >
+              New sale
+            </Button>
+            <Button
+              component={RouterLink as any}
+              to="/smartpos/products"
+              variant="outlined"
+              fullWidth
+              sx={{
+                justifyContent: 'space-between',
+                borderRadius: '10px',
+                textTransform: 'none',
+                fontWeight: 800,
+                borderColor: isDark ? brand.neutral[700] : brand.neutral[200],
+                color: titleColor,
+              }}
+              endIcon={<IconChevronRight size={17} />}
+            >
+              Manage stock
+            </Button>
+            <Button
+              component={RouterLink as any}
+              to="/smartpos/reports"
+              variant="outlined"
+              fullWidth
+              sx={{
+                justifyContent: 'space-between',
+                borderRadius: '10px',
+                textTransform: 'none',
+                fontWeight: 800,
+                borderColor: isDark ? brand.neutral[700] : brand.neutral[200],
+                color: titleColor,
+              }}
+              endIcon={<IconChevronRight size={17} />}
+            >
+              View reports
+            </Button>
+          </Stack>
+
+          <Box
+            sx={{
+              mt: 1.5,
+              p: 1.25,
+              borderRadius: '10px',
+              bgcolor: isDark ? brand.neutral[900] : brand.neutral[50],
+              border: `1px solid ${isDark ? brand.neutral[700] : brand.neutral[200]}`,
+            }}
+          >
+            <Typography sx={{ color: muted(isDark), fontSize: 12, fontWeight: 700 }}>
+              Payments captured
+            </Typography>
+            <Typography sx={{ color: titleColor, fontWeight: 900, fontSize: 20, mt: 0.25 }}>
+              {formatMoney(paymentTotal)}
+            </Typography>
+          </Box>
+        </CardContent>
+      </Card>
+    </Stack>
   );
 }
 
