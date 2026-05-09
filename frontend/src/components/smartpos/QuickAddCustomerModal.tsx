@@ -96,7 +96,7 @@ export default function QuickAddCustomerModal({ open, onClose, onCreated }: Quic
       fullWidth
       size="small"
       required={required}
-      sx={{ ...premiumFieldSx, ...(half ? { flex: 1, minWidth: 0 } : {}) }}
+      sx={(theme) => ({ ...premiumFieldSx(theme), ...(half ? { flex: 1, minWidth: 0 } : {}) })}
     />
   );
 

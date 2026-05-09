@@ -18,6 +18,7 @@ import {
   cardSx, SectionTitle, AlertCard, FloatingSaveBar, CardSkeletonGroup,
 } from 'src/components/smartpos/SettingsHelpers';
 import { brand } from 'src/theme/smartpos/brand';
+import type { Theme } from '@mui/material/styles';
 import { premiumFieldSx } from 'src/components/smartpos/PosLayouts/shared';
 import {
   getPosSettings, updatePosSettings, resetPosSettings, type PosSettings,
@@ -26,7 +27,10 @@ import { listWarehouses, type Warehouse } from 'src/api/smartpos/inventory';
 import { useAuth } from 'src/context/smartpos/AuthContext';
 import type { UUID } from 'src/api/smartpos/types';
 
-const fieldSx = { ...premiumFieldSx, '& .MuiOutlinedInput-root': { ...premiumFieldSx['& .MuiOutlinedInput-root'], borderRadius: '10px' } };
+const fieldSx = (theme: Theme) => {
+  const base = premiumFieldSx(theme);
+  return { ...base, '& .MuiOutlinedInput-root': { ...base['& .MuiOutlinedInput-root'], borderRadius: '10px' } };
+};
 
 export default function NotificationsSettingsPage() {
   const { user } = useAuth();
@@ -127,7 +131,7 @@ export default function NotificationsSettingsPage() {
           options={warehouses}
           getOptionLabel={(w) => `${w.name}${w.city ? ` — ${w.city}` : ''}`}
           onChange={(_, v) => v && setWarehouseId(v.id)}
-          renderInput={(p) => <TextField {...p} size="small" sx={{ ...fieldSx, minWidth: 360 }} />}
+          renderInput={(p) => <TextField {...p} size="small" sx={(theme) => ({ ...fieldSx(theme), minWidth: 360 })} />}
           sx={{ maxWidth: 480 }}
         />
       </Box>
@@ -187,7 +191,7 @@ export default function NotificationsSettingsPage() {
                   onChange={(e) => update({ alertEmail: e.target.value })}
                   size="small"
                   fullWidth
-                  sx={{ maxWidth: 400, ...fieldSx }}
+                  sx={(theme) => ({ maxWidth: 400, ...fieldSx(theme) })}
                   type="email"
                   helperText={
                     anyEnabled

@@ -27,6 +27,7 @@ import {
   cardSx, SectionTitle, Hint, FloatingSaveBar, CardSkeletonGroup,
 } from 'src/components/smartpos/SettingsHelpers';
 import { brand } from 'src/theme/smartpos/brand';
+import type { Theme } from '@mui/material/styles';
 import { premiumFieldSx } from 'src/components/smartpos/PosLayouts/shared';
 import {
   getPosSettings, updatePosSettings, resetPosSettings, type PosSettings,
@@ -35,7 +36,10 @@ import { listWarehouses, type Warehouse } from 'src/api/smartpos/inventory';
 import { useAuth } from 'src/context/smartpos/AuthContext';
 import type { UUID } from 'src/api/smartpos/types';
 
-const fieldSx = { ...premiumFieldSx, '& .MuiOutlinedInput-root': { ...premiumFieldSx['& .MuiOutlinedInput-root'], borderRadius: '10px' } };
+const fieldSx = (theme: Theme) => {
+  const base = premiumFieldSx(theme);
+  return { ...base, '& .MuiOutlinedInput-root': { ...base['& .MuiOutlinedInput-root'], borderRadius: '10px' } };
+};
 
 const toggleGroupSx = {
   '& .MuiToggleButton-root': {
@@ -149,7 +153,7 @@ export default function PosSettingsPage() {
           options={warehouses}
           getOptionLabel={(w) => `${w.name}${w.city ? ` — ${w.city}` : ''}`}
           onChange={(_, v) => v && setWarehouseId(v.id)}
-          renderInput={(p) => <TextField {...p} size="small" sx={{ ...fieldSx, minWidth: 360 }} />}
+          renderInput={(p) => <TextField {...p} size="small" sx={(theme) => ({ ...fieldSx(theme), minWidth: 360 })} />}
           sx={{ maxWidth: 480 }}
         />
       </Box>
@@ -207,7 +211,7 @@ export default function PosSettingsPage() {
                         if (!isNaN(v) && v >= 30 && v <= 3600) update({ kioskIdleTimeoutSec: v });
                       }}
                       size="small" type="number"
-                      sx={{ width: 100, ...fieldSx }}
+                      sx={(theme) => ({ width: 100, ...fieldSx(theme) })}
                       InputProps={{ endAdornment: <InputAdornment position="end">sec</InputAdornment> }}
                     />
                   </Stack>
@@ -275,7 +279,7 @@ export default function PosSettingsPage() {
                     if (!isNaN(v) && v >= 0 && v <= 10000) update({ lowStockThreshold: v });
                   }}
                   size="small" type="number"
-                  sx={{ width: 90, ...fieldSx }}
+                  sx={(theme) => ({ width: 90, ...fieldSx(theme) })}
                   InputProps={{ endAdornment: <InputAdornment position="end">units</InputAdornment> }}
                 />
               </Stack>
@@ -295,7 +299,7 @@ export default function PosSettingsPage() {
                 value={settings.saleRefPrefix}
                 onChange={(e) => update({ saleRefPrefix: e.target.value.slice(0, 16) })}
                 size="small"
-                sx={{ maxWidth: 180, ...fieldSx }}
+                sx={(theme) => ({ maxWidth: 180, ...fieldSx(theme) })}
                 helperText="e.g. INV-, SALE-, #"
               />
               <TextField
@@ -306,7 +310,7 @@ export default function PosSettingsPage() {
                   if (!isNaN(v) && v >= 1 && v <= 8) update({ saleRefPadding: v });
                 }}
                 size="small" type="number"
-                sx={{ maxWidth: 160, ...fieldSx }}
+                sx={(theme) => ({ maxWidth: 160, ...fieldSx(theme) })}
                 helperText="1–8 digits (e.g. 4 → 0001)"
               />
             </Stack>

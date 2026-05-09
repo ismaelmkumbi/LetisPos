@@ -60,6 +60,7 @@ import {
   type SmartPosLocale,
 } from 'src/i18n/smartpos';
 import { brand } from 'src/theme/smartpos/brand';
+import type { Theme } from '@mui/material/styles';
 import { premiumFieldSx } from 'src/components/smartpos/PosLayouts/shared';
 import { useAuth } from 'src/context/smartpos/AuthContext';
 import { useOnboarding } from 'src/context/smartpos/OnboardingContext';
@@ -100,12 +101,15 @@ import DataTable, { type Column, StatusBadge } from 'src/components/smartpos/Dat
 
 const t_brand = brand;
 
-const fieldSx = {
-  ...premiumFieldSx,
-  '& .MuiOutlinedInput-root': {
-    ...premiumFieldSx['& .MuiOutlinedInput-root'],
-    borderRadius: '10px',
-  },
+const fieldSx = (theme: Theme) => {
+  const base = premiumFieldSx(theme);
+  return {
+    ...base,
+    '& .MuiOutlinedInput-root': {
+      ...base['& .MuiOutlinedInput-root'],
+      borderRadius: '10px',
+    },
+  };
 };
 
 const toggleGroupSx = {
@@ -279,7 +283,7 @@ export function SettingsHome() {
           options={warehouses}
           getOptionLabel={(w) => `${w.name}${w.city ? ` — ${w.city}` : ''}`}
           onChange={(_, v) => v && setWarehouseId(v.id)}
-          renderInput={(p) => <TextField {...p} size="small" sx={{ ...fieldSx, minWidth: 360 }} />}
+          renderInput={(p) => <TextField {...p} size="small" sx={(theme) => ({ ...fieldSx(theme), minWidth: 360 })} />}
           sx={{ maxWidth: 480 }}
         />
       </Box>
@@ -307,7 +311,7 @@ export function SettingsHome() {
                     onChange={(e) => update({ storeName: e.target.value })}
                     size="small"
                     fullWidth
-                    sx={fieldSx}
+                    sx={(theme) => fieldSx(theme)}
                   />
                   <TextField
                     label={t('settings.preferences.store_tax_id')}
@@ -315,7 +319,7 @@ export function SettingsHome() {
                     onChange={(e) => update({ storeTaxId: e.target.value })}
                     size="small"
                     fullWidth
-                    sx={fieldSx}
+                    sx={(theme) => fieldSx(theme)}
                   />
                 </Stack>
                 <TextField
@@ -324,7 +328,7 @@ export function SettingsHome() {
                   onChange={(e) => update({ storeAddress: e.target.value })}
                   size="small"
                   fullWidth
-                  sx={fieldSx}
+                  sx={(theme) => fieldSx(theme)}
                 />
                 <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
                   <TextField
@@ -333,7 +337,7 @@ export function SettingsHome() {
                     onChange={(e) => update({ storePhone: e.target.value })}
                     size="small"
                     fullWidth
-                    sx={fieldSx}
+                    sx={(theme) => fieldSx(theme)}
                   />
                   <TextField
                     label={t('settings.preferences.store_email')}
@@ -341,7 +345,7 @@ export function SettingsHome() {
                     onChange={(e) => update({ storeEmail: e.target.value })}
                     size="small"
                     fullWidth
-                    sx={fieldSx}
+                    sx={(theme) => fieldSx(theme)}
                   />
                 </Stack>
                 <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
@@ -351,7 +355,7 @@ export function SettingsHome() {
                     onChange={(e) => update({ storeWebsite: e.target.value })}
                     size="small"
                     fullWidth
-                    sx={fieldSx}
+                    sx={(theme) => fieldSx(theme)}
                     placeholder="https://example.com"
                   />
                   <TextField
@@ -360,7 +364,7 @@ export function SettingsHome() {
                     onChange={(e) => update({ logoUrl: e.target.value })}
                     size="small"
                     fullWidth
-                    sx={fieldSx}
+                    sx={(theme) => fieldSx(theme)}
                     placeholder="https://cdn.example.com/logo.png"
                   />
                 </Stack>
@@ -370,7 +374,7 @@ export function SettingsHome() {
                   onChange={(e) => update({ footerMessage: e.target.value })}
                   size="small"
                   fullWidth
-                  sx={fieldSx}
+                  sx={(theme) => fieldSx(theme)}
                   helperText="Shown at the bottom of every receipt"
                 />
               </Stack>
@@ -418,7 +422,7 @@ export function SettingsHome() {
                     }}
                     type="number"
                     size="small"
-                    sx={{ maxWidth: 200, ...fieldSx }}
+                    sx={(theme) => ({ maxWidth: 200, ...fieldSx(theme) })}
                     InputProps={{ endAdornment: <InputAdornment position="end">%</InputAdornment> }}
                     helperText={t('settings.preferences.default_tax_rate_hint')}
                   />
@@ -454,7 +458,7 @@ export function SettingsHome() {
                   value={settings.currencyCode}
                   onChange={(e) => update({ currencyCode: e.target.value })}
                   size="small"
-                  sx={{ minWidth: 140, ...fieldSx }}
+                  sx={(theme) => ({ minWidth: 140, ...fieldSx(theme) })}
                   helperText={t('settings.preferences.currency_code_hint')}
                 >
                   {CURRENCY_CODES.map((c) => (
@@ -468,7 +472,7 @@ export function SettingsHome() {
                   value={settings.currencySymbol}
                   onChange={(e) => update({ currencySymbol: e.target.value })}
                   size="small"
-                  sx={{ maxWidth: 140, ...fieldSx }}
+                  sx={(theme) => ({ maxWidth: 140, ...fieldSx(theme) })}
                   helperText={t('settings.preferences.currency_symbol_hint')}
                 />
               </Stack>
@@ -887,7 +891,7 @@ function UsersTab() {
               setSearch(e.target.value);
               setPage(0);
             }}
-            sx={{ minWidth: 280, ...fieldSx }}
+            sx={(theme) => ({ minWidth: 280, ...fieldSx(theme) })}
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
@@ -912,7 +916,7 @@ function UsersTab() {
                   label={t('settings.users.first_name')}
                   value={editingUser.firstName}
                   onChange={(e) => setEditingUser({ ...editingUser, firstName: e.target.value })}
-                  sx={premiumFieldSx}
+                  sx={(theme) => premiumFieldSx(theme)}
                 />
                 <TextField
                   fullWidth
@@ -920,7 +924,7 @@ function UsersTab() {
                   label={t('settings.users.last_name')}
                   value={editingUser.lastName}
                   onChange={(e) => setEditingUser({ ...editingUser, lastName: e.target.value })}
-                  sx={premiumFieldSx}
+                  sx={(theme) => premiumFieldSx(theme)}
                 />
               </Stack>
               <TextField
@@ -929,7 +933,7 @@ function UsersTab() {
                 label={t('settings.users.email')}
                 value={editingUser.email}
                 disabled
-                sx={premiumFieldSx}
+                sx={(theme) => premiumFieldSx(theme)}
               />
               <TextField
                 fullWidth
@@ -937,7 +941,7 @@ function UsersTab() {
                 label={t('settings.users.phone')}
                 value={editingUser.phone}
                 onChange={(e) => setEditingUser({ ...editingUser, phone: e.target.value })}
-                sx={premiumFieldSx}
+                sx={(theme) => premiumFieldSx(theme)}
               />
               <FormControlLabel
                 control={
@@ -1349,7 +1353,7 @@ function RolesTab() {
               required
               value={editingRole?.name ?? ''}
               onChange={(e) => setEditingRole((prev) => ({ ...prev, name: e.target.value }))}
-              sx={premiumFieldSx}
+              sx={(theme) => premiumFieldSx(theme)}
             />
             <TextField
               fullWidth
@@ -1357,7 +1361,7 @@ function RolesTab() {
               label={t('settings.users.role_label')}
               value={editingRole?.label ?? ''}
               onChange={(e) => setEditingRole((prev) => ({ ...prev, label: e.target.value }))}
-              sx={premiumFieldSx}
+              sx={(theme) => premiumFieldSx(theme)}
             />
             <TextField
               fullWidth
@@ -1367,7 +1371,7 @@ function RolesTab() {
               minRows={2}
               value={editingRole?.description ?? ''}
               onChange={(e) => setEditingRole((prev) => ({ ...prev, description: e.target.value }))}
-              sx={premiumFieldSx}
+              sx={(theme) => premiumFieldSx(theme)}
             />
           </Stack>
         </DialogContent>
@@ -1700,7 +1704,7 @@ export function TenantsSettings() {
                     setName(e.target.value);
                     setDirty(true);
                   }}
-                  sx={fieldSx}
+                  sx={(theme) => fieldSx(theme)}
                 />
               </Box>
               <Box flex={1}>
@@ -1715,7 +1719,7 @@ export function TenantsSettings() {
                     setSlug(e.target.value);
                     setDirty(true);
                   }}
-                  sx={fieldSx}
+                  sx={(theme) => fieldSx(theme)}
                 />
               </Box>
             </Stack>
