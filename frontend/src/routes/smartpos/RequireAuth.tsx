@@ -7,6 +7,7 @@ import { brand } from 'src/theme/smartpos/brand';
 
 const SETUP_ALLOWED_ROUTES = [
   '/smartpos/setup',
+  '/smartpos/dashboard',
   '/smartpos/products',
   '/smartpos/categories',
   '/smartpos/products/units',

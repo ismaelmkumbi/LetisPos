@@ -215,14 +215,15 @@ function TaxStep({ onAdvance }: StepProps) {
         </Button>
         <Button
           variant="contained"
-          onClick={onAdvance}
+          component={Link}
+          to="/smartpos/dashboard"
           sx={{
             borderRadius: '10px', textTransform: 'none', fontWeight: 700,
             background: `linear-gradient(135deg, ${brand.primary[500]} 0%, ${brand.primary[700]} 100%)`,
             '&:hover': { background: `linear-gradient(135deg, ${brand.primary[600]} 0%, ${brand.primary[800]} 100%)` },
           }}
         >
-          Continue
+          Finish setup
         </Button>
       </Stack>
     </Stack>
