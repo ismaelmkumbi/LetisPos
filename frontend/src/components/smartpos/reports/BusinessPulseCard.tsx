@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Box, Card, CardContent, Skeleton, Stack, Typography, Chip } from '@mui/material';
+import { Card, CardContent, Skeleton, Stack, Typography, Chip } from '@mui/material';
 import { IconSparkles, IconArrowRight } from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
 import { aiNarrate } from 'src/api/smartpos/ai';

@@ -22,7 +22,7 @@ import type { Line } from './types';
 import EditLineModal from 'src/components/smartpos/EditLineModal';
 import CashRegisterIndicator from 'src/components/smartpos/CashRegisterIndicator';
 import TotalRow from './TotalRow';
-import { listCategories, listBrands } from 'src/api/smartpos/products';
+import { listCategories, listBrands, type Product } from 'src/api/smartpos/products';
 import type { Brand as BrandRef, Category } from 'src/api/smartpos/types';
 import { posSurface, premiumFieldSx, softScrollSx, focusVisibleSx } from './shared';
 import { CustomizerContext } from 'src/context/CustomizerContext';
@@ -153,7 +153,7 @@ export default function SplitLayout(props: PosLayoutProps) {
     </Box>
   );
 
-  const renderProductCard = (p: any) => {
+  const renderProductCard = (p: Product) => {
     const stock = props.stockMap[p.id];
     const outOfStock = stock && stock.available <= 0;
     const lowStock = stock && stock.available > 0 && stock.available <= 5;

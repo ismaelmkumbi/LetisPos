@@ -502,7 +502,7 @@ export default function DashboardPage() {
       },
       tooltip: { y: { formatter: (v) => formatMoney(v) } },
     }),
-    [data],
+    [data, isDark],
   );
 
   const paymentSeries = paymentMix.map((row) => row.total);

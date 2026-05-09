@@ -137,6 +137,8 @@ export default function ProductsImportDialog({
   onClose,
   onImported,
 }: ProductsImportDialogProps) {
+  const { activeMode } = useContext(CustomizerContext);
+  const isDark = activeMode === 'dark';
   const [step, setStep] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
