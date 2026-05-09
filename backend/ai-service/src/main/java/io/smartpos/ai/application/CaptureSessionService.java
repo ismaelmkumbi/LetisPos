@@ -13,6 +13,7 @@ import java.io.InputStream;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 @Service
 @RequiredArgsConstructor
@@ -29,7 +30,8 @@ public class CaptureSessionService {
 
     private static final int MAX_PHOTOS = 20;
     private static final long SESSION_TTL_MINUTES = 10;
-    private static final long STORAGE_TTL_HOURS = 1;
+    /** Cleanup TTL — expired sessions get their MinIO objects deleted after this many hours. */
+    private static final long CLEANUP_TTL_HOURS = 1;
 
     private final Map<UUID, SessionState> sessions = new ConcurrentHashMap<>();
 
@@ -42,7 +44,7 @@ public class CaptureSessionService {
     public CreateSessionResponse createSession() {
         UUID sessionId = UUID.randomUUID();
         Instant now = Instant.now();
-        sessions.put(sessionId, new SessionState(now, new ArrayList<>(), false));
+        sessions.put(sessionId, new SessionState(now, new CopyOnWriteArrayList<>(), false));
         String qrUrl = baseUrl + "/capture/" + sessionId;
         Instant expiresAt = now.plusSeconds(SESSION_TTL_MINUTES * 60);
         ensureBucket();
@@ -51,16 +53,18 @@ public class CaptureSessionService {
 
     public PhotoUploadResponse uploadPhoto(UUID sessionId, MultipartFile file) {
         SessionState state = getSessionOrThrow(sessionId);
+        checkNotExpired(state);
         if (state.complete()) throw new IllegalStateException("Session already complete");
         if (state.photos().size() >= MAX_PHOTOS) throw new IllegalStateException("Max photos reached");
+        if (file.getSize() > 10_485_760) throw new IllegalArgumentException("Photo exceeds 10MB limit");
 
-        try {
+        try (InputStream inputStream = file.getInputStream()) {
             int index = state.photos().size();
             String objectName = sessionId + "/" + index + ".jpg";
             minio.putObject(PutObjectArgs.builder()
                     .bucket(bucket)
                     .object(objectName)
-                    .stream(file.getInputStream(), file.getSize(), -1)
+                    .stream(inputStream, file.getSize(), -1)
                     .contentType("image/jpeg")
                     .build());
 
@@ -70,6 +74,8 @@ public class CaptureSessionService {
             PhotoInfo info = new PhotoInfo(photoId, index, thumbUrl, fullUrl);
             state.photos().add(info);
             return new PhotoUploadResponse(photoId, index, thumbUrl);
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            throw e;
         } catch (Exception e) {
             log.error("Failed to upload photo for session {}", sessionId, e);
             throw new RuntimeException("Upload failed", e);
@@ -78,6 +84,7 @@ public class CaptureSessionService {
 
     public SessionPhotosResponse getPhotos(UUID sessionId) {
         SessionState state = getSessionOrThrow(sessionId);
+        checkNotExpired(state);
         return new SessionPhotosResponse(
                 sessionId,
                 List.copyOf(state.photos()),
@@ -88,6 +95,7 @@ public class CaptureSessionService {
 
     public CompleteResponse completeSession(UUID sessionId) {
         SessionState state = getSessionOrThrow(sessionId);
+        checkNotExpired(state);
         sessions.put(sessionId, new SessionState(state.createdAt(), state.photos(), true));
         return new CompleteResponse(sessionId, state.photos().size(), true);
     }
@@ -97,16 +105,23 @@ public class CaptureSessionService {
         try {
             var objects = minio.listObjects(ListObjectsArgs.builder()
                     .bucket(bucket).prefix(sessionId.toString() + "/").build());
-            for (var obj : objects) {
-                minio.removeObject(RemoveObjectArgs.builder()
-                        .bucket(bucket).object(obj.get().objectName()).build());
+            for (var result : objects) {
+                try {
+                    String name = result.get().objectName();
+                    minio.removeObject(RemoveObjectArgs.builder()
+                            .bucket(bucket).object(name).build());
+                } catch (Exception e) {
+                    log.warn("Failed to delete individual object for session {}", sessionId, e);
+                }
             }
         } catch (Exception e) {
-            log.warn("Failed to clean up MinIO objects for session {}", sessionId, e);
+            log.warn("Failed to list MinIO objects for session {}", sessionId, e);
         }
     }
 
     public InputStream getPhotoStream(UUID sessionId, int index) {
+        SessionState state = getSessionOrThrow(sessionId);
+        checkNotExpired(state);
         try {
             return minio.getObject(GetObjectArgs.builder()
                     .bucket(bucket)
@@ -119,7 +134,7 @@ public class CaptureSessionService {
 
     @Scheduled(fixedRate = 300_000)
     public void cleanupExpired() {
-        Instant cutoff = Instant.now().minusSeconds(STORAGE_TTL_HOURS * 3600);
+        Instant cutoff = Instant.now().minusSeconds(CLEANUP_TTL_HOURS * 3600);
         sessions.entrySet().removeIf(entry -> {
             if (entry.getValue().createdAt().isBefore(cutoff)) {
                 deleteSession(entry.getKey());
@@ -127,6 +142,12 @@ public class CaptureSessionService {
             }
             return false;
         });
+    }
+
+    private void checkNotExpired(SessionState state) {
+        if (state.createdAt().plusSeconds(SESSION_TTL_MINUTES * 60).isBefore(Instant.now())) {
+            throw new IllegalStateException("Session expired");
+        }
     }
 
     private SessionState getSessionOrThrow(UUID sessionId) {
