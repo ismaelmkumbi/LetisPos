@@ -20,6 +20,7 @@ const DEFAULT_STATE: OnboardingState = {
   warehouse: false,
   tax: false,
   products: false,
+  staff: false,
   firstSale: false,
   percent: 20,
   isComplete: false,
