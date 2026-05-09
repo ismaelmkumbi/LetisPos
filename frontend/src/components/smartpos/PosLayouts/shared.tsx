@@ -1,6 +1,7 @@
 /**
  * Shared utilities, CSS constants, and helpers for all POS layouts.
  */
+import type { Theme } from '@mui/material/styles';
 import { brand } from 'src/theme/smartpos/brand';
 import type { Line } from './types';
 
@@ -23,32 +24,38 @@ export const CHECKOUT_PANEL_MIN_WIDTH = 420;
 export const FOOTER_HEIGHT = 72;
 export const PRODUCT_PAGE_SIZE = 10;
 
-export const posSurface = (isDark: boolean) => ({
-  border: `1px solid ${isDark ? brand.neutral[700] : brand.neutral[200]}`,
-  borderRadius: '18px',
-  bgcolor: isDark ? brand.neutral[800] : '#fff',
-  boxShadow: isDark ? 'none' : `0 1px 2px ${brand.neutral[900]}08, 0 18px 48px -28px ${brand.primary[900]}33`,
-}) as const;
-
-export const premiumFieldSx = (isDark: boolean) => ({
-  '& .MuiOutlinedInput-root': {
-    borderRadius: '10px',
+export const posSurface = (theme: Theme) => {
+  const isDark = theme.palette.mode === 'dark';
+  return {
+    border: `1px solid ${isDark ? brand.neutral[700] : brand.neutral[200]}`,
+    borderRadius: '18px',
     bgcolor: isDark ? brand.neutral[800] : '#fff',
-    fontSize: '0.86rem',
-    transition: 'border-color 0.18s ease, background 0.18s ease',
-    '& fieldset': { borderColor: isDark ? brand.neutral[700] : brand.neutral[200] },
-    '&:hover fieldset': { borderColor: brand.primary[300] },
-    '&.Mui-focused': {
+    boxShadow: isDark ? 'none' : `0 1px 2px ${brand.neutral[900]}08, 0 18px 48px -28px ${brand.primary[900]}33`,
+  };
+};
+
+export const premiumFieldSx = (theme: Theme) => {
+  const isDark = theme.palette.mode === 'dark';
+  return {
+    '& .MuiOutlinedInput-root': {
+      borderRadius: '10px',
       bgcolor: isDark ? brand.neutral[800] : '#fff',
+      fontSize: '0.86rem',
+      transition: 'border-color 0.18s ease, background 0.18s ease',
+      '& fieldset': { borderColor: isDark ? brand.neutral[700] : brand.neutral[200] },
+      '&:hover fieldset': { borderColor: brand.primary[300] },
+      '&.Mui-focused': {
+        bgcolor: isDark ? brand.neutral[800] : '#fff',
+      },
+      '&.Mui-focused fieldset': { borderColor: brand.primary[500], borderWidth: '2px' },
     },
-    '&.Mui-focused fieldset': { borderColor: brand.primary[500], borderWidth: '2px' },
-  },
-  '& .MuiInputLabel-root': {
-    fontSize: '0.78rem',
-    fontWeight: 700,
-    color: isDark ? brand.neutral[400] : brand.neutral[500],
-  },
-}) as const;
+    '& .MuiInputLabel-root': {
+      fontSize: '0.78rem',
+      fontWeight: 700,
+      color: isDark ? brand.neutral[400] : brand.neutral[500],
+    },
+  };
+};
 
 export const softScrollSx = {
   '&::-webkit-scrollbar': { width: 6, height: 6 },

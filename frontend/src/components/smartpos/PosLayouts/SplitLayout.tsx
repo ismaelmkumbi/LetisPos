@@ -160,7 +160,7 @@ export default function SplitLayout(props: PosLayoutProps) {
     return (
       <Card key={p.id} elevation={0}
         onClick={() => { if (!outOfStock) props.onAddProduct(p); }}
-        sx={{ ...posSurface(isDark), borderRadius: '14px', cursor: outOfStock ? 'not-allowed' : 'pointer', opacity: outOfStock ? 0.45 : 1, transition: 'transform 0.12s ease', overflow: 'hidden', '&:hover': outOfStock ? {} : { transform: { xs: 'none', sm: 'translateY(-2px)' } }, '&:active': outOfStock ? {} : { transform: 'scale(0.97)', bgcolor: brand.primary[50] }, WebkitTapHighlightColor: 'transparent', ...focusVisibleSx }}>
+        sx={(theme) => ({ ...posSurface(theme), borderRadius: '14px', cursor: outOfStock ? 'not-allowed' : 'pointer', opacity: outOfStock ? 0.45 : 1, transition: 'transform 0.12s ease', overflow: 'hidden', '&:hover': outOfStock ? {} : { transform: { xs: 'none', sm: 'translateY(-2px)' } }, '&:active': outOfStock ? {} : { transform: 'scale(0.97)', bgcolor: brand.primary[50] }, WebkitTapHighlightColor: 'transparent', ...focusVisibleSx })}>
         <Box sx={{ aspectRatio: { xs: '1/1', sm: '4/3' }, bgcolor: outOfStock ? brand.neutral[100] : brand.primary[50], display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
           <Typography sx={{ fontSize: { xs: '1.4rem', sm: '1.8rem' }, fontWeight: 800, color: outOfStock ? brand.neutral[300] : brand.primary[200] }}>{p.name.charAt(0).toUpperCase()}</Typography>
           {stock && (
@@ -188,12 +188,12 @@ export default function SplitLayout(props: PosLayoutProps) {
         </TextField>
         <TextField size="small" placeholder="Search products…" value={props.search}
           onChange={(e) => props.onSearchChange(e.target.value)}
-          sx={{ minWidth: 160, flex: { xs: '0 0 auto', sm: 1 }, maxWidth: { xs: 220, sm: 'none' }, ...premiumFieldSx(isDark) }}
+          sx={(theme) => ({ minWidth: 160, flex: { xs: '0 0 auto', sm: 1 }, maxWidth: { xs: 220, sm: 'none' }, ...premiumFieldSx(theme) })}
           slotProps={{ input: { startAdornment: <InputAdornment position="start"><IconSearch size={15} color={brand.neutral[400]} /></InputAdornment> } }} />
         <TextField size="small" placeholder="Barcode" value={props.barcode} inputRef={props.barcodeRef}
           onChange={(e) => props.onBarcodeChange(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') props.onBarcodeScan(); if (e.key === 'Escape') props.onBarcodeChange(''); }}
-          sx={{ width: 120, flexShrink: 0, ...premiumFieldSx(isDark) }}
+          sx={(theme) => ({ width: 120, flexShrink: 0, ...premiumFieldSx(theme) })}
           slotProps={{ input: { startAdornment: <InputAdornment position="start"><IconBarcode size={15} color={brand.primary[600]} /></InputAdornment> } }} />
         <TextField select size="small" value={props.categoryId} onChange={(e) => props.onCategoryChange(e.target.value)}
           slotProps={{ select: { displayEmpty: true } }} sx={selectFieldSx}>
@@ -230,7 +230,7 @@ export default function SplitLayout(props: PosLayoutProps) {
         {props.productsLoading ? (
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(auto-fill, minmax(155px, 1fr))' }, gap: 1.25 }}>
             {Array.from({ length: 12 }).map((_, i) => (
-              <Card key={i} elevation={0} sx={{ ...posSurface(isDark), borderRadius: '14px' }}>
+              <Card key={i} elevation={0} sx={(theme) => ({ ...posSurface(theme), borderRadius: '14px' })}>
                 <Skeleton variant="rectangular" sx={{ aspectRatio: '1/1', width: '100%', borderRadius: '14px 14px 0 0' }} />
                 <Box sx={{ p: 1.25 }}><Skeleton variant="text" sx={{ width: '75%', height: 14 }} /><Skeleton variant="text" sx={{ width: '40%', height: 16, mt: 0.5 }} /></Box>
               </Card>

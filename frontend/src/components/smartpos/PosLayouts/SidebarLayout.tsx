@@ -189,7 +189,7 @@ export default function SidebarLayout(props: PosLayoutProps) {
             placeholder="Search products…"
             value={props.search}
             onChange={(e) => props.onSearchChange(e.target.value)}
-            sx={{ flex: 1, minWidth: 140, ...premiumFieldSx(isDark) }}
+            sx={(theme) => ({ flex: 1, minWidth: 140, ...premiumFieldSx(theme) })}
             slotProps={{ input: { startAdornment: <InputAdornment position="start"><IconSearch size={16} color={brand.neutral[400]} /></InputAdornment> } }}
           />
           <TextField
@@ -199,7 +199,7 @@ export default function SidebarLayout(props: PosLayoutProps) {
             inputRef={props.barcodeRef}
             onChange={(e) => props.onBarcodeChange(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') props.onBarcodeScan(); if (e.key === 'Escape') props.onBarcodeChange(''); }}
-            sx={{ width: 140, flexShrink: 0, ...premiumFieldSx(isDark) }}
+            sx={(theme) => ({ width: 140, flexShrink: 0, ...premiumFieldSx(theme) })}
             slotProps={{ input: { startAdornment: <InputAdornment position="start"><IconBarcode size={16} color={brand.primary[600]} /></InputAdornment> } }}
           />
           <TextField select size="small" value={props.categoryId} onChange={(e) => props.onCategoryChange(e.target.value)} slotProps={{ select: { displayEmpty: true } }} sx={filterFieldSx}>
@@ -217,7 +217,7 @@ export default function SidebarLayout(props: PosLayoutProps) {
           {props.productsLoading ? (
             <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 1.5 }}>
               {Array.from({ length: 12 }).map((_, i) => (
-                <Card key={i} elevation={0} sx={posSurface(isDark)}>
+                <Card key={i} elevation={0} sx={posSurface}>
                   <Skeleton variant="rectangular" sx={{ aspectRatio: '1/1', width: '100%' }} />
                   <Box sx={{ p: 1 }}><Skeleton variant="text" sx={{ width: '80%', height: 14 }} /></Box>
                 </Card>
@@ -233,14 +233,14 @@ export default function SidebarLayout(props: PosLayoutProps) {
                     key={p.id}
                     elevation={0}
                     onClick={() => { if (!outOfStock) props.onAddProduct(p); }}
-                    sx={{
-                      ...posSurface(isDark),
+                    sx={(theme) => ({
+                      ...posSurface(theme),
                       cursor: outOfStock ? 'not-allowed' : 'pointer',
                       opacity: outOfStock ? 0.5 : 1,
                       transition: 'transform 0.15s ease',
                       '&:hover': outOfStock ? {} : { transform: 'translateY(-2px)' },
                       ...focusVisibleSx,
-                    }}
+                    })}
                   >
                     <Box sx={{ aspectRatio: '1/1', bgcolor: brand.primary[50], display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <Typography sx={{ fontSize: '2rem', fontWeight: 800, color: brand.primary[200] }}>{p.name.charAt(0).toUpperCase()}</Typography>
