@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useParams } from 'react-router';
+import { useParams, useSearchParams } from 'react-router';
 import {
   Box,
   Button,
@@ -10,12 +10,18 @@ import {
   Typography,
 } from '@mui/material';
 import { IconCamera, IconCheck, IconChecks, IconX } from '@tabler/icons-react';
-import { api } from 'src/api/smartpos/client';
+import { api, tokenStore } from 'src/api/smartpos/client';
 
 const MAX_PHOTOS = 20;
 
 export default function CameraPage() {
   const { sessionId } = useParams<{ sessionId: string }>();
+  const [searchParams] = useSearchParams();
+
+  // Seed the auth token from the QR-code URL so the phone can authenticate API calls
+  const urlToken = searchParams.get('token');
+  if (urlToken) tokenStore.set(urlToken);
+
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
