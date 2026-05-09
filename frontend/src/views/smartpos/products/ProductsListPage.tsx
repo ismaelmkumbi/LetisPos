@@ -915,7 +915,7 @@ export default function ProductsListPage() {
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <Box>
+    <Box sx={{ minWidth: 0, maxWidth: '100%' }}>
       <PageHeader
         title={t('nav.products')}
         subtitle="Manage your inventory, pricing and stock in one place."

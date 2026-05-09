@@ -17,7 +17,7 @@ export default function ProductImportSetup({ onComplete }: Props) {
         Get your products into Letis
       </Typography>
       <Typography sx={{ color: brand.neutral[500], fontSize: 14, mb: 3 }}>
-        The fastest way is our Smart Import. Upload an Excel sheet, PDF, or even photos — AI will map everything for you.
+        The fastest way is Smart Import. Upload an Excel sheet, PDF, or even photos — smart mapping prepares everything for you.
       </Typography>
 
       <Stack spacing={2}>
@@ -38,7 +38,7 @@ export default function ProductImportSetup({ onComplete }: Props) {
           <Box sx={{ textAlign: 'left' }}>
             <Typography sx={{ fontWeight: 700 }}>Smart Import</Typography>
             <Typography sx={{ fontSize: 12, opacity: 0.85 }}>
-              Upload Excel, PDF, or photos — AI maps the fields
+              Upload Excel, PDF, or photos — smart mapping prepares the fields
             </Typography>
           </Box>
         </Button>

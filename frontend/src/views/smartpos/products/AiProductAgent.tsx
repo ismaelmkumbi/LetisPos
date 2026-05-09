@@ -225,7 +225,7 @@ export function AiProductAgent({ categories, brands, units, currentValues = {}, 
       });
 
       if (!res.name && !res.code) {
-        setError('AI could not extract enough detail. Try adding more specifics about pricing, category, or product type.');
+        setError('Could not extract enough detail. Try adding more specifics about pricing, category, or product type.');
         setLoading(false);
         return;
       }
@@ -317,7 +317,7 @@ export function AiProductAgent({ categories, brands, units, currentValues = {}, 
         },
       });
       if (!res.name) {
-        setError('AI could not identify the product. Try a clearer photo or add a hint in the text box.');
+        setError('Could not identify the product. Try a clearer photo or add a hint in the text box.');
         return;
       }
       setResponse(res);
@@ -411,7 +411,7 @@ export function AiProductAgent({ categories, brands, units, currentValues = {}, 
           <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
             <IconSparkles size={20} style={{ color: brand.primary[600] }} />
             <Typography sx={{ fontWeight: 800, fontSize: '0.95rem', color: brand.neutral[800], flex: 1 }}>
-              AI Product Registration
+              Product Assistant
             </Typography>
             {hasFields && (
               <IconButton size="small" onClick={() => setExpanded(!expanded)}>
@@ -457,7 +457,7 @@ e.g. "Samsung Galaxy S25 Ultra 512GB, titanium gray, premium smartphone. Cost 24
                   hidden
                   onChange={handleImagePicked}
                 />
-                <Tooltip title="Take or upload a product photo — AI will identify it">
+                <Tooltip title="Take or upload a product photo — the assistant will identify it">
                   <span>
                     <Button
                       size="small"
@@ -510,7 +510,7 @@ e.g. "Samsung Galaxy S25 Ultra 512GB, titanium gray, premium smartphone. Cost 24
                       sx={{ width: 56, height: 56, border: `1px solid ${brand.neutral[200]}`, borderRadius: '8px' }}
                     />
                     <Typography sx={{ fontSize: '0.78rem', color: brand.neutral[600], flex: 1 }}>
-                      Photo attached — AI is using this image
+                      Photo attached — this image will be used
                     </Typography>
                     <IconButton size="small" onClick={() => setImagePreview(null)}>
                       <IconX size={14} />
@@ -588,7 +588,7 @@ e.g. "Samsung Galaxy S25 Ultra 512GB, titanium gray, premium smartphone. Cost 24
                 }}
               />
               <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: brand.primary[700] }}>
-                AI is analyzing your description…
+                Analyzing your description…
               </Typography>
               <Typography sx={{ fontSize: '0.75rem', color: brand.neutral[500] }}>
                 Extracting product details, pricing, and attributes
@@ -642,7 +642,7 @@ e.g. "Samsung Galaxy S25 Ultra 512GB, titanium gray, premium smartphone. Cost 24
                 <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: response?.rationale ? 0.5 : 0 }}>
                   <IconSparkles size={14} style={{ color: brand.primary[600] }} />
                   <Typography sx={{ fontWeight: 700, fontSize: '0.8rem', color: brand.primary[700] }}>
-                    AI suggestion · via {response?.provider ?? 'AI'} · {Math.round((response?.confidence ?? 0) * 100)}% confidence
+                    Suggestion · via {response?.provider ?? 'service'} · {Math.round((response?.confidence ?? 0) * 100)}% confidence
                   </Typography>
                 </Stack>
                 {response?.rationale && (
@@ -757,7 +757,7 @@ e.g. "Samsung Galaxy S25 Ultra 512GB, titanium gray, premium smartphone. Cost 24
                 </Box>
                 <Box>
                   <Typography sx={{ fontWeight: 800, fontSize: '1.05rem', color: brand.neutral[900] }}>
-                    Apply AI suggestions?
+                    Apply suggestions?
                   </Typography>
                   <Typography sx={{ fontSize: '0.78rem', color: brand.neutral[500] }}>
                     Review and uncheck anything you want to keep your own
@@ -799,7 +799,7 @@ e.g. "Samsung Galaxy S25 Ultra 512GB, titanium gray, premium smartphone. Cost 24
                         </Box>
                         <Box sx={{ minWidth: 0, flex: 1 }}>
                           <Typography sx={{ color: brand.primary[600], fontSize: '0.66rem', fontWeight: 800 }}>
-                            AI suggestion
+                            Suggestion
                           </Typography>
                           <Typography sx={{ color: brand.neutral[900], fontSize: '0.88rem', fontWeight: 800 }} noWrap>
                             {f.displayValue}

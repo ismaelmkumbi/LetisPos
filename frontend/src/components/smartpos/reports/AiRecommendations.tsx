@@ -47,7 +47,7 @@ export default function AiRecommendations({ reportKind, factsJson }: Props) {
             <Box sx={{ width: 32, height: 32, borderRadius: '8px', bgcolor: brand.warning.light, color: brand.warning.main, display: 'grid', placeItems: 'center' }}>
               <IconBulb size={18} />
             </Box>
-            <Typography sx={{ fontWeight: 700, fontSize: 14, color: brand.neutral[900] }}>AI Recommendations</Typography>
+            <Typography sx={{ fontWeight: 700, fontSize: 14, color: brand.neutral[900] }}>Smart Recommendations</Typography>
           </Stack>
           {open ? <IconChevronUp size={18} /> : <IconChevronDown size={18} />}
         </Stack>

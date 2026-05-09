@@ -10,7 +10,7 @@ const LoginPage: React.FC = () => (
     pageDescription="Sign in to your Letis POS workspace"
     headline="Smarter POS."
     accent="Stronger business."
-    supportingText="Manage sales, inventory, customers, and finances with a fast AI-powered workspace built for growing retail teams."
+    supportingText="Manage sales, inventory, customers, and finances with a fast workspace built for growing retail teams."
     formTitle="Welcome back"
     formDescription="Sign in to your Letis POS account"
   >

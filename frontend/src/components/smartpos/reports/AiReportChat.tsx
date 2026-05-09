@@ -39,7 +39,7 @@ export default function AiReportChat({ contextPrompt }: Props) {
           '&:hover': { bgcolor: brand.accent[600] },
         }}>
         <IconSparkles size={18} style={{ marginRight: 8 }} />
-        Ask AI
+        Ask
       </Fab>
 
       {open && (

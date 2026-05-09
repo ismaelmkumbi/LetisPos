@@ -1861,7 +1861,7 @@ export function TenantsSettings() {
                 label: 'Loyalty & rewards',
                 icon: <IconPercentage size={16} />,
               },
-              { key: 'aiFeatures', label: 'AI-powered features', icon: <IconChartBar size={16} /> },
+              { key: 'aiFeatures', label: 'Smart features', icon: <IconChartBar size={16} /> },
               {
                 key: 'customBranding',
                 label: 'Custom branding & receipts',
