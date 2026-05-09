@@ -18,7 +18,7 @@ export const boldEnergetic: ThemeTokens = {
   ctaSecondaryBg: '#DCFCE7',
   ctaSecondaryText: '#15803D',
   ctaSecondaryBorder: '#BBF7D0',
-  fontDisplay: "system-ui, -apple-system, 'Segoe UI', sans-serif",
-  fontBody: "system-ui, -apple-system, 'Segoe UI', sans-serif",
+  fontDisplay: "'Inter', 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', sans-serif",
+  fontBody: "'Inter', 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', sans-serif",
   googleFontsUrl: '',
 };

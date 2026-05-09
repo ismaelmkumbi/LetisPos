@@ -18,7 +18,7 @@ export const brutalistHonest: ThemeTokens = {
   ctaSecondaryBg: '#FFFFFF',
   ctaSecondaryText: '#0F172A',
   ctaSecondaryBorder: '#0F172A',
-  fontDisplay: "'Courier New', 'IBM Plex Mono', monospace",
-  fontBody: "'Courier New', 'IBM Plex Mono', monospace",
+  fontDisplay: "'Inter', 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', sans-serif",
+  fontBody: "'Inter', 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', sans-serif",
   googleFontsUrl: 'https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap',
 };
