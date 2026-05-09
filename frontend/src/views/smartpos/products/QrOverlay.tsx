@@ -49,10 +49,15 @@ export default function QrOverlay({ onPhotosReceived, onUseWebcam, onClose }: Qr
         if (cancelled.current) return;
         createdSessionId = resp.sessionId;
         setSessionId(createdSessionId);
-        setQrUrl(resp.qrUrl);
+
+        // The backend's default base-url is http://localhost:5173, which
+        // doesn't work from a phone. Rewrite the QR URL to use the same
+        // origin the POS terminal is loaded from.
+        const correctedQrUrl = rewriteQrUrl(resp.qrUrl);
+        setQrUrl(correctedQrUrl);
 
         // Generate QR as data URL
-        const dataUrl = await QRCode.toDataURL(resp.qrUrl, {
+        const dataUrl = await QRCode.toDataURL(correctedQrUrl, {
           width: 280,
           margin: 1,
           color: { dark: '#000', light: '#fff' },
@@ -296,6 +301,21 @@ export default function QrOverlay({ onPhotosReceived, onUseWebcam, onClose }: Qr
       </Stack>
     </Box>
   );
+}
+
+/**
+ * Replace the origin in the backend-generated QR URL with the frontend's own
+ * origin so the link works from a phone/tablet on the same LAN.
+ *
+ * Example: http://localhost:5173/capture/abc → http://192.168.1.100:5173/capture/abc
+ */
+function rewriteQrUrl(url: string): string {
+  try {
+    const parsed = new URL(url);
+    return `${window.location.origin}${parsed.pathname}${parsed.search}${parsed.hash}`;
+  } catch {
+    return url; // malformed URL — pass through as-is
+  }
 }
 
 function blobToDataUrl(blob: Blob): Promise<string> {

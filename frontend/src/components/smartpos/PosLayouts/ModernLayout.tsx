@@ -27,7 +27,6 @@ import { useContext } from 'react';
 import { useEffect, useMemo, useState, type MouseEvent } from 'react';
 import {
   Alert,
-  Autocomplete,
   Avatar,
   Badge,
   Box,
@@ -77,7 +76,6 @@ import {
   IconArrowLeft,
   IconArrowRight,
   IconHome,
-  IconHelp,
   IconMinus,
   IconPlus,
   IconQrcode,
@@ -91,7 +89,7 @@ import {
   IconClock,
   IconTrendingUp,
   IconUser,
-  IconUserPlus,
+  IconLogout,
   IconX,
   IconWifiOff,
 } from '@tabler/icons-react';
@@ -105,9 +103,17 @@ import { listCategories, listBrands } from 'src/api/smartpos/products';
 import type { Brand as BrandRef, Category } from 'src/api/smartpos/types';
 import type { Line } from './types';
 import type { PosLayoutProps, PaymentChoice, LayoutTab } from './PosLayoutProps';
-import { unitPriceForTier, posSurface, premiumFieldSx, softScrollSx, focusVisibleSx, CHECKOUT_PANEL_MIN_WIDTH, FOOTER_HEIGHT, PRODUCT_PAGE_SIZE } from './shared';
+import {
+  unitPriceForTier,
+  posSurface,
+  premiumFieldSx,
+  softScrollSx,
+  focusVisibleSx,
+  CHECKOUT_PANEL_MIN_WIDTH,
+  FOOTER_HEIGHT,
+  PRODUCT_PAGE_SIZE,
+} from './shared';
 import EditLineModal from 'src/components/smartpos/EditLineModal';
-import QuickAddCustomerModal from 'src/components/smartpos/QuickAddCustomerModal';
 import CashRegisterIndicator from 'src/components/smartpos/CashRegisterIndicator';
 import TotalRow from './TotalRow';
 import BrandLogo from 'src/components/smartpos/BrandLogo';
@@ -145,7 +151,10 @@ export default function ModernLayout(props: PosLayoutProps) {
 
   useEffect(() => {
     Promise.all([listCategories(), listBrands()])
-      .then(([c, b]) => { setCategories(c); setBrands(b); })
+      .then(([c, b]) => {
+        setCategories(c);
+        setBrands(b);
+      })
       .catch(() => {});
   }, []);
 
@@ -281,9 +290,14 @@ export default function ModernLayout(props: PosLayoutProps) {
           change={paymentChange}
           paymentChoice={paymentChoice}
           onPaymentChoiceChange={handlePaymentChoice}
-          customerName={props.customers.find((c) => c.id === props.customerId)?.name ?? 'Walk-in Customer'}
+          customerName={
+            props.customers.find((c) => c.id === props.customerId)?.name ?? 'Walk-in Customer'
+          }
           submitting={props.submitting}
-          canComplete={props.canCheckout && (paymentChoice !== 'CASH' || (Number(props.tendered) || 0) >= computed.grand)}
+          canComplete={
+            props.canCheckout &&
+            (paymentChoice !== 'CASH' || (Number(props.tendered) || 0) >= computed.grand)
+          }
           onBack={() => setPaymentOpen(false)}
           onComplete={completePayment}
           taxRate={props.lines.length > 0 ? Math.round(props.lines[0].taxRate) : 0}
@@ -360,7 +374,11 @@ export default function ModernLayout(props: PosLayoutProps) {
               discountVal={computed.disc}
               shippingVal={computed.ship}
               grand={computed.grand}
-              taxRate={computed.subtotal > 0 ? Math.round(computed.totalTax / computed.subtotal * 100) : 0}
+              taxRate={
+                computed.subtotal > 0
+                  ? Math.round((computed.totalTax / computed.subtotal) * 100)
+                  : 0
+              }
               discount={props.discount}
               discountType={props.discountType}
               onDiscountChange={props.onDiscountChange}
@@ -381,7 +399,6 @@ export default function ModernLayout(props: PosLayoutProps) {
           onClear={props.onClearCart}
           onHoldCart={props.onHoldCart}
           onOpenHeldCarts={props.onOpenHeldCarts}
-
           canCheckout={props.canCheckout}
           submitting={props.submitting}
           onCheckout={openPayment}
@@ -401,12 +418,22 @@ export default function ModernLayout(props: PosLayoutProps) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 interface KioskTopBarProps {
-  warehouses: Warehouse[]; warehouseId: string; onWarehouseChange: (id: string) => void;
-  categories: Category[]; categoryId: string; onCategoryChange: (id: string) => void;
-  brands: BrandRef[]; brandId: string; onBrandChange: (id: string) => void;
-  customers: Customer[]; customerId: string | null; onCustomerChange: (id: string | null) => void;
+  warehouses: Warehouse[];
+  warehouseId: string;
+  onWarehouseChange: (id: string) => void;
+  categories: Category[];
+  categoryId: string;
+  onCategoryChange: (id: string) => void;
+  brands: BrandRef[];
+  brandId: string;
+  onBrandChange: (id: string) => void;
+  customers: Customer[];
+  customerId: string | null;
+  onCustomerChange: (id: string | null) => void;
   onCustomerCreated?: (customer: Customer) => void;
-  terminals: PosTerminal[]; linkedTerminalId: string; onLinkedTerminalChange: (id: string) => void;
+  terminals: PosTerminal[];
+  linkedTerminalId: string;
+  onLinkedTerminalChange: (id: string) => void;
   online: boolean;
   queueSize: number;
   user?: { firstName?: string; lastName?: string; email?: string; roles?: string[] } | null;
@@ -424,7 +451,6 @@ interface KioskTopBarProps {
 function KioskTopBar(p: KioskTopBarProps) {
   const isDark = p.isDark;
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [quickAddOpen, setQuickAddOpen] = useState(false);
 
   useEffect(() => {
     const syncFullscreenState = () => setIsFullscreen(Boolean(document.fullscreenElement));
@@ -444,194 +470,442 @@ function KioskTopBar(p: KioskTopBarProps) {
   return (
     <Box
       sx={{
-        height: 56,
         flexShrink: 0,
         display: 'flex',
         alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'nowrap',
         gap: 1,
         px: 1.75,
+        py: 0,
+        minHeight: 56,
+        height: 56,
         bgcolor: isDark ? brand.neutral[800] : '#fff',
         borderBottom: `1px solid ${brand.neutral[200]}`,
         overflowX: 'auto',
         overflowY: 'hidden',
-        ...softScrollSx,
+        scrollbarWidth: 'none',
+        msOverflowStyle: 'none',
+        '&::-webkit-scrollbar': { display: 'none' },
       }}
     >
-      {/* Logo + operational status cluster */}
-      <Stack direction="row" spacing={0.75} alignItems="center" sx={{ flexShrink: 0 }}>
-        <Box component={Link} to="/smartpos/dashboard" sx={{ textDecoration: 'none', display: 'flex', mr: 0.5 }}>
-          <BrandLogo size="md" />
-        </Box>
-
-        <Box sx={{ width: 1, height: 24, bgcolor: brand.neutral[200], mx: 0.25 }} />
-
-        <Tooltip title={p.online ? 'Online' : `Offline — ${p.queueSize} sale${p.queueSize !== 1 ? 's' : ''} queued`} arrow>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, px: 0.75, py: 0.4, borderRadius: '6px', bgcolor: p.online ? brand.success.light : brand.warning.light, border: `1px solid ${p.online ? brand.success.main : brand.warning.main}22` }}>
-            {p.online ? (
-              <IconCircleFilled size={7} color={brand.success.main} />
-            ) : (
-              <IconWifiOff size={12} color={brand.warning.main} />
-            )}
-            {!p.online && p.queueSize > 0 && (
-              <Chip label={p.queueSize} size="small" sx={{ height: 16, fontSize: '0.5625rem', fontWeight: 800, bgcolor: brand.warning.main, color: '#fff', '.MuiChip-label': { px: 0.5 } }} />
-            )}
+      <Stack direction="row" spacing={1} alignItems="center" sx={{ flexShrink: 0 }}>
+        {/* Logo + operational status cluster */}
+        <Stack direction="row" spacing={0.75} alignItems="center" sx={{ flexShrink: 0 }}>
+          <Box
+            component={Link}
+            to="/smartpos/dashboard"
+            sx={{ textDecoration: 'none', display: 'flex', mr: 0.5 }}
+          >
+            <BrandLogo size="md" />
           </Box>
-        </Tooltip>
 
-        <CashRegisterIndicator
-          session={p.registerSession ?? null}
-          loading={p.registerLoading ?? false}
-          onOpen={() => p.onOpenRegister?.()}
-          onClose={() => p.onCloseRegister?.()}
-        />
-      </Stack>
+          <Box sx={{ width: 1, height: 24, bgcolor: brand.neutral[200], mx: 0.25 }} />
 
-      {/* Filter row — compact icon-triggered selects */}
-      <Stack direction="row" spacing={0.5} alignItems="center" sx={{ flexShrink: 0, ml: 0.5 }}>
-        <TextField
-          select size="small" value={p.warehouseId}
-          onChange={(e) => p.onWarehouseChange(e.target.value)}
-          sx={{ minWidth: 140, '& .MuiOutlinedInput-root': { height: 38, borderRadius: '8px', bgcolor: isDark ? brand.neutral[900] : brand.neutral[50], fontSize: '0.8rem', '& fieldset': { borderColor: isDark ? brand.neutral[700] : brand.neutral[200] }, '&:hover fieldset': { borderColor: brand.primary[300] }, '&.Mui-focused fieldset': { borderColor: brand.primary[400] } } }}
-        >
-          {p.warehouses.map((w) => (
-            <MenuItem key={w.id} value={w.id} dense>{w.name}</MenuItem>
-          ))}
-        </TextField>
-        <TextField
-          select size="small" value={p.categoryId}
-          onChange={(e) => p.onCategoryChange(e.target.value)}
-          slotProps={{ select: { displayEmpty: true } }}
-          sx={{ minWidth: 130, '& .MuiOutlinedInput-root': { height: 38, borderRadius: '8px', bgcolor: isDark ? brand.neutral[900] : brand.neutral[50], fontSize: '0.8rem', '& fieldset': { borderColor: isDark ? brand.neutral[700] : brand.neutral[200] }, '&:hover fieldset': { borderColor: brand.primary[300] }, '&.Mui-focused fieldset': { borderColor: brand.primary[400] } } }}
-        >
-          <MenuItem value="">All Categories</MenuItem>
-          {p.categories.map((c) => <MenuItem key={c.id} value={c.id} dense>{c.name}</MenuItem>)}
-        </TextField>
-        <TextField
-          select size="small" value={p.brandId}
-          onChange={(e) => p.onBrandChange(e.target.value)}
-          slotProps={{ select: { displayEmpty: true } }}
-          sx={{ minWidth: 120, '& .MuiOutlinedInput-root': { height: 38, borderRadius: '8px', bgcolor: isDark ? brand.neutral[900] : brand.neutral[50], fontSize: '0.8rem', '& fieldset': { borderColor: isDark ? brand.neutral[700] : brand.neutral[200] }, '&:hover fieldset': { borderColor: brand.primary[300] }, '&.Mui-focused fieldset': { borderColor: brand.primary[400] } } }}
-        >
-          <MenuItem value="">All Brands</MenuItem>
-          {p.brands.map((b) => <MenuItem key={b.id} value={b.id} dense>{b.name}</MenuItem>)}
-        </TextField>
-      </Stack>
+          <Tooltip
+            title={
+              p.online
+                ? 'Online'
+                : `Offline — ${p.queueSize} sale${p.queueSize !== 1 ? 's' : ''} queued`
+            }
+            arrow
+          >
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 0.5,
+                px: 0.75,
+                py: 0.4,
+                borderRadius: '6px',
+                bgcolor: p.online ? brand.success.light : brand.warning.light,
+                border: `1px solid ${p.online ? brand.success.main : brand.warning.main}22`,
+              }}
+            >
+              {p.online ? (
+                <IconCircleFilled size={7} color={brand.success.main} />
+              ) : (
+                <IconWifiOff size={12} color={brand.warning.main} />
+              )}
+              {!p.online && p.queueSize > 0 && (
+                <Chip
+                  label={p.queueSize}
+                  size="small"
+                  sx={{
+                    height: 16,
+                    fontSize: '0.5625rem',
+                    fontWeight: 800,
+                    bgcolor: brand.warning.main,
+                    color: '#fff',
+                    '.MuiChip-label': { px: 0.5 },
+                  }}
+                />
+              )}
+            </Box>
+          </Tooltip>
 
-      <Box sx={{ flex: 1, minWidth: 8 }} />
+          <CashRegisterIndicator
+            session={p.registerSession ?? null}
+            loading={p.registerLoading ?? false}
+            onOpen={() => p.onOpenRegister?.()}
+            onClose={() => p.onCloseRegister?.()}
+          />
+        </Stack>
 
-      {/* Customer selector */}
-      <Autocomplete
-        size="small"
-        options={p.customers}
-        value={p.customers.find((c) => c.id === p.customerId) || null}
-        onChange={(_, value) => p.onCustomerChange(value?.id ?? null)}
-        getOptionLabel={(c) => c.name}
-        sx={{ minWidth: 200, maxWidth: 280, flexShrink: 1 }}
-        renderInput={(params) => (
+        {/* Filter row — compact icon-triggered selects */}
+        <Stack direction="row" spacing={0.5} alignItems="center" sx={{ flexShrink: 0, ml: 0.5 }}>
           <TextField
-            {...params}
-            placeholder="Walk-in Customer"
-            slotProps={{
-              input: {
-                ...params.InputProps,
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <IconUser size={16} color={brand.neutral[400]} />
-                  </InputAdornment>
-                ),
+            select
+            size="small"
+            value={p.warehouseId}
+            onChange={(e) => p.onWarehouseChange(e.target.value)}
+            sx={{
+              minWidth: { xs: 140, xl: 126 },
+              '& .MuiOutlinedInput-root': {
+                height: 38,
+                borderRadius: '8px',
+                bgcolor: isDark ? brand.neutral[900] : '#fff',
+                fontSize: '0.8rem',
+                '& fieldset': { borderColor: isDark ? brand.neutral[700] : brand.neutral[200] },
+                '&:hover fieldset': { borderColor: brand.primary[300] },
+                '&.Mui-focused fieldset': { borderColor: brand.primary[400] },
               },
             }}
-            sx={{ '& .MuiOutlinedInput-root': { height: 38, borderRadius: '8px', bgcolor: isDark ? brand.neutral[900] : brand.neutral[50], fontSize: '0.8rem', '& fieldset': { borderColor: isDark ? brand.neutral[700] : brand.neutral[200] }, '&:hover fieldset': { borderColor: brand.primary[300] }, '&.Mui-focused fieldset': { borderColor: brand.primary[400] } } }}
-          />
-        )}
-      />
+          >
+            {p.warehouses.map((w) => (
+              <MenuItem key={w.id} value={w.id} dense>
+                {w.name}
+              </MenuItem>
+            ))}
+          </TextField>
+          <TextField
+            select
+            size="small"
+            value={p.categoryId}
+            onChange={(e) => p.onCategoryChange(e.target.value)}
+            slotProps={{ select: { displayEmpty: true } }}
+            sx={{
+              minWidth: { xs: 130, xl: 118 },
+              '& .MuiOutlinedInput-root': {
+                height: 38,
+                borderRadius: '8px',
+                bgcolor: isDark ? brand.neutral[900] : '#fff',
+                fontSize: '0.8rem',
+                '& fieldset': { borderColor: isDark ? brand.neutral[700] : brand.neutral[200] },
+                '&:hover fieldset': { borderColor: brand.primary[300] },
+                '&.Mui-focused fieldset': { borderColor: brand.primary[400] },
+              },
+            }}
+          >
+            <MenuItem value="">All Categories</MenuItem>
+            {p.categories.map((c) => (
+              <MenuItem key={c.id} value={c.id} dense>
+                {c.name}
+              </MenuItem>
+            ))}
+          </TextField>
+          <TextField
+            select
+            size="small"
+            value={p.brandId}
+            onChange={(e) => p.onBrandChange(e.target.value)}
+            slotProps={{ select: { displayEmpty: true } }}
+            sx={{
+              minWidth: { xs: 120, xl: 108 },
+              '& .MuiOutlinedInput-root': {
+                height: 38,
+                borderRadius: '8px',
+                bgcolor: isDark ? brand.neutral[900] : '#fff',
+                fontSize: '0.8rem',
+                '& fieldset': { borderColor: isDark ? brand.neutral[700] : brand.neutral[200] },
+                '&:hover fieldset': { borderColor: brand.primary[300] },
+                '&.Mui-focused fieldset': { borderColor: brand.primary[400] },
+              },
+            }}
+          >
+            <MenuItem value="">All Brands</MenuItem>
+            {p.brands.map((b) => (
+              <MenuItem key={b.id} value={b.id} dense>
+                {b.name}
+              </MenuItem>
+            ))}
+          </TextField>
+        </Stack>
+      </Stack>
 
-      <Tooltip title="Quick add customer" arrow>
-        <IconButton size="small" onClick={() => setQuickAddOpen(true)}
-          sx={{ width: 34, height: 34, borderRadius: '8px', border: `1px solid ${brand.neutral[200]}`, color: isDark ? brand.neutral[400] : brand.neutral[500], '&:hover': { bgcolor: brand.primary[50], color: brand.primary[600], borderColor: brand.primary[300] } }}>
-          <IconUserPlus size={16} />
-        </IconButton>
-      </Tooltip>
+      <Stack direction="row" spacing={0.5} alignItems="center" sx={{ flexShrink: 0 }}>
+        {/* Right-side icon cluster */}
+        <Stack direction="row" spacing={0.25} alignItems="center" sx={{ flexShrink: 0 }}>
+          <KioskIconButton title="Today's sales" onClick={() => p.onTodaySales?.()} isDark={isDark}>
+            <IconReceipt size={16} />
+          </KioskIconButton>
+          <KioskIconButton title="Settings" to="/smartpos/settings" isDark={isDark}>
+            <IconSettings size={16} />
+          </KioskIconButton>
+          <Select
+            size="small"
+            value={p.linkedTerminalId}
+            onChange={(e) => p.onLinkedTerminalChange(e.target.value)}
+            displayEmpty
+            renderValue={(selected) => {
+              const terminal = selected ? p.terminals.find((t) => t.id === selected) : null;
+              return (
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  <IconDeviceDesktop
+                    size={15}
+                    color={terminal ? brand.primary[500] : brand.neutral[400]}
+                  />
+                </Box>
+              );
+            }}
+            sx={{
+              width: 38,
+              height: 34,
+              flexShrink: 0,
+              borderRadius: '8px',
+              '& .MuiOutlinedInput-notchedOutline': { borderColor: 'transparent' },
+              '&:hover .MuiOutlinedInput-notchedOutline': {
+                borderColor: isDark ? brand.neutral[700] : brand.neutral[200],
+              },
+              '& .MuiSelect-select': {
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                py: 0,
+                px: '8px !important',
+              },
+            }}
+          >
+            <MenuItem value="">
+              <em>Not paired</em>
+            </MenuItem>
+            {p.terminals.map((t) => (
+              <MenuItem key={t.id} value={t.id}>
+                {t.name} · {t.code}
+              </MenuItem>
+            ))}
+          </Select>
+          <KioskIconButton
+            title={isFullscreen ? 'Exit full screen' : 'Enter full screen'}
+            onClick={toggleFullscreen}
+            isDark={isDark}
+          >
+            {isFullscreen ? <IconArrowsMinimize size={16} /> : <IconArrowsMaximize size={16} />}
+          </KioskIconButton>
+        </Stack>
 
-      <Box sx={{ width: 1, height: 24, bgcolor: brand.neutral[200], mx: 0.25 }} />
-
-      {/* Right-side icon cluster */}
-      <Stack direction="row" spacing={0.25} alignItems="center" sx={{ flexShrink: 0 }}>
-        <KioskIconButton title="Keyboard shortcuts" onClick={() => p.onNotify?.('Press ? to view shortcuts')} isDark={isDark}>
-          <IconHelp size={16} />
-        </KioskIconButton>
-        <KioskIconButton title="Today's sales" onClick={() => p.onTodaySales?.()} isDark={isDark}>
-          <IconReceipt size={16} />
-        </KioskIconButton>
-        <KioskIconButton title="Settings" to="/smartpos/settings" isDark={isDark}>
-          <IconSettings size={16} />
-        </KioskIconButton>
-        <Select
-          size="small" value={p.linkedTerminalId}
-          onChange={(e) => p.onLinkedTerminalChange(e.target.value)}
-          displayEmpty
-          renderValue={(selected) => {
-            const terminal = selected ? p.terminals.find((t) => t.id === selected) : null;
-            return (
-              <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                <IconDeviceDesktop size={15} color={terminal ? brand.primary[500] : brand.neutral[400]} />
-              </Box>
-            );
-          }}
+        <Box
           sx={{
-            width: 38, height: 34, flexShrink: 0, borderRadius: '8px',
-            '& .MuiOutlinedInput-notchedOutline': { borderColor: 'transparent' },
-            '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: isDark ? brand.neutral[700] : brand.neutral[200] },
-            '& .MuiSelect-select': { display: 'flex', alignItems: 'center', justifyContent: 'center', py: 0, px: '8px !important' },
+            display: { xs: 'none', sm: 'block' },
+            width: 1,
+            height: 24,
+            bgcolor: brand.neutral[200],
+            mx: 0.75,
           }}
-        >
-          <MenuItem value=""><em>Not paired</em></MenuItem>
-          {p.terminals.map((t) => <MenuItem key={t.id} value={t.id}>{t.name} · {t.code}</MenuItem>)}
-        </Select>
-        <KioskIconButton title={isFullscreen ? 'Exit full screen' : 'Enter full screen'} onClick={toggleFullscreen} isDark={isDark}>
-          {isFullscreen ? <IconArrowsMinimize size={16} /> : <IconArrowsMaximize size={16} />}
-        </KioskIconButton>
-      </Stack>
+        />
 
-      <Stack direction="row" spacing={0.75} alignItems="center" sx={{ pl: 0.5, flexShrink: 0 }}>
-      <Avatar
-        sx={{
-            width: 36,
-            height: 36,
-            bgcolor: brand.primary[50],
-            color: brand.primary[700],
-            fontWeight: 900,
-            fontSize: '0.9rem',
-        }}
-      >
-          {p.user?.firstName?.charAt(0)?.toUpperCase() || p.user?.email?.charAt(0)?.toUpperCase() || 'U'}
-      </Avatar>
-        <Box sx={{ display: { xs: 'none', xl: 'block' }, minWidth: 106 }}>
-          <Typography sx={{ fontWeight: 800, color: isDark ? brand.neutral[50] : brand.neutral[900], lineHeight: 1.1 }}>
-            {p.user ? [p.user.firstName, p.user.lastName].filter(Boolean).join(' ') || p.user.email : 'User'}
-          </Typography>
-          <Typography sx={{ fontSize: '0.78rem', color: isDark ? brand.neutral[400] : brand.neutral[500], fontWeight: 600 }}>
-            {p.user?.roles?.[0] || 'Staff'}
-          </Typography>
-        </Box>
-        <IconChevronDown size={18} color={brand.neutral[600]} />
+        <UserMenu user={p.user} isDark={isDark} />
       </Stack>
-
-      <QuickAddCustomerModal
-        open={quickAddOpen}
-        onClose={() => setQuickAddOpen(false)}
-        onCreated={(customer) => {
-          p.onCustomerCreated?.(customer);
-          setQuickAddOpen(false);
-        }}
-      />
     </Box>
   );
 }
 
+function UserMenu({
+  user,
+  isDark,
+}: {
+  user?: { firstName?: string; lastName?: string; email?: string; roles?: string[] } | null;
+  isDark: boolean;
+}) {
+  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
+  const { logout } = useAuth();
+  const open = Boolean(anchorEl);
+
+  const initial =
+    user?.firstName?.charAt(0)?.toUpperCase() || user?.email?.charAt(0)?.toUpperCase() || 'U';
+  const fullName = user
+    ? [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email
+    : 'User';
+  const role = user?.roles?.[0] || 'Staff';
+
+  const handleLogout = async () => {
+    setAnchorEl(null);
+    try {
+      await logout();
+    } catch {
+      /* ignore */
+    }
+  };
+
+  return (
+    <>
+      <Tooltip title="Account" arrow>
+        <IconButton
+          onClick={(e) => setAnchorEl(e.currentTarget)}
+          sx={{
+            p: 0.25,
+            borderRadius: '999px',
+            border: `1px solid ${isDark ? brand.neutral[700] : brand.neutral[200]}`,
+            bgcolor: isDark ? brand.neutral[800] : '#fff',
+            '&:hover': {
+              bgcolor: brand.primary[50],
+              borderColor: brand.primary[200],
+            },
+          }}
+        >
+          <Avatar
+            sx={{
+              width: 32,
+              height: 32,
+              bgcolor: brand.primary[50],
+              color: brand.primary[700],
+              fontWeight: 900,
+              fontSize: '0.85rem',
+            }}
+          >
+            {initial}
+          </Avatar>
+          <IconChevronDown
+            size={16}
+            color={isDark ? brand.neutral[400] : brand.neutral[500]}
+            style={{ marginLeft: 2, marginRight: 4 }}
+          />
+        </IconButton>
+      </Tooltip>
+
+      <Menu
+        anchorEl={anchorEl}
+        open={open}
+        onClose={() => setAnchorEl(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+        slotProps={{
+          paper: {
+            sx: {
+              mt: 1,
+              minWidth: 260,
+              borderRadius: '14px',
+              border: `1px solid ${isDark ? brand.neutral[700] : brand.neutral[200]}`,
+              boxShadow: `0 16px 40px -16px ${brand.neutral[900]}33`,
+              overflow: 'hidden',
+            },
+          },
+        }}
+      >
+        <Box
+          sx={{
+            px: 2,
+            py: 1.5,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1.25,
+            bgcolor: isDark ? brand.neutral[900] : brand.primary[50],
+          }}
+        >
+          <Avatar
+            sx={{
+              width: 44,
+              height: 44,
+              bgcolor: brand.primary[100],
+              color: brand.primary[700],
+              fontWeight: 900,
+              fontSize: '1.1rem',
+            }}
+          >
+            {initial}
+          </Avatar>
+          <Box sx={{ minWidth: 0 }}>
+            <Typography
+              sx={{
+                fontWeight: 800,
+                fontSize: '0.95rem',
+                color: isDark ? brand.neutral[50] : brand.neutral[900],
+                lineHeight: 1.2,
+              }}
+              noWrap
+            >
+              {fullName}
+            </Typography>
+            <Typography
+              sx={{
+                fontSize: '0.78rem',
+                color: isDark ? brand.neutral[400] : brand.neutral[600],
+                fontWeight: 600,
+              }}
+              noWrap
+            >
+              {user?.email || role}
+            </Typography>
+            <Chip
+              label={role}
+              size="small"
+              sx={{
+                mt: 0.5,
+                height: 18,
+                fontSize: '0.65rem',
+                fontWeight: 800,
+                letterSpacing: 0.4,
+                textTransform: 'uppercase',
+                bgcolor: brand.primary[100],
+                color: brand.primary[800],
+                '.MuiChip-label': { px: 0.75 },
+              }}
+            />
+          </Box>
+        </Box>
+
+        <Divider sx={{ borderColor: isDark ? brand.neutral[700] : brand.neutral[200] }} />
+
+        <MenuItem
+          component={Link}
+          to="/smartpos/settings"
+          onClick={() => setAnchorEl(null)}
+          sx={{ py: 1.1, gap: 1 }}
+        >
+          <ListItemIcon sx={{ minWidth: 28, color: brand.neutral[600] }}>
+            <IconSettings size={18} />
+          </ListItemIcon>
+          <ListItemText
+            primary="Settings"
+            primaryTypographyProps={{ fontSize: '0.88rem', fontWeight: 600 }}
+          />
+        </MenuItem>
+
+        <MenuItem
+          onClick={handleLogout}
+          sx={{
+            py: 1.1,
+            gap: 1,
+            color: '#d92d20',
+            '&:hover': { bgcolor: '#fef3f2' },
+          }}
+        >
+          <ListItemIcon sx={{ minWidth: 28, color: 'inherit' }}>
+            <IconLogout size={18} />
+          </ListItemIcon>
+          <ListItemText
+            primary="Sign out"
+            primaryTypographyProps={{ fontSize: '0.88rem', fontWeight: 700 }}
+          />
+        </MenuItem>
+      </Menu>
+    </>
+  );
+}
+
 function KioskIconButton({
-  title, children, onClick, to, isDark,
-}: { title: string; children: React.ReactNode; onClick?: () => void; to?: string; isDark: boolean }) {
+  title,
+  children,
+  onClick,
+  to,
+  isDark,
+}: {
+  title: string;
+  children: React.ReactNode;
+  onClick?: () => void;
+  to?: string;
+  isDark: boolean;
+}) {
   const sx = {
     width: 40,
     height: 40,
@@ -640,7 +914,11 @@ function KioskIconButton({
     border: `1px solid ${brand.neutral[200]}`,
     color: isDark ? brand.neutral[200] : brand.neutral[800],
     bgcolor: isDark ? brand.neutral[800] : '#fff',
-    '&:hover': { bgcolor: brand.primary[50], color: brand.primary[700], borderColor: brand.primary[200] },
+    '&:hover': {
+      bgcolor: brand.primary[50],
+      color: brand.primary[700],
+      borderColor: brand.primary[200],
+    },
   } as const;
   return (
     <Tooltip title={title} arrow>
@@ -664,13 +942,22 @@ function KioskIconButton({
 interface CheckoutPanelProps {
   itemCount: number;
   lines: Line[];
-  onInc: (i: number) => void; onDec: (i: number) => void; onRemove: (i: number) => void; onClear: () => void;
+  onInc: (i: number) => void;
+  onDec: (i: number) => void;
+  onRemove: (i: number) => void;
+  onClear: () => void;
   onPatchLine?: (index: number, patch: Partial<Line>) => void;
   onNotify?: (message: string) => void;
-  subtotal: number; tax: number; discountVal: number; shippingVal: number; grand: number;
+  subtotal: number;
+  tax: number;
+  discountVal: number;
+  shippingVal: number;
+  grand: number;
   taxRate: number;
-  discount: number; discountType: 'FIXED' | 'PERCENT';
-  onDiscountChange: (v: number) => void; onDiscountTypeChange: (t: 'FIXED' | 'PERCENT') => void;
+  discount: number;
+  discountType: 'FIXED' | 'PERCENT';
+  onDiscountChange: (v: number) => void;
+  onDiscountTypeChange: (t: 'FIXED' | 'PERCENT') => void;
   products: Product[];
   stockMap: Record<string, StockLevel>;
   isDark: boolean;
@@ -682,268 +969,336 @@ function CheckoutPanel(p: CheckoutPanelProps) {
   const [editLine, setEditLine] = useState<Line | null>(null);
   const [discountOpen, setDiscountOpen] = useState(false);
   const [discountInput, setDiscountInput] = useState(String(p.discount || ''));
-  const [discountTypeInput, setDiscountTypeInput] = useState<'FIXED' | 'PERCENT'>(p.discountType || 'FIXED');
+  const [discountTypeInput, setDiscountTypeInput] = useState<'FIXED' | 'PERCENT'>(
+    p.discountType || 'FIXED',
+  );
 
   return (
     <>
-    <Card
-      elevation={0}
-      sx={{
-        ...posSurface(isDark),
-        // Pinned to its grid cell on md+, but on xs the column has scrollable
-        // overflowY so the card grows to its natural height (no clipped Tax /
-        // Shipping rows at the bottom).
-        height: { xs: 'auto', md: '100%' },
-        maxHeight: { xs: 'none', md: '100%' },
-        display: 'flex',
-        flexDirection: 'column',
-        overflow: { xs: 'visible', md: 'hidden' },
-      }}
-    >
-      {/* ─── Header ─────────────────────────────────────────────────── */}
-      <Box
+      <Card
+        elevation={0}
         sx={{
-          px: 2.5,
-          pt: 2,
-          pb: 1.5,
+          ...posSurface(isDark),
+          // Pinned to its grid cell on md+, but on xs the column has scrollable
+          // overflowY so the card grows to its natural height (no clipped Tax /
+          // Shipping rows at the bottom).
+          height: { xs: 'auto', md: '100%' },
+          maxHeight: { xs: 'none', md: '100%' },
           display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          borderBottom: `1px solid ${brand.neutral[100]}`,
-          background: `linear-gradient(135deg, #fff 0%, ${brand.primary[50]} 100%)`,
-          flexShrink: 0,
+          flexDirection: 'column',
+          overflow: { xs: 'visible', md: 'hidden' },
         }}
       >
-        <Stack direction="row" spacing={1.25} alignItems="center">
-          <Avatar
-            sx={{
-              width: 36,
-              height: 36,
-              borderRadius: '10px',
-              background: `linear-gradient(135deg, ${brand.primary[700]} 0%, ${brand.primary[600]} 55%, ${brand.primary[500]} 100%)`,
-              color: '#fff',
-              boxShadow: `0 8px 18px -8px ${brand.primary[600]}99`,
-            }}
-          >
-            <IconShoppingCart size={18} />
-          </Avatar>
-          <Box>
-            <Typography sx={{ fontWeight: 800, fontSize: '1.05rem', lineHeight: 1.1, color: isDark ? brand.neutral[50] : brand.neutral[900] }}>
-              Checkout
-            </Typography>
-            <Typography variant="caption" sx={{ color: isDark ? brand.neutral[400] : brand.neutral[500] }}>
-              Fast sale register
-            </Typography>
-          </Box>
-        </Stack>
-        <Badge
-          badgeContent={p.itemCount}
-          showZero
-          sx={{
-            '& .MuiBadge-badge': {
-              position: 'static',
-              transform: 'none',
-              bgcolor: brand.primary[600],
-              color: '#fff',
-              fontWeight: 800,
-              borderRadius: '8px',
-              height: 26,
-              minWidth: 56,
-              px: 1.25,
-              border: `1px solid ${brand.primary[500]}`,
-              fontSize: '0.78rem',
-              boxShadow: `0 6px 14px -8px ${brand.primary[600]}`,
-            },
-          }}
-        >
-          <Box sx={{ pr: 1, fontSize: '0.72rem', fontWeight: 600, color: isDark ? brand.neutral[400] : brand.neutral[500], textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-            items
-          </Box>
-        </Badge>
-      </Box>
-
-      {/* ─── Cart items ──────────────────────────────────────────────
-       * Internal scroll (md+) keeps the totals pinned at the bottom of
-       * the panel. On xs the parent grid scrolls instead, so this box
-       * flows naturally — no nested scrolls on phones. */}
-      <Box
-        sx={{
-          flex: { xs: '0 0 auto', md: 1 },
-          minHeight: { xs: 'auto', md: 180 },
-          overflowY: { xs: 'visible', md: 'auto' },
-          px: 2,
-          pb: 1,
-          ...softScrollSx,
-        }}
-      >
-        {p.lines.length === 0 ? (
-          <Box
-            sx={{
-              textAlign: 'center',
-              py: 5,
-              border: `1.5px dashed ${brand.primary[200]}`,
-              borderRadius: '14px',
-              bgcolor: brand.primary[50],
-            }}
-          >
-            <Avatar
-              sx={{
-                width: 44,
-                height: 44,
-                bgcolor: brand.primary[50],
-                color: brand.primary[500],
-                mx: 'auto',
-                mb: 1.25,
-                borderRadius: '12px',
-                border: `1px solid ${brand.primary[100]}`,
-              }}
-            >
-              <IconShoppingCart size={20} />
-            </Avatar>
-            <Typography variant="body2" sx={{ fontWeight: 700, color: isDark ? brand.neutral[300] : brand.neutral[700], mb: 0.5 }}>
-              Cart is empty
-            </Typography>
-            <Typography variant="caption" sx={{ color: isDark ? brand.neutral[400] : brand.neutral[500] }}>
-              Scan or click a product to begin
-            </Typography>
-          </Box>
-        ) : (
-          <Stack spacing={1}>
-            {p.lines.map((line, i) => (
-              <CartItem
-                key={`${line.productId}-${i}`}
-                line={line}
-                stock={p.stockMap[line.productId]}
-                onInc={() => p.onInc(i)}
-                onDec={() => p.onDec(i)}
-                onRemove={() => p.onRemove(i)}
-                onEditClick={() => {
-                  setEditLineIdx(i);
-                  setEditLine(line);
-                }}
-                onPatchLine={(patch) => p.onPatchLine?.(i, patch)}
-                isDark={isDark}
-              />
-            ))}
-          </Stack>
-        )}
-      </Box>
-
-      <Divider sx={{ borderColor: brand.neutral[100] }} />
-
-      <Box sx={{ px: 2.4, pt: 1.5, pb: 2, flexShrink: 0 }}>
-        <Button
-          startIcon={p.discountVal > 0 ? <IconCheck size={18} /> : <IconPlus size={18} />}
-          onClick={() => { setDiscountInput(String(p.discount || '')); setDiscountOpen(true); }}
-          sx={{
-            justifyContent: 'flex-start',
-            color: p.discountVal > 0 ? brand.primary[700] : brand.neutral[600],
-            fontWeight: 800,
-            textTransform: 'none',
-            px: 0,
-            mb: 1.2,
-            '&:hover': { bgcolor: 'transparent', color: brand.primary[800] },
-          }}
-        >
-          {p.discountVal > 0 ? `Discount - ${fmt(p.discountVal)}` : 'Add Discount'}
-        </Button>
-
-        <Dialog open={discountOpen} onClose={() => setDiscountOpen(false)} maxWidth="xs" fullWidth>
-          <DialogTitle sx={{ fontWeight: 800 }}>Apply Discount</DialogTitle>
-          <DialogContent>
-            <Stack spacing={2} sx={{ mt: 1 }}>
-              <ToggleButtonGroup
-                value={discountTypeInput}
-                exclusive
-                onChange={(_, v) => v && setDiscountTypeInput(v)}
-                size="small"
-                fullWidth
-              >
-                <ToggleButton value="FIXED" sx={{ textTransform: 'none', fontWeight: 700 }}>
-                  Fixed (TZS)
-                </ToggleButton>
-                <ToggleButton value="PERCENT" sx={{ textTransform: 'none', fontWeight: 700 }}>
-                  Percentage (%)
-                </ToggleButton>
-              </ToggleButtonGroup>
-              <TextField
-                label={discountTypeInput === 'FIXED' ? 'Discount amount (TZS)' : 'Discount (%)'}
-                type="number"
-                value={discountInput}
-                onChange={(e) => setDiscountInput(e.target.value)}
-                fullWidth
-                slotProps={{ htmlInput: { min: 0, step: discountTypeInput === 'PERCENT' ? 1 : 100 } }}
-              />
-            </Stack>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => { p.onDiscountChange(0); setDiscountOpen(false); }} sx={{ textTransform: 'none' }}>
-              Remove
-            </Button>
-            <Button onClick={() => setDiscountOpen(false)} sx={{ textTransform: 'none' }}>Cancel</Button>
-            <Button
-              variant="contained"
-              onClick={() => {
-                const v = Number(discountInput);
-                if (Number.isFinite(v) && v >= 0) {
-                  p.onDiscountTypeChange(discountTypeInput);
-                  p.onDiscountChange(v);
-                  p.onNotify?.(`Discount: ${discountTypeInput === 'FIXED' ? fmt(v) : `${v}%`} applied`);
-                }
-                setDiscountOpen(false);
-              }}
-              sx={{ textTransform: 'none', fontWeight: 800 }}
-            >
-              Apply
-            </Button>
-          </DialogActions>
-        </Dialog>
-
-        <Stack spacing={0.7}>
-          <TotalRow label="Subtotal" value={fmt(p.subtotal)} />
-          <TotalRow
-            label="Discount"
-            value={`- ${fmt(p.discountVal)}`}
-            valueColor={p.discountVal > 0 ? brand.primary[700] : brand.neutral[400]}
-          />
-          <TotalRow
-            label={`Tax (${p.taxRate > 0 ? `${p.taxRate}%` : '0%'})`}
-            value={fmt(p.tax)}
-          />
-          <TotalRow label="Shipping" value={fmt(p.shippingVal)} />
-        </Stack>
-
+        {/* ─── Header ─────────────────────────────────────────────────── */}
         <Box
           sx={{
-            mt: 1.4,
+            px: 2.5,
+            pt: 2,
+            pb: 1.5,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            pt: 1.2,
-            borderTop: `1px solid ${brand.neutral[200]}`,
+            borderBottom: `1px solid ${brand.neutral[100]}`,
+            background: `linear-gradient(135deg, #fff 0%, ${brand.primary[50]} 100%)`,
+            flexShrink: 0,
           }}
         >
-          <Typography sx={{ fontSize: '1.05rem', fontWeight: 900, color: isDark ? brand.neutral[50] : brand.neutral[900], textTransform: 'uppercase' }}>
-            Total
-          </Typography>
-          <Typography sx={{ fontSize: '1.55rem', fontWeight: 900, color: brand.primary[700], letterSpacing: 0 }}>
-            {fmt(p.grand)}
-          </Typography>
+          <Stack direction="row" spacing={1.25} alignItems="center">
+            <Avatar
+              sx={{
+                width: 36,
+                height: 36,
+                borderRadius: '10px',
+                background: `linear-gradient(135deg, ${brand.primary[700]} 0%, ${brand.primary[600]} 55%, ${brand.primary[500]} 100%)`,
+                color: '#fff',
+                boxShadow: `0 8px 18px -8px ${brand.primary[600]}99`,
+              }}
+            >
+              <IconShoppingCart size={18} />
+            </Avatar>
+            <Box>
+              <Typography
+                sx={{
+                  fontWeight: 800,
+                  fontSize: '1.05rem',
+                  lineHeight: 1.1,
+                  color: isDark ? brand.neutral[50] : brand.neutral[900],
+                }}
+              >
+                Checkout
+              </Typography>
+              <Typography
+                variant="caption"
+                sx={{ color: isDark ? brand.neutral[400] : brand.neutral[500] }}
+              >
+                Fast sale register
+              </Typography>
+            </Box>
+          </Stack>
+          <Badge
+            badgeContent={p.itemCount}
+            showZero
+            sx={{
+              '& .MuiBadge-badge': {
+                position: 'static',
+                transform: 'none',
+                bgcolor: brand.primary[600],
+                color: '#fff',
+                fontWeight: 800,
+                borderRadius: '8px',
+                height: 26,
+                minWidth: 56,
+                px: 1.25,
+                border: `1px solid ${brand.primary[500]}`,
+                fontSize: '0.78rem',
+                boxShadow: `0 6px 14px -8px ${brand.primary[600]}`,
+              },
+            }}
+          >
+            <Box
+              sx={{
+                pr: 1,
+                fontSize: '0.72rem',
+                fontWeight: 600,
+                color: isDark ? brand.neutral[400] : brand.neutral[500],
+                textTransform: 'uppercase',
+                letterSpacing: '0.08em',
+              }}
+            >
+              items
+            </Box>
+          </Badge>
         </Box>
-      </Box>
-    </Card>
 
-    {editLine && (
-    <EditLineModal
-      open={editLineIdx !== null}
-      onClose={() => { setEditLineIdx(null); setEditLine(null); }}
-      line={editLine}
-      lineIndex={editLineIdx!}
-      product={p.products.find((prod) => prod.id === editLine.productId)}
-      stockAvailable={p.stockMap[editLine.productId]?.available}
-      onSave={(index, patch) => p.onPatchLine?.(index, patch)}
-    />
-    )}
+        {/* ─── Cart items ──────────────────────────────────────────────
+         * Internal scroll (md+) keeps the totals pinned at the bottom of
+         * the panel. On xs the parent grid scrolls instead, so this box
+         * flows naturally — no nested scrolls on phones. */}
+        <Box
+          sx={{
+            flex: { xs: '0 0 auto', md: 1 },
+            minHeight: { xs: 'auto', md: 180 },
+            overflowY: { xs: 'visible', md: 'auto' },
+            px: 2,
+            pb: 1,
+            ...softScrollSx,
+          }}
+        >
+          {p.lines.length === 0 ? (
+            <Box
+              sx={{
+                textAlign: 'center',
+                py: 5,
+                border: `1.5px dashed ${brand.primary[200]}`,
+                borderRadius: '14px',
+                bgcolor: brand.primary[50],
+              }}
+            >
+              <Avatar
+                sx={{
+                  width: 44,
+                  height: 44,
+                  bgcolor: brand.primary[50],
+                  color: brand.primary[500],
+                  mx: 'auto',
+                  mb: 1.25,
+                  borderRadius: '12px',
+                  border: `1px solid ${brand.primary[100]}`,
+                }}
+              >
+                <IconShoppingCart size={20} />
+              </Avatar>
+              <Typography
+                variant="body2"
+                sx={{
+                  fontWeight: 700,
+                  color: isDark ? brand.neutral[300] : brand.neutral[700],
+                  mb: 0.5,
+                }}
+              >
+                Cart is empty
+              </Typography>
+              <Typography
+                variant="caption"
+                sx={{ color: isDark ? brand.neutral[400] : brand.neutral[500] }}
+              >
+                Scan or click a product to begin
+              </Typography>
+            </Box>
+          ) : (
+            <Stack spacing={1}>
+              {p.lines.map((line, i) => (
+                <CartItem
+                  key={`${line.productId}-${i}`}
+                  line={line}
+                  stock={p.stockMap[line.productId]}
+                  onInc={() => p.onInc(i)}
+                  onDec={() => p.onDec(i)}
+                  onRemove={() => p.onRemove(i)}
+                  onEditClick={() => {
+                    setEditLineIdx(i);
+                    setEditLine(line);
+                  }}
+                  onPatchLine={(patch) => p.onPatchLine?.(i, patch)}
+                  isDark={isDark}
+                />
+              ))}
+            </Stack>
+          )}
+        </Box>
+
+        <Divider sx={{ borderColor: brand.neutral[100] }} />
+
+        <Box sx={{ px: 2.4, pt: 1.5, pb: 2, flexShrink: 0 }}>
+          <Button
+            startIcon={p.discountVal > 0 ? <IconCheck size={18} /> : <IconPlus size={18} />}
+            onClick={() => {
+              setDiscountInput(String(p.discount || ''));
+              setDiscountOpen(true);
+            }}
+            sx={{
+              justifyContent: 'flex-start',
+              color: p.discountVal > 0 ? brand.primary[700] : brand.neutral[600],
+              fontWeight: 800,
+              textTransform: 'none',
+              px: 0,
+              mb: 1.2,
+              '&:hover': { bgcolor: 'transparent', color: brand.primary[800] },
+            }}
+          >
+            {p.discountVal > 0 ? `Discount - ${fmt(p.discountVal)}` : 'Add Discount'}
+          </Button>
+
+          <Dialog
+            open={discountOpen}
+            onClose={() => setDiscountOpen(false)}
+            maxWidth="xs"
+            fullWidth
+          >
+            <DialogTitle sx={{ fontWeight: 800 }}>Apply Discount</DialogTitle>
+            <DialogContent>
+              <Stack spacing={2} sx={{ mt: 1 }}>
+                <ToggleButtonGroup
+                  value={discountTypeInput}
+                  exclusive
+                  onChange={(_, v) => v && setDiscountTypeInput(v)}
+                  size="small"
+                  fullWidth
+                >
+                  <ToggleButton value="FIXED" sx={{ textTransform: 'none', fontWeight: 700 }}>
+                    Fixed (TZS)
+                  </ToggleButton>
+                  <ToggleButton value="PERCENT" sx={{ textTransform: 'none', fontWeight: 700 }}>
+                    Percentage (%)
+                  </ToggleButton>
+                </ToggleButtonGroup>
+                <TextField
+                  label={discountTypeInput === 'FIXED' ? 'Discount amount (TZS)' : 'Discount (%)'}
+                  type="number"
+                  value={discountInput}
+                  onChange={(e) => setDiscountInput(e.target.value)}
+                  fullWidth
+                  slotProps={{
+                    htmlInput: { min: 0, step: discountTypeInput === 'PERCENT' ? 1 : 100 },
+                  }}
+                />
+              </Stack>
+            </DialogContent>
+            <DialogActions>
+              <Button
+                onClick={() => {
+                  p.onDiscountChange(0);
+                  setDiscountOpen(false);
+                }}
+                sx={{ textTransform: 'none' }}
+              >
+                Remove
+              </Button>
+              <Button onClick={() => setDiscountOpen(false)} sx={{ textTransform: 'none' }}>
+                Cancel
+              </Button>
+              <Button
+                variant="contained"
+                onClick={() => {
+                  const v = Number(discountInput);
+                  if (Number.isFinite(v) && v >= 0) {
+                    p.onDiscountTypeChange(discountTypeInput);
+                    p.onDiscountChange(v);
+                    p.onNotify?.(
+                      `Discount: ${discountTypeInput === 'FIXED' ? fmt(v) : `${v}%`} applied`,
+                    );
+                  }
+                  setDiscountOpen(false);
+                }}
+                sx={{ textTransform: 'none', fontWeight: 800 }}
+              >
+                Apply
+              </Button>
+            </DialogActions>
+          </Dialog>
+
+          <Stack spacing={0.7}>
+            <TotalRow label="Subtotal" value={fmt(p.subtotal)} />
+            <TotalRow
+              label="Discount"
+              value={`- ${fmt(p.discountVal)}`}
+              valueColor={p.discountVal > 0 ? brand.primary[700] : brand.neutral[400]}
+            />
+            <TotalRow
+              label={`Tax (${p.taxRate > 0 ? `${p.taxRate}%` : '0%'})`}
+              value={fmt(p.tax)}
+            />
+            <TotalRow label="Shipping" value={fmt(p.shippingVal)} />
+          </Stack>
+
+          <Box
+            sx={{
+              mt: 1.4,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              pt: 1.2,
+              borderTop: `1px solid ${brand.neutral[200]}`,
+            }}
+          >
+            <Typography
+              sx={{
+                fontSize: '1.05rem',
+                fontWeight: 900,
+                color: isDark ? brand.neutral[50] : brand.neutral[900],
+                textTransform: 'uppercase',
+              }}
+            >
+              Total
+            </Typography>
+            <Typography
+              sx={{
+                fontSize: '1.55rem',
+                fontWeight: 900,
+                color: brand.primary[700],
+                letterSpacing: 0,
+              }}
+            >
+              {fmt(p.grand)}
+            </Typography>
+          </Box>
+        </Box>
+      </Card>
+
+      {editLine && (
+        <EditLineModal
+          open={editLineIdx !== null}
+          onClose={() => {
+            setEditLineIdx(null);
+            setEditLine(null);
+          }}
+          line={editLine}
+          lineIndex={editLineIdx!}
+          product={p.products.find((prod) => prod.id === editLine.productId)}
+          stockAvailable={p.stockMap[editLine.productId]?.available}
+          onSave={(index, patch) => p.onPatchLine?.(index, patch)}
+        />
+      )}
     </>
   );
 }
@@ -953,11 +1308,20 @@ function CheckoutPanel(p: CheckoutPanelProps) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 function CartItem({
-  line, stock, onInc, onDec, onRemove, onEditClick, onPatchLine, isDark,
+  line,
+  stock,
+  onInc,
+  onDec,
+  onRemove,
+  onEditClick,
+  onPatchLine,
+  isDark,
 }: {
   line: Line;
   stock?: StockLevel;
-  onInc: () => void; onDec: () => void; onRemove: () => void;
+  onInc: () => void;
+  onDec: () => void;
+  onRemove: () => void;
   onEditClick: () => void;
   onPatchLine: (patch: Partial<Line>) => void;
   isDark: boolean;
@@ -965,9 +1329,11 @@ function CartItem({
   const lineTotal = line.unitPrice * line.qty;
   const stockAvailable = stock?.available ?? 0;
   const stockState =
-    stockAvailable <= 0 ? 'critical' :
-    stockAvailable <= (stock?.stockAlertThreshold ?? 5) ? 'attention' :
-    'active';
+    stockAvailable <= 0
+      ? 'critical'
+      : stockAvailable <= (stock?.stockAlertThreshold ?? 5)
+        ? 'attention'
+        : 'active';
 
   return (
     <Box
@@ -985,17 +1351,15 @@ function CartItem({
       }}
     >
       {/* Top-right action icons */}
-      <Stack
-        direction="row"
-        spacing={0.25}
-        sx={{ position: 'absolute', top: 6, right: 6 }}
-      >
+      <Stack direction="row" spacing={0.25} sx={{ position: 'absolute', top: 6, right: 6 }}>
         <Tooltip title="Edit line" arrow>
           <IconButton
             size="small"
             onClick={onEditClick}
             sx={{
-              width: 24, height: 24, borderRadius: '6px',
+              width: 24,
+              height: 24,
+              borderRadius: '6px',
               color: brand.neutral[400],
               bgcolor: isDark ? brand.neutral[800] : '#fff',
               '&:hover': { color: brand.primary[600], bgcolor: brand.primary[50] },
@@ -1009,7 +1373,9 @@ function CartItem({
             size="small"
             onClick={onRemove}
             sx={{
-              width: 24, height: 24, borderRadius: '6px',
+              width: 24,
+              height: 24,
+              borderRadius: '6px',
               color: brand.neutral[400],
               bgcolor: isDark ? brand.neutral[800] : '#fff',
               '&:hover': { color: brand.error.main, bgcolor: brand.error.light },
@@ -1025,16 +1391,31 @@ function CartItem({
         <Stack direction="row" spacing={0.75} alignItems="center">
           <Box
             sx={{
-              width: 7, height: 7, borderRadius: '50%', flexShrink: 0,
+              width: 7,
+              height: 7,
+              borderRadius: '50%',
+              flexShrink: 0,
               bgcolor: brand.operational[stockState].dot,
             }}
           />
-          <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: isDark ? brand.neutral[50] : brand.neutral[900], lineHeight: 1.25, letterSpacing: '-0.01em' }} noWrap>
+          <Typography
+            sx={{
+              fontWeight: 700,
+              fontSize: '0.85rem',
+              color: isDark ? brand.neutral[50] : brand.neutral[900],
+              lineHeight: 1.25,
+              letterSpacing: '-0.01em',
+            }}
+            noWrap
+          >
             {line.productName}
           </Typography>
         </Stack>
         {line.productCode && (
-          <Typography variant="caption" sx={{ color: isDark ? brand.neutral[400] : brand.neutral[500], fontWeight: 600 }}>
+          <Typography
+            variant="caption"
+            sx={{ color: isDark ? brand.neutral[400] : brand.neutral[500], fontWeight: 600 }}
+          >
             SKU: {line.productCode}
           </Typography>
         )}
@@ -1042,38 +1423,52 @@ function CartItem({
 
       {/* Qty stepper + Price */}
       <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between">
-        <Stack direction="row" spacing={0} alignItems="center" sx={{
-          border: `1px solid ${brand.neutral[200]}`,
-          borderRadius: '10px',
-          overflow: 'hidden',
-          bgcolor: isDark ? brand.neutral[800] : '#fff',
-          boxShadow: `inset 0 0 0 1px ${brand.neutral[50]}`,
-        }}>
+        <Stack
+          direction="row"
+          spacing={0}
+          alignItems="center"
+          sx={{
+            border: `1px solid ${brand.neutral[200]}`,
+            borderRadius: '10px',
+            overflow: 'hidden',
+            bgcolor: isDark ? brand.neutral[800] : '#fff',
+            boxShadow: `inset 0 0 0 1px ${brand.neutral[50]}`,
+          }}
+        >
           <IconButton
             size="small"
             onClick={onDec}
             sx={{
-              width: 26, height: 26, borderRadius: 0,
+              width: 26,
+              height: 26,
+              borderRadius: 0,
               color: isDark ? brand.neutral[300] : brand.neutral[600],
               '&:hover': { bgcolor: brand.primary[50], color: brand.primary[700] },
             }}
           >
             <IconMinus size={13} />
           </IconButton>
-          <Typography sx={{
-            minWidth: 28, textAlign: 'center', fontWeight: 900, fontSize: '0.84rem',
-            borderLeft: `1px solid ${brand.neutral[200]}`,
-            borderRight: `1px solid ${brand.neutral[200]}`,
-            py: '2px',
-            color: isDark ? brand.neutral[50] : brand.neutral[900],
-          }}>
+          <Typography
+            sx={{
+              minWidth: 28,
+              textAlign: 'center',
+              fontWeight: 900,
+              fontSize: '0.84rem',
+              borderLeft: `1px solid ${brand.neutral[200]}`,
+              borderRight: `1px solid ${brand.neutral[200]}`,
+              py: '2px',
+              color: isDark ? brand.neutral[50] : brand.neutral[900],
+            }}
+          >
             {line.qty}
           </Typography>
           <IconButton
             size="small"
             onClick={onInc}
             sx={{
-              width: 26, height: 26, borderRadius: 0,
+              width: 26,
+              height: 26,
+              borderRadius: 0,
               color: isDark ? brand.neutral[300] : brand.neutral[600],
               '&:hover': { bgcolor: brand.primary[50], color: brand.primary[700] },
             }}
@@ -1082,7 +1477,14 @@ function CartItem({
           </IconButton>
         </Stack>
 
-        <Typography sx={{ fontWeight: 900, fontSize: '0.98rem', color: brand.primary[700], letterSpacing: '-0.01em' }}>
+        <Typography
+          sx={{
+            fontWeight: 900,
+            fontSize: '0.98rem',
+            color: brand.primary[700],
+            letterSpacing: '-0.01em',
+          }}
+        >
           {fmt(lineTotal)}
         </Typography>
       </Stack>
@@ -1105,15 +1507,27 @@ function CartItem({
             fontWeight: 700,
             borderRadius: '9px',
             bgcolor: isDark ? brand.neutral[900] : brand.neutral[50],
-            '& .MuiOutlinedInput-notchedOutline': { borderColor: isDark ? brand.neutral[700] : brand.neutral[200] },
-            '& .MuiSelect-icon': { color: isDark ? brand.neutral[400] : brand.neutral[500], right: 6 },
+            '& .MuiOutlinedInput-notchedOutline': {
+              borderColor: isDark ? brand.neutral[700] : brand.neutral[200],
+            },
+            '& .MuiSelect-icon': {
+              color: isDark ? brand.neutral[400] : brand.neutral[500],
+              right: 6,
+            },
           }}
         >
           <MenuItem value="retail">Retail Price</MenuItem>
           <MenuItem value="wholesale">Wholesale</MenuItem>
           <MenuItem value="member">Member</MenuItem>
         </Select>
-        <Typography variant="caption" sx={{ color: isDark ? brand.neutral[400] : brand.neutral[500], whiteSpace: 'nowrap', fontWeight: 700 }}>
+        <Typography
+          variant="caption"
+          sx={{
+            color: isDark ? brand.neutral[400] : brand.neutral[500],
+            whiteSpace: 'nowrap',
+            fontWeight: 700,
+          }}
+        >
           {fmt(line.unitPrice)} × {line.qty}
         </Typography>
       </Stack>
@@ -1126,8 +1540,11 @@ function CartItem({
 // ═══════════════════════════════════════════════════════════════════════════
 
 interface TopFiltersProps {
-  search: string; onSearchChange: (v: string) => void;
-  barcode: string; onBarcodeChange: (v: string) => void; onBarcodeScan: () => void;
+  search: string;
+  onSearchChange: (v: string) => void;
+  barcode: string;
+  onBarcodeChange: (v: string) => void;
+  onBarcodeScan: () => void;
   barcodeRef: React.RefObject<HTMLInputElement | null>;
   isDark: boolean;
 }
@@ -1219,14 +1636,19 @@ function TopFilters(p: TopFiltersProps) {
               },
             }}
           />
-
         </Box>
       </CardContent>
     </Card>
   );
 }
 
-function ProductTabs({ activeTab, onTabChange }: { activeTab: LayoutTab; onTabChange: (tab: LayoutTab) => void }) {
+function ProductTabs({
+  activeTab,
+  onTabChange,
+}: {
+  activeTab: LayoutTab;
+  onTabChange: (tab: LayoutTab) => void;
+}) {
   const tabs: { id: LayoutTab; label: string; icon: React.ReactNode }[] = [
     { id: 'all', label: 'All Products', icon: <IconShoppingCart size={18} /> },
     { id: 'featured', label: 'Favourites', icon: <IconStar size={18} /> },
@@ -1236,7 +1658,14 @@ function ProductTabs({ activeTab, onTabChange }: { activeTab: LayoutTab; onTabCh
   ];
 
   return (
-    <Stack direction="row" spacing={1.2} alignItems="center" flexWrap="wrap" useFlexGap sx={{ mb: 1.5 }}>
+    <Stack
+      direction="row"
+      spacing={1.2}
+      alignItems="center"
+      flexWrap="wrap"
+      useFlexGap
+      sx={{ mb: 1.5 }}
+    >
       {tabs.map((tab) => {
         const isActive = activeTab === tab.id;
         return (
@@ -1276,8 +1705,20 @@ function IconBoxIcon() {
 // ═══════════════════════════════════════════════════════════════════════════
 
 function ProductGrid({
-  products, loading, onAdd, stockMap, stockLoading, isDark,
-}: { products: Product[]; loading: boolean; onAdd: (p: Product) => void; stockMap: Record<string, StockLevel>; stockLoading: boolean; isDark: boolean }) {
+  products,
+  loading,
+  onAdd,
+  stockMap,
+  stockLoading,
+  isDark,
+}: {
+  products: Product[];
+  loading: boolean;
+  onAdd: (p: Product) => void;
+  stockMap: Record<string, StockLevel>;
+  stockLoading: boolean;
+  isDark: boolean;
+}) {
   const [page, setPage] = useState(1);
 
   useEffect(() => {
@@ -1329,7 +1770,7 @@ function ProductGrid({
         sx={{
           textAlign: 'center',
           py: 8,
-        border: `1.5px dashed ${brand.neutral[200]}`,
+          border: `1.5px dashed ${brand.neutral[200]}`,
           borderRadius: '8px',
           bgcolor: isDark ? brand.neutral[800] : '#fff',
           boxShadow: `0 14px 34px -26px ${brand.neutral[900]}44`,
@@ -1337,8 +1778,10 @@ function ProductGrid({
       >
         <Avatar
           sx={{
-            width: 56, height: 56,
-            mx: 'auto', mb: 1.5,
+            width: 56,
+            height: 56,
+            mx: 'auto',
+            mb: 1.5,
             bgcolor: isDark ? brand.neutral[800] : brand.neutral[100],
             color: isDark ? brand.neutral[400] : brand.neutral[500],
             borderRadius: '14px',
@@ -1346,10 +1789,16 @@ function ProductGrid({
         >
           <IconSearch size={24} />
         </Avatar>
-        <Typography variant="body2" sx={{ fontWeight: 700, color: isDark ? brand.neutral[300] : brand.neutral[700] }}>
+        <Typography
+          variant="body2"
+          sx={{ fontWeight: 700, color: isDark ? brand.neutral[300] : brand.neutral[700] }}
+        >
           No products match your filters
         </Typography>
-        <Typography variant="caption" sx={{ color: isDark ? brand.neutral[400] : brand.neutral[500] }}>
+        <Typography
+          variant="caption"
+          sx={{ color: isDark ? brand.neutral[400] : brand.neutral[500] }}
+        >
           Try clearing the search or category filter
         </Typography>
       </Box>
@@ -1360,7 +1809,13 @@ function ProductGrid({
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100%', gap: 1.25 }}>
       <Box sx={gridSx}>
         {paginatedProducts.map((p) => (
-          <ProductCard key={p.id} product={p} stock={stockMap[p.id]} onAdd={() => onAdd(p)} isDark={isDark} />
+          <ProductCard
+            key={p.id}
+            product={p}
+            stock={stockMap[p.id]}
+            onAdd={() => onAdd(p)}
+            isDark={isDark}
+          />
         ))}
       </Box>
 
@@ -1376,7 +1831,13 @@ function ProductGrid({
             borderTop: `1px solid ${brand.neutral[100]}`,
           }}
         >
-          <Typography sx={{ fontSize: '0.72rem', color: isDark ? brand.neutral[400] : brand.neutral[500], fontWeight: 700 }}>
+          <Typography
+            sx={{
+              fontSize: '0.72rem',
+              color: isDark ? brand.neutral[400] : brand.neutral[500],
+              fontWeight: 700,
+            }}
+          >
             Page {currentPage} · {products.length} products
           </Typography>
           <Pagination
@@ -1405,7 +1866,17 @@ function ProductGrid({
   );
 }
 
-function ProductCard({ product, stock, onAdd, isDark }: { product: Product; stock?: StockLevel; onAdd: () => void; isDark: boolean }) {
+function ProductCard({
+  product,
+  stock,
+  onAdd,
+  isDark,
+}: {
+  product: Product;
+  stock?: StockLevel;
+  onAdd: () => void;
+  isDark: boolean;
+}) {
   const hasStock = stock !== undefined;
   const available = stock ? stock.available : -1;
   const outOfStock = !hasStock || available <= 0;
@@ -1439,9 +1910,11 @@ function ProductCard({ product, stock, onAdd, isDark }: { product: Product; stoc
         transition: 'border-color 0.15s ease, opacity 0.15s ease',
         cursor: outOfStock ? 'not-allowed' : 'pointer',
         ...focusVisibleSx,
-        '&:hover': outOfStock ? {} : {
-          borderColor: brand.primary[400],
-        },
+        '&:hover': outOfStock
+          ? {}
+          : {
+              borderColor: brand.primary[400],
+            },
       }}
       onClick={handleAction}
       onKeyDown={(event) => {
@@ -1540,19 +2013,39 @@ function ProductCard({ product, stock, onAdd, isDark }: { product: Product; stoc
         >
           {product.name}
         </Typography>
-        <Typography variant="caption" sx={{ color: isDark ? brand.neutral[400] : brand.neutral[500], display: 'block', mb: 0.8, fontWeight: 600 }} noWrap>
+        <Typography
+          variant="caption"
+          sx={{
+            color: isDark ? brand.neutral[400] : brand.neutral[500],
+            display: 'block',
+            mb: 0.8,
+            fontWeight: 600,
+          }}
+          noWrap
+        >
           SKU: {product.code}
         </Typography>
         <Stack direction="row" alignItems="center" justifyContent="space-between">
-          <Typography sx={{ fontWeight: 900, fontSize: '0.98rem', color: brand.primary[700], letterSpacing: '-0.01em' }}>
+          <Typography
+            sx={{
+              fontWeight: 900,
+              fontSize: '0.98rem',
+              color: brand.primary[700],
+              letterSpacing: '-0.01em',
+            }}
+          >
             {fmt(product.price)}
           </Typography>
           <IconButton
             className="product-add-btn"
             disabled={outOfStock}
-            onClick={(e) => { e.stopPropagation(); onAdd(); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onAdd();
+            }}
             sx={{
-              width: 30, height: 30,
+              width: 30,
+              height: 30,
               borderRadius: '10px',
               bgcolor: outOfStock ? brand.neutral[300] : brand.primary[600],
               color: outOfStock ? brand.neutral[500] : '#fff',
@@ -1561,7 +2054,12 @@ function ProductCard({ product, stock, onAdd, isDark }: { product: Product; stoc
               transition: 'all 0.18s ease',
               boxShadow: outOfStock ? 'none' : `0 4px 10px -2px ${brand.primary[500]}55`,
               ...focusVisibleSx,
-              '&:hover': outOfStock ? {} : { bgcolor: brand.primary[700], boxShadow: `0 6px 14px -2px ${brand.primary[500]}77` },
+              '&:hover': outOfStock
+                ? {}
+                : {
+                    bgcolor: brand.primary[700],
+                    boxShadow: `0 6px 14px -2px ${brand.primary[500]}77`,
+                  },
             }}
           >
             <IconPlus size={15} stroke={3} />
@@ -1689,7 +2187,9 @@ interface PaymentScreenProps {
 
 function PaymentScreen(p: PaymentScreenProps) {
   const isDark = p.isDark;
-  const [splitPayments, setSplitPayments] = useState<{ method: PaymentChoice; amount: number }[]>([]);
+  const [splitPayments, setSplitPayments] = useState<{ method: PaymentChoice; amount: number }[]>(
+    [],
+  );
   const tenderedNumber = Number(p.tendered) || 0;
 
   const splitTotal = splitPayments.reduce((s, sp) => s + sp.amount, 0);
@@ -1699,7 +2199,10 @@ function PaymentScreen(p: PaymentScreenProps) {
     setSplitPayments((prev) => [...prev, { method: 'CASH', amount: 0 }]);
   };
 
-  const updateSplitPayment = (index: number, patch: Partial<{ method: PaymentChoice; amount: number }>) => {
+  const updateSplitPayment = (
+    index: number,
+    patch: Partial<{ method: PaymentChoice; amount: number }>,
+  ) => {
     setSplitPayments((prev) => prev.map((sp, i) => (i === index ? { ...sp, ...patch } : sp)));
   };
 
@@ -1720,9 +2223,8 @@ function PaymentScreen(p: PaymentScreenProps) {
 
   const backspace = () => p.onTenderedChange((p.tendered || '').slice(0, -1));
 
-  const effectiveCanComplete = p.paymentChoice === 'SPLIT'
-    ? splitRemaining <= 0 && p.submitting === false
-    : p.canComplete;
+  const effectiveCanComplete =
+    p.paymentChoice === 'SPLIT' ? splitRemaining <= 0 && p.submitting === false : p.canComplete;
 
   return (
     <Box
@@ -1756,13 +2258,22 @@ function PaymentScreen(p: PaymentScreenProps) {
           <Button
             startIcon={<IconArrowLeft size={18} />}
             onClick={p.onBack}
-            sx={{ color: isDark ? brand.neutral[200] : brand.neutral[800], fontWeight: 800, textTransform: 'none' }}
+            sx={{
+              color: isDark ? brand.neutral[200] : brand.neutral[800],
+              fontWeight: 800,
+              textTransform: 'none',
+            }}
           >
             Back to Cart
           </Button>
           <Chip
             label={`${p.totalItems} Items`}
-            sx={{ bgcolor: brand.success.light, color: brand.success.dark, fontWeight: 800, borderRadius: '999px' }}
+            sx={{
+              bgcolor: brand.success.light,
+              color: brand.success.dark,
+              fontWeight: 800,
+              borderRadius: '999px',
+            }}
           />
         </Stack>
 
@@ -1777,12 +2288,28 @@ function PaymentScreen(p: PaymentScreenProps) {
         <Box sx={{ borderTop: `1px solid ${brand.neutral[200]}`, px: 2, py: 1.5 }}>
           <Stack spacing={0.75}>
             <TotalRow label="Subtotal" value={fmt(p.subtotal)} />
-            <TotalRow label="Discount" value={`- ${fmt(p.discount)}`} valueColor={brand.primary[700]} />
+            <TotalRow
+              label="Discount"
+              value={`- ${fmt(p.discount)}`}
+              valueColor={brand.primary[700]}
+            />
             <TotalRow label={`Tax (${p.taxRate}%)`} value={fmt(p.tax)} />
             <TotalRow label="Shipping" value={fmt(p.shipping)} />
           </Stack>
-          <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mt: 1.4, pt: 1.4, borderTop: `1px solid ${brand.neutral[200]}` }}>
-            <Typography sx={{ fontSize: '1rem', fontWeight: 900, color: isDark ? brand.neutral[50] : brand.neutral[900], textTransform: 'uppercase' }}>
+          <Stack
+            direction="row"
+            justifyContent="space-between"
+            alignItems="center"
+            sx={{ mt: 1.4, pt: 1.4, borderTop: `1px solid ${brand.neutral[200]}` }}
+          >
+            <Typography
+              sx={{
+                fontSize: '1rem',
+                fontWeight: 900,
+                color: isDark ? brand.neutral[50] : brand.neutral[900],
+                textTransform: 'uppercase',
+              }}
+            >
               Total Payable
             </Typography>
             <Typography sx={{ fontSize: '1.45rem', fontWeight: 900, color: brand.primary[700] }}>
@@ -1810,10 +2337,23 @@ function PaymentScreen(p: PaymentScreenProps) {
           sx={{ px: 2.5, py: 2, borderBottom: `1px solid ${brand.neutral[200]}` }}
         >
           <Box>
-            <Typography sx={{ fontSize: '1.45rem', fontWeight: 900, color: isDark ? brand.neutral[50] : brand.neutral[900], lineHeight: 1.05 }}>
+            <Typography
+              sx={{
+                fontSize: '1.45rem',
+                fontWeight: 900,
+                color: isDark ? brand.neutral[50] : brand.neutral[900],
+                lineHeight: 1.05,
+              }}
+            >
               Payment
             </Typography>
-            <Typography sx={{ mt: 0.4, color: isDark ? brand.neutral[400] : brand.neutral[500], fontWeight: 600 }}>
+            <Typography
+              sx={{
+                mt: 0.4,
+                color: isDark ? brand.neutral[400] : brand.neutral[500],
+                fontWeight: 600,
+              }}
+            >
               Choose payment method and complete the sale
             </Typography>
           </Box>
@@ -1821,7 +2361,14 @@ function PaymentScreen(p: PaymentScreenProps) {
             variant="outlined"
             startIcon={<IconX size={18} />}
             onClick={p.onBack}
-            sx={{ height: 46, borderRadius: '10px', textTransform: 'none', color: isDark ? brand.neutral[200] : brand.neutral[800], borderColor: isDark ? brand.neutral[700] : brand.neutral[200], fontWeight: 800 }}
+            sx={{
+              height: 46,
+              borderRadius: '10px',
+              textTransform: 'none',
+              color: isDark ? brand.neutral[200] : brand.neutral[800],
+              borderColor: isDark ? brand.neutral[700] : brand.neutral[200],
+              fontWeight: 800,
+            }}
           >
             Cancel Payment
           </Button>
@@ -1837,28 +2384,95 @@ function PaymentScreen(p: PaymentScreenProps) {
           }}
         >
           <Box sx={{ px: 2.5, py: 2.5, overflowY: 'auto', ...softScrollSx }}>
-            <Typography sx={{ fontSize: '1rem', fontWeight: 900, color: isDark ? brand.neutral[50] : brand.neutral[900], mb: 1.5 }}>
+            <Typography
+              sx={{
+                fontSize: '1rem',
+                fontWeight: 900,
+                color: isDark ? brand.neutral[50] : brand.neutral[900],
+                mb: 1.5,
+              }}
+            >
               Select Payment Method
             </Typography>
             <Box
               sx={{
                 display: 'grid',
-                gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))', xl: 'repeat(3, minmax(0, 1fr))' },
+                gridTemplateColumns: {
+                  xs: '1fr',
+                  sm: 'repeat(2, minmax(0, 1fr))',
+                  xl: 'repeat(3, minmax(0, 1fr))',
+                },
                 gap: 1.5,
               }}
             >
-              <PaymentMethodCard choice="CASH" active={p.paymentChoice === 'CASH'} icon={<IconCoin size={30} />} title="Cash" subtitle="Pay with cash" onClick={p.onPaymentChoiceChange} isDark={isDark} />
-              <PaymentMethodCard choice="CARD" active={p.paymentChoice === 'CARD'} icon={<IconCreditCard size={30} />} title="Card" subtitle="Visa, Mastercard, etc." onClick={p.onPaymentChoiceChange} isDark={isDark} />
-              <PaymentMethodCard choice="MOBILE" active={p.paymentChoice === 'MOBILE'} icon={<IconDeviceMobile size={30} />} title="Mobile Money" subtitle="M-Pesa, Tigo Pesa, etc." onClick={p.onPaymentChoiceChange} isDark={isDark} />
-              <PaymentMethodCard choice="BANK" active={p.paymentChoice === 'BANK'} icon={<IconBuildingBank size={30} />} title="Bank Transfer" subtitle="Direct bank transfer" onClick={p.onPaymentChoiceChange} isDark={isDark} />
-              <PaymentMethodCard choice="USSD" active={p.paymentChoice === 'USSD'} icon={<IconCalculator size={30} />} title="USSD" subtitle="Pay via USSD code" onClick={p.onPaymentChoiceChange} isDark={isDark} />
-              <PaymentMethodCard choice="SPLIT" active={p.paymentChoice === 'SPLIT'} icon={<IconSparkles size={30} />} title="Mixed Payment" subtitle="Combine payment" badge="New" onClick={p.onPaymentChoiceChange} isDark={isDark} />
+              <PaymentMethodCard
+                choice="CASH"
+                active={p.paymentChoice === 'CASH'}
+                icon={<IconCoin size={30} />}
+                title="Cash"
+                subtitle="Pay with cash"
+                onClick={p.onPaymentChoiceChange}
+                isDark={isDark}
+              />
+              <PaymentMethodCard
+                choice="CARD"
+                active={p.paymentChoice === 'CARD'}
+                icon={<IconCreditCard size={30} />}
+                title="Card"
+                subtitle="Visa, Mastercard, etc."
+                onClick={p.onPaymentChoiceChange}
+                isDark={isDark}
+              />
+              <PaymentMethodCard
+                choice="MOBILE"
+                active={p.paymentChoice === 'MOBILE'}
+                icon={<IconDeviceMobile size={30} />}
+                title="Mobile Money"
+                subtitle="M-Pesa, Tigo Pesa, etc."
+                onClick={p.onPaymentChoiceChange}
+                isDark={isDark}
+              />
+              <PaymentMethodCard
+                choice="BANK"
+                active={p.paymentChoice === 'BANK'}
+                icon={<IconBuildingBank size={30} />}
+                title="Bank Transfer"
+                subtitle="Direct bank transfer"
+                onClick={p.onPaymentChoiceChange}
+                isDark={isDark}
+              />
+              <PaymentMethodCard
+                choice="USSD"
+                active={p.paymentChoice === 'USSD'}
+                icon={<IconCalculator size={30} />}
+                title="USSD"
+                subtitle="Pay via USSD code"
+                onClick={p.onPaymentChoiceChange}
+                isDark={isDark}
+              />
+              <PaymentMethodCard
+                choice="SPLIT"
+                active={p.paymentChoice === 'SPLIT'}
+                icon={<IconSparkles size={30} />}
+                title="Mixed Payment"
+                subtitle="Combine payment"
+                badge="New"
+                onClick={p.onPaymentChoiceChange}
+                isDark={isDark}
+              />
             </Box>
 
             {p.paymentChoice === 'SPLIT' ? (
               <Box sx={{ mt: 2 }}>
-                <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1.2 }}>
-                  <Typography sx={{ fontWeight: 900, color: isDark ? brand.neutral[50] : brand.neutral[900] }}>
+                <Stack
+                  direction="row"
+                  alignItems="center"
+                  justifyContent="space-between"
+                  sx={{ mb: 1.2 }}
+                >
+                  <Typography
+                    sx={{ fontWeight: 900, color: isDark ? brand.neutral[50] : brand.neutral[900] }}
+                  >
                     Split Payment
                   </Typography>
                   <Chip
@@ -1877,13 +2491,21 @@ function PaymentScreen(p: PaymentScreenProps) {
                     direction="row"
                     spacing={1}
                     alignItems="center"
-                    sx={{ mb: 1, p: 1.2, borderRadius: '8px', bgcolor: isDark ? brand.neutral[800] : '#fff', border: `1px solid ${brand.neutral[200]}` }}
+                    sx={{
+                      mb: 1,
+                      p: 1.2,
+                      borderRadius: '8px',
+                      bgcolor: isDark ? brand.neutral[800] : '#fff',
+                      border: `1px solid ${brand.neutral[200]}`,
+                    }}
                   >
                     <TextField
                       select
                       size="small"
                       value={sp.method}
-                      onChange={(e) => updateSplitPayment(index, { method: e.target.value as PaymentChoice })}
+                      onChange={(e) =>
+                        updateSplitPayment(index, { method: e.target.value as PaymentChoice })
+                      }
                       sx={{ minWidth: 140, ...premiumFieldSx(isDark) }}
                     >
                       <MenuItem value="CASH">Cash</MenuItem>
@@ -1896,12 +2518,20 @@ function PaymentScreen(p: PaymentScreenProps) {
                       size="small"
                       type="number"
                       value={sp.amount || ''}
-                      onChange={(e) => updateSplitPayment(index, { amount: Number(e.target.value) || 0 })}
+                      onChange={(e) =>
+                        updateSplitPayment(index, { amount: Number(e.target.value) || 0 })
+                      }
                       placeholder="Amount"
                       sx={{ flex: 1, ...premiumFieldSx(isDark) }}
-                      InputProps={{ startAdornment: <InputAdornment position="start">TSh</InputAdornment> }}
+                      InputProps={{
+                        startAdornment: <InputAdornment position="start">TSh</InputAdornment>,
+                      }}
                     />
-                    <IconButton size="small" onClick={() => removeSplitPayment(index)} sx={{ color: brand.error.main }}>
+                    <IconButton
+                      size="small"
+                      onClick={() => removeSplitPayment(index)}
+                      sx={{ color: brand.error.main }}
+                    >
                       <IconX size={16} />
                     </IconButton>
                   </Stack>
@@ -1916,14 +2546,40 @@ function PaymentScreen(p: PaymentScreenProps) {
                   Add payment method
                 </Button>
                 {splitPayments.length > 0 && (
-                  <Box sx={{ mt: 1.5, p: 1.3, borderRadius: '8px', bgcolor: isDark ? brand.neutral[800] : '#fff', border: `1px solid ${brand.neutral[200]}` }}>
+                  <Box
+                    sx={{
+                      mt: 1.5,
+                      p: 1.3,
+                      borderRadius: '8px',
+                      bgcolor: isDark ? brand.neutral[800] : '#fff',
+                      border: `1px solid ${brand.neutral[200]}`,
+                    }}
+                  >
                     <Stack direction="row" justifyContent="space-between">
-                      <Typography sx={{ fontWeight: 700, color: isDark ? brand.neutral[300] : brand.neutral[700] }}>Total tendered</Typography>
-                      <Typography sx={{ fontWeight: 900, color: brand.primary[700] }}>{fmt(splitTotal)}</Typography>
+                      <Typography
+                        sx={{
+                          fontWeight: 700,
+                          color: isDark ? brand.neutral[300] : brand.neutral[700],
+                        }}
+                      >
+                        Total tendered
+                      </Typography>
+                      <Typography sx={{ fontWeight: 900, color: brand.primary[700] }}>
+                        {fmt(splitTotal)}
+                      </Typography>
                     </Stack>
                     <Stack direction="row" justifyContent="space-between" sx={{ mt: 0.5 }}>
-                      <Typography sx={{ fontWeight: 700, color: isDark ? brand.neutral[300] : brand.neutral[700] }}>Change due</Typography>
-                      <Typography sx={{ fontWeight: 900, color: brand.success.dark }}>{fmt(Math.max(0, splitTotal - p.grand))}</Typography>
+                      <Typography
+                        sx={{
+                          fontWeight: 700,
+                          color: isDark ? brand.neutral[300] : brand.neutral[700],
+                        }}
+                      >
+                        Change due
+                      </Typography>
+                      <Typography sx={{ fontWeight: 900, color: brand.success.dark }}>
+                        {fmt(Math.max(0, splitTotal - p.grand))}
+                      </Typography>
                     </Stack>
                   </Box>
                 )}
@@ -1938,47 +2594,173 @@ function PaymentScreen(p: PaymentScreenProps) {
                   background: 'linear-gradient(135deg, #ECFDF5 0%, #FFFFFF 100%)',
                 }}
               >
-                <Typography sx={{ fontWeight: 900, color: isDark ? brand.neutral[50] : brand.neutral[900], mb: 1.2 }}>
-                  {p.paymentChoice === 'CASH' ? 'Cash Payment' : p.paymentChoice === 'CARD' ? 'Card Payment' : p.paymentChoice === 'MOBILE' ? 'Mobile Payment' : p.paymentChoice === 'BANK' ? 'Bank Transfer' : 'USSD Payment'}
+                <Typography
+                  sx={{
+                    fontWeight: 900,
+                    color: isDark ? brand.neutral[50] : brand.neutral[900],
+                    mb: 1.2,
+                  }}
+                >
+                  {p.paymentChoice === 'CASH'
+                    ? 'Cash Payment'
+                    : p.paymentChoice === 'CARD'
+                      ? 'Card Payment'
+                      : p.paymentChoice === 'MOBILE'
+                        ? 'Mobile Payment'
+                        : p.paymentChoice === 'BANK'
+                          ? 'Bank Transfer'
+                          : 'USSD Payment'}
                 </Typography>
-                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1.25fr' }, gap: 1.2 }}>
-                  <Box sx={{ p: 1.3, borderRadius: '8px', bgcolor: isDark ? brand.neutral[800] : '#fff', border: `1px solid ${brand.neutral[200]}` }}>
-                    <Typography sx={{ color: isDark ? brand.neutral[300] : brand.neutral[600], fontWeight: 700, mb: 0.7 }}>Amount Due</Typography>
-                    <Typography sx={{ fontSize: '1.45rem', color: brand.primary[700], fontWeight: 900 }}>{fmt(p.grand)}</Typography>
+                <Box
+                  sx={{
+                    display: 'grid',
+                    gridTemplateColumns: { xs: '1fr', sm: '1fr 1.25fr' },
+                    gap: 1.2,
+                  }}
+                >
+                  <Box
+                    sx={{
+                      p: 1.3,
+                      borderRadius: '8px',
+                      bgcolor: isDark ? brand.neutral[800] : '#fff',
+                      border: `1px solid ${brand.neutral[200]}`,
+                    }}
+                  >
+                    <Typography
+                      sx={{
+                        color: isDark ? brand.neutral[300] : brand.neutral[600],
+                        fontWeight: 700,
+                        mb: 0.7,
+                      }}
+                    >
+                      Amount Due
+                    </Typography>
+                    <Typography
+                      sx={{ fontSize: '1.45rem', color: brand.primary[700], fontWeight: 900 }}
+                    >
+                      {fmt(p.grand)}
+                    </Typography>
                   </Box>
-                  <Box sx={{ p: 1.3, borderRadius: '8px', bgcolor: isDark ? brand.neutral[800] : '#fff', border: `1px solid ${brand.neutral[200]}` }}>
-                    <Typography sx={{ color: isDark ? brand.neutral[300] : brand.neutral[600], fontWeight: 700, mb: 0.7 }}>Cash Received</Typography>
-                    <Typography sx={{ fontSize: '1.65rem', color: isDark ? brand.neutral[50] : brand.neutral[900], fontWeight: 900 }}>{tenderedNumber ? fmt(tenderedNumber) : 'TSh 0'}</Typography>
+                  <Box
+                    sx={{
+                      p: 1.3,
+                      borderRadius: '8px',
+                      bgcolor: isDark ? brand.neutral[800] : '#fff',
+                      border: `1px solid ${brand.neutral[200]}`,
+                    }}
+                  >
+                    <Typography
+                      sx={{
+                        color: isDark ? brand.neutral[300] : brand.neutral[600],
+                        fontWeight: 700,
+                        mb: 0.7,
+                      }}
+                    >
+                      Cash Received
+                    </Typography>
+                    <Typography
+                      sx={{
+                        fontSize: '1.65rem',
+                        color: isDark ? brand.neutral[50] : brand.neutral[900],
+                        fontWeight: 900,
+                      }}
+                    >
+                      {tenderedNumber ? fmt(tenderedNumber) : 'TSh 0'}
+                    </Typography>
                   </Box>
                 </Box>
                 <Box sx={{ mt: 1.3 }}>
-                  <Typography sx={{ color: isDark ? brand.neutral[300] : brand.neutral[700], fontWeight: 800 }}>Change</Typography>
-                  <Typography sx={{ mt: 0.3, fontSize: '1.45rem', color: brand.primary[700], fontWeight: 900 }}>{fmt(p.change)}</Typography>
+                  <Typography
+                    sx={{
+                      color: isDark ? brand.neutral[300] : brand.neutral[700],
+                      fontWeight: 800,
+                    }}
+                  >
+                    Change
+                  </Typography>
+                  <Typography
+                    sx={{
+                      mt: 0.3,
+                      fontSize: '1.45rem',
+                      color: brand.primary[700],
+                      fontWeight: 900,
+                    }}
+                  >
+                    {fmt(p.change)}
+                  </Typography>
                 </Box>
               </Box>
             )}
           </Box>
 
           {p.paymentChoice !== 'SPLIT' && (
-            <Box sx={{ borderLeft: { lg: `1px solid ${brand.neutral[200]}` }, px: 2.5, py: 2.5, overflowY: 'auto', ...softScrollSx }}>
-              <Typography sx={{ fontSize: '1rem', fontWeight: 900, color: isDark ? brand.neutral[50] : brand.neutral[900], mb: 1.5 }}>
+            <Box
+              sx={{
+                borderLeft: { lg: `1px solid ${brand.neutral[200]}` },
+                px: 2.5,
+                py: 2.5,
+                overflowY: 'auto',
+                ...softScrollSx,
+              }}
+            >
+              <Typography
+                sx={{
+                  fontSize: '1rem',
+                  fontWeight: 900,
+                  color: isDark ? brand.neutral[50] : brand.neutral[900],
+                  mb: 1.5,
+                }}
+              >
                 Enter Cash Received
               </Typography>
-              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 1.25 }}>
+              <Box
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+                  gap: 1.25,
+                }}
+              >
                 {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((digit) => (
-                  <KeypadButton key={digit} label={digit} hint={keypadHint(digit)} onClick={() => setDigit(digit)} isDark={isDark} />
+                  <KeypadButton
+                    key={digit}
+                    label={digit}
+                    hint={keypadHint(digit)}
+                    onClick={() => setDigit(digit)}
+                    isDark={isDark}
+                  />
                 ))}
-                <KeypadButton label="C" hint="Clear" danger onClick={() => p.onTenderedChange('')} isDark={isDark} />
+                <KeypadButton
+                  label="C"
+                  hint="Clear"
+                  danger
+                  onClick={() => p.onTenderedChange('')}
+                  isDark={isDark}
+                />
                 <KeypadButton label="0" onClick={() => setDigit('0')} isDark={isDark} />
-                <KeypadButton icon={<IconBackspace size={24} />} onClick={backspace} isDark={isDark} />
+                <KeypadButton
+                  icon={<IconBackspace size={24} />}
+                  onClick={backspace}
+                  isDark={isDark}
+                />
               </Box>
 
-              <Box sx={{ mt: 1.8, display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 1 }}>
+              <Box
+                sx={{
+                  mt: 1.8,
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+                  gap: 1,
+                }}
+              >
                 {presetValues.map((value, index) => (
                   <TenderQuickPick
                     key={value}
                     value={value}
-                    label={index === 0 ? 'Exact' : `+ ${fmt(Math.max(0, value - p.grand)).replace('TSh ', '')}`}
+                    label={
+                      index === 0
+                        ? 'Exact'
+                        : `+ ${fmt(Math.max(0, value - p.grand)).replace('TSh ', '')}`
+                    }
                     active={tenderedNumber === value}
                     onClick={() => p.onTenderedChange(String(value))}
                   />
@@ -1994,17 +2776,45 @@ function PaymentScreen(p: PaymentScreenProps) {
           alignItems={{ lg: 'center' }}
           sx={{ px: 2.5, py: 1.5, borderTop: `1px solid ${brand.neutral[200]}` }}
         >
-          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, minmax(0, 1fr))' }, gap: 1, flex: 1 }}>
-            <PaymentMeta icon={<IconUser size={21} />} label="Customer" value={p.customerName} isDark={isDark} />
-            <PaymentMeta icon={<IconSparkles size={21} />} label="Order Type" value="Retail Sale" isDark={isDark} />
-            <PaymentMeta icon={<IconReceipt size={21} />} label="Sale ID" value="#SL-2505-0001" isDark={isDark} />
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, minmax(0, 1fr))' },
+              gap: 1,
+              flex: 1,
+            }}
+          >
+            <PaymentMeta
+              icon={<IconUser size={21} />}
+              label="Customer"
+              value={p.customerName}
+              isDark={isDark}
+            />
+            <PaymentMeta
+              icon={<IconSparkles size={21} />}
+              label="Order Type"
+              value="Retail Sale"
+              isDark={isDark}
+            />
+            <PaymentMeta
+              icon={<IconReceipt size={21} />}
+              label="Sale ID"
+              value="#SL-2505-0001"
+              isDark={isDark}
+            />
           </Box>
           <Button
             variant="contained"
             size="large"
             disabled={!effectiveCanComplete}
             onClick={p.onComplete}
-            endIcon={p.submitting ? <CircularProgress size={18} color="inherit" /> : <IconArrowRight size={22} />}
+            endIcon={
+              p.submitting ? (
+                <CircularProgress size={18} color="inherit" />
+              ) : (
+                <IconArrowRight size={22} />
+              )
+            }
             sx={{
               minWidth: 300,
               minHeight: 62,
@@ -2013,10 +2823,16 @@ function PaymentScreen(p: PaymentScreenProps) {
               fontSize: '1rem',
               fontWeight: 900,
               background: `linear-gradient(135deg, ${brand.primary[600]} 0%, ${brand.primary[700]} 100%)`,
-              '&:hover': { background: `linear-gradient(135deg, ${brand.primary[700]} 0%, ${brand.primary[800]} 100%)` },
+              '&:hover': {
+                background: `linear-gradient(135deg, ${brand.primary[700]} 0%, ${brand.primary[800]} 100%)`,
+              },
             }}
           >
-            {p.submitting ? 'Completing...' : p.paymentChoice === 'SPLIT' ? `Complete Payment · ${fmt(splitTotal)}` : `Complete Payment ${tenderedNumber ? fmt(tenderedNumber) : ''}`}
+            {p.submitting
+              ? 'Completing...'
+              : p.paymentChoice === 'SPLIT'
+                ? `Complete Payment · ${fmt(splitTotal)}`
+                : `Complete Payment ${tenderedNumber ? fmt(tenderedNumber) : ''}`}
           </Button>
         </Stack>
       </Card>
@@ -2026,24 +2842,76 @@ function PaymentScreen(p: PaymentScreenProps) {
 
 function PaymentCartRow({ line, isDark }: { line: Line; isDark: boolean }) {
   return (
-    <Stack direction="row" spacing={1.2} alignItems="center" sx={{ pb: 1.2, borderBottom: `1px solid ${brand.neutral[100]}` }}>
-      <Avatar variant="rounded" sx={{ width: 56, height: 56, borderRadius: '8px', bgcolor: isDark ? brand.neutral[900] : brand.neutral[50], color: brand.primary[700], fontWeight: 900 }}>
+    <Stack
+      direction="row"
+      spacing={1.2}
+      alignItems="center"
+      sx={{ pb: 1.2, borderBottom: `1px solid ${brand.neutral[100]}` }}
+    >
+      <Avatar
+        variant="rounded"
+        sx={{
+          width: 56,
+          height: 56,
+          borderRadius: '8px',
+          bgcolor: isDark ? brand.neutral[900] : brand.neutral[50],
+          color: brand.primary[700],
+          fontWeight: 900,
+        }}
+      >
         {line.productName.charAt(0)}
       </Avatar>
       <Box sx={{ minWidth: 0, flex: 1 }}>
-        <Typography sx={{ color: isDark ? brand.neutral[50] : brand.neutral[900], fontWeight: 800 }} noWrap>{line.productName}</Typography>
-        <Typography sx={{ color: isDark ? brand.neutral[400] : brand.neutral[500], fontSize: '0.8rem', fontWeight: 600 }}>SKU: {line.productCode || line.productId.slice(0, 8)}</Typography>
-        <Typography sx={{ color: isDark ? brand.neutral[300] : brand.neutral[700], fontSize: '0.86rem', fontWeight: 700 }}>{line.qty} x Retail Price</Typography>
+        <Typography
+          sx={{ color: isDark ? brand.neutral[50] : brand.neutral[900], fontWeight: 800 }}
+          noWrap
+        >
+          {line.productName}
+        </Typography>
+        <Typography
+          sx={{
+            color: isDark ? brand.neutral[400] : brand.neutral[500],
+            fontSize: '0.8rem',
+            fontWeight: 600,
+          }}
+        >
+          SKU: {line.productCode || line.productId.slice(0, 8)}
+        </Typography>
+        <Typography
+          sx={{
+            color: isDark ? brand.neutral[300] : brand.neutral[700],
+            fontSize: '0.86rem',
+            fontWeight: 700,
+          }}
+        >
+          {line.qty} x Retail Price
+        </Typography>
       </Box>
-      <Typography sx={{ color: isDark ? brand.neutral[50] : brand.neutral[900], fontWeight: 900 }}>{fmt(line.unitPrice * line.qty)}</Typography>
+      <Typography sx={{ color: isDark ? brand.neutral[50] : brand.neutral[900], fontWeight: 900 }}>
+        {fmt(line.unitPrice * line.qty)}
+      </Typography>
     </Stack>
   );
 }
 
 function PaymentMethodCard({
-  choice, active, icon, title, subtitle, badge, onClick, isDark,
+  choice,
+  active,
+  icon,
+  title,
+  subtitle,
+  badge,
+  onClick,
+  isDark,
 }: {
-  choice: PaymentChoice; active: boolean; icon: React.ReactNode; title: string; subtitle: string; badge?: string; onClick: (choice: PaymentChoice) => void; isDark: boolean;
+  choice: PaymentChoice;
+  active: boolean;
+  icon: React.ReactNode;
+  title: string;
+  subtitle: string;
+  badge?: string;
+  onClick: (choice: PaymentChoice) => void;
+  isDark: boolean;
 }) {
   return (
     <Box
@@ -2063,26 +2931,95 @@ function PaymentMethodCard({
       }}
     >
       {active && (
-        <Box sx={{ position: 'absolute', top: 8, right: 8, width: 20, height: 20, borderRadius: '50%', bgcolor: brand.primary[600], display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Box
+          sx={{
+            position: 'absolute',
+            top: 8,
+            right: 8,
+            width: 20,
+            height: 20,
+            borderRadius: '50%',
+            bgcolor: brand.primary[600],
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
           <IconCheck size={12} color="#fff" stroke={3} />
         </Box>
       )}
       {badge && !active && (
-        <Chip label={badge} size="small" sx={{ position: 'absolute', top: 8, right: 8, bgcolor: brand.primary[600], color: '#fff', fontWeight: 700, height: 18, fontSize: '0.625rem' }} />
+        <Chip
+          label={badge}
+          size="small"
+          sx={{
+            position: 'absolute',
+            top: 8,
+            right: 8,
+            bgcolor: brand.primary[600],
+            color: '#fff',
+            fontWeight: 700,
+            height: 18,
+            fontSize: '0.625rem',
+          }}
+        />
       )}
-      <Box sx={{ color: active ? brand.primary[600] : brand.neutral[500], mb: 1.5, display: 'flex' }}>{icon}</Box>
-      <Typography sx={{ fontWeight: 700, color: isDark ? brand.neutral[50] : brand.neutral[900], fontSize: '0.8125rem' }}>{title}</Typography>
-      <Typography sx={{ color: isDark ? brand.neutral[400] : brand.neutral[500], fontSize: '0.75rem', fontWeight: 500 }}>{subtitle}</Typography>
+      <Box
+        sx={{ color: active ? brand.primary[600] : brand.neutral[500], mb: 1.5, display: 'flex' }}
+      >
+        {icon}
+      </Box>
+      <Typography
+        sx={{
+          fontWeight: 700,
+          color: isDark ? brand.neutral[50] : brand.neutral[900],
+          fontSize: '0.8125rem',
+        }}
+      >
+        {title}
+      </Typography>
+      <Typography
+        sx={{
+          color: isDark ? brand.neutral[400] : brand.neutral[500],
+          fontSize: '0.75rem',
+          fontWeight: 500,
+        }}
+      >
+        {subtitle}
+      </Typography>
     </Box>
   );
 }
 
 function keypadHint(value: string) {
-  const hints: Record<string, string> = { '2': 'ABC', '3': 'DEF', '4': 'GHI', '5': 'JKL', '6': 'MNO', '7': 'PQRS', '8': 'TUV', '9': 'WXYZ' };
+  const hints: Record<string, string> = {
+    '2': 'ABC',
+    '3': 'DEF',
+    '4': 'GHI',
+    '5': 'JKL',
+    '6': 'MNO',
+    '7': 'PQRS',
+    '8': 'TUV',
+    '9': 'WXYZ',
+  };
   return hints[value];
 }
 
-function KeypadButton({ label, hint, icon, danger, onClick, isDark }: { label?: string; hint?: string; icon?: React.ReactNode; danger?: boolean; onClick: () => void; isDark: boolean }) {
+function KeypadButton({
+  label,
+  hint,
+  icon,
+  danger,
+  onClick,
+  isDark,
+}: {
+  label?: string;
+  hint?: string;
+  icon?: React.ReactNode;
+  danger?: boolean;
+  onClick: () => void;
+  isDark: boolean;
+}) {
   return (
     <Button
       variant="outlined"
@@ -2097,16 +3034,40 @@ function KeypadButton({ label, hint, icon, danger, onClick, isDark }: { label?: 
         flexDirection: 'column',
         fontWeight: 900,
         fontSize: label === 'C' ? '1.35rem' : '1.55rem',
-        '&:hover': { bgcolor: danger ? brand.error.light : brand.primary[50], borderColor: danger ? brand.error.main : brand.primary[300] },
+        '&:hover': {
+          bgcolor: danger ? brand.error.light : brand.primary[50],
+          borderColor: danger ? brand.error.main : brand.primary[300],
+        },
       }}
     >
       {icon || label}
-      {hint && <Typography component="span" sx={{ fontSize: '0.72rem', color: danger ? brand.error.main : brand.neutral[500], fontWeight: 700 }}>{hint}</Typography>}
+      {hint && (
+        <Typography
+          component="span"
+          sx={{
+            fontSize: '0.72rem',
+            color: danger ? brand.error.main : brand.neutral[500],
+            fontWeight: 700,
+          }}
+        >
+          {hint}
+        </Typography>
+      )}
     </Button>
   );
 }
 
-function TenderQuickPick({ value, label, active, onClick }: { value: number; label: string; active: boolean; onClick: () => void }) {
+function TenderQuickPick({
+  value,
+  label,
+  active,
+  onClick,
+}: {
+  value: number;
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
   return (
     <Button
       variant="outlined"
@@ -2124,18 +3085,55 @@ function TenderQuickPick({ value, label, active, onClick }: { value: number; lab
       }}
     >
       {fmt(value)}
-      <Typography component="span" sx={{ fontSize: '0.75rem', color: active ? brand.primary[700] : brand.neutral[500], fontWeight: 700 }}>{label}</Typography>
+      <Typography
+        component="span"
+        sx={{
+          fontSize: '0.75rem',
+          color: active ? brand.primary[700] : brand.neutral[500],
+          fontWeight: 700,
+        }}
+      >
+        {label}
+      </Typography>
     </Button>
   );
 }
 
-function PaymentMeta({ icon, label, value, isDark }: { icon: React.ReactNode; label: string; value: string; isDark: boolean }) {
+function PaymentMeta({
+  icon,
+  label,
+  value,
+  isDark,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  isDark: boolean;
+}) {
   return (
-    <Stack direction="row" spacing={1.2} alignItems="center" sx={{ p: 1.2, borderRight: { sm: `1px solid ${brand.neutral[200]}` } }}>
+    <Stack
+      direction="row"
+      spacing={1.2}
+      alignItems="center"
+      sx={{ p: 1.2, borderRight: { sm: `1px solid ${brand.neutral[200]}` } }}
+    >
       <Box sx={{ color: brand.info.dark }}>{icon}</Box>
       <Box sx={{ minWidth: 0 }}>
-        <Typography sx={{ fontSize: '0.76rem', color: isDark ? brand.neutral[400] : brand.neutral[500], fontWeight: 700 }}>{label}</Typography>
-        <Typography sx={{ color: isDark ? brand.neutral[50] : brand.neutral[900], fontWeight: 900 }} noWrap>{value}</Typography>
+        <Typography
+          sx={{
+            fontSize: '0.76rem',
+            color: isDark ? brand.neutral[400] : brand.neutral[500],
+            fontWeight: 700,
+          }}
+        >
+          {label}
+        </Typography>
+        <Typography
+          sx={{ color: isDark ? brand.neutral[50] : brand.neutral[900], fontWeight: 900 }}
+          noWrap
+        >
+          {value}
+        </Typography>
       </Box>
     </Stack>
   );
@@ -2146,15 +3144,19 @@ function PaymentMeta({ icon, label, value, isDark }: { icon: React.ReactNode; la
 // ═══════════════════════════════════════════════════════════════════════════
 
 interface FooterBarProps {
-  online: boolean; queueSize: number;
+  online: boolean;
+  queueSize: number;
   onClear: () => void;
   onHoldCart?: () => void;
   onOpenHeldCarts?: () => void;
 
-  canCheckout: boolean; submitting: boolean;
+  canCheckout: boolean;
+  submitting: boolean;
   onCheckout: () => void;
-  grand: number; itemCount: number;
-  labelPay: string; labelProcessing: string;
+  grand: number;
+  itemCount: number;
+  labelPay: string;
+  labelProcessing: string;
   isDark: boolean;
 }
 
@@ -2230,10 +3232,30 @@ function FooterBar(p: FooterBarProps) {
             )}
           </Stack>
         </Tooltip>
-        <FooterAction icon={<IconHome size={14} />} label="Home" to="/smartpos/dashboard" isDark={isDark} />
-        <FooterAction icon={<IconRefresh size={14} />} label="Reset" onClick={p.onClear} isDark={isDark} />
-        <FooterAction icon={<IconReceipt size={14} />} label="Drafts" onClick={p.onOpenHeldCarts} isDark={isDark} />
-        <FooterAction icon={<IconShoppingCart size={14} />} label="Hold" onClick={p.onHoldCart} isDark={isDark} />
+        <FooterAction
+          icon={<IconHome size={14} />}
+          label="Home"
+          to="/smartpos/dashboard"
+          isDark={isDark}
+        />
+        <FooterAction
+          icon={<IconRefresh size={14} />}
+          label="Reset"
+          onClick={p.onClear}
+          isDark={isDark}
+        />
+        <FooterAction
+          icon={<IconReceipt size={14} />}
+          label="Drafts"
+          onClick={p.onOpenHeldCarts}
+          isDark={isDark}
+        />
+        <FooterAction
+          icon={<IconShoppingCart size={14} />}
+          label="Hold"
+          onClick={p.onHoldCart}
+          isDark={isDark}
+        />
         <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center' }}>
           <PosBeepSoundPicker isDark={isDark} />
         </Box>
@@ -2291,7 +3313,9 @@ function FooterBar(p: FooterBarProps) {
           size="large"
           disabled={!p.canCheckout}
           onClick={p.onCheckout}
-          startIcon={p.submitting ? <CircularProgress size={15} color="inherit" /> : <IconCheck size={16} />}
+          startIcon={
+            p.submitting ? <CircularProgress size={15} color="inherit" /> : <IconCheck size={16} />
+          }
           sx={{
             minWidth: { xs: 96, md: 170 },
             py: 1.15,
@@ -2316,20 +3340,20 @@ function FooterBar(p: FooterBarProps) {
             '& .MuiButton-startIcon': { mr: { xs: 0.5, md: 1 } },
           }}
         >
-          {p.submitting
-            ? p.labelProcessing
-            : (
-              <>
-                {/* Mobile: short label "Pay · N" */}
-                <Box component="span" sx={{ display: { xs: 'inline', md: 'none' } }}>
-                  Pay · {p.itemCount}
-                </Box>
-                {/* Tablet+: full label */}
-                <Box component="span" sx={{ display: { xs: 'none', md: 'inline' } }}>
-                  Pay Now · {p.itemCount} item{p.itemCount === 1 ? '' : 's'}
-                </Box>
-              </>
-            )}
+          {p.submitting ? (
+            p.labelProcessing
+          ) : (
+            <>
+              {/* Mobile: short label "Pay · N" */}
+              <Box component="span" sx={{ display: { xs: 'inline', md: 'none' } }}>
+                Pay · {p.itemCount}
+              </Box>
+              {/* Tablet+: full label */}
+              <Box component="span" sx={{ display: { xs: 'none', md: 'inline' } }}>
+                Pay Now · {p.itemCount} item{p.itemCount === 1 ? '' : 's'}
+              </Box>
+            </>
+          )}
         </Button>
       </Stack>
     </Box>
@@ -2337,8 +3361,18 @@ function FooterBar(p: FooterBarProps) {
 }
 
 function FooterAction({
-  icon, label, onClick, to, isDark,
-}: { icon: React.ReactNode; label: string; onClick?: () => void; to?: string; isDark: boolean }) {
+  icon,
+  label,
+  onClick,
+  to,
+  isDark,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  onClick?: () => void;
+  to?: string;
+  isDark: boolean;
+}) {
   // On xs the label is hidden (icon-only) and we add a tooltip so the meaning
   // stays discoverable. On sm+ the label shows as before.
   return (
