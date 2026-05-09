@@ -378,7 +378,7 @@ export default function ProductEditDrawer({ open, initial, onClose, onSaved, onD
       setOpenSections((s) => ({ ...s, pricing: true, basic: true }));
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } }; message?: string };
-      setAiError(e.response?.data?.message ?? e.message ?? 'AI request failed');
+      setAiError(e.response?.data?.message ?? e.message ?? 'Suggestion request failed');
     } finally {
       setAiSuggesting(false);
     }
@@ -387,7 +387,7 @@ export default function ProductEditDrawer({ open, initial, onClose, onSaved, onD
   const askAiDescribe = async () => {
     const text = (describeMode ? form.description?.trim() : form.name.trim()) || form.name.trim();
     if (!text || text.length < 3) {
-      setAiError('Provide more detail for the AI to work with');
+      setAiError('Provide more detail for the assistant to work with');
       return;
     }
     setAiSuggesting(true);
@@ -407,7 +407,7 @@ export default function ProductEditDrawer({ open, initial, onClose, onSaved, onD
       setOpenSections((s) => ({ ...s, pricing: true, basic: true, inventory: true, warranty: true }));
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } }; message?: string };
-      setAiError(e.response?.data?.message ?? e.message ?? 'AI request failed');
+      setAiError(e.response?.data?.message ?? e.message ?? 'Suggestion request failed');
     } finally {
       setAiSuggesting(false);
     }
@@ -640,12 +640,12 @@ export default function ProductEditDrawer({ open, initial, onClose, onSaved, onD
                     describeMode ? askAiDescribe() : askAi();
                   }
                 }}
-                helperText={aiError ?? (describeMode ? 'Describe the product freely — AI extracts all attributes' : 'Tip: type the name then ⌘/Ctrl + Enter — AI fills the rest')}
+                helperText={aiError ?? (describeMode ? 'Describe the product freely — the assistant extracts all attributes' : 'Tip: type the name then ⌘/Ctrl + Enter — the assistant fills the rest')}
                 FormHelperTextProps={{ sx: { color: aiError ? brand.error.main : brand.neutral[400] } }}
                 InputProps={{
                   endAdornment: (
                     <InputAdornment position="end">
-                      <Tooltip title={aiSuggesting ? 'Asking AI…' : (describeMode ? 'Generate full profile (⌘+Enter)' : 'Suggest with AI (⌘+Enter)')}>
+                      <Tooltip title={aiSuggesting ? 'Generating…' : (describeMode ? 'Generate full profile (⌘+Enter)' : 'Suggest (⌘+Enter)')}>
                         <span>
                           <IconButton
                             size="small"
@@ -704,7 +704,7 @@ export default function ProductEditDrawer({ open, initial, onClose, onSaved, onD
                       <IconSparkles size={16} />
                     </Box>
                     <Typography variant="subtitle2" sx={{ fontWeight: 700, color: brand.primary[800], flex: 1 }}>
-                      {isDescribe ? 'AI full profile' : 'AI suggestion'}
+                      {isDescribe ? 'Full profile' : 'Suggestion'}
                     </Typography>
                     <Chip
                       label={`${Math.round((src.confidence ?? 0) * 100)}% confident`}

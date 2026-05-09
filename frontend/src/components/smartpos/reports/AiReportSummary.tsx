@@ -39,7 +39,7 @@ export default function AiReportSummary({ reportKind, factsJson }: Props) {
             <Box sx={{ width: 32, height: 32, borderRadius: '8px', bgcolor: brand.accent[50], color: brand.accent[500], display: 'grid', placeItems: 'center' }}>
               <IconSparkles size={18} />
             </Box>
-            <Typography sx={{ fontWeight: 700, fontSize: 14, color: brand.neutral[900] }}>AI Summary</Typography>
+            <Typography sx={{ fontWeight: 700, fontSize: 14, color: brand.neutral[900] }}>Smart Summary</Typography>
           </Stack>
           {open ? <IconChevronUp size={18} /> : <IconChevronDown size={18} />}
         </Stack>

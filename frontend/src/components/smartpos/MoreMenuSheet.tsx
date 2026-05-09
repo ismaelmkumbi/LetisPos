@@ -17,7 +17,7 @@ const moreLinks = [
   { icon: <IconArrowBackUp size={20} strokeWidth={1.8} />, label: 'Returns', path: '/smartpos/returns' },
   { icon: <IconCalculator size={20} strokeWidth={1.8} />, label: 'Accounting', path: '/smartpos/accounting/chart-of-accounts' },
   { icon: <IconChartBar size={20} strokeWidth={1.8} />, label: 'Reports', path: '/smartpos/reports' },
-  { icon: <IconSparkles size={20} strokeWidth={1.8} />, label: 'AI Insights', path: '/smartpos/ai' },
+  { icon: <IconSparkles size={20} strokeWidth={1.8} />, label: 'Insights', path: '/smartpos/ai' },
   { icon: <IconUsersGroup size={20} strokeWidth={1.8} />, label: 'HRM', path: '/smartpos/hrm/employees' },
   { icon: <IconBell size={20} strokeWidth={1.8} />, label: 'Notifications', path: '/smartpos/notifications/templates' },
   { icon: <IconPlug size={20} strokeWidth={1.8} />, label: 'Integrations', path: '/smartpos/integrations' },

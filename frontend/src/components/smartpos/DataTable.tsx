@@ -320,6 +320,16 @@ export function DataTable<T>({
 
   // ── Toolbar (rendered only when at least one enhancement is enabled) ──────
   const showToolbar = !!(toolbarTitle || toolbar || enableColumnVisibility || enableExport);
+  const visibleTableMinWidth = useMemo(() => {
+    const contentWidth = table.getVisibleLeafColumns().reduce((sum, vc) => {
+      const col = columns.find((c) => c.key === vc.id);
+      const width = getColWidth(col?.key ?? vc.id, col?.width);
+      if (typeof width === 'number') return sum + width;
+      if (typeof width === 'string' && width.endsWith('px')) return sum + Number.parseFloat(width);
+      return sum + (col?.key === 'actions' ? 90 : col?.key === '_select' ? 48 : 140);
+    }, 0);
+    return Math.max(720, contentWidth + (expandable ? 40 : 0) + (getRowStatus ? 32 : 0));
+  }, [columns, expandable, getColWidth, getRowStatus, table]);
 
   // ── CSV export ────────────────────────────────────────────────────────────
   const handleExport = () => {
@@ -384,6 +394,8 @@ export function DataTable<T>({
     <Card
       elevation={0}
       sx={{
+        minWidth: 0,
+        maxWidth: '100%',
         border: `1px solid ${isDark ? brand.neutral[700] : brand.neutral[200]}`,
         borderRadius: '8px',
         overflow: 'hidden',
@@ -401,6 +413,7 @@ export function DataTable<T>({
           justifyContent="space-between"
           spacing={1}
           sx={{
+            minWidth: 0,
             px: 1.25,
             py: 1,
             borderBottom: `1px solid ${brand.neutral[200]}`,
@@ -420,7 +433,17 @@ export function DataTable<T>({
               </Typography>
             )}
           </Box>
-          <Stack direction="row" spacing={1} alignItems="center">
+          <Stack
+            direction="row"
+            spacing={1}
+            alignItems="center"
+            sx={{
+              minWidth: 0,
+              maxWidth: '100%',
+              flexWrap: 'wrap',
+              justifyContent: { xs: 'flex-start', sm: 'flex-end' },
+            }}
+          >
             {toolbar}
             {enableColumnVisibility && (
               <>
@@ -620,12 +643,12 @@ export function DataTable<T>({
         </Stack>
       ) : (
       /* ── Desktop Table ── */
-      <Box sx={{ overflowX: 'auto', flex: 1, ...(resizing ? { cursor: 'col-resize' } : {}) }}>
+      <Box sx={{ overflowX: 'auto', overflowY: 'hidden', flex: 1, minWidth: 0, maxWidth: '100%', ...(resizing ? { cursor: 'col-resize' } : {}) }}>
         <Table
           size={dense ? 'small' : 'medium'}
           stickyHeader={stickyHeader}
           sx={{
-            minWidth: 500,
+            minWidth: visibleTableMinWidth,
             width: '100%',
             tableLayout: 'fixed',
             borderCollapse: 'separate',

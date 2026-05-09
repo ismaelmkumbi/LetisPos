@@ -46,8 +46,8 @@ const COMMANDS: CommandItem[] = [
   { id: 'new-customer', label: 'New Customer', icon: <IconUsers size={18} />, path: '/smartpos/customers', category: 'Actions', keywords: ['create', 'add', 'client'] },
   { id: 'new-purchase', label: 'New Purchase', icon: <IconShoppingCart size={18} />, path: '/smartpos/purchases/new', category: 'Actions', keywords: ['create', 'order', 'buy'] },
 
-  // AI
-  { id: 'ai-insights', label: 'AI Insights', icon: <IconSparkles size={18} />, path: '/smartpos/ai', category: 'Reports', keywords: ['analytics', 'predictions', 'forecast'], badge: 'NEW' },
+  // Insights
+  { id: 'ai-insights', label: 'Insights', icon: <IconSparkles size={18} />, path: '/smartpos/ai', category: 'Reports', keywords: ['analytics', 'predictions', 'forecast'], badge: 'NEW' },
 
   // Settings
   { id: 'settings', label: 'Settings', icon: <IconSettings size={18} />, path: '/smartpos/settings', category: 'Settings', keywords: ['preferences', 'configuration', 'options'] },

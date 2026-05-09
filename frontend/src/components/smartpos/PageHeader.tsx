@@ -80,7 +80,7 @@ export function PageHeader({
   const allActions = actions ?? (action ? [action] : []);
 
   return (
-    <Box sx={{ mb: 2.25 }}>
+    <Box sx={{ mb: 2.25, minWidth: 0, maxWidth: '100%' }}>
       {/* Breadcrumbs */}
       {breadcrumbs && breadcrumbs.length > 0 && (
         <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mb: 1.25 }}>
@@ -116,9 +116,10 @@ export function PageHeader({
         justifyContent="space-between"
         alignItems={{ xs: 'flex-start', sm: 'center' }}
         spacing={1.5}
+        sx={{ minWidth: 0, maxWidth: '100%' }}
       >
-        <Stack direction="row" spacing={1.5} alignItems="center">
-          <Box>
+        <Stack direction="row" spacing={1.5} alignItems="center" sx={{ minWidth: 0, flex: '1 1 auto' }}>
+          <Box sx={{ minWidth: 0 }}>
             <Stack direction="row" spacing={1} alignItems="center">
               <Typography
                 variant="h4"
@@ -197,7 +198,18 @@ export function PageHeader({
         </Stack>
 
         {allActions.length > 0 && (
-          <Stack direction="row" spacing={1} sx={{ flexShrink: 0, flexWrap: 'wrap', rowGap: 1 }}>
+          <Stack
+            direction="row"
+            spacing={1}
+            sx={{
+              flexShrink: 1,
+              minWidth: 0,
+              maxWidth: '100%',
+              flexWrap: 'wrap',
+              rowGap: 1,
+              justifyContent: { xs: 'flex-start', sm: 'flex-end' },
+            }}
+          >
             {allActions.map((a, i) => {
               const style = ACTION_STYLES[a.variant ?? (i === allActions.length - 1 ? 'accent' : 'ghost')];
               return (
@@ -209,6 +221,7 @@ export function PageHeader({
                   sx={{
                     minHeight: 46,
                     px: 2,
+                    maxWidth: '100%',
                     fontWeight: 800,
                     borderRadius: '10px',
                     textTransform: 'none',

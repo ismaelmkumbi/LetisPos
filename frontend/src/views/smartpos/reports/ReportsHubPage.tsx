@@ -20,7 +20,7 @@ const REPORTS = [
 export default function ReportsHubPage() {
   return (
     <Box>
-      <PageHeader title="Insights" subtitle="AI-powered analysis from your business data" />
+      <PageHeader title="Insights" subtitle="Analysis from your business data" />
 
       <BusinessPulseCard />
 

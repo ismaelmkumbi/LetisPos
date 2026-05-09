@@ -1,5 +1,5 @@
 /**
- * AI Insights — sales-trend narrative + free-form chat backed by Claude / OpenAI.
+ * Insights — sales-trend narrative + free-form chat.
  * The "model" / "tokens" footer makes it obvious which provider answered.
  */
 import { useState } from 'react';
@@ -21,8 +21,8 @@ export default function AiInsightsPage() {
   return (
     <>
       <PageHeader
-        title="AI insights"
-        subtitle="Claude / OpenAI–powered narratives over your real KPIs"
+        title="Insights"
+        subtitle="Business narratives over your real KPIs"
       />
       <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 2 }}>
         <Tab value="trend" label="Sales trend" />
@@ -52,7 +52,7 @@ function SalesTrendTab() {
       const r = await aiSalesTrend({ dateFrom: from, dateTo: to, tone });
       setResult(r);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'AI call failed');
+      setError(e instanceof Error ? e.message : 'Insight request failed');
     } finally {
       setLoading(false);
     }
@@ -104,7 +104,7 @@ function ChatTab() {
       const r = await aiChat({ prompt, systemPrompt: system });
       setResult(r);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'AI call failed');
+      setError(e instanceof Error ? e.message : 'Insight request failed');
     } finally {
       setLoading(false);
     }
@@ -122,7 +122,7 @@ function ChatTab() {
         <Button variant="contained" startIcon={loading ? <CircularProgress size={14} /> : <IconSparkles size={16} />}
           onClick={handleAsk} disabled={loading || !prompt.trim()}
           sx={{ bgcolor: brand.accent[500], '&:hover': { bgcolor: brand.accent[600] } }}>
-          {loading ? 'Thinking…' : 'Ask AI'}
+          {loading ? 'Thinking…' : 'Ask'}
         </Button>
       </Stack>
 

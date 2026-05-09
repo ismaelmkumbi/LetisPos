@@ -101,7 +101,7 @@ const MAX_IMAGE_BYTES = 1_200_000; // 1.2 MB per image
 
 type InputMode = 'spreadsheet' | 'pdf' | 'photos' | 'phone-camera';
 
-const STEPS = ['Upload file', 'AI mapping', 'Review & edit', 'Save & finish'] as const;
+const STEPS = ['Upload file', 'Smart mapping', 'Review & edit', 'Save & finish'] as const;
 
 export interface ProductsImportDialogProps {
   open: boolean;
@@ -297,14 +297,14 @@ export default function ProductsImportDialog({
         // Detect scanned/image-only PDF → route to AI vision
         const scanned = extracted && !extracted.text ? true : await isScannedPdf(f);
         if (scanned) {
-          setStatus('Rendering PDF pages for AI vision…');
+          setStatus('Rendering PDF pages for smart reading…');
           const pageImages = await renderPdfToImages(f, { scale: 2.0, jpegQuality: 0.92 });
           if (pageImages.length === 0) {
             setError('Could not render any pages from this PDF.');
             setBusy(false);
             return;
           }
-          setStatus('Enhancing scanned pages for better AI reading…');
+          setStatus('Enhancing scanned pages for better reading…');
           const enhanced = await preprocessImages(pageImages.map((p) => p.dataUrl));
           setImageDataUrls(enhanced);
           setImagePreviews(enhanced);
@@ -472,7 +472,7 @@ export default function ProductsImportDialog({
             minPrice: toNumber(findMatch('minPrice')),
             taxRate: toNumber(findMatch('taxRate')),
             confidence: 0.3,
-            warnings: ['AI returned no mapping — used smart fuzzy column matching.'],
+            warnings: ['No mapping was returned — used smart fuzzy column matching.'],
           };
         });
       }
@@ -483,7 +483,7 @@ export default function ProductsImportDialog({
       setStep(2);
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } }; message?: string };
-      setError(e.response?.data?.message ?? e.message ?? 'AI mapping failed');
+      setError(e.response?.data?.message ?? e.message ?? 'Smart mapping failed');
     } finally {
       setBusy(false);
     }
@@ -533,7 +533,7 @@ export default function ProductsImportDialog({
                 minPrice: undefined,
                 taxRate: undefined,
                 confidence: 0,
-                warnings: ['AI could not identify any products in the images.'],
+                warnings: ['Smart import could not identify any products in the images.'],
               },
             ];
       setDrafts(mapped.map(toDraft));
@@ -543,7 +543,7 @@ export default function ProductsImportDialog({
       setStep(2);
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } }; message?: string };
-      setError(e.response?.data?.message ?? e.message ?? 'AI image import failed');
+      setError(e.response?.data?.message ?? e.message ?? 'Image import failed');
     } finally {
       setBusy(false);
     }
@@ -699,7 +699,7 @@ export default function ProductsImportDialog({
               Smart import
             </Typography>
             <Typography variant="caption" sx={{ color: brand.neutral[500] }}>
-              Upload {modeLabel} — AI maps the fields, you review, we save
+              Upload {modeLabel} — smart mapping prepares the fields, you review, we save
             </Typography>
           </Box>
           <IconButton size="small" onClick={handleClose} disabled={busy}>
@@ -1033,7 +1033,7 @@ export default function ProductsImportDialog({
                       {imagePreviews.length} image{imagePreviews.length !== 1 ? 's' : ''} ready
                     </Typography>
                     <Typography variant="caption" sx={{ color: brand.neutral[400] }}>
-                      Add more or proceed to AI mapping
+                      Add more or proceed to smart mapping
                     </Typography>
                   </Stack>
                 </Stack>
@@ -1048,7 +1048,7 @@ export default function ProductsImportDialog({
               >
                 Recommended columns:{' '}
                 <strong>name, code, category, brand, unit, cost, price, wholesale, tax</strong>.
-                Don't worry about exact spelling — the AI figures it out.
+                Don't worry about exact spelling — smart mapping figures it out.
               </Alert>
             )}
             {inputMode === 'pdf' && (
@@ -1068,7 +1068,7 @@ export default function ProductsImportDialog({
                 sx={{ borderRadius: '10px' }}
               >
                 Take clear photos of product lists, supplier price sheets, or inventory records. The
-                AI will read all visible items. Good lighting and straight angles help.
+                Smart import will read all visible items. Good lighting and straight angles help.
               </Alert>
             )}
             </>} {/* end inputMode !== 'phone-camera' */}
@@ -1099,12 +1099,12 @@ export default function ProductsImportDialog({
             </Box>
             <Box sx={{ textAlign: 'center', maxWidth: 480 }}>
               <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
-                {busy ? 'AI is mapping your data…' : 'Ready to ask the AI'}
+                {busy ? 'Mapping your data…' : 'Ready to map'}
               </Typography>
               <Typography variant="body2" sx={{ color: brand.neutral[600] }}>
                 {inputMode === 'photos'
-                  ? `We'll send your ${imageDataUrls.length} image(s) to the AI vision model along with your existing categories, brands, and units. The AI will read every product visible and return structured rows.`
-                  : `We'll send your ${parsedRows.length} rows and column headers to the AI service along with your existing categories, brands, and units. The AI will return a structured product per row plus warnings for anything it couldn't match.`}
+                  ? `We'll process your ${imageDataUrls.length} image(s) along with your existing categories, brands, and units. Smart import will read every product visible and return structured rows.`
+                  : `We'll process your ${parsedRows.length} rows and column headers along with your existing categories, brands, and units. Smart mapping will return a structured product per row plus warnings for anything it couldn't match.`}
               </Typography>
             </Box>
             {inputMode !== 'photos' && templates.length > 0 && (
@@ -1155,7 +1155,7 @@ export default function ProductsImportDialog({
                 '&:hover': { bgcolor: brand.primary[700] },
               }}
             >
-              {busy ? 'Mapping…' : 'Run AI mapping'}
+              {busy ? 'Mapping…' : 'Run smart mapping'}
             </Button>
           </Stack>
         )}
@@ -1167,7 +1167,7 @@ export default function ProductsImportDialog({
               <Chip
                 size="small"
                 icon={<IconSparkles size={12} />}
-                label={`AI: ${aiProvider}/${aiModel}`}
+                label={`Mapped by ${aiProvider}/${aiModel}`}
                 sx={{
                   height: 22,
                   fontSize: '0.6875rem',
@@ -1350,7 +1350,7 @@ export default function ProductsImportDialog({
                   <TableRow>
                     {[
                       { k: 'include', l: '', w: 36 },
-                      { k: 'conf', l: 'AI', w: 70 },
+                      { k: 'conf', l: 'Score', w: 70 },
                       { k: 'name', l: 'Name *', w: 220 },
                       { k: 'code', l: 'Code', w: 120 },
                       { k: 'category', l: 'Category', w: 140 },
@@ -1528,7 +1528,7 @@ export default function ProductsImportDialog({
               disabled={busy}
               sx={{ textTransform: 'none', fontWeight: 600, color: brand.neutral[600] }}
             >
-              Re-run AI
+              Re-run mapping
             </Button>
             <Button
               variant="contained"

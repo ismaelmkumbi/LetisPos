@@ -67,7 +67,7 @@ export default function ExecutiveSummary({ reportKind, factsJson }: Props) {
         <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5 }}>
           <IconSparkles size={16} color={brand.primary[600]} />
           <Typography sx={{ fontWeight: 800, fontSize: '0.85rem', color: brand.primary[700] }}>Executive Summary</Typography>
-          <Chip label="AI" size="small" sx={{ bgcolor: brand.primary[100], color: brand.primary[700], fontWeight: 700, fontSize: '0.65rem', height: 20, borderRadius: '6px' }} />
+          <Chip label="Smart" size="small" sx={{ bgcolor: brand.primary[100], color: brand.primary[700], fontWeight: 700, fontSize: '0.65rem', height: 20, borderRadius: '6px' }} />
           <Box sx={{ flex: 1 }} />
           <Button size="small" onClick={handleGenerate} startIcon={loading ? <CircularProgress size={12} /> : <IconRefresh size={12} />}
             sx={{ textTransform: 'none', fontSize: '0.7rem', fontWeight: 600, color: brand.neutral[500], '&:hover': { color: brand.primary[600] } }}>
