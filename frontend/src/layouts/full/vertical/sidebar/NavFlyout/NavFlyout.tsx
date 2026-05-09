@@ -1,4 +1,4 @@
-import { useRef, useEffect, type FC, type ReactNode, type ElementType } from 'react';
+import { useRef, useEffect, useMemo, type FC, type ReactNode, type ElementType } from 'react';
 import { Popover, Grow, Box, Typography, Divider } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 
@@ -25,6 +25,21 @@ const NavFlyout: FC<NavFlyoutProps> = ({
 }) => {
   const theme = useTheme();
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const anchorPosition = useMemo(() => {
+    if (!anchorEl) return undefined;
+    const rect = anchorEl.getBoundingClientRect();
+    const viewportPadding = 12;
+    const estimatedMenuHeight = 260;
+    const top = Math.min(
+      Math.max(rect.top - 12, viewportPadding),
+      window.innerHeight - viewportPadding - estimatedMenuHeight,
+    );
+
+    return {
+      top: Math.max(viewportPadding, top),
+      left: rect.right + 8,
+    };
+  }, [anchorEl]);
 
   useEffect(() => {
     return () => {
@@ -46,8 +61,10 @@ const NavFlyout: FC<NavFlyoutProps> = ({
     <Popover
       open={open}
       anchorEl={anchorEl}
+      anchorReference={anchorPosition ? 'anchorPosition' : 'anchorEl'}
+      anchorPosition={anchorPosition}
       onClose={onClose}
-      anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+      anchorOrigin={{ vertical: 'top', horizontal: 'left' }}
       transformOrigin={{ vertical: 'top', horizontal: 'left' }}
       TransitionComponent={Grow}
       transitionDuration={{ enter: 160, exit: 120 }}
@@ -63,7 +80,7 @@ const NavFlyout: FC<NavFlyoutProps> = ({
         paper: {
           sx: {
             pointerEvents: 'auto',
-            ml: 1,
+            ml: 0,
             mt: 0,
             minWidth: 236,
             maxWidth: 320,
