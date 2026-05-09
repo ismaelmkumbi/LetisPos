@@ -13,8 +13,9 @@ import {
 import {
   IconArrowLeft, IconCheck, IconDeviceFloppy, IconPrinter,
   IconReceipt, IconUser, IconBuildingWarehouse, IconShoppingCart,
-  IconClock, IconTruckReturn, IconCopy,
+  IconClock, IconTruckReturn, IconCopy, IconUpload,
 } from '@tabler/icons-react';
+import { Link } from 'react-router';
 
 import { createSale, commitSale, getSale, cancelSale, type CreateSaleBody, type Sale } from 'src/api/smartpos/sales';
 import { listProducts } from 'src/api/smartpos/products';
@@ -27,6 +28,7 @@ import StatusIndicator, { type OperationalState } from 'src/components/smartpos/
 import { printReceipt } from 'src/components/smartpos/Receipt';
 import { brand } from 'src/theme/smartpos/brand';
 import { formatMoney } from 'src/utils/smartpos/currency';
+import { parseApiError } from 'src/utils/smartpos/apiErrors';
 
 const fmt = formatMoney;
 
@@ -51,6 +53,7 @@ export default function SaleBuilderPage() {
   const [loading, setLoading] = useState(!!id);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isStockError, setIsStockError] = useState(false);
   const [banner, setBanner] = useState<string | null>(null);
 
   const isReadonly = sale?.status === 'CANCELLED' || sale?.status === 'RETURNED';
@@ -133,7 +136,9 @@ export default function SaleBuilderPage() {
       }
       setTimeout(() => nav(`/smartpos/sales`), 900);
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Save failed');
+      const { message, isStockIssue } = parseApiError(e);
+      setError(message);
+      setIsStockError(isStockIssue);
     } finally {
       setSubmitting(false);
     }
@@ -172,7 +177,29 @@ export default function SaleBuilderPage() {
   return (
     <Box sx={{ maxWidth: 1440, mx: 'auto' }}>
       {/* ═══ Banner ═══ */}
-      {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
+      {error && (
+        <Alert
+          severity={isStockError ? 'warning' : 'error'}
+          sx={{ mb: 2, '& .MuiAlert-message': { flex: 1 } }}
+          onClose={() => { setError(null); setIsStockError(false); }}
+          action={
+            isStockError ? (
+              <Button
+                component={Link}
+                to="/smartpos/purchases/new"
+                size="small"
+                color="inherit"
+                startIcon={<IconUpload size={14} />}
+                sx={{ fontWeight: 700, textTransform: 'none' }}
+              >
+                Add Stock
+              </Button>
+            ) : undefined
+          }
+        >
+          {error}
+        </Alert>
+      )}
       {banner && <Alert severity="success" sx={{ mb: 2 }}>{banner}</Alert>}
 
       {/* ═══ Top bar — back + title + status ═══ */}
