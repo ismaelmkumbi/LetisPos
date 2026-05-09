@@ -39,7 +39,7 @@ const PageWrapper = styled('div')(({ theme }) => ({
 }));
 
 const FullLayout: FC = () => {
-  const { activeLayout, isLayout, activeMode, isCollapse } = useContext(CustomizerContext);
+  const { activeLayout, isLayout, activeMode, isCollapse, setIsCollapse } = useContext(CustomizerContext);
   const theme = useTheme();
   const location = useLocation();
   const MiniSidebarWidth = config.miniSidebarWidth;
@@ -51,6 +51,11 @@ const FullLayout: FC = () => {
   // Check if on SmartPOS route
   const isSmartPos = location.pathname.startsWith('/smartpos');
   const isSmartPosDashboard = location.pathname === '/smartpos' || location.pathname === '/smartpos/dashboard';
+
+  useEffect(() => {
+    if (!isSmartPos) return;
+    setIsCollapse(isSmartPosDashboard ? 'mini-sidebar' : 'full-sidebar');
+  }, [isSmartPos, isSmartPosDashboard, setIsCollapse]);
 
   // Global keyboard shortcuts
   useEffect(() => {
@@ -89,15 +94,15 @@ const FullLayout: FC = () => {
           <Container
             sx={{
               width: '100%',
-              pt: isSmartPosDashboard ? '12px' : isSmartPos ? '20px' : '28px',
-              pb: '28px',
+              pt: isSmartPosDashboard ? '10px' : isSmartPos ? '20px' : '28px',
+              pb: isSmartPosDashboard ? '18px' : '28px',
               maxWidth: isSmartPos
                 ? '100% !important'
                 : isLayout === 'boxed'
                 ? 'lg'
                 : '100%!important',
               px: isSmartPos
-                ? { xs: 1.5, sm: 2, lg: '12px !important' }
+                ? { xs: 1.5, sm: 2, lg: isSmartPosDashboard ? '16px !important' : '12px !important' }
                 : { xs: 2, sm: 3, lg: '24px !important' },
             }}
           >
