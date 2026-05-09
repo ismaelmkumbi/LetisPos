@@ -47,6 +47,7 @@ import {
   IconCamera,
   IconCheck,
   IconCloudUpload,
+  IconDeviceMobile,
   IconFile,
   IconFileSpreadsheet,
   IconFileTypePdf,
@@ -90,6 +91,7 @@ import {
   applyTemplate,
   type ImportTemplate,
 } from 'src/utils/smartpos/smartMapping';
+import QrOverlay from './QrOverlay';
 
 // ── constants ────────────────────────────────────────────────────────────────
 const MAX_FILE_BYTES = 5 * 1024 * 1024; // 5 MB
@@ -97,7 +99,7 @@ const MAX_ROWS = 500;
 const MAX_IMAGES = 5;
 const MAX_IMAGE_BYTES = 1_200_000; // 1.2 MB per image
 
-type InputMode = 'spreadsheet' | 'pdf' | 'photos';
+type InputMode = 'spreadsheet' | 'pdf' | 'photos' | 'phone-camera';
 
 const STEPS = ['Upload file', 'AI mapping', 'Review & edit', 'Save & finish'] as const;
 
@@ -772,9 +774,47 @@ export default function ProductsImportDialog({
                 label="Photos"
                 sx={{ textTransform: 'none', fontWeight: 700, fontSize: '0.78rem', minHeight: 42 }}
               />
+              <Tab
+                value="phone-camera"
+                icon={<IconDeviceMobile size={16} />}
+                iconPosition="start"
+                label="Phone Camera"
+                sx={{ textTransform: 'none', fontWeight: 700, fontSize: '0.78rem', minHeight: 42 }}
+              />
             </Tabs>
 
+            {/* ── Phone Camera (QR overlay) ── */}
+            {inputMode === 'phone-camera' && (
+              <Box
+                sx={{
+                  borderRadius: '14px',
+                  border: `1px solid ${brand.neutral[200]}`,
+                  bgcolor: isDark ? brand.neutral[800] : '#fff',
+                }}
+              >
+                <QrOverlay
+                  onPhotosReceived={(dataUrls) => {
+                    setImageDataUrls(dataUrls);
+                    setImagePreviews(dataUrls);
+                    setInputMode('photos');
+                    ensureLookups();
+                  }}
+                  onUseWebcam={() => setInputMode('photos')}
+                  onClose={() => {
+                    setInputMode('spreadsheet');
+                    setFile(null);
+                    setHeaders([]);
+                    setParsedRows([]);
+                    setImagePreviews([]);
+                    setImageDataUrls([]);
+                    setError(null);
+                  }}
+                />
+              </Box>
+            )}
+
             {/* ── Drop zone ── */}
+            {inputMode !== 'phone-camera' && <>
             <Box
               {...(showUploadStep ? dropzone.getRootProps() : {})}
               sx={{
@@ -1031,6 +1071,7 @@ export default function ProductsImportDialog({
                 AI will read all visible items. Good lighting and straight angles help.
               </Alert>
             )}
+            </>} {/* end inputMode !== 'phone-camera' */}
           </Stack>
         )}
 
