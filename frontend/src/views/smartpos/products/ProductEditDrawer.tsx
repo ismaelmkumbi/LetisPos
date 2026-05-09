@@ -108,8 +108,6 @@ const generateCode = () => {
 
 // Reusable: section header used inside accordion summary
 function SectionTitle({ icon, title, hint }: { icon: React.ReactNode; title: string; hint?: string }) {
-  const { activeMode } = useContext(CustomizerContext);
-  const isDark = activeMode === 'dark';
   return (
     <Stack direction="row" spacing={1.5} alignItems="center">
       <Box sx={{
