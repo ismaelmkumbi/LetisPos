@@ -15,7 +15,7 @@ import {
   deleteCaptureSession,
   type PhotoInfo,
 } from 'src/api/smartpos/captureSession';
-import { api, API_BASE_URL } from 'src/api/smartpos/client';
+import { api, API_BASE_URL, tokenStore } from 'src/api/smartpos/client';
 
 const POLL_INTERVAL_MS = 3_000;
 
@@ -53,7 +53,7 @@ export default function QrOverlay({ onPhotosReceived, onUseWebcam, onClose }: Qr
         // The backend's default base-url is http://localhost:5173, which
         // doesn't work from a phone. Rewrite the QR URL to use the same
         // origin the POS terminal is loaded from.
-        const correctedQrUrl = rewriteQrUrl(resp.qrUrl);
+        const correctedQrUrl = rewriteQrUrl(resp.qrUrl, tokenStore.get() ?? undefined);
         setQrUrl(correctedQrUrl);
 
         // Generate QR as data URL
@@ -309,12 +309,17 @@ export default function QrOverlay({ onPhotosReceived, onUseWebcam, onClose }: Qr
  *
  * Example: http://localhost:5173/capture/abc → http://192.168.1.100:5173/capture/abc
  */
-function rewriteQrUrl(url: string): string {
+function rewriteQrUrl(url: string, token?: string): string {
   try {
     const parsed = new URL(url);
-    return `${window.location.origin}${parsed.pathname}${parsed.search}${parsed.hash}`;
+    let result = `${window.location.origin}${parsed.pathname}${parsed.search}${parsed.hash}`;
+    // Pass the access token so the phone can authenticate API calls
+    if (token) {
+      result += `${parsed.search || parsed.hash ? '&' : '?'}token=${encodeURIComponent(token)}`;
+    }
+    return result;
   } catch {
-    return url; // malformed URL — pass through as-is
+    return url;
   }
 }
 
