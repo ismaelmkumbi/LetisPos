@@ -54,7 +54,6 @@ import { useContext } from 'react';
 import type { UUID } from 'src/api/smartpos/types';
 import OnboardingBanner from './OnboardingBanner';
 import CelebrationModal from 'src/views/smartpos/onboarding/CelebrationModal';
-import SetupWizard from 'src/views/smartpos/onboarding/SetupWizard';
 
 const PERIODS: Period[] = ['TODAY', 'YESTERDAY', 'WEEK', 'MONTH', 'LAST_30_DAYS', 'YTD'];
 const chartFont = 'Inter, DM Sans, sans-serif';
@@ -198,7 +197,14 @@ function DashboardGreetingBar({
         direction={{ xs: 'column', sm: 'row' }}
         spacing={1}
         alignItems={{ xs: 'stretch', sm: 'center' }}
-        sx={{ width: { xs: '100%', md: 'auto' } }}
+        useFlexGap
+        sx={{
+          width: { xs: '100%', md: 'auto' },
+          maxWidth: '100%',
+          flex: { md: '1 1 620px' },
+          flexWrap: 'wrap',
+          justifyContent: { xs: 'flex-start', md: 'flex-end' },
+        }}
       >
         {/* Period pills */}
         <Box
@@ -214,7 +220,7 @@ function DashboardGreetingBar({
             WebkitOverflowScrolling: 'touch',
             '&::-webkit-scrollbar': { display: 'none' },
             scrollbarWidth: 'none',
-            maxWidth: { xs: '100%', sm: 'none' },
+            maxWidth: { xs: '100%', sm: 460, xl: 'none' },
           }}
         >
           {PERIODS.map((p) => (
@@ -266,6 +272,7 @@ function DashboardGreetingBar({
           sx={{
             height: 38,
             px: 1.6,
+            maxWidth: { xs: '100%', sm: 220 },
             borderRadius: '9px',
             borderColor: isDark ? brand.neutral[700] : brand.neutral[200],
             color: brand.neutral[700],
@@ -273,6 +280,8 @@ function DashboardGreetingBar({
             fontSize: 13,
             textTransform: 'none',
             whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
             bgcolor: isDark ? brand.neutral[800] : '#fff',
             '&:hover': {
               borderColor: brand.primary[300],
@@ -353,7 +362,6 @@ export default function DashboardPage() {
   const { activeMode } = useContext(CustomizerContext);
   const isDark = activeMode === 'dark';
   const [showCelebration, setShowCelebration] = useState(false);
-  const [showWizard, setShowWizard] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const [data, setData] = useState<Dashboard | null>(null);
   const [loading, setLoading] = useState(true);
@@ -371,15 +379,6 @@ export default function DashboardPage() {
       setShowCelebration(true);
     }
   }, [onboardingState.isComplete]);
-
-  useEffect(() => {
-    // Auto-open wizard on first visit if only workspace step is done
-    if (onboardingState.percent <= 16 && !onboardingState.isComplete) {
-      const timer = setTimeout(() => setShowWizard(true), 800);
-      return () => clearTimeout(timer);
-    }
-  }, [onboardingState.percent, onboardingState.isComplete]);
-
 
   // Read initial values from URL, default to MONTH / all warehouses
   const initPeriod = searchParams.get('period') as Period | null;
@@ -860,7 +859,6 @@ export default function DashboardPage() {
         </>
       )}
 
-      <SetupWizard open={showWizard} onClose={() => setShowWizard(false)} />
       <CelebrationModal open={showCelebration} onClose={() => setShowCelebration(false)} />
     </Box>
   );
