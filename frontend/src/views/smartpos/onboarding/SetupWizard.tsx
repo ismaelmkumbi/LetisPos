@@ -10,13 +10,20 @@ import {
   Typography,
 } from '@mui/material';
 import { brand } from 'src/theme/smartpos/brand';
+import { useOnboarding } from 'src/context/smartpos/OnboardingContext';
 import WarehouseSetup from './steps/WarehouseSetup';
 import TaxSetup from './steps/TaxSetup';
 import ProductImportSetup from './steps/ProductImportSetup';
-import StaffInviteSetup from './steps/StaffInviteSetup';
 import FirstSaleGuide from './steps/FirstSaleGuide';
 
-const STEPS = ['Warehouse', 'Tax Rules', 'Products', 'Team', 'First Sale'];
+const STEPS = ['Warehouse', 'Tax Rules', 'Products', 'First Sale'];
+
+const STEP_KEYS: Array<'warehouse' | 'tax' | 'products' | 'first_sale'> = [
+  'warehouse',
+  'tax',
+  'products',
+  'first_sale',
+];
 
 interface Props {
   open: boolean;
@@ -25,8 +32,10 @@ interface Props {
 
 export default function SetupWizard({ open, onClose }: Props) {
   const [activeStep, setActiveStep] = useState(0);
+  const { completeStep } = useOnboarding();
 
-  const handleNext = () => {
+  const handleComplete = () => {
+    completeStep(STEP_KEYS[activeStep]);
     if (activeStep < STEPS.length - 1) {
       setActiveStep((prev) => prev + 1);
     } else {
@@ -35,6 +44,7 @@ export default function SetupWizard({ open, onClose }: Props) {
   };
 
   const handleBack = () => setActiveStep((prev) => Math.max(0, prev - 1));
+
   const handleSkip = () => {
     if (activeStep < STEPS.length - 1) {
       setActiveStep((prev) => prev + 1);
@@ -80,11 +90,10 @@ export default function SetupWizard({ open, onClose }: Props) {
       </Stepper>
 
       <DialogContent sx={{ px: 3, py: 1 }}>
-        {activeStep === 0 && <WarehouseSetup onComplete={handleNext} />}
-        {activeStep === 1 && <TaxSetup onComplete={handleNext} />}
-        {activeStep === 2 && <ProductImportSetup onComplete={handleNext} />}
-        {activeStep === 3 && <StaffInviteSetup onComplete={handleNext} />}
-        {activeStep === 4 && <FirstSaleGuide onComplete={handleNext} />}
+        {activeStep === 0 && <WarehouseSetup onComplete={handleComplete} />}
+        {activeStep === 1 && <TaxSetup onComplete={handleComplete} />}
+        {activeStep === 2 && <ProductImportSetup onComplete={handleComplete} />}
+        {activeStep === 3 && <FirstSaleGuide onComplete={handleComplete} />}
       </DialogContent>
 
       <Box
@@ -114,7 +123,7 @@ export default function SetupWizard({ open, onClose }: Props) {
           )}
           <Button
             variant="contained"
-            onClick={isLast ? handleNext : handleSkip}
+            onClick={handleSkip}
             sx={{
               textTransform: 'none',
               fontWeight: 700,
