@@ -16,6 +16,7 @@ import {
   type Quotation, type QuotationStatus, type SaleLine,
 } from 'src/api/smartpos/sales';
 import { listCustomers } from 'src/api/smartpos/customers';
+import { parseApiError } from 'src/utils/smartpos/apiErrors';
 import { listProducts } from 'src/api/smartpos/products';
 import { listWarehouses, type Warehouse } from 'src/api/smartpos/inventory';
 import type { Customer, UUID } from 'src/api/smartpos/types';
@@ -112,7 +113,7 @@ export function QuotationEditDrawer({ open, initial, onClose, onSaved }: Quotati
       });
       onSaved();
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to save quotation');
+      setError(parseApiError(e).message);
     } finally {
       setSubmitting(false);
     }
@@ -129,7 +130,7 @@ export function QuotationEditDrawer({ open, initial, onClose, onSaved }: Quotati
       }
       onSaved();
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Action failed');
+      setError(parseApiError(e).message);
     } finally {
       setActionLoading(false);
     }
