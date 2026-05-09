@@ -17,7 +17,7 @@ public class MinioConfig {
     @Value("${minio.secret-key:minioadmin}")
     private String secretKey;
 
-    @Bean
+    @Bean(destroyMethod = "close")
     public MinioClient minioClient() {
         return MinioClient.builder()
                 .endpoint(endpoint)
