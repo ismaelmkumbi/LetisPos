@@ -1161,7 +1161,7 @@ function DashboardSideRail({
           </Typography>
           <Stack spacing={1}>
             <Button
-              component={RouterLink as any}
+              component={RouterLink as React.ElementType}
               to="/smartpos/sales/new"
               variant="contained"
               fullWidth
@@ -1178,7 +1178,7 @@ function DashboardSideRail({
               New sale
             </Button>
             <Button
-              component={RouterLink as any}
+              component={RouterLink as React.ElementType}
               to="/smartpos/products"
               variant="outlined"
               fullWidth
@@ -1195,7 +1195,7 @@ function DashboardSideRail({
               Manage stock
             </Button>
             <Button
-              component={RouterLink as any}
+              component={RouterLink as React.ElementType}
               to="/smartpos/reports"
               variant="outlined"
               fullWidth
