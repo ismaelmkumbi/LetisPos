@@ -8,7 +8,7 @@ spring:
     name: hrm-service
 
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/hrm_db}?preferQueryMode=${DB_PREFER_QUERY_MODE:simple}
+    url: ${DB_URL:jdbc:postgresql://localhost:5434/hrm_db}?preferQueryMode=${DB_PREFER_QUERY_MODE:simple}
     username: ${DB_USER:hrm_user}
     password: ${DB_PASSWORD:hrm_pass}
     hikari:
