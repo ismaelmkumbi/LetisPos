@@ -36,37 +36,37 @@ html {
   box-sizing: border-box;
 }
 
-/* ── Overlay scrollbar (floats above content, no layout shift) ──────────── */
-.lp-page {
-  overflow-y: overlay;
-  scrollbar-width: thin;
-  scrollbar-color: transparent transparent;
-}
-
-.lp-page::-webkit-scrollbar {
+/* ── Overlay scrollbar for landing page (targets viewport/html) ────────── */
+html.lp-scrollbar::-webkit-scrollbar {
   width: 4px;
 }
 
-.lp-page::-webkit-scrollbar-track {
+html.lp-scrollbar::-webkit-scrollbar-track {
   background: transparent;
 }
 
-.lp-page::-webkit-scrollbar-thumb {
+html.lp-scrollbar::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.15);
   border-radius: 99px;
   opacity: 0;
   transition: opacity 0.4s ease;
 }
 
-.lp-page::-webkit-scrollbar-thumb:hover {
+html.lp-scrollbar::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.28);
 }
 
 /* Show thumb only while actively scrolling */
-.lp-page.scrolling::-webkit-scrollbar-thumb {
+html.lp-scrollbar.scrolling::-webkit-scrollbar-thumb {
   opacity: 1;
 }
 
-.lp-page.scrolling {
+/* Firefox */
+html.lp-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+html.lp-scrollbar.scrolling {
   scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
 }
