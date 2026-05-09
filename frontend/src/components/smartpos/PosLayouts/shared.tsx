@@ -1,15 +1,11 @@
-import { useContext } from 'react';
 /**
  * Shared utilities, CSS constants, and helpers for all POS layouts.
  */
-import { CustomizerContext } from 'src/context/CustomizerContext';
 import { brand } from 'src/theme/smartpos/brand';
 import type { Line } from './types';
 
 /** Unit price from tier when line has basePrice / unitCost from catalog. */
 export function unitPriceForTier(line: Line, tier: NonNullable<Line['priceTier']>): number {
-  const { activeMode: _pos } = useContext(CustomizerContext);
-  const isDark = _pos === 'dark';
   const base = line.basePrice ?? line.unitPrice;
   if (tier === 'retail') return Math.round(base * 100) / 100;
   if (tier === 'wholesale') {

@@ -213,6 +213,8 @@ const emptyQuickAdd: QuickAddState = {
 // ─── Component ─────────────────────────────────────────────────────────────────
 
 export default function ProductEditDrawer({ open, initial, onClose, onSaved, onDuplicate, prefill }: ProductEditDrawerProps) {
+  const { activeMode } = useContext(CustomizerContext);
+  const isDark = activeMode === 'dark';
   const [form, setForm]                   = useState<ProductDrawerForm>(emptyForm);
   const [variantDrafts, setVariantDrafts] = useState<VariantDraft[]>([]);
   const [submitting, setSubmitting]       = useState(false);

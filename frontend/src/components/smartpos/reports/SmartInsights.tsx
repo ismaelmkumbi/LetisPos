@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Box, Button, Card, CardContent, Chip, CircularProgress, Grid, Skeleton, Stack, Typography } from '@mui/material';
+import { Box, Button, Card, CardContent, Chip, Grid, Skeleton, Stack, Typography } from '@mui/material';
 import { IconBulb } from '@tabler/icons-react';
 import { aiGetRecommendations, type Recommendation } from 'src/api/smartpos/ai';
 import { brand } from 'src/theme/smartpos/brand';
