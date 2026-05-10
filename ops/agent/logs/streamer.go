@@ -33,7 +33,7 @@ func New() *Streamer { return &Streamer{} }
 func (s *Streamer) StreamJournal(service string, tail int, filter string, grep bool, identifier string) (io.ReadCloser, error) {
 	var args []string
 	if identifier != "" {
-		args = []string{"-q", "SYSLOG_IDENTIFIER=" + identifier, "--no-pager", "-n", strconv.Itoa(tail), "-o", "short-iso"}
+		args = []string{"SYSLOG_IDENTIFIER=" + identifier, "--no-pager", "-n", strconv.Itoa(tail), "-o", "short-iso"}
 	} else if grep {
 		args = []string{"--grep=" + service, "--no-pager", "-n", strconv.Itoa(tail), "-o", "short-iso"}
 	} else {
@@ -70,9 +70,11 @@ func (s *Streamer) ServeLogs(w http.ResponseWriter, r *http.Request, service str
 	filter := r.URL.Query().Get("filter")
 	grep := r.URL.Query().Get("grep") == "1"
 	identifier := r.URL.Query().Get("id")
-	if identifier == "" {
-		if id, ok := ServiceIdentifiers[service]; ok {
-			identifier = id
+
+	// Auto-enable grep for known backend services (not systemd units)
+	if !grep && identifier == "" {
+		if _, ok := ServiceIdentifiers[service]; ok {
+			grep = true
 		}
 	}
 
