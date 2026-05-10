@@ -9,7 +9,7 @@ import {
 import {
   IconAlertTriangle, IconCircleCheck, IconCurrencyDollar,
   IconDotsVertical, IconEdit, IconEye, IconLayoutList, IconLayoutRows,
-  IconPlus, IconShoppingCart, IconTrash, IconTruckDelivery, IconX,
+  IconPlus, IconRotate, IconShoppingCart, IconTrash, IconTruckDelivery, IconX,
 } from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
@@ -29,6 +29,7 @@ import { useAuth } from 'src/context/smartpos/AuthContext';
 import { brand } from 'src/theme/smartpos/brand';
 import { formatMoney } from 'src/utils/smartpos/currency';
 import { parseApiError } from 'src/utils/smartpos/apiErrors';
+import IssuePurchaseReturnDialog from './IssuePurchaseReturnDialog';
 
 const fmt = formatMoney;
 const PAGE_SIZE = 20;
@@ -205,6 +206,9 @@ export default function PurchasesListPage() {
   const [deleting, setDeleting] = useState(false);
   const [batchDeleteOpen, setBatchDeleteOpen] = useState(false);
   const [batchDeleting, setBatchDeleting] = useState(false);
+
+  // Issue-return dialog
+  const [returnTarget, setReturnTarget] = useState<Purchase | null>(null);
 
   // Cancel confirmation
   const [cancelTarget, setCancelTarget] = useState<Purchase | null>(null);
@@ -938,6 +942,22 @@ export default function PurchasesListPage() {
             Receive
           </MenuItem>
         )}
+        {rowMenu?.row.status === 'RECEIVED' && (
+          <MenuItem
+            dense
+            onClick={() => {
+              if (!rowMenu) return;
+              setReturnTarget(rowMenu.row);
+              closeRowMenu();
+            }}
+            sx={{ color: 'warning.dark' }}
+          >
+            <ListItemIcon sx={{ minWidth: 36, color: 'inherit' }}>
+              <IconRotate size={18} />
+            </ListItemIcon>
+            Return to supplier
+          </MenuItem>
+        )}
         {rowMenu && rowMenu.row.status !== 'CANCELLED' && (
           <MenuItem
             dense
@@ -1039,6 +1059,17 @@ export default function PurchasesListPage() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* ── Issue return dialog ── */}
+      <IssuePurchaseReturnDialog
+        open={!!returnTarget}
+        purchase={returnTarget}
+        onClose={() => setReturnTarget(null)}
+        onSuccess={(ref) => {
+          setNotice({ message: `Return ${ref} created. Stock removed from warehouse.`, severity: 'success' });
+          setRefreshToken((n) => n + 1);
+        }}
+      />
     </Box>
   );
 }

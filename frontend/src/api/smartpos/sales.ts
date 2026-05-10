@@ -529,6 +529,63 @@ export async function getPurchaseStats(params: {
   return data;
 }
 
+// ─── Purchase returns ───
+
+export interface PurchaseReturnLine {
+  id: UUID;
+  productId: UUID;
+  variantId: UUID | null;
+  productName: string;
+  unitPrice: number;
+  qty: number;
+  lineTotal: number;
+}
+
+export interface PurchaseReturn {
+  id: UUID;
+  ref: string;
+  date: string;
+  purchaseId: UUID;
+  supplierId: UUID | null;
+  warehouseId: UUID;
+  status: 'DRAFT' | 'CONFIRMED' | 'CANCELLED';
+  reason: string | null;
+  grandTotal: number;
+  lines: PurchaseReturnLine[];
+}
+
+export interface CreatePurchaseReturnBody {
+  date?: string;
+  reason?: string;
+  lines: {
+    productId: UUID;
+    variantId?: UUID | null;
+    productName?: string;
+    unitPrice: number;
+    qty: number;
+  }[];
+}
+
+export async function createPurchaseReturn(
+  purchaseId: UUID,
+  body: CreatePurchaseReturnBody,
+): Promise<PurchaseReturn> {
+  const { data } = await api.post<PurchaseReturn>(
+    `/api/v1/purchases/${purchaseId}/returns`, body,
+  );
+  return data;
+}
+
+export async function listPurchaseReturns(
+  purchaseId: UUID,
+  params: { page?: number; size?: number } = {},
+): Promise<Page<PurchaseReturn>> {
+  const { data } = await api.get<Page<PurchaseReturn>>(
+    `/api/v1/purchases/${purchaseId}/returns`, { params },
+  );
+  return data;
+}
+
 // ─── Purchase payments ───
 
 export interface PurchasePayment {
@@ -555,46 +612,3 @@ export async function getPurchasePayments(purchaseId: UUID): Promise<PurchasePay
   return data;
 }
 
-// ---------- Purchase Returns ----------
-
-export interface PurchaseReturn {
-  id: UUID;
-  ref: string;
-  date: string;
-  purchaseId: UUID;
-  warehouseId: UUID;
-  status: ReturnStatus;
-  subtotal: number;
-  taxTotal: number;
-  grandTotal: number;
-  notes: string | null;
-  lines: SaleLine[];
-}
-
-export interface CreatePurchaseReturnBody {
-  purchaseId: UUID;
-  warehouseId: UUID;
-  date?: string;
-  lines: { productId: UUID; variantId?: UUID; qty: number; unitPrice: number; taxRate?: number }[];
-  notes?: string;
-}
-
-export async function listPurchaseReturns(
-  params: {
-    purchaseId?: UUID;
-    dateFrom?: string;
-    dateTo?: string;
-    page?: number;
-    size?: number;
-  } = {},
-): Promise<Page<PurchaseReturn>> {
-  const { data } = await api.get<Page<PurchaseReturn>>('/api/v1/purchase-returns', { params });
-  return data;
-}
-
-export async function createPurchaseReturn(
-  body: CreatePurchaseReturnBody,
-): Promise<PurchaseReturn> {
-  const { data } = await api.post<PurchaseReturn>('/api/v1/purchase-returns', body);
-  return data;
-}
