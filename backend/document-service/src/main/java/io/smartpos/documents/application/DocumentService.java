@@ -27,16 +27,21 @@ public class DocumentService {
     private final GotenbergClient gotenbergClient;
     private final MinioObjectStore storage;
 
-    private static final Map<String, String> TEMPLATE_FILES = Map.of(
-        "quotation", "quotation.hbs",
-        "tax-invoice", "tax-invoice.hbs",
-        "proforma-invoice", "proforma-invoice.hbs",
-        "purchase-order", "purchase-order.hbs",
-        "payment-receipt", "payment-receipt.hbs",
-        "credit-note", "credit-note.hbs",
-        "delivery-note", "delivery-note.hbs",
-        "goods-received", "goods-received.hbs",
-        "customer-statement", "customer-statement.hbs"
+    private static final Map<String, String> TEMPLATE_FILES = Map.ofEntries(
+        Map.entry("quotation", "quotation.hbs"),
+        Map.entry("tax-invoice", "tax-invoice.hbs"),
+        Map.entry("proforma-invoice", "proforma-invoice.hbs"),
+        Map.entry("purchase-order", "purchase-order.hbs"),
+        Map.entry("payment-receipt", "payment-receipt.hbs"),
+        Map.entry("credit-note", "credit-note.hbs"),
+        Map.entry("delivery-note", "delivery-note.hbs"),
+        Map.entry("goods-received", "goods-received.hbs"),
+        Map.entry("customer-statement", "customer-statement.hbs"),
+        Map.entry("stock-transfer", "stock-transfer.hbs"),
+        Map.entry("stock-count", "stock-count.hbs"),
+        Map.entry("stock-adjustment", "stock-adjustment.hbs"),
+        Map.entry("batch-traceability", "batch-traceability.hbs"),
+        Map.entry("expiry-report", "expiry-report.hbs")
     );
 
     @Transactional

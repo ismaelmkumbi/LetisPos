@@ -27,7 +27,9 @@ public class TemplateService {
     private static final List<String> BUILT_IN_TYPES = List.of(
         "quotation", "tax-invoice", "proforma-invoice", "purchase-order",
         "payment-receipt", "credit-note", "delivery-note", "goods-received",
-        "customer-statement"
+        "customer-statement",
+        "stock-transfer", "stock-count", "stock-adjustment",
+        "batch-traceability", "expiry-report"
     );
 
     public record TemplateInfo(String documentType, String name, boolean isOverridden,
