@@ -16,11 +16,13 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.*;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -152,6 +154,32 @@ public class DocumentController {
         BulkJob job = bulkJobRepo.findById(jobId)
                 .orElseThrow(() -> new IllegalArgumentException("Job not found: " + jobId));
         return ResponseEntity.ok(BulkJobDto.from(job));
+    }
+
+    @GetMapping("/search")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Page<DocumentDto>> search(
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) String documentType,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String referenceType,
+            @RequestParam(required = false) String dateFrom,
+            @RequestParam(required = false) String dateTo,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "createdAt,desc") String sort) throws Exception {
+        UUID tenantId = TenantContext.require();
+        String[] sortParts = sort.split(",");
+        Sort.Direction dir = sortParts.length > 1 && sortParts[1].equalsIgnoreCase("asc")
+            ? Sort.Direction.ASC : Sort.Direction.DESC;
+        Pageable pageable = PageRequest.of(page, size, Sort.by(dir, sortParts[0]));
+
+        Instant from = dateFrom != null ? Instant.parse(dateFrom) : null;
+        Instant to = dateTo != null ? Instant.parse(dateTo) : null;
+
+        Page<Document> docs = documentRepo.search(tenantId, q, documentType, status,
+            referenceType, from, to, pageable);
+        return ResponseEntity.ok(docs.map(d -> DocumentDto.from(d, null)));
     }
 
     @GetMapping("/bulk/{jobId}/download")
