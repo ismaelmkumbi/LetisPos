@@ -193,7 +193,7 @@ export default function CompactLayout(props: PosLayoutProps) {
         {props.productsLoading ? (
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(auto-fill, minmax(155px, 1fr))' }, gap: 1.25 }}>
             {Array.from({ length: 12 }).map((_, i) => (
-              <Card key={i} elevation={0} sx={{ ...posSurface(isDark), borderRadius: '14px' }}>
+              <Card key={i} elevation={0} sx={(theme) => ({ ...posSurface(theme), borderRadius: '14px' })}>
                 <Skeleton variant="rectangular" sx={{ aspectRatio: '1/1', width: '100%', borderRadius: '14px 14px 0 0' }} />
                 <Box sx={{ p: 1.25 }}><Skeleton variant="text" sx={{ width: '75%', height: 14 }} /><Skeleton variant="text" sx={{ width: '40%', height: 16, mt: 0.5 }} /></Box>
               </Card>
@@ -216,8 +216,8 @@ export default function CompactLayout(props: PosLayoutProps) {
                   key={p.id}
                   elevation={0}
                   onClick={() => { if (!outOfStock) props.onAddProduct(p); }}
-                  sx={{
-                    ...posSurface(isDark),
+                  sx={(theme) => ({
+                    ...posSurface(theme),
                     borderRadius: '14px',
                     cursor: outOfStock ? 'not-allowed' : 'pointer',
                     opacity: outOfStock ? 0.45 : 1,
@@ -227,7 +227,7 @@ export default function CompactLayout(props: PosLayoutProps) {
                     '&:active': outOfStock ? {} : { transform: 'scale(0.97)', bgcolor: brand.primary[50] },
                     WebkitTapHighlightColor: 'transparent',
                     ...focusVisibleSx,
-                  }}
+                  })}
                 >
                   {/* Product image placeholder / initial */}
                   <Box

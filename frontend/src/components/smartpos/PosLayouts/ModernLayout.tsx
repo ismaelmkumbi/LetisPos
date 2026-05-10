@@ -977,8 +977,8 @@ function CheckoutPanel(p: CheckoutPanelProps) {
     <>
       <Card
         elevation={0}
-        sx={{
-          ...posSurface(isDark),
+        sx={(theme) => ({
+          ...posSurface(theme),
           // Pinned to its grid cell on md+, but on xs the column has scrollable
           // overflowY so the card grows to its natural height (no clipped Tax /
           // Shipping rows at the bottom).
@@ -987,7 +987,7 @@ function CheckoutPanel(p: CheckoutPanelProps) {
           display: 'flex',
           flexDirection: 'column',
           overflow: { xs: 'visible', md: 'hidden' },
-        }}
+        })}
       >
         {/* ─── Header ─────────────────────────────────────────────────── */}
         <Box
@@ -1580,16 +1580,16 @@ function TopFilters(p: TopFiltersProps) {
             placeholder="Search product by name, code or scan barcode"
             value={p.search}
             onChange={(e) => p.onSearchChange(e.target.value)}
-            sx={{
-              ...premiumFieldSx(isDark),
+            sx={(theme) => ({
+              ...premiumFieldSx(theme),
               '& .MuiOutlinedInput-root': {
-                ...premiumFieldSx(isDark)['& .MuiOutlinedInput-root'],
+                ...premiumFieldSx(theme)['& .MuiOutlinedInput-root'],
                 height: 48,
                 borderRadius: '10px',
                 bgcolor: isDark ? brand.neutral[800] : '#fff',
                 '& input': { fontWeight: 600, fontSize: '0.92rem' },
               },
-            }}
+            })}
             slotProps={{
               input: {
                 startAdornment: (
@@ -1616,16 +1616,16 @@ function TopFilters(p: TopFiltersProps) {
               if (e.key === 'Enter') p.onBarcodeScan();
               if (e.key === 'Escape') p.onBarcodeChange('');
             }}
-            sx={{
-              ...premiumFieldSx(isDark),
+            sx={(theme) => ({
+              ...premiumFieldSx(theme),
               '& .MuiOutlinedInput-root': {
-                ...premiumFieldSx(isDark)['& .MuiOutlinedInput-root'],
+                ...premiumFieldSx(theme)['& .MuiOutlinedInput-root'],
                 height: 48,
                 borderRadius: '10px',
                 bgcolor: isDark ? brand.neutral[800] : '#fff',
                 '& fieldset': { borderColor: isDark ? brand.neutral[700] : brand.neutral[200] },
               },
-            }}
+            })}
             slotProps={{
               input: {
                 startAdornment: (
@@ -1750,7 +1750,7 @@ function ProductGrid({
           <Card
             key={i}
             elevation={0}
-            sx={{ ...posSurface(isDark), borderRadius: '8px', overflow: 'hidden' }}
+            sx={(theme) => ({ ...posSurface(theme), borderRadius: '8px', overflow: 'hidden' })}
           >
             <Skeleton variant="rectangular" sx={{ aspectRatio: '1/1', width: '100%' }} />
             <Box sx={{ p: 1.5 }}>
@@ -2240,14 +2240,14 @@ function PaymentScreen(p: PaymentScreenProps) {
     >
       <Card
         elevation={0}
-        sx={{
-          ...posSurface(isDark),
+        sx={(theme) => ({
+          ...posSurface(theme),
           borderRadius: '8px',
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
           minHeight: 0,
-        }}
+        })}
       >
         <Stack
           direction="row"
@@ -2321,14 +2321,14 @@ function PaymentScreen(p: PaymentScreenProps) {
 
       <Card
         elevation={0}
-        sx={{
-          ...posSurface(isDark),
+        sx={(theme) => ({
+          ...posSurface(theme),
           borderRadius: '8px',
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
           minHeight: 0,
-        }}
+        })}
       >
         <Stack
           direction="row"
@@ -2506,7 +2506,7 @@ function PaymentScreen(p: PaymentScreenProps) {
                       onChange={(e) =>
                         updateSplitPayment(index, { method: e.target.value as PaymentChoice })
                       }
-                      sx={{ minWidth: 140, ...premiumFieldSx(isDark) }}
+                      sx={(theme) => ({ minWidth: 140, ...premiumFieldSx(theme) })}
                     >
                       <MenuItem value="CASH">Cash</MenuItem>
                       <MenuItem value="CARD">Card</MenuItem>
@@ -2522,7 +2522,7 @@ function PaymentScreen(p: PaymentScreenProps) {
                         updateSplitPayment(index, { amount: Number(e.target.value) || 0 })
                       }
                       placeholder="Amount"
-                      sx={{ flex: 1, ...premiumFieldSx(isDark) }}
+                      sx={(theme) => ({ flex: 1, ...premiumFieldSx(theme) })}
                       InputProps={{
                         startAdornment: <InputAdornment position="start">TSh</InputAdornment>,
                       }}

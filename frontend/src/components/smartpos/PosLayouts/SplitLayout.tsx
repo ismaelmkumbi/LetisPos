@@ -160,7 +160,7 @@ export default function SplitLayout(props: PosLayoutProps) {
     return (
       <Card key={p.id} elevation={0}
         onClick={() => { if (!outOfStock) props.onAddProduct(p); }}
-        sx={{ ...posSurface(isDark), borderRadius: '14px', cursor: outOfStock ? 'not-allowed' : 'pointer', opacity: outOfStock ? 0.45 : 1, transition: 'transform 0.12s ease', overflow: 'hidden', '&:hover': outOfStock ? {} : { transform: { xs: 'none', sm: 'translateY(-2px)' } }, '&:active': outOfStock ? {} : { transform: 'scale(0.97)', bgcolor: brand.primary[50] }, WebkitTapHighlightColor: 'transparent', ...focusVisibleSx }}>
+        sx={(theme) => ({ ...posSurface(theme), borderRadius: '14px', cursor: outOfStock ? 'not-allowed' : 'pointer', opacity: outOfStock ? 0.45 : 1, transition: 'transform 0.12s ease', overflow: 'hidden', '&:hover': outOfStock ? {} : { transform: { xs: 'none', sm: 'translateY(-2px)' } }, '&:active': outOfStock ? {} : { transform: 'scale(0.97)', bgcolor: brand.primary[50] }, WebkitTapHighlightColor: 'transparent', ...focusVisibleSx })}>
         <Box sx={{ aspectRatio: { xs: '1/1', sm: '4/3' }, bgcolor: outOfStock ? brand.neutral[100] : brand.primary[50], display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
           <Typography sx={{ fontSize: { xs: '1.4rem', sm: '1.8rem' }, fontWeight: 800, color: outOfStock ? brand.neutral[300] : brand.primary[200] }}>{p.name.charAt(0).toUpperCase()}</Typography>
           {stock && (
@@ -230,7 +230,7 @@ export default function SplitLayout(props: PosLayoutProps) {
         {props.productsLoading ? (
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(auto-fill, minmax(155px, 1fr))' }, gap: 1.25 }}>
             {Array.from({ length: 12 }).map((_, i) => (
-              <Card key={i} elevation={0} sx={{ ...posSurface(isDark), borderRadius: '14px' }}>
+              <Card key={i} elevation={0} sx={(theme) => ({ ...posSurface(theme), borderRadius: '14px' })}>
                 <Skeleton variant="rectangular" sx={{ aspectRatio: '1/1', width: '100%', borderRadius: '14px 14px 0 0' }} />
                 <Box sx={{ p: 1.25 }}><Skeleton variant="text" sx={{ width: '75%', height: 14 }} /><Skeleton variant="text" sx={{ width: '40%', height: 16, mt: 0.5 }} /></Box>
               </Card>
