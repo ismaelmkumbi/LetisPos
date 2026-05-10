@@ -52,9 +52,8 @@ public class PurchaseController {
 
     /**
      * Called by Payment Service when a payment is recorded against this purchase.
-     * {@code paymentId} is accepted for parity with the sales endpoint — purchase
-     * idempotency lives at the application layer (TODO: move to a dedicated
-     * {@code purchase_payments_applied} table when Kafka consumption is added).
+     * {@code paymentId} is the idempotency key — duplicate calls with the same
+     * paymentId are silent no-ops.
      */
     public record ApplyPaymentRequest(UUID paymentId, java.math.BigDecimal amount) {}
 
@@ -62,7 +61,8 @@ public class PurchaseController {
     @PreAuthorize("hasAuthority('payment.record')")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void applyPayment(@PathVariable UUID id, @RequestBody ApplyPaymentRequest req) {
-        service.applyPayment(id, req.amount());
+        service.applyPayment(id, req.paymentId(), req.amount(),
+                io.smartpos.sales.domain.model.PurchasePaymentApplied.Source.FEIGN);
     }
 
     private static UUID userIdFrom(Jwt jwt) { return jwt == null ? null : UUID.fromString(jwt.getSubject()); }

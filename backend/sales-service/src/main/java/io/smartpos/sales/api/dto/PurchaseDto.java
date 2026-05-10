@@ -22,7 +22,7 @@ public record PurchaseDto(
         List<SaleDto.Line> lines
 ) {
     public static PurchaseDto from(Purchase p) {
-        BigDecimal due = p.getGrandTotal().subtract(p.getPaidTotal());
+        BigDecimal due = p.getGrandTotal().subtract(p.getPaidTotal()).max(BigDecimal.ZERO);
         return new PurchaseDto(p.getId(), p.getRef(), p.getDate(),
                 p.getSupplierId(), p.getWarehouseId(),
                 p.getStatus(), p.getPaymentStatus(),

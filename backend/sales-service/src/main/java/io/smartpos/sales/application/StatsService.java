@@ -196,6 +196,6 @@ public class StatsService {
         long count = ((Number) row[0]).longValue();
         BigDecimal gross = (BigDecimal) row[1];
         BigDecimal paid  = (BigDecimal) row[2];
-        return new PurchaseStats(count, gross, paid, gross.subtract(paid));
+        return new PurchaseStats(count, gross, paid, gross.subtract(paid).max(BigDecimal.ZERO));
     }
 }

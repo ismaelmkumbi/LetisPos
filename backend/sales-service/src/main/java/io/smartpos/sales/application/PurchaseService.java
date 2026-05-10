@@ -3,11 +3,13 @@ package io.smartpos.sales.application;
 import io.smartpos.sales.api.dto.PurchaseDto;
 import io.smartpos.sales.api.dto.SaleLineInput;
 import io.smartpos.sales.domain.model.*;
+import io.smartpos.sales.domain.repository.PurchasePaymentAppliedRepository;
 import io.smartpos.sales.domain.repository.PurchaseRepository;
 import io.smartpos.sales.infrastructure.feign.InventoryClient;
 import io.smartpos.common.context.TenantContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -32,6 +34,7 @@ import java.util.UUID;
 public class PurchaseService {
 
     private final PurchaseRepository repo;
+    private final PurchasePaymentAppliedRepository appliedRepo;
     private final PricingEngine pricing;
     private final InventoryClient inventory;
     private final OutboxPublisher outbox;
@@ -132,11 +135,33 @@ public class PurchaseService {
     }
 
     @Transactional
-    public void applyPayment(UUID purchaseId, BigDecimal amount) {
+    public boolean applyPayment(UUID purchaseId, UUID paymentId, BigDecimal amount,
+                                PurchasePaymentApplied.Source source) {
+        if (paymentId == null) {
+            log.warn("applyPayment for purchase {} called without paymentId — skipping idempotency check",
+                    purchaseId);
+            return doApplyPayment(purchaseId, amount);
+        }
+        try {
+            appliedRepo.saveAndFlush(PurchasePaymentApplied.builder()
+                    .paymentId(paymentId)
+                    .purchaseId(purchaseId)
+                    .amount(nz(amount))
+                    .source(source)
+                    .build());
+        } catch (DataIntegrityViolationException dup) {
+            log.info("Skipping duplicate payment {} on purchase {} (source={})", paymentId, purchaseId, source);
+            return false;
+        }
+        return doApplyPayment(purchaseId, amount);
+    }
+
+    private boolean doApplyPayment(UUID purchaseId, BigDecimal amount) {
         Purchase p = repo.findById(purchaseId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Purchase not found"));
-        p.setPaidTotal(p.getPaidTotal().add(amount));
+        p.setPaidTotal(p.getPaidTotal().add(nz(amount)));
         p.recomputePaymentStatus();
+        return true;
     }
 
     private String nextRef() {

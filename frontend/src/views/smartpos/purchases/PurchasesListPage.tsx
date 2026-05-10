@@ -31,6 +31,10 @@ import { formatMoney } from 'src/utils/smartpos/currency';
 const fmt = formatMoney;
 const PAGE_SIZE = 20;
 
+const outstandingAmount = (purchase: Purchase) => Math.max(0, purchase.dueTotal);
+const supplierCreditAmount = (purchase: Purchase) =>
+  Math.max(0, purchase.paidTotal - purchase.grandTotal, -purchase.dueTotal);
+
 const STATUS_TONE: Record<PurchaseStatus, { bg: string; fg: string; dot: string }> = {
   DRAFT:     { bg: brand.neutral[100], fg: brand.neutral[700], dot: brand.neutral[400] },
   ORDERED:   { bg: brand.info.light,    fg: brand.info.dark,    dot: brand.info.main },
@@ -250,6 +254,12 @@ export default function PurchasesListPage() {
     [rows],
   );
 
+  const financialSummary = useMemo(() => {
+    const due = Math.max(0, globalStats?.due ?? 0);
+    const credit = Math.max(0, -(globalStats?.due ?? 0), (globalStats?.paid ?? 0) - (globalStats?.gross ?? 0));
+    return { due, credit };
+  }, [globalStats]);
+
   // ── Row menu ─────────────────────────────────────────────────────────────────
 
   const closeRowMenu = useCallback(() => setRowMenu(null), []);
@@ -456,10 +466,13 @@ export default function PurchasesListPage() {
       width: 120,
       exportValue: (p) => p.paymentStatus,
       render: (p) => {
-        const t = PAY_TONE[p.paymentStatus];
+        const credit = supplierCreditAmount(p);
+        const t = credit > 0
+          ? { bg: brand.info.light, fg: brand.info.dark, dot: brand.info.main }
+          : PAY_TONE[p.paymentStatus];
         return (
           <Chip
-            label={p.paymentStatus}
+            label={credit > 0 ? 'CREDIT' : p.paymentStatus}
             size="small"
             sx={{
               bgcolor: t.bg, color: t.fg, fontWeight: 700,
@@ -502,24 +515,39 @@ export default function PurchasesListPage() {
       align: 'right',
       width: 112,
       sortable: false, // dueTotal is derived (grandTotal - paidTotal), not a column.
-      exportValue: (p) => fmt(p.dueTotal),
-      render: (p) => (
-        <Stack direction="row" spacing={0.5} alignItems="center" justifyContent="flex-end">
-          {p.dueTotal > 0 && (
-            <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: brand.error.main, flexShrink: 0 }} />
-          )}
-          <Typography
-            variant="body2"
-            sx={{
-              fontWeight: 700,
-              color: p.dueTotal > 0 ? brand.error.dark : brand.neutral[500],
-              fontVariantNumeric: 'tabular-nums',
-            }}
-          >
-            {fmt(p.dueTotal)}
-          </Typography>
-        </Stack>
-      ),
+      exportValue: (p) => {
+        const outstanding = outstandingAmount(p);
+        const credit = supplierCreditAmount(p);
+        return credit > 0 ? `Credit ${fmt(credit)}` : fmt(outstanding);
+      },
+      render: (p) => {
+        const outstanding = outstandingAmount(p);
+        const credit = supplierCreditAmount(p);
+        return (
+          <Stack spacing={0.15} alignItems="flex-end">
+            <Stack direction="row" spacing={0.5} alignItems="center" justifyContent="flex-end">
+              {outstanding > 0 && (
+                <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: brand.error.main, flexShrink: 0 }} />
+              )}
+              <Typography
+                variant="body2"
+                sx={{
+                  fontWeight: 700,
+                  color: outstanding > 0 ? brand.error.dark : credit > 0 ? brand.info.dark : brand.neutral[500],
+                  fontVariantNumeric: 'tabular-nums',
+                }}
+              >
+                {fmt(outstanding)}
+              </Typography>
+            </Stack>
+            {credit > 0 && (
+              <Typography variant="caption" sx={{ color: brand.info.dark, fontWeight: 700, fontSize: '0.65rem' }}>
+                Credit {fmt(credit)}
+              </Typography>
+            )}
+          </Stack>
+        );
+      },
     },
     {
       key: 'dueDate',
@@ -535,7 +563,7 @@ export default function PurchasesListPage() {
         today.setHours(0, 0, 0, 0);
         const due = p.dueDate ? new Date(p.dueDate) : null;
         if (due) due.setHours(0, 0, 0, 0);
-        const overdue = !!due && due < today && p.dueTotal > 0;
+        const overdue = !!due && due < today && outstandingAmount(p) > 0;
         return (
           <Stack direction="row" spacing={0.75} alignItems="center">
             {overdue && <IconAlertTriangle size={14} color={brand.error.main} style={{ flexShrink: 0 }} />}
@@ -598,7 +626,9 @@ export default function PurchasesListPage() {
         metrics={globalStats ? [
           { label: 'Total', value: fmt(globalStats.gross) },
           { label: 'Paid', value: fmt(globalStats.paid) },
-          { label: 'Outstanding', value: fmt(globalStats.due) },
+          financialSummary.credit > 0
+            ? { label: 'Supplier credit', value: fmt(financialSummary.credit) }
+            : { label: 'Outstanding', value: fmt(financialSummary.due) },
         ] : undefined}
         actions={[{
           label: 'New purchase',
@@ -627,11 +657,17 @@ export default function PurchasesListPage() {
           accentBg={`linear-gradient(135deg, ${brand.success.light}, #DCFCE7)`}
         />
         <StatCard
-          icon={<IconAlertTriangle size={18} color={brand.error.dark} />}
-          label="Outstanding"
-          value={globalStats ? fmt(globalStats.due) : '—'}
-          color={brand.error.main}
-          accentBg={`linear-gradient(135deg, ${brand.error.light}, #FEE2E2)`}
+          icon={
+            financialSummary.credit > 0
+              ? <IconCircleCheck size={18} color={brand.info.dark} />
+              : <IconAlertTriangle size={18} color={brand.error.dark} />
+          }
+          label={financialSummary.credit > 0 ? 'Supplier credit' : 'Outstanding'}
+          value={globalStats ? fmt(financialSummary.credit > 0 ? financialSummary.credit : financialSummary.due) : '—'}
+          color={financialSummary.credit > 0 ? brand.info.main : brand.error.main}
+          accentBg={financialSummary.credit > 0
+            ? `linear-gradient(135deg, ${brand.info.light}, #E0F2FE)`
+            : `linear-gradient(135deg, ${brand.error.light}, #FEE2E2)`}
         />
         <StatCard
           icon={<IconTruckDelivery size={18} color={brand.accent[500]} />}
@@ -791,6 +827,7 @@ export default function PurchasesListPage() {
         totalPages={totalPages}
         totalElements={totalElements}
         pageSize={PAGE_SIZE}
+        itemLabel="purchases"
         onPageChange={setPage}
         getRowKey={(p) => p.id}
         onRowClick={(p) => nav(`/smartpos/purchases/${p.id}/edit`)}

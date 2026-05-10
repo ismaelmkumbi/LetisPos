@@ -70,6 +70,8 @@ export interface DataTableProps<T> {
   emptyIcon?: React.ReactNode;
   totalPages?: number;
   totalElements?: number;
+  /** Singular/plural label used in the footer row count. Defaults to "products". */
+  itemLabel?: string;
   page?: number;            // 0-based
   pageSize?: number;
   onPageChange?: (page: number) => void;
@@ -199,6 +201,7 @@ const reactNodeToText = (node: React.ReactNode): string => {
 export function DataTable<T>({
   columns, rows, loading, emptyText = 'No records found',
   emptyIcon, totalPages, totalElements, page = 0, pageSize = 20,
+  itemLabel = 'products',
   onPageChange, onRowClick, getRowKey, dense = false, density,
   stickyHeader = true, getRowStatus, emptyAction,
   tableKey,
@@ -1012,7 +1015,7 @@ export function DataTable<T>({
               <Typography component="span" variant="caption" sx={{ fontWeight: 700, color: isDark ? brand.neutral[300] : brand.neutral[700] }}>
                 {totalElements.toLocaleString()}
               </Typography>{' '}
-              products
+              {itemLabel}
             </Typography>
           ) : (
             <Box />
