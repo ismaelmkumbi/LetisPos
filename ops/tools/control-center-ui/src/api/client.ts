@@ -26,7 +26,7 @@ let refreshInFlight: Promise<string | null> | null = null;
 
 async function doRefresh(): Promise<string | null> {
   try {
-    const res = await authApi.post('/api/v1/auth/refresh', {});
+    const res = await authApi.post('/refresh', {});
     tokenStore.set(res.data.accessToken);
     return res.data.accessToken;
   } catch {
@@ -66,14 +66,14 @@ hubApi.interceptors.response.use(
 );
 
 export async function login(email: string, password: string) {
-  const res = await authApi.post('/api/v1/auth/login', { email, password });
+  const res = await authApi.post('/login', { email, password });
   tokenStore.set(res.data.accessToken);
   return res.data;
 }
 
 export function logout() {
   tokenStore.clear();
-  void authApi.post('/api/v1/auth/logout', {}).catch(() => {});
+  void authApi.post('/logout', {}).catch(() => {});
   window.location.href = '/login';
 }
 
