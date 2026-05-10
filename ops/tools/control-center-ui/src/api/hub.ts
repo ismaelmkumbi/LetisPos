@@ -27,3 +27,9 @@ export const serviceAction = (server: string, svc: string, action: string) =>
   hubApi.post(`/api/v1/servers/${server}/services/${encodeURIComponent(svc)}/${action}`);
 export const getLogs = (server: string, svc: string, tail = 100, filter?: string) =>
   hubApi.get<string>(`/api/v1/servers/${server}/logs/${svc}`, { params: { tail, filter } }).then(r => r.data);
+
+export interface BackendService {
+  name: string; category: string; port: number; status: 'UP' | 'DOWN'; description: string;
+}
+export const getBackendServices = (server: string) =>
+  hubApi.get<BackendService[]>(`/api/v1/servers/${server}/backend-services`).then(r => r.data);
