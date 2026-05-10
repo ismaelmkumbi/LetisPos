@@ -134,6 +134,51 @@ public class PurchaseService {
         return PurchaseDto.from(p);
     }
 
+    /**
+     * Cancel a purchase. Refused once stock has been received — reversing a
+     * RECEIVED purchase would require an inventory back-out, which is a
+     * deliberate operator action (return to supplier) handled separately.
+     */
+    @Transactional
+    public PurchaseDto cancel(UUID id) {
+        Purchase p = repo.findByIdWithLines(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Purchase not found"));
+        if (p.getStatus() == PurchaseStatus.CANCELLED) return PurchaseDto.from(p);
+        if (p.getStatus() == PurchaseStatus.RECEIVED) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Cannot cancel a received purchase — issue a return to supplier instead");
+        }
+        if (p.getPaidTotal().signum() > 0) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Cannot cancel a purchase with payments — refund first");
+        }
+        p.cancel();
+        outbox.publish("Purchase", p.getId(), "PurchaseCancelled",
+                Map.of("purchaseId", p.getId(), "ref", p.getRef()));
+        return PurchaseDto.from(p);
+    }
+
+    /**
+     * Hard-delete a purchase. Allowed only for DRAFT or CANCELLED orders that
+     * never moved stock or payments.
+     */
+    @Transactional
+    public void delete(UUID id) {
+        Purchase p = repo.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Purchase not found"));
+        if (p.getStatus() == PurchaseStatus.RECEIVED) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Cannot delete a received purchase — cancel and return to supplier instead");
+        }
+        if (p.getPaidTotal().signum() > 0) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Cannot delete a purchase with payments — refund first");
+        }
+        repo.delete(p);
+        outbox.publish("Purchase", id, "PurchaseDeleted",
+                Map.of("purchaseId", id, "ref", p.getRef()));
+    }
+
     @Transactional
     public boolean applyPayment(UUID purchaseId, UUID paymentId, BigDecimal amount,
                                 PurchasePaymentApplied.Source source) {

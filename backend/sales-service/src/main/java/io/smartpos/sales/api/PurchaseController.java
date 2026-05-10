@@ -50,6 +50,15 @@ public class PurchaseController {
     @PreAuthorize("hasAuthority('purchase.update')")
     public PurchaseDto receive(@PathVariable UUID id) { return service.receive(id); }
 
+    @PostMapping("/{id}/cancel")
+    @PreAuthorize("hasAuthority('purchase.update')")
+    public PurchaseDto cancel(@PathVariable UUID id) { return service.cancel(id); }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('purchase.delete') or hasAuthority('purchase.update')")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(@PathVariable UUID id) { service.delete(id); }
+
     /**
      * Called by Payment Service when a payment is recorded against this purchase.
      * {@code paymentId} is the idempotency key — duplicate calls with the same

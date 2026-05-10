@@ -94,6 +94,11 @@ public class Purchase {
         this.receivedAt = Instant.now();
     }
 
+    public void cancel() {
+        if (status == PurchaseStatus.CANCELLED) return;
+        this.status = PurchaseStatus.CANCELLED;
+    }
+
     public void recomputePaymentStatus() {
         if (paidTotal.signum() == 0)                      paymentStatus = PaymentStatus.UNPAID;
         else if (paidTotal.compareTo(grandTotal) < 0)     paymentStatus = PaymentStatus.PARTIAL;
