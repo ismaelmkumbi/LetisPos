@@ -5,7 +5,8 @@ import {
   TableContainer, TableHead, TableRow, TextField, MenuItem, Collapse,
   Dialog, DialogTitle, DialogContent, DialogActions,
 } from '@mui/material';
-import { Refresh, Logout, Storage, Circle, KeyboardArrowDown, KeyboardArrowUp } from '@mui/icons-material';
+import { Refresh, Logout, Storage, Circle, KeyboardArrowDown, KeyboardArrowUp, Article } from '@mui/icons-material';
+import LogViewer from '../components/LogViewer';
 import { LineChart, Line, CartesianGrid, Tooltip as ReTooltip, ResponsiveContainer } from 'recharts';
 import { getServers, getMetrics, getServices, getBackendServices, serviceAction } from '../api/hub';
 import type { Server, MetricPoint, ServiceInfo, BackendService } from '../api/hub';
@@ -94,6 +95,7 @@ function ServerPanel({ server, metrics: m, backendSvcs, services, svcFilter, onF
   const diskPct = latest?.diskTotalBytes ? (latest.diskUsedBytes! / latest.diskTotalBytes * 100).toFixed(1) : null;
   const [showSystem, setShowSystem] = useState(false);
   const [detailSvc, setDetailSvc] = useState<BackendService | null>(null);
+  const [logSvc, setLogSvc] = useState<{ name: string } | null>(null);
 
   const chartData = m.slice(-30).map(p => ({ time: new Date(p.time).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }), cpu: p.cpuPercent?.toFixed(1) }));
 
@@ -172,8 +174,12 @@ function ServerPanel({ server, metrics: m, backendSvcs, services, svcFilter, onF
                     </Stack>
                   </TableCell>
                   <TableCell sx={{ color: muted, fontSize: '0.72rem' }}>{svc.description}</TableCell>
-                  <TableCell align="right">
+                  <TableCell align="right" onClick={e => e.stopPropagation()}>
                     <Stack direction="row" spacing={0.5} sx={{ justifyContent: 'flex-end' }}>
+                      <Button size="small" variant="outlined" onClick={() => setLogSvc({ name: svc.name })}
+                        sx={{ minWidth: 28, height: 26, p: 0, fontSize: '0.6rem', fontWeight: 700, color: brand.info.main, borderColor: `${brand.info.main}40`, borderRadius: '6px', '&:hover': { borderColor: brand.info.main, bgcolor: `${brand.info.main}15` } }}>
+                        <Article sx={{ fontSize: 13 }} />
+                      </Button>
                       <Button size="small" variant="outlined" onClick={() => { serviceAction(server.hostname, svc.name.toLowerCase().replace(' ', '-'), 'restart').catch(() => {}); }}
                         sx={{ minWidth: 28, height: 26, p: 0, fontSize: '0.6rem', fontWeight: 700, color: brand.warning.main, borderColor: `${brand.warning.main}40`, borderRadius: '6px', '&:hover': { borderColor: brand.warning.main, bgcolor: `${brand.warning.main}15` } }}>↻</Button>
                     </Stack>
@@ -215,11 +221,15 @@ function ServerPanel({ server, metrics: m, backendSvcs, services, svcFilter, onF
               </DialogContent>
               <DialogActions sx={{ px: 3, pb: 2 }}>
                 <Button onClick={() => setDetailSvc(null)} sx={{ fontWeight: 600, borderRadius: '10px', textTransform: 'none', color: muted }}>Close</Button>
+                <Button variant="outlined" onClick={() => { setDetailSvc(null); setLogSvc({ name: detailSvc.name }); }} startIcon={<Article fontSize="small" />} sx={{ fontWeight: 700, borderRadius: '10px', textTransform: 'none', color: brand.info.main, borderColor: `${brand.info.main}40`, '&:hover': { borderColor: brand.info.main, bgcolor: `${brand.info.main}15` } }}>View Logs</Button>
                 <Button variant="outlined" color="warning" onClick={() => { serviceAction(server.hostname, detailSvc.name.toLowerCase().replace(/\s+/g, '-'), 'restart').catch(() => {}); }} sx={{ fontWeight: 700, borderRadius: '10px', textTransform: 'none', ml: 1 }}>Restart Service</Button>
               </DialogActions>
             </>
           )}
         </Dialog>
+
+        {/* Log Viewer */}
+        {logSvc && <LogViewer open={!!logSvc} server={server.hostname} service={logSvc.name} onClose={() => setLogSvc(null)} />}
 
         {/* Systemd Services — collapsed by default */}
         <Box sx={{ mt: 2 }}>
