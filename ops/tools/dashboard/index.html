@@ -6,102 +6,113 @@
 <title>Letis Control Center</title>
 <style>
   :root {
-    --bg: #0b1120; --card: #111827; --border: #1e293b;
-    --text: #e2e8f0; --muted: #64748b; --green: #22c55e;
-    --red: #ef4444; --amber: #f59e0b; --blue: #3b82f6; --purple: #8b5cf6;
+    --bg: #0b1120; --card: #111827; --border: #1e293b; --hover: #1e293b;
+    --text: #e2e8f0; --muted: #64748b; --green: #22c55e; --green-bg: #052e16;
+    --red: #ef4444; --red-bg: #2e0505; --amber: #f59e0b; --blue: #3b82f6; --purple: #8b5cf6;
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
-  .topbar { display: flex; align-items: center; justify-content: space-between; padding: 16px 24px; border-bottom: 1px solid var(--border); background: var(--card); }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+  .topbar { display: flex; align-items: center; justify-content: space-between; padding: 16px 24px; border-bottom: 1px solid var(--border); background: var(--card); position: sticky; top: 0; z-index: 10; }
   .topbar h1 { font-size: 1.1rem; font-weight: 700; letter-spacing: -0.02em; }
-  .topbar .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
-  .topbar .live { background: var(--green); box-shadow: 0 0 8px rgba(34,197,94,0.5); animation: pulse 2s infinite; }
-  @keyframes pulse { 0%,100% { opacity:1 } 50% { opacity:0.5 } }
-  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 16px; padding: 24px; }
-  .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
-  .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
-  .card-header h3 { font-size: 0.95rem; font-weight: 700; }
-  .status { display: flex; align-items: center; gap: 6px; font-size: 0.75rem; font-weight: 600; }
-  .status .dot { width: 7px; height: 7px; border-radius: 50%; }
-  .status .online { background: var(--green); }
-  .status .offline { background: var(--red); }
-  .metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  .metric { background: #0f172a; border-radius: 8px; padding: 12px; }
-  .metric .label { font-size: 0.68rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px; }
-  .metric .value { font-size: 1.1rem; font-weight: 800; font-variant-numeric: tabular-nums; }
-  .bar { height: 4px; background: #1e293b; border-radius: 2px; margin-top: 6px; overflow: hidden; }
+  .badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: 600; }
+  .badge.live { background: var(--green-bg); color: var(--green); }
+  .badge .pulse { width: 7px; height: 7px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100% { opacity:1; box-shadow: 0 0 4px var(--green); } 50% { opacity:0.4; box-shadow: 0 0 12px var(--green); } }
+  .summary { display: flex; gap: 10px; padding: 20px 24px 0; }
+  .stat { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px 20px; text-align: center; min-width: 100px; }
+  .stat-num { font-size: 1.5rem; font-weight: 800; line-height: 1.2; }
+  .stat-label { font-size: 0.65rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 2px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)); gap: 16px; padding: 20px 24px 24px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; transition: border-color 0.2s; }
+  .card:hover { border-color: #334155; }
+  .card-header { display: flex; align-items: flex-start; justify-content: space-between; padding: 18px 20px 12px; }
+  .card-header h3 { font-size: 1rem; font-weight: 700; }
+  .card-header .sub { font-size: 0.7rem; color: var(--muted); margin-top: 2px; }
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 5px; }
+  .status-dot.online { background: var(--green); }
+  .status-dot.offline { background: var(--red); }
+  .status-text { font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+  .online-text { color: var(--green); }
+  .offline-text { color: var(--red); }
+  .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--border); margin: 0 20px; border-radius: 8px; overflow: hidden; }
+  .metric { background: #0f172a; padding: 14px 12px; text-align: center; }
+  .metric .label { font-size: 0.6rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+  .metric .value { font-size: 1.15rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .metric .unit { font-size: 0.65rem; color: var(--muted); font-weight: 500; }
+  .bar-wrap { height: 3px; background: #1e293b; border-radius: 2px; margin: 6px 8px 0; overflow: hidden; }
   .bar-fill { height: 100%; border-radius: 2px; transition: width 1s ease; }
-  .actions { display: flex; gap: 8px; margin-top: 14px; }
-  .btn { padding: 6px 14px; border-radius: 8px; border: 1px solid var(--border); background: transparent; color: var(--text); font-size: 0.75rem; font-weight: 600; cursor: pointer; transition: all 0.15s; }
-  .btn:hover { background: #1e293b; border-color: #334155; }
-  .btn.danger:hover { background: #3b1111; border-color: var(--red); color: var(--red); }
-  .empty { text-align: center; padding: 60px 20px; color: var(--muted); }
-  .empty h2 { font-size: 1.2rem; margin-bottom: 8px; }
-  .summary { display: flex; gap: 12px; padding: 0 24px; margin-bottom: -4px; }
-  .stat { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 12px 18px; text-align: center; }
-  .stat-num { font-size: 1.3rem; font-weight: 800; }
-  .stat-label { font-size: 0.65rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
-  .last-seen { font-size: 0.65rem; color: var(--muted); margin-top: 4px; }
-  .chart-container { margin-top: 12px; }
-  canvas { width: 100%; border-radius: 6px; }
-  .refresh { font-size: 0.7rem; color: var(--muted); margin-left: 8px; }
-  .controls { display: flex; gap: 8px; align-items: center; }
-  input, select { padding: 6px 10px; background: #0f172a; border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 0.75rem; }
-  ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: var(--bg); } ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  .section-title { font-size: 0.65rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; padding: 16px 20px 8px; font-weight: 700; }
+  .svc-row { display: flex; align-items: center; gap: 10px; padding: 8px 20px; font-size: 0.8rem; }
+  .svc-row:hover { background: var(--hover); }
+  .svc-name { flex: 1; font-weight: 500; }
+  .svc-status { font-size: 0.65rem; padding: 2px 8px; border-radius: 10px; font-weight: 600; text-transform: uppercase; }
+  .svc-status.active { background: var(--green-bg); color: var(--green); }
+  .svc-status.inactive { background: var(--red-bg); color: var(--red); }
+  .svc-actions { display: flex; gap: 4px; }
+  .btn { padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border); background: transparent; color: var(--text); font-size: 0.68rem; font-weight: 600; cursor: pointer; transition: all 0.15s; }
+  .btn:hover { background: var(--hover); border-color: #475569; }
+  .btn.primary { background: #1d4ed8; border-color: #1d4ed8; color: #fff; }
+  .btn.primary:hover { background: #2563eb; }
+  .btn.warn { color: var(--amber); border-color: #78350f; }
+  .btn.warn:hover { background: #451a03; }
+  .btn.danger { color: var(--red); border-color: #7f1d1d; }
+  .btn.danger:hover { background: #450a0a; }
+  .btn.sm { padding: 2px 8px; font-size: 0.62rem; }
+  .empty { text-align: center; padding: 80px 20px; color: var(--muted); }
+  .empty h2 { font-size: 1.3rem; margin-bottom: 8px; color: var(--text); }
+  .footer { padding: 0 24px 20px; font-size: 0.65rem; color: var(--muted); text-align: center; }
+  @media (max-width: 480px) {
+    .grid { grid-template-columns: 1fr; padding: 12px; }
+    .metrics { grid-template-columns: repeat(2, 1fr); }
+    .summary { padding: 12px; flex-wrap: wrap; }
+  }
 </style>
 </head>
 <body>
 <div class="topbar">
   <div>
     <h1>Letis Control Center</h1>
-    <span class="refresh" id="refreshLabel">Auto-refresh 5s</span>
   </div>
-  <div class="controls">
-    <span style="font-size:0.75rem;color:var(--muted)">Hub</span>
-    <span class="dot live"></span>
-    <span style="font-size:0.75rem;" id="hubStatus">connected</span>
+  <div style="display:flex;align-items:center;gap:12px;">
+    <span style="font-size:0.7rem;color:var(--muted)" id="clock"></span>
+    <span class="badge live"><span class="pulse"></span> <span id="hbStatus">Live</span></span>
   </div>
 </div>
 
 <div class="summary" id="summary"></div>
 <div class="grid" id="servers"></div>
-<div class="empty" id="empty"><h2>No servers connected</h2><p>Deploy an agent to start monitoring.</p></div>
+<div class="empty" id="empty"><h2>No servers connected</h2><p>Run the agent installer on a server to start monitoring.</p></div>
+<div class="footer">Letis Control Center · Auto-refresh 5s · <span id="lastCheck">—</span></div>
 
 <script>
 const API = '/hub/api/v1';
+const AGENT_PORT = 9100;
 let servers = [];
+let services = {};
 
-async function fetchServers() {
+function fmt(n, d) { if (n == null) return '—'; return Number(n).toFixed(d ?? 1); }
+function ago(ts) { if (!ts) return '—'; const s = (Date.now() - new Date(ts).getTime()) / 1000; if (s < 60) return Math.floor(s) + 's ago'; if (s < 3600) return Math.floor(s/60) + 'm ago'; if (s < 86400) return Math.floor(s/3600) + 'h ago'; return Math.floor(s/86400) + 'd ago'; }
+function pct(v, t) { if (!t || t === 0) return 0; return Math.min(100, (v / t) * 100); }
+
+async function fetchAll() {
   try {
     const res = await fetch(API + '/servers');
-    if (res.ok) {
-      const data = await res.json();
-      servers = data;
-      render();
-      document.getElementById('hubStatus').textContent = 'connected';
-      document.getElementById('hubStatus').style.color = 'var(--green)';
-    } else {
-      document.getElementById('hubStatus').textContent = 'auth required';
-      document.getElementById('hubStatus').style.color = 'var(--amber)';
-    }
-  } catch {
-    document.getElementById('hubStatus').textContent = 'disconnected';
-    document.getElementById('hubStatus').style.color = 'var(--red)';
+    if (!res.ok) throw new Error('API unavailable');
+    servers = await res.json();
+    document.getElementById('hbStatus').textContent = servers.length + ' online';
+  } catch(e) {
+    document.getElementById('hbStatus').textContent = 'offline';
   }
+  renderServers();
+  document.getElementById('lastCheck').textContent = new Date().toLocaleTimeString();
+  document.getElementById('clock').textContent = new Date().toLocaleTimeString();
 }
 
-function render() {
+function renderServers() {
   const grid = document.getElementById('servers');
   const empty = document.getElementById('empty');
   const summary = document.getElementById('summary');
-
-  if (!servers.length) {
-    grid.innerHTML = '';
-    empty.style.display = 'block';
-    summary.innerHTML = '';
-    return;
-  }
-
+  if (!servers.length) { grid.innerHTML = ''; empty.style.display = 'block'; summary.innerHTML = ''; return; }
   empty.style.display = 'none';
   const online = servers.filter(s => s.status === 'online').length;
   summary.innerHTML = `
@@ -110,68 +121,121 @@ function render() {
     <div class="stat"><div class="stat-num" style="color:var(--red)">${servers.length - online}</div><div class="stat-label">Offline</div></div>
   `;
 
-  grid.innerHTML = servers.map(s => `
+  grid.innerHTML = servers.map(s => {
+    const id = s.hostname.replace(/[^a-zA-Z0-9]/g, '');
+    return `
     <div class="card">
       <div class="card-header">
         <div>
           <h3>${s.hostname}</h3>
-          <div class="last-seen">${s.version || '—'} · ${s.ipAddress || '—'}</div>
+          <div class="sub">v${s.version || '—'} · ${s.ipAddress || '—'} · seen ${ago(s.lastSeen)}</div>
         </div>
-        <div class="status">
-          <span class="dot ${s.status === 'online' ? 'online' : 'offline'}"></span>
-          ${s.status}
-        </div>
+        <span class="status-text ${s.status === 'online' ? 'online-text' : 'offline-text'}">
+          <span class="status-dot ${s.status}"></span>${s.status}
+        </span>
       </div>
-      <div class="metrics" id="metrics-${s.hostname.replace(/[^a-zA-Z0-9]/g,'')}">
-        <div class="metric"><div class="label">CPU</div><div class="value">—</div><div class="bar"><div class="bar-fill" style="width:0%"></div></div></div>
-        <div class="metric"><div class="label">Memory</div><div class="value">—</div><div class="bar"><div class="bar-fill" style="width:0%"></div></div></div>
-        <div class="metric"><div class="label">Disk</div><div class="value">—</div><div class="bar"><div class="bar-fill" style="width:0%"></div></div></div>
+      <div class="metrics" id="m-${id}">
+        <div class="metric"><div class="label">CPU</div><div class="value">—</div></div>
+        <div class="metric"><div class="label">Memory</div><div class="value">—</div></div>
+        <div class="metric"><div class="label">Disk</div><div class="value">—</div></div>
         <div class="metric"><div class="label">Load</div><div class="value">—</div></div>
       </div>
-      <div class="actions">
-        <button class="btn" onclick="viewLogs('${s.hostname}')">Logs</button>
+      <div class="section-title">Services <span style="color:var(--muted);font-weight:400" id="sc-${id}"></span></div>
+      <div id="svc-${id}" style="padding-bottom:8px">
+        <div class="svc-row" style="color:var(--muted);justify-content:center">Loading...</div>
       </div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
 
-  // Fetch latest metrics for each server
-  servers.forEach(s => fetchMetrics(s.hostname));
+  servers.forEach(s => { fetchMetrics(s.hostname); fetchServices(s.hostname); });
 }
 
 async function fetchMetrics(hostname) {
   try {
     const to = new Date().toISOString();
-    const from = new Date(Date.now() - 60000).toISOString();
+    const from = new Date(Date.now() - 120000).toISOString();
     const res = await fetch(`${API}/servers/${hostname}/metrics?from=${from}&to=${to}`);
     if (!res.ok) return;
     const data = await res.json();
     if (!data.length) return;
-    const latest = data[data.length - 1];
-    const safeId = hostname.replace(/[^a-zA-Z0-9]/g, '');
-    const container = document.getElementById('metrics-' + safeId);
-    if (!container) return;
-
-    const memPct = latest.memTotalBytes ? ((latest.memUsedBytes / latest.memTotalBytes) * 100).toFixed(1) : 0;
-    const diskPct = latest.diskTotalBytes ? ((latest.diskUsedBytes / latest.diskTotalBytes) * 100).toFixed(1) : 0;
-    const cpu = latest.cpuPercent != null ? latest.cpuPercent.toFixed(1) : '—';
-    const load = latest.load1 != null ? latest.load1.toFixed(2) : '—';
-
-    container.innerHTML = `
-      <div class="metric"><div class="label">CPU</div><div class="value">${cpu}%</div><div class="bar"><div class="bar-fill" style="width:${cpu}%;background:var(--blue)"></div></div></div>
-      <div class="metric"><div class="label">Memory</div><div class="value">${memPct}%</div><div class="bar"><div class="bar-fill" style="width:${memPct}%;background:var(--purple)"></div></div></div>
-      <div class="metric"><div class="label">Disk</div><div class="value">${diskPct}%</div><div class="bar"><div class="bar-fill" style="width:${diskPct}%;background:var(--amber)"></div></div></div>
-      <div class="metric"><div class="label">Load</div><div class="value">${load}</div></div>
+    const m = data[data.length - 1];
+    const id = hostname.replace(/[^a-zA-Z0-9]/g, '');
+    const el = document.getElementById('m-' + id);
+    if (!el) return;
+    const memPct = pct(m.memUsedBytes, m.memTotalBytes);
+    const diskPct = pct(m.diskUsedBytes, m.diskTotalBytes);
+    el.innerHTML = `
+      <div class="metric"><div class="label">CPU</div><div class="value">${fmt(m.cpuPercent)}<span class="unit">%</span></div><div class="bar-wrap"><div class="bar-fill" style="width:${fmt(m.cpuPercent,0)}%;background:var(--blue)"></div></div></div>
+      <div class="metric"><div class="label">Memory</div><div class="value">${fmt(memPct)}<span class="unit">%</span></div><div class="bar-wrap"><div class="bar-fill" style="width:${memPct}%;background:var(--purple)"></div></div></div>
+      <div class="metric"><div class="label">Disk</div><div class="value">${fmt(diskPct)}<span class="unit">%</span></div><div class="bar-wrap"><div class="bar-fill" style="width:${diskPct}%;background:var(--amber)"></div></div></div>
+      <div class="metric"><div class="label">Load</div><div class="value">${fmt(m.load1,2)}</div></div>
     `;
-  } catch {}
+  } catch(e) {}
+}
+
+async function fetchServices(hostname) {
+  try {
+    const res = await fetch(`${API}/servers/${hostname}/services`);
+    if (!res.ok) throw new Error('unavailable');
+    const data = await res.json();
+    renderServices(hostname, data);
+  } catch(e) {
+    const id = hostname.replace(/[^a-zA-Z0-9]/g, '');
+    const el = document.getElementById('svc-' + id);
+    if (el) el.innerHTML = '<div class="svc-row" style="color:var(--muted);justify-content:center">Agent unreachable</div>';
+    const sc = document.getElementById('sc-' + id);
+    if (sc) sc.textContent = '';
+  }
+}
+
+function renderServices(hostname, data) {
+  const id = hostname.replace(/[^a-zA-Z0-9]/g, '');
+  const el = document.getElementById('svc-' + id);
+  if (!el) return;
+  if (!Array.isArray(data) || !data.length) {
+    el.innerHTML = '<div class="svc-row" style="color:var(--muted);justify-content:center">No services</div>';
+    return;
+  }
+  const sc = document.getElementById('sc-' + id);
+  if (sc) sc.textContent = '· ' + data.length + ' units';
+
+  // Show key services only
+  const keySvcs = data.filter(s => s.name && (s.name.includes('.service') || s.name.includes('nginx') || s.name.includes('docker') || s.name.includes('ssh')));
+  const display = keySvcs.length > 0 ? keySvcs : data.slice(0, 8);
+
+  el.innerHTML = display.map(s => {
+    const isActive = s.status === 'active' || s.status === 'running';
+    return `
+    <div class="svc-row">
+      <span class="svc-status ${isActive ? 'active' : 'inactive'}">${isActive ? 'UP' : s.status}</span>
+      <span class="svc-name">${s.name.replace('.service','')}</span>
+      <div class="svc-actions">
+        <button class="btn sm warn" onclick="svcAction('${hostname}','${s.name}','restart')" title="Restart">↻</button>
+        <button class="btn sm danger" onclick="svcAction('${hostname}','${s.name}','stop')" title="Stop">■</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function svcAction(hostname, svc, action) {
+  if (!confirm(action.toUpperCase() + ' ' + svc.replace('.service','') + ' on ' + hostname + '?')) return;
+  try {
+    const res = await fetch(API + '/servers/' + hostname + '/services/' + encodeURIComponent(svc) + '/' + action, { method: 'POST' });
+    if (res.ok) {
+      setTimeout(() => fetchServices(hostname), 2000);
+    } else {
+      alert('Failed: ' + res.status);
+    }
+  } catch(e) { alert('Error: ' + e.message); }
 }
 
 function viewLogs(hostname) {
   window.open('/hub/api/v1/servers/' + hostname + '/logs/nginx?tail=50', '_blank');
 }
 
-fetchServers();
-setInterval(fetchServers, 5000);
-document.getElementById('refreshLabel').textContent = 'Auto-refresh 5s';
+fetchAll();
+setInterval(fetchAll, 5000);
+setInterval(() => { document.getElementById('clock').textContent = new Date().toLocaleTimeString(); }, 1000);
 </script>
 </body>
 </html>

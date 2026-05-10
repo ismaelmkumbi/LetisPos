@@ -28,6 +28,20 @@ public class ProxyService {
         }
     }
 
+    public String proxyGet(String host, int port, String path) {
+        String uri = String.format("http://%s:%d%s", host, port, path);
+        try {
+            return client.get()
+                .uri(uri)
+                .retrieve()
+                .bodyToMono(String.class)
+                .block();
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,
+                "Agent GET proxy failed: " + e.getMessage());
+        }
+    }
+
     public String proxyLogs(String host, int port, String service, int tail, String filter) {
         String uri = String.format("http://%s:%d/logs/%s?tail=%d", host, port, service, tail);
         if (filter != null && !filter.isEmpty()) uri += "&filter=" + filter;

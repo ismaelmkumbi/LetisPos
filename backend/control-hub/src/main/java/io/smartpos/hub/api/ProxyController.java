@@ -43,6 +43,13 @@ public class ProxyController {
         return ResponseEntity.ok(result);
     }
 
+    @GetMapping("/services")
+    public ResponseEntity<String> listServices(@PathVariable String serverName) {
+        Agent a = agentService.findByHostname(serverName);
+        String result = proxyService.proxyGet(agentHost(a), 9100, "/services");
+        return ResponseEntity.ok(result);
+    }
+
     @GetMapping("/logs/{svc}")
     public ResponseEntity<String> logs(@PathVariable String serverName,
                                         @PathVariable String svc,
