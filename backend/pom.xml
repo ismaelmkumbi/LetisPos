@@ -32,6 +32,7 @@
         <module>hrm-service</module>
         <module>ai-service</module>
         <module>control-hub</module>
+        <module>document-service</module>
         <module>integration-service</module>
         <module>gateway</module>
     </modules>
