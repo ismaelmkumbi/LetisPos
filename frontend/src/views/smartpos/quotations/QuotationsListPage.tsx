@@ -11,6 +11,7 @@ import {
   listQuotations, setQuotationStatus, convertQuotation,
   type Quotation, type QuotationStatus,
 } from 'src/api/smartpos/sales';
+import { parseApiError } from 'src/utils/smartpos/apiErrors';
 import PageHeader from 'src/components/smartpos/PageHeader';
 import DataTable, { type Column } from 'src/components/smartpos/DataTable';
 import { brand } from 'src/theme/smartpos/brand';
@@ -49,7 +50,7 @@ export default function QuotationsListPage() {
     setLoading(true);
     listQuotations({ status: (status || undefined) as QuotationStatus | undefined, page, size: 20 })
       .then((p) => { if (!cancelled) { setRows(p.content); setTotalPages(p.totalPages || 1); } })
-      .catch((e) => { if (!cancelled) setError(e instanceof Error ? e.message : 'Failed to load'); })
+      .catch((e) => { if (!cancelled) setError(parseApiError(e).message); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [status, page, refreshToken]);
@@ -63,7 +64,7 @@ export default function QuotationsListPage() {
       }
       setRefreshToken((x) => x + 1);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Action failed');
+      setError(parseApiError(e).message);
     }
   };
 

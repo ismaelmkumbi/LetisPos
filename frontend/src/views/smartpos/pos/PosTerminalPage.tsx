@@ -34,6 +34,7 @@ import {
 } from 'src/api/smartpos/posTerminals';
 import { useOfflineSyncQueue } from 'src/hooks/useOfflineSyncQueue';
 import { useOnlineStatus } from 'src/components/smartpos/OfflineBanner';
+import { parseApiError } from 'src/utils/smartpos/apiErrors';
 import { printReceipt, ReceiptPreviewModal } from 'src/components/smartpos/Receipt';
 import {
   getCurrentRegister,
@@ -503,7 +504,8 @@ export default function PosTerminalPage() {
         setSuccessOverlay(true);
       }
     } catch (e: unknown) {
-      setBanner({ kind: 'error', text: e instanceof Error ? e.message : 'Checkout failed' });
+      const { message } = parseApiError(e);
+      setBanner({ kind: 'error', text: message });
     } finally {
       setSubmitting(false);
     }

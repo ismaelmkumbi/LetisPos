@@ -85,6 +85,17 @@ clean:  ## Remove all build artifacts
 	rm -rf frontend/dist frontend/node_modules/.vite
 	@echo "Clean complete."
 
+# ── Dev Dashboard ───────────────────────────────────────────────────────────────
+
+status:  ## Terminal live status of all services
+	@bash ops/tools/dev-dashboard.sh status
+
+status-ui:  ## Start browser dashboard at http://localhost:9999
+	@bash ops/tools/dev-status-ui.sh
+
+restart:  ## Restart a service. Usage: make restart svc=ai-service
+	@bash ops/tools/dev-dashboard.sh restart $(svc)
+
 # ── Help ────────────────────────────────────────────────────────────────────────
 
 help:  ## Show this help

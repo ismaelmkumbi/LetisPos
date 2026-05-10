@@ -426,7 +426,7 @@ export default function ProductDetailPage() {
   const regenerateField = useCallback(async (key: keyof CreateProductBody) => {
     const seed = form.name?.trim();
     if (!seed) {
-      setError('Add a product name first so the AI has something to work with.');
+      setError('Add a product name first so suggestions have something to work with.');
       return;
     }
     setRegenField(key);
@@ -444,13 +444,13 @@ export default function ProductDetailPage() {
       });
       const next = (res as unknown as Record<string, unknown>)[key as string];
       if (next === null || next === undefined) {
-        setError(`AI did not return a value for ${String(key)}.`);
+        setError(`No suggestion was returned for ${String(key)}.`);
         return;
       }
       setForm((prev) => ({ ...prev, [key]: next } as ProductForm));
       setAppliedAiFields((prev) => new Set(prev).add(String(key)));
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'AI regeneration failed');
+      setError(e instanceof Error ? e.message : 'Regeneration failed');
     } finally {
       setRegenField(null);
     }
@@ -599,7 +599,7 @@ export default function ProductDetailPage() {
 
       {isEdit && (
         <Stack direction="row" justifyContent="flex-end" sx={{ mb: aiAgentEnabled ? 1.25 : 2 }}>
-          <Tooltip title={aiAgentEnabled ? 'Hide AI Product Registration' : 'Show AI Product Registration'}>
+          <Tooltip title={aiAgentEnabled ? 'Hide Product Assistant' : 'Show Product Assistant'}>
             <Button
               size="small"
               onClick={() => setAiAgentEnabled((v) => !v)}
@@ -620,7 +620,7 @@ export default function ProductDetailPage() {
                 },
               }}
             >
-              AI Assistant: {aiAgentEnabled ? 'On' : 'Off'}
+              Assistant: {aiAgentEnabled ? 'On' : 'Off'}
             </Button>
           </Tooltip>
         </Stack>
@@ -828,7 +828,7 @@ export default function ProductDetailPage() {
                   icon={<IconCoin size={20} />}
                   title="Pricing"
                   action={isEdit && form.name ? (
-                    <Tooltip title="Suggest pricing with AI">
+                    <Tooltip title="Suggest pricing">
                       <span>
                         <IconButton
                           size="small"
@@ -972,7 +972,7 @@ export default function ProductDetailPage() {
                   icon={<IconFileDescription size={20} />}
                   title="Description"
                   action={isEdit && form.name ? (
-                    <Tooltip title="Regenerate description with AI">
+                    <Tooltip title="Regenerate description">
                       <span>
                         <IconButton
                           size="small"
@@ -1144,7 +1144,7 @@ export default function ProductDetailPage() {
               {isCreate && appliedAiFields.size > 0 && (
                 <Chip
                   icon={<IconSparkles size={14} />}
-                  label={`${appliedAiFields.size} AI fields`}
+                  label={`${appliedAiFields.size} suggested fields`}
                   size="small"
                   sx={{
                     height: 28,

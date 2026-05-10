@@ -163,7 +163,10 @@ export default function PurchasesListPage() {
   const sel = useSelection(rows);
 
   // Row menu
-  const [rowMenu, setRowMenu] = useState<{ anchor: HTMLElement; row: Purchase } | null>(null);
+  const [rowMenu, setRowMenu] = useState<{
+    anchorPosition: { top: number; left: number };
+    row: Purchase;
+  } | null>(null);
 
   // Delete confirmation
   const [deleteTarget, setDeleteTarget] = useState<Purchase | null>(null);
@@ -369,6 +372,7 @@ export default function PurchasesListPage() {
     {
       key: 'ref',
       label: 'Reference',
+      width: 150,
       sortable: true,
       exportValue: (p) => p.ref,
       render: (p) => (
@@ -385,6 +389,7 @@ export default function PurchasesListPage() {
     {
       key: 'supplier',
       label: 'Supplier',
+      width: 190,
       sortable: true,
       exportValue: (p) => p.supplierName ?? '',
       render: (p) => (
@@ -455,6 +460,7 @@ export default function PurchasesListPage() {
       key: 'grandTotal',
       label: 'Total',
       align: 'right',
+      width: 118,
       sortable: true,
       exportValue: (p) => fmt(p.grandTotal),
       render: (p) => (
@@ -467,6 +473,7 @@ export default function PurchasesListPage() {
       key: 'paidTotal',
       label: 'Paid',
       align: 'right',
+      width: 112,
       sortable: true,
       exportValue: (p) => fmt(p.paidTotal),
       render: (p) => (
@@ -479,6 +486,7 @@ export default function PurchasesListPage() {
       key: 'dueTotal',
       label: 'Due',
       align: 'right',
+      width: 112,
       sortable: true,
       exportValue: (p) => fmt(p.dueTotal),
       render: (p) => (
@@ -502,6 +510,7 @@ export default function PurchasesListPage() {
     {
       key: 'dueDate',
       label: 'Due date',
+      width: 112,
       sortable: true,
       exportValue: (p) => p.dueDate ?? '',
       render: (p) => {
@@ -533,7 +542,16 @@ export default function PurchasesListPage() {
         <Tooltip title="More actions">
           <IconButton
             size="small"
-            onClick={(e) => { e.stopPropagation(); setRowMenu({ anchor: e.currentTarget, row: p }); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              setRowMenu({
+                anchorPosition: {
+                  top: e.clientY + 8,
+                  left: Math.min(e.clientX, window.innerWidth - 12),
+                },
+                row: p,
+              });
+            }}
             sx={actionBtnSx}
             aria-haspopup="true"
           >
@@ -763,10 +781,10 @@ export default function PurchasesListPage() {
 
       {/* ── Row context menu ── */}
       <Menu
-        anchorEl={rowMenu?.anchor ?? null}
+        anchorReference="anchorPosition"
+        anchorPosition={rowMenu?.anchorPosition}
         open={Boolean(rowMenu)}
         onClose={closeRowMenu}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
         transformOrigin={{ vertical: 'top', horizontal: 'right' }}
         PaperProps={{
           sx: {

@@ -27,10 +27,18 @@ import {
   type CreatePurchaseBody,
   type PurchaseStatus,
 } from 'src/api/smartpos/sales';
-import { listProducts } from 'src/api/smartpos/products';
+import { listProducts, getProduct } from 'src/api/smartpos/products';
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 import { listSuppliers } from 'src/api/smartpos/suppliers';
 import { listWarehouses, type Warehouse } from 'src/api/smartpos/inventory';
-import { listAccounts, listPayments, recordPayment, type Payment, type PaymentMethod } from 'src/api/smartpos/payments';
+import {
+  listAccounts,
+  listPayments,
+  recordPayment,
+  type Payment,
+  type PaymentMethod,
+} from 'src/api/smartpos/payments';
 import type { Supplier } from 'src/api/smartpos/types';
 
 import PageHeader from 'src/components/smartpos/PageHeader';
@@ -100,7 +108,12 @@ export default function PurchaseBuilderPage() {
   useEffect(() => {
     if (!id) return;
     setLoading(true);
-    Promise.all([getPurchase(id), listPayments({ referenceType: 'PURCHASE', referenceId: id }).then((p) => p.content).catch(() => [] as Payment[])])
+    Promise.all([
+      getPurchase(id),
+      listPayments({ referenceType: 'PURCHASE', referenceId: id })
+        .then((p) => p.content)
+        .catch(() => [] as Payment[]),
+    ])
       .then(([p, pmts]) => {
         setWarehouseId(p.warehouseId);
         setSupplierId(p.supplierId);
@@ -112,20 +125,47 @@ export default function PurchaseBuilderPage() {
         setExistingStatus(p.status);
         setExistingRef(p.ref);
         setPayments(pmts);
-        setLines(
-          p.lines.map((l) => ({
-            productId: l.productId,
-            productName: l.productName,
-            productCode: l.productCode ?? undefined,
-            unitPrice: l.unitPrice,
-            qty: l.qty,
-            taxRate: l.taxRate,
-          })),
+        const mapped = p.lines.map((l) => ({
+          productId: l.productId,
+          productName: l.productName,
+          productCode: l.productCode ?? undefined,
+          unitPrice: l.unitPrice,
+          qty: l.qty,
+          taxRate: l.taxRate,
+        }));
+        setLines(mapped);
+        // Legacy records stored productId as the name snapshot. Resolve real names.
+        const toResolve = Array.from(
+          new Set(mapped.filter((l) => UUID_RE.test(l.productName)).map((l) => l.productId)),
         );
+        if (toResolve.length > 0) {
+          Promise.all(
+            toResolve.map((pid) =>
+              getProduct(pid)
+                .then((prod) => ({ id: pid, name: prod.name, code: prod.code }))
+                .catch(() => null),
+            ),
+          ).then((results) => {
+            const byId = new Map<string, { id: string; name: string; code?: string }>();
+            for (const r of results) {
+              if (r) byId.set(r.id, r);
+            }
+            if (byId.size === 0) return;
+            setLines((prev) =>
+              prev.map((l) => {
+                const hit = byId.get(l.productId);
+                if (!hit) return l;
+                return { ...l, productName: hit.name, productCode: l.productCode ?? hit.code };
+              }),
+            );
+          });
+        }
       })
       .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load purchase'))
       .finally(() => setLoading(false));
-    listAccounts().then((a) => setAccounts(a.map((x) => ({ id: x.id, name: x.name })))).catch(() => {});
+    listAccounts()
+      .then((a) => setAccounts(a.map((x) => ({ id: x.id, name: x.name }))))
+      .catch(() => {});
   }, [id]);
 
   const subtotal = lines.reduce((s, l) => s + l.unitPrice * l.qty, 0);
@@ -145,6 +185,8 @@ export default function PurchaseBuilderPage() {
     shipping,
     lines: lines.map((l) => ({
       productId: l.productId,
+      productName: l.productName,
+      productCode: l.productCode,
       unitPrice: l.unitPrice,
       qty: l.qty,
       taxRate: l.taxRate,
@@ -368,39 +410,78 @@ export default function PurchaseBuilderPage() {
               </Typography>
               <Stack spacing={1}>
                 <Stack direction="row" justifyContent="space-between">
-                  <Typography variant="body2" color="text.secondary">Subtotal</Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Subtotal
+                  </Typography>
                   <Typography variant="body2">{fmt(subtotal)}</Typography>
                 </Stack>
                 <Stack direction="row" justifyContent="space-between">
-                  <Typography variant="body2" color="text.secondary">Tax</Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Tax
+                  </Typography>
                   <Typography variant="body2">{fmt(tax)}</Typography>
                 </Stack>
                 <Stack direction="row" alignItems="center" justifyContent="space-between">
-                  <Typography variant="body2" color="text.secondary">Shipping</Typography>
-                  <TextField size="small" type="number" value={shipping}
+                  <Typography variant="body2" color="text.secondary">
+                    Shipping
+                  </Typography>
+                  <TextField
+                    size="small"
+                    type="number"
+                    value={shipping}
                     onChange={(e) => setShipping(Number(e.target.value) || 0)}
-                    disabled={!isEditable} inputProps={{ style: { textAlign: 'right' } }} sx={{ width: 110 }} />
+                    disabled={!isEditable}
+                    inputProps={{ style: { textAlign: 'right' } }}
+                    sx={{ width: 110 }}
+                  />
                 </Stack>
                 <Stack direction="row" alignItems="center" justifyContent="space-between">
-                  <Typography variant="body2" color="text.secondary">Discount</Typography>
-                  <TextField size="small" type="number" value={discount}
+                  <Typography variant="body2" color="text.secondary">
+                    Discount
+                  </Typography>
+                  <TextField
+                    size="small"
+                    type="number"
+                    value={discount}
                     onChange={(e) => setDiscount(Number(e.target.value) || 0)}
-                    disabled={!isEditable} inputProps={{ style: { textAlign: 'right' } }} sx={{ width: 110 }} />
+                    disabled={!isEditable}
+                    inputProps={{ style: { textAlign: 'right' } }}
+                    sx={{ width: 110 }}
+                  />
                 </Stack>
                 <Divider />
                 <Stack direction="row" justifyContent="space-between">
-                  <Typography variant="body1" sx={{ fontWeight: 700 }}>Total</Typography>
-                  <Typography variant="h6" sx={{ fontWeight: 800, color: brand.primary[700] }}>{fmt(grand)}</Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 700 }}>
+                    Total
+                  </Typography>
+                  <Typography variant="h6" sx={{ fontWeight: 800, color: brand.primary[700] }}>
+                    {fmt(grand)}
+                  </Typography>
                 </Stack>
                 {id && (
                   <>
                     <Stack direction="row" justifyContent="space-between">
-                      <Typography variant="body2" color="text.secondary">Paid</Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 700, color: brand.success.dark }}>{fmt(paidTotal)}</Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Paid
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        sx={{ fontWeight: 700, color: brand.success.dark }}
+                      >
+                        {fmt(paidTotal)}
+                      </Typography>
                     </Stack>
                     <Stack direction="row" justifyContent="space-between">
-                      <Typography variant="body2" color="text.secondary">Balance due</Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 700, color: balanceDue > 0 ? brand.error.dark : brand.success.dark }}>
+                      <Typography variant="body2" color="text.secondary">
+                        Balance due
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          fontWeight: 700,
+                          color: balanceDue > 0 ? brand.error.dark : brand.success.dark,
+                        }}
+                      >
                         {fmt(Math.max(0, balanceDue))}
                       </Typography>
                     </Stack>
@@ -409,7 +490,9 @@ export default function PurchaseBuilderPage() {
                         <Typography variant="caption" color="text.secondary">
                           {new Date(p.date).toLocaleDateString()} · {p.method}
                         </Typography>
-                        <Typography variant="caption" sx={{ fontWeight: 600 }}>{fmt(p.amount)}</Typography>
+                        <Typography variant="caption" sx={{ fontWeight: 600 }}>
+                          {fmt(p.amount)}
+                        </Typography>
                       </Stack>
                     ))}
                   </>
@@ -418,27 +501,77 @@ export default function PurchaseBuilderPage() {
 
               {/* Record payment (edit mode only) */}
               {id && (
-                <Box sx={{ mt: 2, p: 1.5, borderRadius: '10px', bgcolor: brand.neutral[50], border: `1px solid ${brand.neutral[200]}` }}>
-                  <Typography variant="caption" sx={{ fontWeight: 700, color: brand.neutral[600], textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                <Box
+                  sx={{
+                    mt: 2,
+                    p: 1.5,
+                    borderRadius: '10px',
+                    bgcolor: brand.neutral[50],
+                    border: `1px solid ${brand.neutral[200]}`,
+                  }}
+                >
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      fontWeight: 700,
+                      color: brand.neutral[600],
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
+                    }}
+                  >
                     Record payment
                   </Typography>
                   <Stack spacing={1} sx={{ mt: 1 }}>
-                    <TextField size="small" type="number" label="Amount" value={payAmount || ''}
-                      onChange={(e) => setPayAmount(Number(e.target.value) || 0)} />
-                    <TextField select size="small" label="Method" value={payMethod}
-                      onChange={(e) => setPayMethod(e.target.value)}>
-                      {['CASH','CARD','TRANSFER','MPESA','CHECK'].map((m) => <MenuItem key={m} value={m}>{m}</MenuItem>)}
+                    <TextField
+                      size="small"
+                      type="number"
+                      label="Amount"
+                      value={payAmount || ''}
+                      onChange={(e) => setPayAmount(Number(e.target.value) || 0)}
+                    />
+                    <TextField
+                      select
+                      size="small"
+                      label="Method"
+                      value={payMethod}
+                      onChange={(e) => setPayMethod(e.target.value)}
+                    >
+                      {['CASH', 'CARD', 'TRANSFER', 'MPESA', 'CHECK'].map((m) => (
+                        <MenuItem key={m} value={m}>
+                          {m}
+                        </MenuItem>
+                      ))}
                     </TextField>
-                    <TextField select size="small" label="Account" value={payAccountId}
-                      onChange={(e) => setPayAccountId(e.target.value)}>
-                      {accounts.map((a) => <MenuItem key={a.id} value={a.id}>{a.name}</MenuItem>)}
+                    <TextField
+                      select
+                      size="small"
+                      label="Account"
+                      value={payAccountId}
+                      onChange={(e) => setPayAccountId(e.target.value)}
+                    >
+                      {accounts.map((a) => (
+                        <MenuItem key={a.id} value={a.id}>
+                          {a.name}
+                        </MenuItem>
+                      ))}
                     </TextField>
-                    <TextField size="small" label="Notes" value={payNotes}
-                      onChange={(e) => setPayNotes(e.target.value)} />
-                    <Button fullWidth variant="contained" size="small"
-                      onClick={handleRecordPayment} disabled={paying || payAmount <= 0 || !payAccountId}
-                      startIcon={paying ? <CircularProgress size={14} color="inherit" /> : undefined}
-                      sx={{ textTransform: 'none', fontWeight: 700, borderRadius: '8px' }}>
+                    <TextField
+                      size="small"
+                      label="Notes"
+                      value={payNotes}
+                      onChange={(e) => setPayNotes(e.target.value)}
+                    />
+                    <Button
+                      fullWidth
+                      variant="contained"
+                      size="small"
+                      onClick={handleRecordPayment}
+                      disabled={paying || payAmount <= 0 || !payAccountId}
+                      startIcon={
+                        paying ? <CircularProgress size={14} color="inherit" /> : undefined
+                      }
+                      sx={{ textTransform: 'none', fontWeight: 700, borderRadius: '8px' }}
+                    >
                       {paying ? 'Recording…' : 'Add payment'}
                     </Button>
                   </Stack>
