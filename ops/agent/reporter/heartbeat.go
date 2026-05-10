@@ -27,9 +27,34 @@ func New(cfg *config.Config) *Reporter {
 }
 
 func (r *Reporter) Send(ctx context.Context, m *collector.SystemMetrics) error {
+	metrics := map[string]interface{}{
+		"cpu_percent":     m.CPU.PercentUsed,
+		"mem_used_bytes":  m.Memory.Used,
+		"mem_total_bytes": m.Memory.Total,
+		"load1":           m.LoadAvg.Load1,
+		"load5":           m.LoadAvg.Load5,
+		"load15":          m.LoadAvg.Load15,
+	}
+	// Aggregate disk
+	var diskUsed, diskTotal uint64
+	for _, d := range m.Disk.Mounts {
+		diskUsed += d.UsedBytes
+		diskTotal += d.TotalBytes
+	}
+	metrics["disk_used_bytes"] = diskUsed
+	metrics["disk_total_bytes"] = diskTotal
+	// Aggregate network
+	var rxBytes, txBytes uint64
+	for _, n := range m.Network.Interfaces {
+		rxBytes += n.RxBytes
+		txBytes += n.TxBytes
+	}
+	metrics["net_rx_bytes"] = rxBytes
+	metrics["net_tx_bytes"] = txBytes
+
 	body, err := json.Marshal(map[string]interface{}{
 		"server":  r.cfg.ServerName,
-		"metrics": m,
+		"metrics": metrics,
 		"version": "1.0.0",
 	})
 	if err != nil {
