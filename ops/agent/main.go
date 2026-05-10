@@ -7,8 +7,12 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
+	"github.com/ismaelmkumbi/lsa/api"
+	"github.com/ismaelmkumbi/lsa/collector"
 	"github.com/ismaelmkumbi/lsa/config"
+	"github.com/ismaelmkumbi/lsa/manager"
 )
 
 func main() {
@@ -31,6 +35,45 @@ func main() {
 		cancel()
 	}()
 
-	log.Printf("lsa %s starting on %s", cfg.ServerName, cfg.ListenAddr)
+	sysMgr, err := manager.NewSystemd()
+	if err != nil {
+		log.Printf("systemd: %v (management endpoints disabled)", err)
+	}
+	srv := api.New(cfg, sysMgr)
+
+	// Background metrics collection
+	interval, _ := time.ParseDuration(cfg.MetricsInterval)
+	if interval == 0 {
+		interval = 5 * time.Second
+	}
+	go func() {
+		ticker := time.NewTicker(interval)
+		defer ticker.Stop()
+		// Collect immediately on start
+		if m, err := collector.Snapshot(); err == nil {
+			srv.UpdateMetrics(m)
+		}
+		for {
+			select {
+			case <-ticker.C:
+				if m, err := collector.Snapshot(); err == nil {
+					srv.UpdateMetrics(m)
+				} else {
+					log.Printf("collector error: %v", err)
+				}
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+
+	go func() {
+		if err := srv.Start(); err != nil {
+			log.Fatalf("api: %v", err)
+		}
+	}()
+
+	log.Printf("lsa %s started on %s", cfg.ServerName, cfg.ListenAddr)
 	<-ctx.Done()
+	srv.Shutdown(context.Background())
 }
