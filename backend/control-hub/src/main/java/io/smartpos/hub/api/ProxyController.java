@@ -17,9 +17,8 @@ public class ProxyController {
 
     private String agentHost(Agent a) {
         String ip = a.getIpAddress();
-        // Fall back to hostname for loopback addresses (IPv4 or IPv6)
         if (ip == null || ip.startsWith("0:") || ip.startsWith("127.") || ip.equals("::1") || ip.equals("localhost")) {
-            return a.getHostname();
+            return "127.0.0.1";
         }
         return ip;
     }
