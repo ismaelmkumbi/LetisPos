@@ -1,68 +1,70 @@
 import { useEffect, useState, useCallback } from 'react';
-import {
-  Box, Button, Card, CardContent, Grid, Typography, Chip, CircularProgress,
-  IconButton, Tooltip, LinearProgress,
-} from '@mui/material';
-import { Refresh, Logout, Storage } from '@mui/icons-material';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as ReTooltip, ResponsiveContainer } from 'recharts';
+import { Box, Button, Card, CardContent, Grid, Typography, Chip, CircularProgress, IconButton, Tooltip } from '@mui/material';
+import { Refresh, Logout, Storage, Circle } from '@mui/icons-material';
+import { LineChart, Line, CartesianGrid, Tooltip as ReTooltip, ResponsiveContainer } from 'recharts';
 import { getServers, getMetrics, getServices, serviceAction } from '../api/hub';
 import type { Server, MetricPoint, ServiceInfo } from '../api/hub';
 import { logout } from '../api/client';
+import { brand, darkBrand as b } from '../theme';
+
+function ago(ts: string) {
+  const s = (Date.now() - new Date(ts).getTime()) / 1000;
+  if (s < 60) return Math.floor(s) + 's ago';
+  if (s < 3600) return Math.floor(s / 60) + 'm ago';
+  if (s < 86400) return Math.floor(s / 3600) + 'h ago';
+  return Math.floor(s / 86400) + 'd ago';
+}
 
 export default function Dashboard() {
   const [servers, setServers] = useState<Server[]>([]);
   const [metrics, setMetrics] = useState<Record<string, MetricPoint[]>>({});
   const [services, setServices] = useState<Record<string, ServiceInfo[]>>({});
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
 
-  const fetchAll = useCallback(async () => {
+  const fetchData = useCallback(async () => {
     try {
       const srv = await getServers();
       setServers(srv);
-      setError('');
-
       const now = new Date().toISOString();
-      const ago = new Date(Date.now() - 30 * 60000).toISOString();
-
-      srv.forEach(async (s) => {
-        try {
-          const m = await getMetrics(s.hostname, ago, now);
-          setMetrics(prev => ({ ...prev, [s.hostname]: m }));
-        } catch {}
-        try {
-          const svc = await getServices(s.hostname);
-          setServices(prev => ({ ...prev, [s.hostname]: svc }));
-        } catch {}
+      const past = new Date(Date.now() - 30 * 60000).toISOString();
+      srv.forEach(s => {
+        getMetrics(s.hostname, past, now).then(m => setMetrics(prev => ({ ...prev, [s.hostname]: m }))).catch(() => {});
+        getServices(s.hostname).then(svc => setServices(prev => ({ ...prev, [s.hostname]: svc }))).catch(() => {});
       });
-    } catch {
-      setError('Hub unreachable');
-    } finally { setLoading(false); }
+    } catch { } finally { setLoading(false); }
   }, []);
 
-  useEffect(() => { fetchAll(); const t = setInterval(fetchAll, 10000); return () => clearInterval(t); }, [fetchAll]);
+  useEffect(() => { fetchData(); const t = setInterval(fetchData, 10000); return () => clearInterval(t); }, [fetchData]);
 
-  const onlineCount = servers.filter(s => s.status === 'online').length;
+  const online = servers.filter(s => s.status === 'online').length;
 
-  if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}><CircularProgress /></Box>;
+  if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', bgcolor: b.background }}><CircularProgress sx={{ color: b.primary }} /></Box>;
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: '#0b1120', color: '#e2e8f0' }}>
-      {/* Top Bar */}
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 3, py: 2, borderBottom: '1px solid #1e293b', bgcolor: '#111827' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Storage sx={{ color: '#3b82f6' }} />
-          <Typography variant="h6" sx={{ fontWeight: 800, letterSpacing: '-0.02em' }}>Letis Control Center</Typography>
+    <Box sx={{ minHeight: '100vh', bgcolor: b.background, color: b.text }}>
+      {/* ── Top Bar ── */}
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 3, py: 1.75, borderBottom: `1px solid ${b.border}`, bgcolor: b.surface }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+          <Box sx={{ width: 32, height: 32, borderRadius: 2, bgcolor: brand.primary[900], display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Storage sx={{ color: brand.primary[400], fontSize: 18 }} />
+          </Box>
+          <Box>
+            <Typography sx={{ fontWeight: 800, fontSize: '1.05rem', letterSpacing: '-0.02em', color: b.text }}>Letis Control Center</Typography>
+            <Typography sx={{ fontSize: '0.7rem', color: b.textMuted }}>Infrastructure Operations</Typography>
+          </Box>
         </Box>
-        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-          <Chip label={`${onlineCount}/${servers.length} online`} size="small" sx={{ bgcolor: onlineCount ? '#052e16' : '#2e0505', color: onlineCount ? '#22c55e' : '#ef4444', fontWeight: 600 }} />
-          <Tooltip title="Refresh"><IconButton onClick={fetchAll} sx={{ color: '#64748b' }}><Refresh /></IconButton></Tooltip>
-          <Tooltip title="Logout"><IconButton onClick={logout} sx={{ color: '#64748b' }}><Logout /></IconButton></Tooltip>
+        <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
+          <Chip
+            label={`${online}/${servers.length} online`}
+            size="small"
+            sx={{ fontWeight: 700, bgcolor: online ? brand.success.light : brand.error.light, color: online ? brand.success.dark : brand.error.dark, border: `1px solid ${online ? brand.success.main : brand.error.main}20`, borderRadius: '8px' }}
+          />
+          <Tooltip title="Refresh"><IconButton size="small" onClick={fetchData} sx={{ color: b.textMuted }}><Refresh fontSize="small" /></IconButton></Tooltip>
+          <Tooltip title="Sign out"><IconButton size="small" onClick={logout} sx={{ color: b.textMuted }}><Logout fontSize="small" /></IconButton></Tooltip>
         </Box>
       </Box>
 
-      {error && <Box sx={{ px: 3, pt: 2 }}><Typography color="error">{error}</Typography></Box>}
-
+      {/* ── Server Grid ── */}
       <Box sx={{ p: 3 }}>
         <Grid container spacing={2}>
           {servers.map(s => (
@@ -76,75 +78,87 @@ export default function Dashboard() {
   );
 }
 
-function ServerCard({ server, metrics, services: svcs }: { server: Server; metrics: MetricPoint[]; services: ServiceInfo[] }) {
-  const latest = metrics.length ? metrics[metrics.length - 1] : null;
-  const memPct = latest?.memTotalBytes ? ((latest.memUsedBytes! / latest.memTotalBytes) * 100).toFixed(1) : '—';
-  const diskPct = latest?.diskTotalBytes ? ((latest.diskUsedBytes! / latest.diskTotalBytes) * 100).toFixed(1) : '—';
+function ServerCard({ server, metrics: m, services: svcs }: { server: Server; metrics: MetricPoint[]; services: ServiceInfo[] }) {
+  const latest = m.length ? m[m.length - 1] : null;
+  const memPct = latest?.memTotalBytes ? (latest.memUsedBytes! / latest.memTotalBytes * 100).toFixed(1) : null;
+  const diskPct = latest?.diskTotalBytes ? (latest.diskUsedBytes! / latest.diskTotalBytes * 100).toFixed(1) : null;
+  const cpu = latest?.cpuPercent?.toFixed(1);
 
-  const chartData = metrics.slice(-30).map(m => ({
-    time: new Date(m.time).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
-    cpu: m.cpuPercent?.toFixed(1),
-    load: m.load1?.toFixed(2),
-  }));
+  const chartData = m.slice(-30).map(p => ({ t: new Date(p.time).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }), cpu: p.cpuPercent?.toFixed(1), load: p.load1?.toFixed(2) }));
 
-  const keySvcs = svcs
-    .filter(s => s.name?.endsWith('.service'))
-    .filter(s => !s.name.includes('\\x2d') && !s.name.includes('/'))
-    .slice(0, 10);
+  const filteredSvcs = svcs.filter(s => s.name?.endsWith('.service')).filter(s => !s.name.includes('\\x2d') && !s.name.includes('/')).slice(0, 12);
 
   return (
-    <Card sx={{ bgcolor: '#111827', border: '1px solid #1e293b', borderRadius: 3, color: '#e2e8f0' }}>
+    <Card sx={{ bgcolor: b.surface, borderRadius: 3, overflow: 'hidden' }}>
       <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
         {/* Header */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2.5 }}>
           <Box>
-            <Typography variant="h6" sx={{ fontWeight: 700 }}>{server.hostname}</Typography>
-            <Typography variant="caption" sx={{ color: '#64748b' }}>v{server.version} · {server.ipAddress}</Typography>
+            <Typography variant="h6" sx={{ fontWeight: 800, letterSpacing: '-0.02em' }}>{server.hostname}</Typography>
+            <Typography variant="caption" sx={{ color: b.textMuted, display: 'block', mt: 0.25 }}>v{server.version} · {server.ipAddress} · seen {ago(server.lastSeen)}</Typography>
           </Box>
-          <Chip label={server.status} size="small" sx={{ bgcolor: server.status === 'online' ? '#052e16' : '#2e0505', color: server.status === 'online' ? '#22c55e' : '#ef4444', fontWeight: 700, textTransform: 'uppercase' }} />
+          <Chip
+            size="small"
+            label={server.status}
+            icon={<Circle sx={{ fontSize: '8px !important', fill: server.status === 'online' ? brand.success.main : brand.error.main }} />}
+            sx={{
+              fontWeight: 700, textTransform: 'uppercase', fontSize: '0.65rem', letterSpacing: '0.04em',
+              bgcolor: server.status === 'online' ? brand.success.light : brand.error.light,
+              color: server.status === 'online' ? brand.success.dark : brand.error.dark,
+              border: `1px solid ${server.status === 'online' ? brand.success.main : brand.error.main}30`,
+              borderRadius: '8px', height: 26,
+            }}
+          />
         </Box>
 
-        {/* Metrics Grid */}
+        {/* Metrics */}
         <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 1, mb: 2 }}>
-          <MetricBox label="CPU" value={latest?.cpuPercent?.toFixed(1) || '—'} unit="%" color="#3b82f6" pct={latest?.cpuPercent || 0} />
-          <MetricBox label="Memory" value={memPct} unit="%" color="#8b5cf6" pct={parseFloat(memPct) || 0} />
-          <MetricBox label="Disk" value={diskPct} unit="%" color="#f59e0b" pct={parseFloat(diskPct) || 0} />
-          <MetricBox label="Load" value={latest?.load1?.toFixed(2) || '—'} unit="" color="#22c55e" pct={0} />
+          <MiniMetric label="CPU" value={cpu || '—'} unit="%" color={brand.info.main} />
+          <MiniMetric label="Memory" value={memPct || '—'} unit="%" color={brand.purple.main} />
+          <MiniMetric label="Disk" value={diskPct || '—'} unit="%" color={brand.warning.main} />
+          <MiniMetric label="Load" value={latest?.load1?.toFixed(2) || '—'} unit="" color={brand.success.main} />
         </Box>
 
-        {/* CPU Chart */}
+        {/* Chart */}
         {chartData.length > 1 && (
-          <Box sx={{ mb: 2, height: 120 }}>
-            <ResponsiveContainer width="100%" height="100%">
+          <Box sx={{ height: 100, mb: 2, mx: -1 }}>
+            <ResponsiveContainer>
               <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                <XAxis dataKey="time" tick={{ fill: '#64748b', fontSize: 10 }} />
-                <YAxis tick={{ fill: '#64748b', fontSize: 10 }} />
-                <ReTooltip contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, color: '#e2e8f0' }} />
-                <Line type="monotone" dataKey="cpu" stroke="#3b82f6" strokeWidth={2} dot={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke={brand.neutral[600]} />
+                <ReTooltip contentStyle={{ background: brand.neutral[800], border: `1px solid ${brand.neutral[600]}`, borderRadius: 8, color: brand.neutral[50], fontSize: 12 }} />
+                <Line type="monotone" dataKey="cpu" stroke={brand.info.main} strokeWidth={2} dot={false} />
               </LineChart>
             </ResponsiveContainer>
           </Box>
         )}
 
         {/* Services */}
-        {keySvcs.length > 0 && (
+        {filteredSvcs.length > 0 && (
           <>
-            <Typography variant="caption" sx={{ color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700, display: 'block', mb: 1 }}>
-              Services · {svcs.length} units
+            <Typography variant="caption" sx={{ color: b.textMuted, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700, display: 'block', mb: 1 }}>
+              Services · {filteredSvcs.length} of {svcs.length}
             </Typography>
-            {keySvcs.map(svc => {
-              const isActive = svc.status === 'active' || svc.status === 'running';
-              const name = svc.name.replace('.service', '').replace(/\\x[0-9a-f]{2}/gi, '').replace(/^dev-/, '').substring(0, 40);
-              return (
-                <Box key={svc.name} sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.5, '&:hover': { bgcolor: '#1e293b' }, borderRadius: 1, px: 1 }}>
-                  <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: isActive ? '#22c55e' : '#ef4444', flexShrink: 0 }} />
-                  <Typography variant="body2" sx={{ flex: 1, fontSize: '0.8rem' }} noWrap>{name}</Typography>
-                  <Chip label={isActive ? 'UP' : svc.status} size="small" sx={{ height: 20, fontSize: '0.6rem', fontWeight: 700, bgcolor: isActive ? '#052e16' : '#2e0505', color: isActive ? '#22c55e' : '#ef4444' }} />
-                  <Button size="small" sx={{ minWidth: 32, height: 24, fontSize: '0.6rem', color: '#f59e0b', borderColor: '#78350f' }} variant="outlined" onClick={() => serviceAction(server.hostname, svc.name, 'restart').then(() => alert('Restarted')).catch(() => alert('Failed'))}>↻</Button>
-                </Box>
-              );
-            })}
+            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 0.5 }}>
+              {filteredSvcs.map(svc => {
+                const up = svc.status === 'active' || svc.status === 'running';
+                const name = svc.name.replace('.service', '').replace(/\\x[0-9a-f]{2}/gi, '').substring(0, 28);
+                return (
+                  <Box key={svc.name} sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.6, px: 1, borderRadius: 1.5, '&:hover': { bgcolor: brand.neutral[700] + '40' } }}>
+                    <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: up ? brand.success.main : brand.error.main, flexShrink: 0 }} />
+                    <Typography variant="caption" noWrap sx={{ flex: 1, fontWeight: 500 }}>{name}</Typography>
+                    <Chip label={up ? 'UP' : svc.status} size="small"
+                      sx={{ height: 18, fontSize: '0.55rem', fontWeight: 700, minWidth: 32,
+                        bgcolor: up ? brand.success.light : brand.error.light,
+                        color: up ? brand.success.dark : brand.error.dark,
+                        border: `1px solid ${up ? brand.success.main : brand.error.main}30`, borderRadius: '6px',
+                        '& .MuiChip-label': { px: 0.75 } }} />
+                    <Button size="small" onClick={() => serviceAction(server.hostname, svc.name, 'restart').catch(() => {})}
+                      sx={{ minWidth: 22, height: 22, p: 0, fontSize: '0.6rem', color: brand.warning.main, borderColor: brand.warning.main + '30',
+                        '&:hover': { borderColor: brand.warning.main, bgcolor: brand.warning.main + '15' } }} variant="outlined">↻</Button>
+                  </Box>
+                );
+              })}
+            </Box>
           </>
         )}
       </CardContent>
@@ -152,12 +166,14 @@ function ServerCard({ server, metrics, services: svcs }: { server: Server; metri
   );
 }
 
-function MetricBox({ label, value, unit, color, pct }: { label: string; value: string; unit: string; color: string; pct: number }) {
+function MiniMetric({ label, value, unit, color }: { label: string; value: string; unit: string; color: string }) {
   return (
-    <Box sx={{ bgcolor: '#0f172a', borderRadius: 2, p: 1.5, textAlign: 'center' }}>
-      <Typography variant="caption" sx={{ color: '#64748b', display: 'block', mb: 0.5 }}>{label}</Typography>
-      <Typography variant="body2" sx={{ fontWeight: 800, fontSize: '1.1rem' }}>{value}<Typography component="span" variant="caption" sx={{ color: '#64748b' }}>{unit}</Typography></Typography>
-      <LinearProgress variant="determinate" value={Math.min(pct, 100)} sx={{ mt: 0.5, height: 3, borderRadius: 1, bgcolor: '#1e293b', '& .MuiLinearProgress-bar': { bgcolor: color, borderRadius: 1 } }} />
+    <Box sx={{ bgcolor: brand.neutral[900], borderRadius: 2, p: 1.25, textAlign: 'center' }}>
+      <Typography variant="caption" sx={{ color: b.textMuted, display: 'block', mb: 0.5, fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</Typography>
+      <Typography variant="body2" sx={{ fontWeight: 800, fontSize: '1rem', color }}>
+        {value}
+        {unit && <Typography component="span" sx={{ fontSize: '0.6rem', color: b.textMuted, ml: 0.25 }}>{unit}</Typography>}
+      </Typography>
     </Box>
   );
 }
