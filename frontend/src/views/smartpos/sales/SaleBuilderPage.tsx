@@ -7,18 +7,48 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import {
-  Alert, Avatar, Box, Button, Card, CardContent, Chip, CircularProgress,
-  Divider, IconButton, Stack, TextField, Tooltip, Typography,
+  Alert,
+  Avatar,
+  Box,
+  Button,
+  Card,
+  CardContent,
+  Chip,
+  CircularProgress,
+  Divider,
+  IconButton,
+  Stack,
+  TextField,
+  Tooltip,
+  Typography,
 } from '@mui/material';
 import {
-  IconArrowLeft, IconCheck, IconDeviceFloppy, IconPrinter,
-  IconReceipt, IconUser, IconBuildingWarehouse, IconShoppingCart,
-  IconClock, IconTruckReturn, IconCopy, IconUpload,
+  IconArrowLeft,
+  IconCheck,
+  IconDeviceFloppy,
+  IconPrinter,
+  IconReceipt,
+  IconUser,
+  IconBuildingWarehouse,
+  IconShoppingCart,
+  IconClock,
+  IconTruckReturn,
+  IconCopy,
+  IconUpload,
 } from '@tabler/icons-react';
 import { Link } from 'react-router';
 
-import { createSale, commitSale, getSale, cancelSale, type CreateSaleBody, type Sale } from 'src/api/smartpos/sales';
-import { listProducts } from 'src/api/smartpos/products';
+import {
+  createSale,
+  commitSale,
+  getSale,
+  cancelSale,
+  type CreateSaleBody,
+  type Sale,
+} from 'src/api/smartpos/sales';
+import { listProducts, getProduct } from 'src/api/smartpos/products';
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 import { listCustomers } from 'src/api/smartpos/customers';
 import { listWarehouses, type Warehouse } from 'src/api/smartpos/inventory';
 import type { Customer } from 'src/api/smartpos/types';
@@ -33,10 +63,16 @@ import { parseApiError } from 'src/utils/smartpos/apiErrors';
 const fmt = formatMoney;
 
 const STATUS_STATE: Record<string, OperationalState> = {
-  DRAFT: 'idle', CONFIRMED: 'active', CANCELLED: 'closed', RETURNED: 'attention',
+  DRAFT: 'idle',
+  CONFIRMED: 'active',
+  CANCELLED: 'closed',
+  RETURNED: 'attention',
 };
 const PAYMENT_STATE: Record<string, OperationalState> = {
-  UNPAID: 'critical', PARTIAL: 'attention', PAID: 'active', REFUNDED: 'closed',
+  UNPAID: 'critical',
+  PARTIAL: 'attention',
+  PAID: 'active',
+  REFUNDED: 'closed',
 };
 
 export default function SaleBuilderPage() {
@@ -83,14 +119,40 @@ export default function SaleBuilderPage() {
         setCustomerId(s.customerId);
         setNotes(s.notes ?? '');
         setDiscount(s.discountTotal);
-        setLines(s.lines.map((l) => ({
+        const mapped = s.lines.map((l) => ({
           productId: l.productId,
           productName: l.productName,
           productCode: l.productCode ?? undefined,
           unitPrice: l.unitPrice,
           qty: l.qty,
           taxRate: l.taxRate,
-        })));
+        }));
+        setLines(mapped);
+        const toResolve = Array.from(
+          new Set(mapped.filter((l) => UUID_RE.test(l.productName)).map((l) => l.productId)),
+        );
+        if (toResolve.length > 0) {
+          Promise.all(
+            toResolve.map((pid) =>
+              getProduct(pid)
+                .then((prod) => ({ id: pid, name: prod.name, code: prod.code }))
+                .catch(() => null),
+            ),
+          ).then((results) => {
+            const byId = new Map<string, { id: string; name: string; code?: string }>();
+            for (const r of results) {
+              if (r) byId.set(r.id, r);
+            }
+            if (byId.size === 0) return;
+            setLines((prev) =>
+              prev.map((l) => {
+                const hit = byId.get(l.productId);
+                if (!hit) return l;
+                return { ...l, productName: hit.name, productCode: l.productCode ?? hit.code };
+              }),
+            );
+          });
+        }
       })
       .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load sale'))
       .finally(() => setLoading(false));
@@ -110,8 +172,14 @@ export default function SaleBuilderPage() {
   const searchProducts = async (q: string) => (await listProducts({ search: q, size: 20 })).content;
 
   const handleSave = async (andCommit = false) => {
-    if (lines.length === 0) { setError('Add at least one line.'); return; }
-    if (!warehouseId) { setError('Warehouse is required.'); return; }
+    if (lines.length === 0) {
+      setError('Add at least one line.');
+      return;
+    }
+    if (!warehouseId) {
+      setError('Warehouse is required.');
+      return;
+    }
     setSubmitting(true);
     setError(null);
     try {
@@ -122,6 +190,8 @@ export default function SaleBuilderPage() {
         discount,
         lines: lines.map((l) => ({
           productId: l.productId,
+          productName: l.productName,
+          productCode: l.productCode,
           unitPrice: l.unitPrice,
           qty: l.qty,
           taxRate: l.taxRate,
@@ -181,7 +251,10 @@ export default function SaleBuilderPage() {
         <Alert
           severity={isStockError ? 'warning' : 'error'}
           sx={{ mb: 2, '& .MuiAlert-message': { flex: 1 } }}
-          onClose={() => { setError(null); setIsStockError(false); }}
+          onClose={() => {
+            setError(null);
+            setIsStockError(false);
+          }}
           action={
             isStockError ? (
               <Button
@@ -200,15 +273,14 @@ export default function SaleBuilderPage() {
           {error}
         </Alert>
       )}
-      {banner && <Alert severity="success" sx={{ mb: 2 }}>{banner}</Alert>}
+      {banner && (
+        <Alert severity="success" sx={{ mb: 2 }}>
+          {banner}
+        </Alert>
+      )}
 
       {/* ═══ Top bar — back + title + status ═══ */}
-      <Stack
-        direction="row"
-        alignItems="center"
-        spacing={2}
-        sx={{ mb: 2.5 }}
-      >
+      <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 2.5 }}>
         <IconButton
           onClick={() => nav('/smartpos/sales')}
           sx={{
@@ -262,7 +334,15 @@ export default function SaleBuilderPage() {
                   size="sm"
                   pulse={sale.status === 'CONFIRMED'}
                 />
-                <Box sx={{ width: 4, height: 4, borderRadius: '50%', bgcolor: brand.neutral[300], flexShrink: 0 }} />
+                <Box
+                  sx={{
+                    width: 4,
+                    height: 4,
+                    borderRadius: '50%',
+                    bgcolor: brand.neutral[300],
+                    flexShrink: 0,
+                  }}
+                />
                 <StatusIndicator
                   state={PAYMENT_STATE[sale.paymentStatus] ?? 'idle'}
                   label={sale.paymentStatus}
@@ -277,16 +357,33 @@ export default function SaleBuilderPage() {
               <Stack direction="row" spacing={0.5} alignItems="center">
                 <IconClock size={14} color={brand.neutral[400]} stroke={1.5} />
                 <Typography variant="caption" sx={{ color: brand.neutral[500], fontWeight: 500 }}>
-                  {new Date(sale.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                  {new Date(sale.date).toLocaleDateString('en-GB', {
+                    day: '2-digit',
+                    month: 'short',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
                 </Typography>
               </Stack>
               {sale.confirmedAt && (
                 <>
-                  <Box sx={{ width: 3, height: 3, borderRadius: '50%', bgcolor: brand.neutral[300] }} />
+                  <Box
+                    sx={{ width: 3, height: 3, borderRadius: '50%', bgcolor: brand.neutral[300] }}
+                  />
                   <Stack direction="row" spacing={0.5} alignItems="center">
                     <IconCheck size={14} color={brand.success.main} stroke={2} />
-                    <Typography variant="caption" sx={{ color: brand.success.dark, fontWeight: 600 }}>
-                      Confirmed {new Date(sale.confirmedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                    <Typography
+                      variant="caption"
+                      sx={{ color: brand.success.dark, fontWeight: 600 }}
+                    >
+                      Confirmed{' '}
+                      {new Date(sale.confirmedAt).toLocaleDateString('en-GB', {
+                        day: '2-digit',
+                        month: 'short',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
                     </Typography>
                   </Stack>
                 </>
@@ -301,13 +398,18 @@ export default function SaleBuilderPage() {
             {sale.status === 'CONFIRMED' && (
               <>
                 <Tooltip title="Print receipt" arrow>
-                  <IconButton onClick={handlePrint} sx={{ border: `1px solid ${brand.neutral[200]}`, borderRadius: '10px' }}>
+                  <IconButton
+                    onClick={handlePrint}
+                    sx={{ border: `1px solid ${brand.neutral[200]}`, borderRadius: '10px' }}
+                  >
                     <IconPrinter size={18} />
                   </IconButton>
                 </Tooltip>
                 <Tooltip title="Copy ref" arrow>
                   <IconButton
-                    onClick={() => { navigator.clipboard.writeText(sale.ref); }}
+                    onClick={() => {
+                      navigator.clipboard.writeText(sale.ref);
+                    }}
                     sx={{ border: `1px solid ${brand.neutral[200]}`, borderRadius: '10px' }}
                   >
                     <IconCopy size={18} />
@@ -330,7 +432,14 @@ export default function SaleBuilderPage() {
                 size="small"
                 startIcon={<IconTruckReturn size={16} />}
                 onClick={() => nav(`/smartpos/returns`)}
-                sx={{ fontWeight: 600, borderRadius: '8px', textTransform: 'none', borderColor: brand.warning.main, color: brand.warning.dark, '&:hover': { borderColor: brand.warning.dark, bgcolor: brand.warning.light } }}
+                sx={{
+                  fontWeight: 600,
+                  borderRadius: '8px',
+                  textTransform: 'none',
+                  borderColor: brand.warning.main,
+                  color: brand.warning.dark,
+                  '&:hover': { borderColor: brand.warning.dark, bgcolor: brand.warning.light },
+                }}
               >
                 Issue return
               </Button>
@@ -358,16 +467,38 @@ export default function SaleBuilderPage() {
               }}
             >
               <CardContent sx={{ p: 2, pb: '16px !important' }}>
-                <Typography variant="caption" sx={{ color: brand.neutral[500], fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', mb: 1 }}>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: brand.neutral[500],
+                    fontWeight: 600,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.06em',
+                    display: 'block',
+                    mb: 1,
+                  }}
+                >
                   Customer
                 </Typography>
                 {customer ? (
                   <Stack direction="row" spacing={1.5} alignItems="center">
-                    <Avatar sx={{ width: 40, height: 40, bgcolor: brand.primary[600], fontWeight: 700, fontSize: '0.9rem' }}>
+                    <Avatar
+                      sx={{
+                        width: 40,
+                        height: 40,
+                        bgcolor: brand.primary[600],
+                        fontWeight: 700,
+                        fontSize: '0.9rem',
+                      }}
+                    >
                       {customer.name.charAt(0).toUpperCase()}
                     </Avatar>
                     <Box sx={{ minWidth: 0 }}>
-                      <Typography variant="body2" sx={{ fontWeight: 700, color: brand.neutral[900] }} noWrap>
+                      <Typography
+                        variant="body2"
+                        sx={{ fontWeight: 700, color: brand.neutral[900] }}
+                        noWrap
+                      >
                         {customer.name}
                       </Typography>
                       <Typography variant="caption" sx={{ color: brand.neutral[500] }}>
@@ -376,11 +507,26 @@ export default function SaleBuilderPage() {
                     </Box>
                   </Stack>
                 ) : (
-                  <Stack direction="row" spacing={1.5} alignItems="center" sx={{ color: brand.neutral[400] }}>
-                    <Avatar sx={{ width: 40, height: 40, bgcolor: brand.neutral[200], color: brand.neutral[400] }}>
+                  <Stack
+                    direction="row"
+                    spacing={1.5}
+                    alignItems="center"
+                    sx={{ color: brand.neutral[400] }}
+                  >
+                    <Avatar
+                      sx={{
+                        width: 40,
+                        height: 40,
+                        bgcolor: brand.neutral[200],
+                        color: brand.neutral[400],
+                      }}
+                    >
                       <IconUser size={20} />
                     </Avatar>
-                    <Typography variant="body2" sx={{ fontWeight: 500, color: brand.neutral[500], fontStyle: 'italic' }}>
+                    <Typography
+                      variant="body2"
+                      sx={{ fontWeight: 500, color: brand.neutral[500], fontStyle: 'italic' }}
+                    >
                       Walk-in customer
                     </Typography>
                   </Stack>
@@ -398,11 +544,28 @@ export default function SaleBuilderPage() {
               }}
             >
               <CardContent sx={{ p: 2, pb: '16px !important' }}>
-                <Typography variant="caption" sx={{ color: brand.neutral[500], fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', mb: 1 }}>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: brand.neutral[500],
+                    fontWeight: 600,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.06em',
+                    display: 'block',
+                    mb: 1,
+                  }}
+                >
                   Warehouse
                 </Typography>
                 <Stack direction="row" spacing={1.5} alignItems="center">
-                  <Avatar sx={{ width: 40, height: 40, bgcolor: brand.info.light, color: brand.info.dark }}>
+                  <Avatar
+                    sx={{
+                      width: 40,
+                      height: 40,
+                      bgcolor: brand.info.light,
+                      color: brand.info.dark,
+                    }}
+                  >
                     <IconBuildingWarehouse size={20} />
                   </Avatar>
                   <Box>
@@ -424,21 +587,41 @@ export default function SaleBuilderPage() {
               }}
             >
               <CardContent sx={{ p: 2, pb: '16px !important' }}>
-                <Typography variant="caption" sx={{ color: brand.neutral[500], fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', mb: 1 }}>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: brand.neutral[500],
+                    fontWeight: 600,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.06em',
+                    display: 'block',
+                    mb: 1,
+                  }}
+                >
                   Summary
                 </Typography>
                 <Stack direction="row" spacing={3}>
                   <Box>
-                    <Typography variant="h6" sx={{ fontWeight: 800, color: brand.neutral[900], lineHeight: 1.2 }}>
+                    <Typography
+                      variant="h6"
+                      sx={{ fontWeight: 800, color: brand.neutral[900], lineHeight: 1.2 }}
+                    >
                       {lineCount}
                     </Typography>
-                    <Typography variant="caption" sx={{ color: brand.neutral[500] }}>Lines</Typography>
+                    <Typography variant="caption" sx={{ color: brand.neutral[500] }}>
+                      Lines
+                    </Typography>
                   </Box>
                   <Box>
-                    <Typography variant="h6" sx={{ fontWeight: 800, color: brand.neutral[900], lineHeight: 1.2 }}>
+                    <Typography
+                      variant="h6"
+                      sx={{ fontWeight: 800, color: brand.neutral[900], lineHeight: 1.2 }}
+                    >
                       {itemCount}
                     </Typography>
-                    <Typography variant="caption" sx={{ color: brand.neutral[500] }}>Items</Typography>
+                    <Typography variant="caption" sx={{ color: brand.neutral[500] }}>
+                      Items
+                    </Typography>
                   </Box>
                 </Stack>
               </CardContent>
@@ -447,7 +630,17 @@ export default function SaleBuilderPage() {
 
           {/* Line items */}
           <Box sx={{ mb: 2 }}>
-            <Typography variant="caption" sx={{ color: brand.neutral[500], fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', mb: 1.25 }}>
+            <Typography
+              variant="caption"
+              sx={{
+                color: brand.neutral[500],
+                fontWeight: 600,
+                textTransform: 'uppercase',
+                letterSpacing: '0.06em',
+                display: 'block',
+                mb: 1.25,
+              }}
+            >
               Line items
             </Typography>
             <LineEditor
@@ -470,7 +663,10 @@ export default function SaleBuilderPage() {
             disabled={isReadonly}
             InputProps={{
               startAdornment: notes ? undefined : (
-                <Box component="span" sx={{ color: brand.neutral[400], fontSize: '0.8125rem', fontStyle: 'italic' }}>
+                <Box
+                  component="span"
+                  sx={{ color: brand.neutral[400], fontSize: '0.8125rem', fontStyle: 'italic' }}
+                >
                   Add a note for this sale…
                 </Box>
               ),
@@ -492,7 +688,10 @@ export default function SaleBuilderPage() {
           >
             {/* Totals header */}
             <Box sx={{ px: 2.5, pt: 2.5, pb: 1.5 }}>
-              <Typography variant="overline" sx={{ color: brand.neutral[500], fontWeight: 600, letterSpacing: '0.06em' }}>
+              <Typography
+                variant="overline"
+                sx={{ color: brand.neutral[500], fontWeight: 600, letterSpacing: '0.06em' }}
+              >
                 Totals
               </Typography>
             </Box>
@@ -501,7 +700,9 @@ export default function SaleBuilderPage() {
               <Stack spacing={0} divider={<Divider sx={{ mx: 2.5 }} />}>
                 {/* Subtotal */}
                 <Stack direction="row" justifyContent="space-between" sx={{ px: 2.5, py: 1.5 }}>
-                  <Typography variant="body2" sx={{ color: brand.neutral[600] }}>Subtotal</Typography>
+                  <Typography variant="body2" sx={{ color: brand.neutral[600] }}>
+                    Subtotal
+                  </Typography>
                   <Typography variant="body2" sx={{ fontWeight: 600, color: brand.neutral[800] }}>
                     {fmt(subtotal)}
                   </Typography>
@@ -509,15 +710,24 @@ export default function SaleBuilderPage() {
 
                 {/* Tax */}
                 <Stack direction="row" justifyContent="space-between" sx={{ px: 2.5, py: 1.5 }}>
-                  <Typography variant="body2" sx={{ color: brand.neutral[600] }}>Tax</Typography>
+                  <Typography variant="body2" sx={{ color: brand.neutral[600] }}>
+                    Tax
+                  </Typography>
                   <Typography variant="body2" sx={{ fontWeight: 600, color: brand.neutral[800] }}>
                     {fmt(tax)}
                   </Typography>
                 </Stack>
 
                 {/* Discount */}
-                <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ px: 2.5, py: 1.5 }}>
-                  <Typography variant="body2" sx={{ color: brand.neutral[600] }}>Discount</Typography>
+                <Stack
+                  direction="row"
+                  justifyContent="space-between"
+                  alignItems="center"
+                  sx={{ px: 2.5, py: 1.5 }}
+                >
+                  <Typography variant="body2" sx={{ color: brand.neutral[600] }}>
+                    Discount
+                  </Typography>
                   {isReadonly ? (
                     <Typography variant="body2" sx={{ fontWeight: 600, color: brand.neutral[800] }}>
                       {fmt(discount)}
@@ -535,11 +745,19 @@ export default function SaleBuilderPage() {
                 </Stack>
 
                 {/* Grand total */}
-                <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ px: 2.5, py: 2 }}>
+                <Stack
+                  direction="row"
+                  justifyContent="space-between"
+                  alignItems="center"
+                  sx={{ px: 2.5, py: 2 }}
+                >
                   <Typography variant="body1" sx={{ fontWeight: 700, color: brand.neutral[900] }}>
                     Total
                   </Typography>
-                  <Typography variant="h5" sx={{ fontWeight: 900, color: brand.primary[700], letterSpacing: '-0.02em' }}>
+                  <Typography
+                    variant="h5"
+                    sx={{ fontWeight: 900, color: brand.primary[700], letterSpacing: '-0.02em' }}
+                  >
                     {fmt(grand)}
                   </Typography>
                 </Stack>
@@ -551,16 +769,28 @@ export default function SaleBuilderPage() {
                   <Stack spacing={1}>
                     <Stack direction="row" justifyContent="space-between">
                       <Typography variant="caption" sx={{ color: brand.neutral[500] }}>
-                        {sale.paymentStatus === 'PAID' ? 'Fully paid' : sale.paymentStatus === 'PARTIAL' ? 'Partially paid' : 'Refunded'}
+                        {sale.paymentStatus === 'PAID'
+                          ? 'Fully paid'
+                          : sale.paymentStatus === 'PARTIAL'
+                            ? 'Partially paid'
+                            : 'Refunded'}
                       </Typography>
-                      <Typography variant="caption" sx={{ fontWeight: 700, color: brand.neutral[700] }}>
+                      <Typography
+                        variant="caption"
+                        sx={{ fontWeight: 700, color: brand.neutral[700] }}
+                      >
                         {fmt(sale.paidTotal)}
                       </Typography>
                     </Stack>
                     {sale.paymentStatus === 'PARTIAL' && (
                       <Stack direction="row" justifyContent="space-between">
-                        <Typography variant="caption" sx={{ color: brand.error.dark }}>Due</Typography>
-                        <Typography variant="caption" sx={{ fontWeight: 700, color: brand.error.dark }}>
+                        <Typography variant="caption" sx={{ color: brand.error.dark }}>
+                          Due
+                        </Typography>
+                        <Typography
+                          variant="caption"
+                          sx={{ fontWeight: 700, color: brand.error.dark }}
+                        >
                           {fmt(sale.dueTotal)}
                         </Typography>
                       </Stack>
@@ -581,7 +811,13 @@ export default function SaleBuilderPage() {
                         <Button
                           fullWidth
                           variant="outlined"
-                          startIcon={submitting ? <CircularProgress size={16} /> : <IconDeviceFloppy size={16} />}
+                          startIcon={
+                            submitting ? (
+                              <CircularProgress size={16} />
+                            ) : (
+                              <IconDeviceFloppy size={16} />
+                            )
+                          }
                           onClick={() => handleSave(false)}
                           disabled={submitting || lines.length === 0}
                           sx={{
@@ -591,7 +827,11 @@ export default function SaleBuilderPage() {
                             py: 1.25,
                             borderColor: brand.neutral[300],
                             color: brand.neutral[700],
-                            '&:hover': { borderColor: brand.primary[400], bgcolor: brand.primary[50], color: brand.primary[700] },
+                            '&:hover': {
+                              borderColor: brand.primary[400],
+                              bgcolor: brand.primary[50],
+                              color: brand.primary[700],
+                            },
                           }}
                         >
                           Save as draft
@@ -599,7 +839,13 @@ export default function SaleBuilderPage() {
                         <Button
                           fullWidth
                           variant="contained"
-                          startIcon={submitting ? <CircularProgress size={16} color="inherit" /> : <IconCheck size={18} />}
+                          startIcon={
+                            submitting ? (
+                              <CircularProgress size={16} color="inherit" />
+                            ) : (
+                              <IconCheck size={18} />
+                            )
+                          }
                           onClick={() => handleSave(true)}
                           disabled={submitting || lines.length === 0}
                           sx={{

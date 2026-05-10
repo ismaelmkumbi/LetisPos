@@ -1,0 +1,96 @@
+<h2>Letis Control Center — Platform Decomposition</h2>
+<p class="subtitle">7 independent phases, each delivering standalone value</p>
+
+<div class="section" style="margin-bottom: 36px;">
+  <h3>Architecture Overview</h3>
+  <div class="mockup">
+    <div class="mockup-header">Letis Control Center — System Architecture</div>
+    <div class="mockup-body">
+      <pre style="font-family: monospace; font-size: 11px; line-height: 1.7; color: #e2e8f0; background: #0f172a; padding: 16px; border-radius: 8px;">
+┌─────────────────────────────────────────────────────────┐
+│                   <b style="color:#60a5fa">Web Dashboard</b> (Phase 3)                       │
+│               React UI · Real-time · RBAC                 │
+└─────────────────────┬───────────────────────────────────┘
+                      │ WebSocket + REST
+┌─────────────────────▼───────────────────────────────────┐
+│                  <b style="color:#f59e0b">Control Hub</b> (Phase 2)                        │
+│    Central API · Auth/RBAC · Metrics Store · Gateway      │
+└──┬──────────┬──────────┬──────────┬──────────────────────┘
+   │          │          │          │
+   ▼          ▼          ▼          ▼
+┌──────┐ ┌──────┐ ┌──────┐ ┌──────────────────┐
+│<b style="color:#22c55e">Agent</b> │ │<b style="color:#22c55e">Agent</b> │ │<b style="color:#22c55e">Agent</b> │ │<b style="color:#ef4444">Alert Engine</b> Ph.5│
+│Ph.1  │ │Ph.1  │ │Ph.1  │ │Rules · Notify     │
+│Ubuntu│ │Ubuntu│ │Ubuntu│ │Slack/Email/Webhook│
+└──┬───┘ └──┬───┘ └──┬───┘ └──────────────────┘
+   │        │        │
+   ▼        ▼        ▼
+<b style="color:#a78bfa">systemd</b>  <b style="color:#a78bfa">Docker</b>   <b style="color:#a78bfa">Logs</b>
+<b style="color:#a78bfa">CPU/RAM</b> <b style="color:#a78bfa">Disk</b>    <b style="color:#a78bfa">Network</b>
+
+<b style="color:#64748b">Phase 4: Log Aggregator</b> — collects + indexes logs
+<b style="color:#64748b">Phase 6: Deploy Pipeline</b> — Git-based deploy/rollback
+<b style="color:#64748b">Phase 7: SSL Manager</b> — cert expiry, auto-renew
+      </pre>
+    </div>
+  </div>
+</div>
+
+<h3>Phase Breakdown</h3>
+
+<div class="cards">
+  <div class="card" data-choice="phase1" onclick="toggleSelect(this)">
+    <div class="card-body">
+      <h3>Phase 1: Server Agent</h3>
+      <p>Lightweight Go/Rust agent per Ubuntu server. Collects CPU, memory, disk, network. Exposes REST + pushes to Hub. Manages systemd/Docker services. Ships logs.</p>
+      <div class="label">~2 weeks · Standalone value: Yes</div>
+    </div>
+  </div>
+  <div class="card" data-choice="phase2" onclick="toggleSelect(this)">
+    <div class="card-body">
+      <h3>Phase 2: Control Hub</h3>
+      <p>Central API server. Aggregates agent data, stores metrics (TimescaleDB), manages auth/RBAC. WebSocket gateway for real-time dashboard updates.</p>
+      <div class="label">~3 weeks · Depends on: Phase 1</div>
+    </div>
+  </div>
+  <div class="card" data-choice="phase3" onclick="toggleSelect(this)">
+    <div class="card-body">
+      <h3>Phase 3: Web Dashboard</h3>
+      <p>React SPA. Service grid with real-time status. Metric charts (CPU/RAM). Log viewer. One-click restart/stop/deploy. Audit trail viewer.</p>
+      <div class="label">~3 weeks · Depends on: Phase 2</div>
+    </div>
+  </div>
+  <div class="card" data-choice="phase4" onclick="toggleSelect(this)">
+    <div class="card-body">
+      <h3>Phase 4: Log Aggregator</h3>
+      <p>Agent ships logs → Hub indexes (OpenSearch/Loki) → Dashboard shows searchable, filterable log streams with live tail.</p>
+      <div class="label">~2 weeks · Depends on: Phase 2</div>
+    </div>
+  </div>
+  <div class="card" data-choice="phase5" onclick="toggleSelect(this)">
+    <div class="card-body">
+      <h3>Phase 5: Alerting Engine</h3>
+      <p>Rule engine: CPU > 90%, service down, disk > 80%, API latency spike → Slack, email, webhook alerts. Incident creation and resolution tracking.</p>
+      <div class="label">~2 weeks · Depends on: Phase 2</div>
+    </div>
+  </div>
+  <div class="card" data-choice="phase6" onclick="toggleSelect(this)">
+    <div class="card-body">
+      <h3>Phase 6: Deploy Pipeline</h3>
+      <p>Connect GitHub → deploy to servers. Rollback with one click. Canary and blue/green deploys. Deployment history and diff viewer.</p>
+      <div class="label">~3 weeks · Depends on: Phase 2</div>
+    </div>
+  </div>
+  <div class="card" data-choice="phase7" onclick="toggleSelect(this)">
+    <div class="card-body">
+      <h3>Phase 7: SSL & Domains</h3>
+      <p>SSL certificate inventory. Expiry alerts. Auto-renew via Let's Encrypt. Domain/DNS management. HTTPS health checks.</p>
+      <div class="label">~1 week · Depends on: Phase 2</div>
+    </div>
+  </div>
+</div>
+
+<p style="margin-top: 24px; font-size: 14px; color: #94a3b8;">
+  <b>Phases 1-3</b> = Minimum Viable Platform (8 weeks, single pane of glass with service control)<br>
+  <b>Phases 4-7</b> = Advanced Operations (add 8 weeks, full enterprise platform)
+</p>
