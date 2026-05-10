@@ -50,8 +50,9 @@ public class DocumentService {
         }
         String templateContent = templateResolver.resolve(tenantId, documentType, templateFile);
 
-        contextData.putIfAbsent("company", Map.of("name", "Letis POS"));
-        String html = templateRenderer.render(templateContent, contextData);
+        Map<String, Object> mergedContext = new java.util.HashMap<>(contextData);
+        mergedContext.putIfAbsent("company", Map.of("name", "Letis POS"));
+        String html = templateRenderer.render(templateContent, mergedContext);
 
         byte[] pdfBytes = gotenbergClient.convertHtmlToPdf(html);
 

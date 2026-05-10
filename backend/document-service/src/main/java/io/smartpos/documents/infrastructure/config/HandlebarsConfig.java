@@ -13,6 +13,10 @@ public class HandlebarsConfig {
     public Handlebars handlebars() {
         TemplateLoader loader = new ClassPathTemplateLoader("/templates", ".hbs");
         Handlebars hbs = new Handlebars(loader);
+        hbs.registerHelper("inc", (context, options) -> {
+            if (context instanceof Integer i) return i + 1;
+            return 0;
+        });
         hbs.setPrettyPrint(true);
         return hbs;
     }
