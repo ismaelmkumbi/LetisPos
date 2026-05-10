@@ -8,8 +8,8 @@ import {
 import { Refresh, Logout, Storage, Circle, KeyboardArrowDown, KeyboardArrowUp, Article } from '@mui/icons-material';
 import LogViewer from '../components/LogViewer';
 import { LineChart, Line, CartesianGrid, Tooltip as ReTooltip, ResponsiveContainer } from 'recharts';
-import { getServers, getMetrics, getServices, getBackendServices, serviceAction } from '../api/hub';
-import type { Server, MetricPoint, ServiceInfo, BackendService } from '../api/hub';
+import { getServers, getMetrics, getServices, getBackendServices, getProcesses, serviceAction } from '../api/hub';
+import type { Server, MetricPoint, ServiceInfo, BackendService, ProcessInfo } from '../api/hub';
 import { logout } from '../api/client';
 import { brand } from '../theme';
 
@@ -32,6 +32,7 @@ export default function Dashboard() {
   const [metrics, setMetrics] = useState<Record<string, MetricPoint[]>>({});
   const [services, setServices] = useState<Record<string, ServiceInfo[]>>({});
   const [backendSvcs, setBackendSvcs] = useState<Record<string, BackendService[]>>({});
+  const [processes, setProcesses] = useState<Record<string, ProcessInfo[]>>({});
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [svcFilter, setSvcFilter] = useState('All');
@@ -45,6 +46,7 @@ export default function Dashboard() {
         getMetrics(s.hostname, past, now).then(m => setMetrics(prev => ({ ...prev, [s.hostname]: m }))).catch(() => {}),
         getServices(s.hostname).then(svc => setServices(prev => ({ ...prev, [s.hostname]: svc }))).catch(() => {}),
         getBackendServices(s.hostname).then(bs => setBackendSvcs(prev => ({ ...prev, [s.hostname]: bs }))).catch(() => {}),
+        getProcesses(s.hostname).then(ps => setProcesses(prev => ({ ...prev, [s.hostname]: ps }))).catch(() => {}),
       ])));
     } catch { } finally { setLoading(false); setRefreshing(false); }
   }, []);
@@ -80,7 +82,7 @@ export default function Dashboard() {
         <Grid container spacing={1.5}>
           {servers.map(s => (
             <Grid size={{ xs: 12 }} key={s.id}>
-              <ServerPanel server={s} metrics={metrics[s.hostname] || []} backendSvcs={backendSvcs[s.hostname] || []} services={services[s.hostname] || []} svcFilter={svcFilter} onFilterChange={setSvcFilter} />
+              <ServerPanel server={s} metrics={metrics[s.hostname] || []} backendSvcs={backendSvcs[s.hostname] || []} services={services[s.hostname] || []} processes={processes[s.hostname] || []} svcFilter={svcFilter} onFilterChange={setSvcFilter} />
             </Grid>
           ))}
         </Grid>
@@ -89,7 +91,7 @@ export default function Dashboard() {
   );
 }
 
-function ServerPanel({ server, metrics: m, backendSvcs, services, svcFilter, onFilterChange }: { server: Server; metrics: MetricPoint[]; backendSvcs: BackendService[]; services: ServiceInfo[]; svcFilter: string; onFilterChange: (v: string) => void }) {
+function ServerPanel({ server, metrics: m, backendSvcs, services, processes, svcFilter, onFilterChange }: { server: Server; metrics: MetricPoint[]; backendSvcs: BackendService[]; services: ServiceInfo[]; processes: ProcessInfo[]; svcFilter: string; onFilterChange: (v: string) => void }) {
   const latest = m.length ? m[m.length - 1] : null;
   const memPct = latest?.memTotalBytes ? (latest.memUsedBytes! / latest.memTotalBytes * 100).toFixed(1) : null;
   const diskPct = latest?.diskTotalBytes ? (latest.diskUsedBytes! / latest.diskTotalBytes * 100).toFixed(1) : null;
@@ -154,8 +156,9 @@ function ServerPanel({ server, metrics: m, backendSvcs, services, svcFilter, onF
                 <TableCell>Service</TableCell>
                 <TableCell>Category</TableCell>
                 <TableCell>Port</TableCell>
+                <TableCell>CPU</TableCell>
+                <TableCell>RAM</TableCell>
                 <TableCell>Status</TableCell>
-                <TableCell>Description</TableCell>
                 <TableCell align="right">Actions</TableCell>
               </TableRow>
             </TableHead>

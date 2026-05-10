@@ -33,6 +33,8 @@ func New(cfg *config.Config, sysMgr *manager.SystemdManager, logStreamer *logs.S
 	mux.HandleFunc("/services", svcH.List)
 	mux.HandleFunc("/services/", svcH.Action)
 
+	mux.HandleFunc("/processes", s.handleProcesses)
+
 	mux.HandleFunc("/logs/", func(w http.ResponseWriter, r *http.Request) {
 		service := strings.TrimPrefix(r.URL.Path, "/logs/")
 		logStreamer.ServeLogs(w, r, service)
@@ -83,6 +85,16 @@ func (s *Server) handleMetrics(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	json.NewEncoder(w).Encode(m)
+}
+
+func (s *Server) handleProcesses(w http.ResponseWriter, r *http.Request) {
+	procs, err := collector.CollectProcesses()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(procs)
 }
 
 func withLogging(next http.Handler) http.Handler {

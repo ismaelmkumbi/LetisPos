@@ -9,15 +9,32 @@ import (
 	"strconv"
 )
 
-type Streamer struct{}
-
-func New() *Streamer {
-	return &Streamer{}
+// Backend service → journald SYSLOG_IDENTIFIER
+var ServiceIdentifiers = map[string]string{
+	"gateway":             "gateway",
+	"auth-service":        "auth-service",
+	"user-service":        "user-service",
+	"product-service":     "product-service",
+	"inventory-service":   "inventory-service",
+	"sales-service":       "sales-service",
+	"payment-service":     "payment-service",
+	"report-service":      "report-service",
+	"notification-service":"notification-service",
+	"hrm-service":         "hrm-service",
+	"ai-service":          "ai-service",
+	"integration-service": "integration-service",
+	"control-hub":         "control-hub",
 }
 
-func (s *Streamer) StreamJournal(service string, tail int, filter string, grep bool) (io.ReadCloser, error) {
+type Streamer struct{}
+
+func New() *Streamer { return &Streamer{} }
+
+func (s *Streamer) StreamJournal(service string, tail int, filter string, grep bool, identifier string) (io.ReadCloser, error) {
 	var args []string
-	if grep {
+	if identifier != "" {
+		args = []string{"-q", "SYSLOG_IDENTIFIER=" + identifier, "--no-pager", "-n", strconv.Itoa(tail), "-o", "short-iso"}
+	} else if grep {
 		args = []string{"--grep=" + service, "--no-pager", "-n", strconv.Itoa(tail), "-o", "short-iso"}
 	} else {
 		args = []string{"-u", service, "--no-pager", "-n", strconv.Itoa(tail), "-o", "short-iso"}
@@ -49,13 +66,17 @@ func (c *cmdReadCloser) Close() error {
 
 func (s *Streamer) ServeLogs(w http.ResponseWriter, r *http.Request, service string) {
 	tail, _ := strconv.Atoi(r.URL.Query().Get("tail"))
-	if tail == 0 {
-		tail = 100
-	}
+	if tail == 0 { tail = 100 }
 	filter := r.URL.Query().Get("filter")
 	grep := r.URL.Query().Get("grep") == "1"
+	identifier := r.URL.Query().Get("id")
+	if identifier == "" {
+		if id, ok := ServiceIdentifiers[service]; ok {
+			identifier = id
+		}
+	}
 
-	rc, err := s.StreamJournal(service, tail, filter, grep)
+	rc, err := s.StreamJournal(service, tail, filter, grep, identifier)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -66,8 +87,6 @@ func (s *Streamer) ServeLogs(w http.ResponseWriter, r *http.Request, service str
 	scanner := bufio.NewScanner(rc)
 	for scanner.Scan() {
 		fmt.Fprintln(w, scanner.Text())
-		if f, ok := w.(http.Flusher); ok {
-			f.Flush()
-		}
+		if f, ok := w.(http.Flusher); ok { f.Flush() }
 	}
 }
