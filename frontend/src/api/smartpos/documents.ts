@@ -42,6 +42,17 @@ export interface WhatsAppRequest {
   message?: string;
 }
 
+export interface DocumentVersion {
+  id: UUID;
+  documentId: UUID;
+  versionNumber: number;
+  storagePath: string;
+  changeType: string;
+  changeSummary?: string;
+  createdBy?: UUID;
+  createdAt: string;
+}
+
 // ---- Document Endpoints ----
 
 export async function generateDocument(
@@ -149,5 +160,17 @@ export async function previewTemplate(
     { bodyHtml },
     { responseType: 'blob' },
   );
+  return response.data;
+}
+
+// ---- Version Endpoints ----
+
+export async function listDocumentVersions(id: UUID): Promise<DocumentVersion[]> {
+  const { data } = await api.get<DocumentVersion[]>(`/api/v1/documents/${id}/versions`);
+  return data;
+}
+
+export async function downloadVersionPdf(documentId: UUID, versionId: UUID): Promise<Blob> {
+  const response = await api.get<Blob>(`/api/v1/documents/${documentId}/versions/${versionId}/pdf`, { responseType: 'blob' });
   return response.data;
 }

@@ -130,6 +130,7 @@ export default function DocumentActionsBar({
           open={previewOpen}
           onClose={() => setPreviewOpen(false)}
           documentType={documentType}
+          documentId={doc.id}
           data={contextData ?? {}}
         />
       )}

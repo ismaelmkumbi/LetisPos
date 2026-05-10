@@ -11,14 +11,16 @@ import {
   CircularProgress,
   Typography,
 } from '@mui/material';
-import { IconEye, IconFileTypePdf } from '@tabler/icons-react';
+import { IconEye, IconFileTypePdf, IconHistory } from '@tabler/icons-react';
 import { getTemplate, previewTemplate } from '../../../api/smartpos/documents';
 import TemplatePreviewRenderer from './TemplatePreviewRenderer';
+import DocumentVersionTimeline from './DocumentVersionTimeline';
 
 interface DocumentPreviewModalProps {
   open: boolean;
   onClose: () => void;
   documentType: string;
+  documentId?: string;
   data: Record<string, unknown>;
 }
 
@@ -26,6 +28,7 @@ export default function DocumentPreviewModal({
   open,
   onClose,
   documentType,
+  documentId,
   data,
 }: DocumentPreviewModalProps) {
   const [tab, setTab] = useState(0);
@@ -95,6 +98,7 @@ export default function DocumentPreviewModal({
         <Tabs value={tab} onChange={(_, v) => setTab(v)}>
           <Tab label="HTML Preview" />
           <Tab label="PDF Preview" icon={<IconFileTypePdf size={16} />} iconPosition="start" />
+          <Tab label="Versions" icon={<IconHistory size={16} />} iconPosition="start" />
         </Tabs>
       </Box>
 
@@ -129,6 +133,9 @@ export default function DocumentPreviewModal({
               Generate PDF Preview
             </Button>
           </Box>
+        )}
+        {!loading && !error && tab === 2 && documentId && (
+          <DocumentVersionTimeline documentId={documentId} />
         )}
       </DialogContent>
 
