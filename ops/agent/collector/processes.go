@@ -18,68 +18,106 @@ type ProcessInfo struct {
 }
 
 func CollectProcesses() ([]ProcessInfo, error) {
-	// Find Java processes with their listening ports
-	// Use ps to get PID, CPU%, RSS for java processes
-	out, err := exec.Command("ps", "-eo", "pid,pcpu,rss,comm", "--no-headers").Output()
+	out, err := exec.Command("ps", "-eo", "pid,pcpu,rss,args", "--no-headers").Output()
 	if err != nil {
 		return nil, err
 	}
+
+	// Build port→inode mapping from /proc/net/tcp
+	portInodes := readPortInodes()
 
 	var procs []ProcessInfo
 	lines := strings.Split(strings.TrimSpace(string(out)), "\n")
 	for _, line := range lines {
 		fields := strings.Fields(line)
-		if len(fields) < 4 || fields[3] != "java" {
+		if len(fields) < 4 || !strings.Contains(fields[3], "java") {
 			continue
 		}
 		pid, _ := strconv.Atoi(fields[0])
 		cpu, _ := strconv.ParseFloat(fields[1], 64)
 		rssKB, _ := strconv.ParseFloat(fields[2], 64)
+		if pid == 0 || rssKB == 0 { continue } // skip zombies
 
-		if pid == 0 { continue }
+		port := findPortForPID(pid, portInodes)
+		if port == 0 {
+			// Fallback: try to parse --server.port from cmdline
+			port = parsePortFromCmdline(pid)
+		}
 
-		// Find listening port for this PID
-		port := findPort(pid)
-
-		// Identify service name from /proc cmdline
-		name := identifyService(pid, port)
+		name := identifyService(pid, port, fields[3:])
+		if name == "" { continue } // skip non-LetisPOS processes
 
 		procs = append(procs, ProcessInfo{
-			Name:   name,
-			PID:    pid,
+			Name:  name,
+			PID:   pid,
 			CPUPct: cpu,
 			MemMB:  rssKB / 1024,
-			Port:   port,
+			Port:  port,
 		})
 	}
 	return procs, nil
 }
 
-func findPort(pid int) int {
-	out, err := exec.Command("ss", "-tlnp").Output()
-	if err != nil {
-		return 0
-	}
-	needle := fmt.Sprintf("pid=%d", pid)
-	for _, line := range strings.Split(string(out), "\n") {
-		if strings.Contains(line, needle) {
-			// Parse port from address like *:8080 or 127.0.0.1:8080
+func readPortInodes() map[int]string {
+	result := make(map[int]string)
+	for _, f := range []string{"/proc/net/tcp", "/proc/net/tcp6"} {
+		data, err := os.ReadFile(f)
+		if err != nil { continue }
+		for _, line := range strings.Split(string(data), "\n") {
 			fields := strings.Fields(line)
-			for _, f := range fields {
-				if idx := strings.LastIndex(f, ":"); idx > 0 {
-					portStr := f[idx+1:]
-					if p, err := strconv.Atoi(portStr); err == nil && p > 0 && p < 65536 {
-						return p
-					}
+			// sl local_address rem_address st(03) ... inode(09)
+			if len(fields) < 10 || fields[1] == "local_address" { continue }
+			if fields[3] != "0A" { continue } // LISTEN only
+			local := fields[1]
+			inode := fields[9]
+			if idx := strings.LastIndex(local, ":"); idx > 0 {
+				portHex := local[idx+1:]
+				if p, err := strconv.ParseInt(portHex, 16, 64); err == nil && p > 0 && p < 65536 {
+					result[int(p)] = inode
 				}
+			}
+		}
+	}
+	return result
+}
+
+func findPortForPID(pid int, portInodes map[int]string) int {
+	fdDir := fmt.Sprintf("/proc/%d/fd", pid)
+	entries, err := os.ReadDir(fdDir)
+	if err != nil { return 0 }
+
+	for port, inode := range portInodes {
+		for _, entry := range entries {
+			link, err := os.Readlink(fmt.Sprintf("%s/%s", fdDir, entry.Name()))
+			if err != nil { continue }
+			if strings.Contains(link, "socket:["+inode+"]") {
+				return port
 			}
 		}
 	}
 	return 0
 }
 
-func identifyService(pid int, port int) string {
-	// Known port → service name mapping
+func parsePortFromCmdline(pid int) int {
+	data, err := os.ReadFile(fmt.Sprintf("/proc/%d/cmdline", pid))
+	if err != nil { return 0 }
+	content := string(data)
+	// Look for --server.port=XXXX or -Dserver.port=XXXX
+	for _, prefix := range []string{"--server.port=", "-Dserver.port="} {
+		if idx := strings.Index(content, prefix); idx >= 0 {
+			end := idx + len(prefix)
+			for end < len(content) && content[end] >= '0' && content[end] <= '9' {
+				end++
+			}
+			if p, err := strconv.Atoi(content[idx+len(prefix):end]); err == nil && p > 0 {
+				return p
+			}
+		}
+	}
+	return 0
+}
+
+func identifyService(pid int, port int, args []string) string {
 	portNames := map[int]string{
 		8080: "gateway", 8081: "auth-service", 8082: "user-service",
 		8083: "product-service", 8084: "inventory-service", 8085: "sales-service",
@@ -90,15 +128,20 @@ func identifyService(pid int, port int) string {
 	if name, ok := portNames[port]; ok {
 		return name
 	}
-	// Fallback: read /proc/[pid]/cmdline
+	// Read cmdline for known LetisPOS service jar names
 	data, err := os.ReadFile(fmt.Sprintf("/proc/%d/cmdline", pid))
 	if err == nil {
 		parts := strings.Split(string(data), "\x00")
 		for _, p := range parts {
-			if strings.Contains(p, "smartpos") || strings.Contains(p, "gateway") || strings.Contains(p, "service") {
-				return filepath.Base(p)
+			base := filepath.Base(p)
+			for _, svc := range []string{"gateway", "auth-service", "user-service", "product-service",
+				"inventory-service", "sales-service", "payment-service", "report-service",
+				"notification-service", "hrm-service", "ai-service", "integration-service", "control-hub"} {
+				if strings.Contains(base, svc) {
+					return svc
+				}
 			}
 		}
 	}
-	return fmt.Sprintf("java-%d", pid)
+	return ""
 }
