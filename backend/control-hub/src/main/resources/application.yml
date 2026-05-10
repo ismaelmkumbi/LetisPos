@@ -1,0 +1,18 @@
+server:
+  port: 8100
+
+spring:
+  application:
+    name: control-hub
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5434/control_hub}
+    username: ${DB_USER:smartpos}
+    password: ${DB_PASSWORD:smartpos}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+
+hub:
+  agent:
+    secret: ${HUB_AGENT_SECRET:change-me}
