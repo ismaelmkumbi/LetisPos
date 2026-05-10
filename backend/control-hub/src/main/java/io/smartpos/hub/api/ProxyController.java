@@ -58,4 +58,13 @@ public class ProxyController {
         String result = proxyService.proxyLogs(agentHost(a), 9100, svc, tail, filter, isGrep);
         return ResponseEntity.ok(result);
     }
+
+    @PostMapping("/logs/{svc}/clear")
+    public ResponseEntity<String> clearLogs(@PathVariable String serverName,
+                                             @PathVariable String svc) {
+        Agent a = agentService.findByHostname(serverName);
+        String path = svc.equals("clear-all") ? "/logs/clear-all" : "/logs/clear/" + svc;
+        String result = proxyService.proxyPost(agentHost(a), 9100, path);
+        return ResponseEntity.ok(result);
+    }
 }

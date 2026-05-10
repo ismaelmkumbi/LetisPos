@@ -42,6 +42,20 @@ public class ProxyService {
         }
     }
 
+    public String proxyPost(String host, int port, String path) {
+        String uri = String.format("http://%s:%d%s", host, port, path);
+        try {
+            return client.post()
+                .uri(uri)
+                .retrieve()
+                .bodyToMono(String.class)
+                .block();
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,
+                "Agent POST proxy failed: " + e.getMessage());
+        }
+    }
+
     public String proxyLogs(String host, int port, String service, int tail, String filter, boolean grep) {
         String uri = String.format("http://%s:%d/logs/%s?tail=%d", host, port, service, tail);
         if (filter != null && !filter.isEmpty()) uri += "&filter=" + filter;

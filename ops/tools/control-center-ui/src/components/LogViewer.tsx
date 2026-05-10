@@ -3,8 +3,8 @@ import {
   Dialog, DialogTitle, DialogContent, DialogActions, Button, Stack, Box,
   Typography, TextField, MenuItem, Chip, IconButton, CircularProgress,
 } from '@mui/material';
-import { Refresh, Close, DeleteSweep } from '@mui/icons-material';
-import { getLogs } from '../api/hub';
+import { Refresh, Close, DeleteSweep, DeleteForever } from '@mui/icons-material';
+import { getLogs, clearLogs } from '../api/hub';
 import { brand } from '../theme';
 
 interface LogEntry {
@@ -155,7 +155,19 @@ export default function LogViewer({ open, server, service, grep, onClose }: Prop
         )}
       </DialogContent>
 
-      <DialogActions sx={{ px: 3, pb: 2 }}>
+      <DialogActions sx={{ px: 3, pb: 2, justifyContent: 'space-between' }}>
+        <Stack direction="row" spacing={1}>
+          <Button onClick={() => { if (confirm('Clear logs for ' + service + '?')) { clearLogs(server, service).then(() => setEntries([])).catch(() => {}); } }}
+            startIcon={<DeleteSweep fontSize="small" />} size="small"
+            sx={{ fontWeight: 600, borderRadius: '10px', textTransform: 'none', color: brand.warning.main, borderColor: `${brand.warning.main}30` }} variant="outlined">
+            Clear Service
+          </Button>
+          <Button onClick={() => { if (confirm('DELETE ALL journald logs from server? This cannot be undone.')) { clearLogs(server).then(() => setEntries([])).catch(() => {}); } }}
+            startIcon={<DeleteForever fontSize="small" />} size="small"
+            sx={{ fontWeight: 600, borderRadius: '10px', textTransform: 'none', color: brand.error.main, borderColor: `${brand.error.main}30` }} variant="outlined">
+            Clear All Logs
+          </Button>
+        </Stack>
         <Button onClick={onClose} sx={{ fontWeight: 600, borderRadius: '10px', textTransform: 'none', color: brand.neutral[400] }}>Close</Button>
       </DialogActions>
     </Dialog>

@@ -39,3 +39,5 @@ export interface ProcessInfo {
 }
 export const getProcesses = (server: string) =>
   hubApi.get<ProcessInfo[]>(`/api/v1/servers/${server}/processes`).then(r => r.data);
+export const clearLogs = (server: string, svc?: string) =>
+  hubApi.post(`/api/v1/servers/${server}/logs/${svc || 'clear-all'}/clear`).then(r => r.data);

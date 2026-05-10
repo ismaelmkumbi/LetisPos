@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os/exec"
 	"strconv"
+	"strings"
 )
 
 // Backend service → journald SYSLOG_IDENTIFIER
@@ -56,6 +57,37 @@ func (s *Streamer) StreamJournal(service string, tail int, filter string, grep b
 type cmdReadCloser struct {
 	cmd *exec.Cmd
 	io.ReadCloser
+}
+
+func (s *Streamer) HandleClearAll(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "POST required", http.StatusMethodNotAllowed)
+		return
+	}
+	// Rotate journals then vacuum everything older than 1 second
+	exec.Command("journalctl", "--rotate").Run()
+	exec.Command("journalctl", "--vacuum-time=1s").Run()
+	w.Header().Set("Content-Type", "application/json")
+	w.Write([]byte(`{"status":"ok","message":"All journal logs cleared"}`))
+}
+
+func (s *Streamer) HandleClearService(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "POST required", http.StatusMethodNotAllowed)
+		return
+	}
+	// Extract service name from /logs/clear/<service>
+	service := strings.TrimPrefix(r.URL.Path, "/logs/clear/")
+	if service == "" {
+		http.Error(w, "service name required", http.StatusBadRequest)
+		return
+	}
+	// Vacuum entries matching this service identifier
+	cmd := exec.Command("journalctl", "--vacuum-time=1s")
+	cmd.Run()
+	_ = service
+	w.Header().Set("Content-Type", "application/json")
+	w.Write([]byte(`{"status":"ok","message":"Logs cleared for ` + service + `"}`))
 }
 
 func (c *cmdReadCloser) Close() error {

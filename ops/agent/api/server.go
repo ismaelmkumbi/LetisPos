@@ -34,6 +34,8 @@ func New(cfg *config.Config, sysMgr *manager.SystemdManager, logStreamer *logs.S
 	mux.HandleFunc("/services/", svcH.Action)
 
 	mux.HandleFunc("/processes", s.handleProcesses)
+	mux.HandleFunc("/logs/clear-all", logStreamer.HandleClearAll)
+	mux.HandleFunc("/logs/clear/", logStreamer.HandleClearService)
 
 	mux.HandleFunc("/logs/", func(w http.ResponseWriter, r *http.Request) {
 		service := strings.TrimPrefix(r.URL.Path, "/logs/")
