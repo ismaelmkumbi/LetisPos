@@ -46,7 +46,22 @@ public class DocumentService {
         Map.entry("payment-voucher", "payment-voucher.hbs"),
         Map.entry("receipt-voucher", "receipt-voucher.hbs"),
         Map.entry("expense-voucher", "expense-voucher.hbs"),
-        Map.entry("debit-note", "debit-note.hbs")
+        Map.entry("debit-note", "debit-note.hbs"),
+        Map.entry("supplier-rfq", "supplier-rfq.hbs"),
+        Map.entry("supplier-invoice", "supplier-invoice.hbs"),
+        Map.entry("purchase-return", "purchase-return.hbs"),
+        Map.entry("work-order", "work-order.hbs"),
+        Map.entry("service-report", "service-report.hbs"),
+        Map.entry("payslip", "payslip.hbs"),
+        Map.entry("delivery-manifest", "delivery-manifest.hbs"),
+        Map.entry("packing-slip", "packing-slip.hbs"),
+        Map.entry("contract", "contract.hbs"),
+        Map.entry("warranty-certificate", "warranty-certificate.hbs"),
+        Map.entry("sales-return", "sales-return.hbs"),
+        Map.entry("refund-receipt", "refund-receipt.hbs"),
+        Map.entry("price-tag", "price-tag.hbs"),
+        Map.entry("audit-report", "audit-report.hbs"),
+        Map.entry("account-confirmation", "account-confirmation.hbs")
     );
 
     @Transactional

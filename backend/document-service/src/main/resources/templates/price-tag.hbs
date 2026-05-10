@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+  @page { size: A4; margin: 5mm; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 10px; color: #1a1a1a; }
+  .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; border-bottom: 2px solid #6b7280; padding-bottom: 6px; }
+  .logo { font-size: 16px; font-weight: 700; color: #6b7280; }
+  .company-info { text-align: right; font-size: 8px; color: #555; line-height: 1.4; }
+  .sheet-label { font-size: 9px; color: #888; text-align: right; margin-bottom: 6px; }
+  .tag-grid { display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(4, 1fr); gap: 0; }
+  .tag { border: 1px dashed #cbd5e1; padding: 8px 10px; display: flex; flex-direction: column; justify-content: space-between; height: 62mm; position: relative; }
+  .tag-header { display: flex; justify-content: space-between; align-items: flex-start; }
+  .tag-product { font-size: 12px; font-weight: 700; color: #1a1a1a; line-height: 1.2; margin-bottom: 4px; }
+  .tag-sku { font-size: 8px; color: #888; }
+  .tag-barcode { border: 2px dashed #d1d5db; padding: 8px 12px; text-align: center; font-size: 9px; color: #9ca3af; margin: 8px 0; border-radius: 4px; }
+  .tag-price { text-align: center; }
+  .tag-price .currency { font-size: 10px; color: #6b7280; }
+  .tag-price .amount { font-size: 22px; font-weight: 700; color: #dc2626; }
+  .tag-validity { font-size: 8px; color: #888; text-align: center; }
+  .tag-company { font-size: 7px; color: #9ca3af; text-align: center; margin-top: 2px; }
+  .footer { margin-top: 8px; border-top: 1px solid #e2e8f0; padding-top: 6px; font-size: 8px; color: #888; line-height: 1.4; text-align: center; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="logo">{{company.name}}</div>
+  </div>
+  <div class="company-info">
+    <div>{{company.address}}</div>
+    <div>{{company.phone}}</div>
+  </div>
+</div>
+<div class="sheet-label">Price Tags | Generated {{document.date}} | Sheet {{document.sheet}}</div>
+
+<div class="tag-grid">
+  {{#each tags}}
+  <div class="tag">
+    <div>
+      <div class="tag-header">
+        <div>
+          <div class="tag-product">{{name}}</div>
+          <div class="tag-sku">SKU: {{sku}}</div>
+        </div>
+      </div>
+      <div class="tag-barcode">{{barcode}}</div>
+      <div class="tag-price">
+        <span class="currency">{{../currency}}</span>
+        <span class="amount">{{price}}</span>
+      </div>
+      {{#if validUntil}}
+      <div class="tag-validity">Valid until: {{validUntil}}</div>
+      {{/if}}
+    </div>
+    <div class="tag-company">{{../../company.name}}</div>
+  </div>
+  {{/each}}
+</div>
+
+<div class="footer">
+  <div>{{company.name}} | {{company.address}} | TIN: {{company.tin}}</div>
+  <div>Page 1 of 1 | Generated on {{document.date}}</div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+  @page { size: A4; margin: 15mm; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 12px; color: #1a1a1a; }
+  .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 30px; border-bottom: 3px solid #dc2626; padding-bottom: 16px; }
+  .logo { font-size: 24px; font-weight: 700; color: #dc2626; }
+  .company-info { text-align: right; font-size: 11px; color: #555; line-height: 1.5; }
+  .doc-title { font-size: 22px; font-weight: 700; color: #dc2626; margin-bottom: 4px; }
+  .doc-meta { display: flex; justify-content: space-between; margin-bottom: 24px; }
+  .meta-box { flex: 1; }
+  .meta-label { font-size: 10px; text-transform: uppercase; color: #888; letter-spacing: 1px; margin-bottom: 2px; }
+  .meta-value { font-size: 13px; font-weight: 500; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
+  thead th { background: #fef2f2; padding: 10px 12px; text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: #dc2626; border-bottom: 2px solid #fecaca; }
+  tbody td { padding: 10px 12px; border-bottom: 1px solid #e2e8f0; font-size: 12px; }
+  .text-right { text-align: right; }
+  .totals { margin-left: auto; width: 280px; }
+  .total-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 12px; }
+  .total-row.grand { border-top: 2px solid #dc2626; font-size: 16px; font-weight: 700; color: #dc2626; padding-top: 10px; margin-top: 4px; }
+  .footer { margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 16px; font-size: 10px; color: #888; line-height: 1.6; }
+  .signature { display: flex; justify-content: space-between; margin-top: 50px; }
+  .sig-block { text-align: center; }
+  .sig-line { border-bottom: 1px solid #1a1a1a; width: 200px; margin-bottom: 6px; }
+  .sig-label { font-size: 11px; color: #555; }
+  .section-title { font-size: 13px; font-weight: 700; color: #b91c1c; margin-bottom: 10px; margin-top: 20px; text-transform: uppercase; }
+  .reason-box { background: #fef2f2; border: 1px solid #fecaca; border-radius: 6px; padding: 12px 16px; font-size: 12px; color: #991b1b; margin-bottom: 20px; }
+  .reason-label { font-weight: 700; margin-bottom: 4px; }
+  .po-ref { background: #fef2f2; border: 1px solid #fecaca; border-radius: 6px; padding: 10px 14px; font-size: 11px; color: #991b1b; margin-bottom: 16px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="logo">{{company.name}}</div>
+    <div style="font-size:11px;color:#555;">{{company.address}}</div>
+    <div style="font-size:11px;color:#555;">TIN: {{company.tin}}</div>
+  </div>
+  <div class="company-info">
+    <div>{{company.phone}}</div>
+    <div>{{company.email}}</div>
+    <div>{{company.website}}</div>
+  </div>
+</div>
+
+<div class="doc-title">PURCHASE RETURN</div>
+
+<div class="doc-meta">
+  <div class="meta-box">
+    <div class="meta-label">Return #</div>
+    <div class="meta-value">{{document.number}}</div>
+  </div>
+  <div class="meta-box">
+    <div class="meta-label">Date</div>
+    <div class="meta-value">{{document.date}}</div>
+  </div>
+  <div class="meta-box">
+    <div class="meta-label">Status</div>
+    <div class="meta-value">{{document.status}}</div>
+  </div>
+</div>
+
+<div class="po-ref">
+  <strong>Original Purchase Order:</strong> {{document.poReference}}
+</div>
+
+<div class="section-title">Supplier Information</div>
+<div class="doc-meta">
+  <div class="meta-box">
+    <div class="meta-label">Supplier Name</div>
+    <div class="meta-value">{{supplier.name}}</div>
+  </div>
+  <div class="meta-box">
+    <div class="meta-label">Contact</div>
+    <div class="meta-value">{{supplier.contactPerson}}</div>
+  </div>
+</div>
+<div class="doc-meta">
+  <div class="meta-box">
+    <div class="meta-label">Address</div>
+    <div class="meta-value">{{supplier.address}}</div>
+  </div>
+  <div class="meta-box">
+    <div class="meta-label">Phone</div>
+    <div class="meta-value">{{supplier.phone}}</div>
+  </div>
+  <div class="meta-box">
+    <div class="meta-label">Email</div>
+    <div class="meta-value">{{supplier.email}}</div>
+  </div>
+</div>
+
+<div class="reason-box">
+  <div class="reason-label">Reason for Return</div>
+  <div>{{document.returnReason}}</div>
+</div>
+
+<table>
+  <thead>
+    <tr>
+      <th style="width:40px;">#</th>
+      <th>Product</th>
+      <th style="width:80px;" class="text-right">Qty Ordered</th>
+      <th style="width:80px;" class="text-right">Qty Returned</th>
+      <th style="width:100px;" class="text-right">Unit Price</th>
+      <th style="width:110px;" class="text-right">Total Credit</th>
+    </tr>
+  </thead>
+  <tbody>
+    {{#each items}}
+    <tr>
+      <td>{{inc @index}}</td>
+      <td><strong>{{name}}</strong>{{#if description}}<br><span style="font-size:10px;color:#888;">{{description}}</span>{{/if}}</td>
+      <td class="text-right">{{quantityOrdered}}</td>
+      <td class="text-right" style="color:#dc2626;font-weight:700;">{{quantityReturned}}</td>
+      <td class="text-right">{{unitPrice}}</td>
+      <td class="text-right"><strong>{{totalCredit}}</strong></td>
+    </tr>
+    {{/each}}
+  </tbody>
+</table>
+
+<div class="totals">
+  <div class="total-row"><span>Total Items Returned</span><span>{{totals.itemCount}}</span></div>
+  <div class="total-row"><span>Subtotal Credit</span><span>{{totals.subtotal}}</span></div>
+  {{#each totals.taxLines}}
+  <div class="total-row"><span>{{label}} Adjustment</span><span>{{amount}}</span></div>
+  {{/each}}
+  <div class="total-row grand"><span>Total Credit Due</span><span>{{totals.grandTotal}}</span></div>
+</div>
+
+<div class="signature">
+  <div class="sig-block">
+    <div class="sig-line"></div>
+    <div class="sig-label">Prepared By</div>
+  </div>
+  <div class="sig-block">
+    <div class="sig-line"></div>
+    <div class="sig-label">Authorized By</div>
+  </div>
+  <div class="sig-block">
+    <div class="sig-line"></div>
+    <div class="sig-label">Received By (Supplier)</div>
+  </div>
+</div>
+
+<div class="footer">
+  <div>{{company.name}} | {{company.address}} | TIN: {{company.tin}}</div>
+  <div>Phone: {{company.phone}} | Email: {{company.email}}</div>
+  <div>Page 1 of 1 | Generated on {{document.date}}</div>
+</div>
+
+</body>
+</html>

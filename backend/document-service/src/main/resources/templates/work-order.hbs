@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+  @page { size: A4; margin: 15mm; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 12px; color: #1a1a1a; }
+  .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 30px; border-bottom: 3px solid #ea580c; padding-bottom: 16px; }
+  .logo { font-size: 24px; font-weight: 700; color: #ea580c; }
+  .company-info { text-align: right; font-size: 11px; color: #555; line-height: 1.5; }
+  .doc-title { font-size: 22px; font-weight: 700; color: #ea580c; margin-bottom: 4px; }
+  .doc-meta { display: flex; justify-content: space-between; margin-bottom: 24px; }
+  .meta-box { flex: 1; }
+  .meta-label { font-size: 10px; text-transform: uppercase; color: #888; letter-spacing: 1px; margin-bottom: 2px; }
+  .meta-value { font-size: 13px; font-weight: 500; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
+  thead th { background: #fff7ed; padding: 10px 12px; text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: #ea580c; border-bottom: 2px solid #fed7aa; }
+  tbody td { padding: 10px 12px; border-bottom: 1px solid #e2e8f0; font-size: 12px; }
+  .text-right { text-align: right; }
+  .footer { margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 16px; font-size: 10px; color: #888; line-height: 1.6; }
+  .signature { display: flex; justify-content: space-between; margin-top: 50px; }
+  .sig-block { text-align: center; }
+  .sig-line { border-bottom: 1px solid #1a1a1a; width: 200px; margin-bottom: 6px; }
+  .sig-label { font-size: 11px; color: #555; }
+  .section-title { font-size: 13px; font-weight: 700; color: #c2410c; margin-bottom: 10px; margin-top: 20px; text-transform: uppercase; }
+  .info-grid { display: flex; gap: 24px; margin-bottom: 16px; }
+  .info-card { flex: 1; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 6px; padding: 10px 14px; }
+  .info-card .label { font-size: 9px; text-transform: uppercase; color: #c2410c; letter-spacing: 0.5px; margin-bottom: 2px; }
+  .info-card .value { font-size: 13px; font-weight: 600; color: #1a1a1a; }
+  .issue-box { background: #fff7ed; border: 1px solid #fed7aa; border-radius: 6px; padding: 12px 16px; font-size: 12px; color: #9a3412; margin-bottom: 20px; line-height: 1.6; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="logo">{{company.name}}</div>
+    <div style="font-size:11px;color:#555;">{{company.address}}</div>
+    <div style="font-size:11px;color:#555;">TIN: {{company.tin}}</div>
+  </div>
+  <div class="company-info">
+    <div>{{company.phone}}</div>
+    <div>{{company.email}}</div>
+    <div>{{company.website}}</div>
+  </div>
+</div>
+
+<div class="doc-title">WORK ORDER</div>
+
+<div class="doc-meta">
+  <div class="meta-box">
+    <div class="meta-label">Work Order #</div>
+    <div class="meta-value">{{document.number}}</div>
+  </div>
+  <div class="meta-box">
+    <div class="meta-label">Date Issued</div>
+    <div class="meta-value">{{document.date}}</div>
+  </div>
+  <div class="meta-box">
+    <div class="meta-label">Priority</div>
+    <div class="meta-value">{{document.priority}}</div>
+  </div>
+</div>
+
+<div class="section-title">Customer Information</div>
+<div class="doc-meta">
+  <div class="meta-box">
+    <div class="meta-label">Customer Name</div>
+    <div class="meta-value">{{customer.name}}</div>
+  </div>
+  <div class="meta-box">
+    <div class="meta-label">Contact</div>
+    <div class="meta-value">{{customer.phone}}</div>
+  </div>
+</div>
+<div class="doc-meta">
+  <div class="meta-box">
+    <div class="meta-label">Address</div>
+    <div class="meta-value">{{customer.address}}</div>
+  </div>
+  <div class="meta-box">
+    <div class="meta-label">Email</div>
+    <div class="meta-value">{{customer.email}}</div>
+  </div>
+</div>
+
+<div class="section-title">Equipment Details</div>
+<div class="info-grid">
+  <div class="info-card">
+    <div class="label">Equipment Type</div>
+    <div class="value">{{equipment.type}}</div>
+  </div>
+  <div class="info-card">
+    <div class="label">Model</div>
+    <div class="value">{{equipment.model}}</div>
+  </div>
+  <div class="info-card">
+    <div class="label">Serial #</div>
+    <div class="value">{{equipment.serialNumber}}</div>
+  </div>
+</div>
+
+<div class="section-title">Issue Description</div>
+<div class="issue-box">{{document.issueDescription}}</div>
+
+<div class="info-grid">
+  <div class="info-card">
+    <div class="label">Assigned Technician</div>
+    <div class="value">{{document.technician}}</div>
+  </div>
+  <div class="info-card">
+    <div class="label">Scheduled Date</div>
+    <div class="value">{{document.scheduledDate}}</div>
+  </div>
+  <div class="info-card">
+    <div class="label">Estimated Hours</div>
+    <div class="value">{{document.estimatedHours}}</div>
+  </div>
+</div>
+
+<div class="section-title">Parts Required</div>
+<table>
+  <thead>
+    <tr>
+      <th style="width:40px;">#</th>
+      <th>Part Name</th>
+      <th>Part Number</th>
+      <th style="width:70px;" class="text-right">Qty</th>
+      <th style="width:80px;" class="text-right">Unit Cost</th>
+      <th style="width:80px;" class="text-right">Total</th>
+    </tr>
+  </thead>
+  <tbody>
+    {{#each parts}}
+    <tr>
+      <td>{{inc @index}}</td>
+      <td><strong>{{name}}</strong></td>
+      <td style="font-size:10px;">{{partNumber}}</td>
+      <td class="text-right">{{quantity}}</td>
+      <td class="text-right">{{unitCost}}</td>
+      <td class="text-right"><strong>{{total}}</strong></td>
+    </tr>
+    {{/each}}
+  </tbody>
+</table>
+
+<div class="signature">
+  <div class="sig-block">
+    <div class="sig-line"></div>
+    <div class="sig-label">Prepared By</div>
+  </div>
+  <div class="sig-block">
+    <div class="sig-line"></div>
+    <div class="sig-label">Technician Acceptance</div>
+  </div>
+  <div class="sig-block">
+    <div class="sig-line"></div>
+    <div class="sig-label">Customer Approval</div>
+  </div>
+</div>
+
+<div class="footer">
+  <div>{{company.name}} | {{company.address}} | TIN: {{company.tin}}</div>
+  <div>Phone: {{company.phone}} | Email: {{company.email}}</div>
+  <div>Page 1 of 1 | Generated on {{document.date}}</div>
+</div>
+
+</body>
+</html>

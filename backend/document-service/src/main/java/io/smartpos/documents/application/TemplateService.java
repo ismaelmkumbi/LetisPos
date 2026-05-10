@@ -31,7 +31,12 @@ public class TemplateService {
         "stock-transfer", "stock-count", "stock-adjustment",
         "batch-traceability", "expiry-report",
         "journal-voucher", "payment-voucher", "receipt-voucher",
-        "expense-voucher", "debit-note"
+        "expense-voucher", "debit-note",
+        "supplier-rfq", "supplier-invoice", "purchase-return",
+        "work-order", "service-report", "payslip",
+        "delivery-manifest", "packing-slip",
+        "contract", "warranty-certificate", "sales-return", "refund-receipt",
+        "price-tag", "audit-report", "account-confirmation"
     );
 
     public record TemplateInfo(String documentType, String name, boolean isOverridden,
