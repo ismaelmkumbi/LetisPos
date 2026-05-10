@@ -174,3 +174,25 @@ export async function downloadVersionPdf(documentId: UUID, versionId: UUID): Pro
   const response = await api.get<Blob>(`/api/v1/documents/${documentId}/versions/${versionId}/pdf`, { responseType: 'blob' });
   return response.data;
 }
+
+// ---- Template Version Endpoints ----
+
+export interface TemplateVersionDto {
+  id: UUID;
+  templateOverrideId: UUID;
+  versionNumber: number;
+  bodyHtml: string;
+  changeDescription?: string;
+  updatedBy?: UUID;
+  updatedAt: string;
+}
+
+export async function listTemplateVersions(documentType: string): Promise<TemplateVersionDto[]> {
+  const { data } = await api.get<TemplateVersionDto[]>(`/api/v1/templates/${documentType}/versions`);
+  return data;
+}
+
+export async function rollbackTemplate(documentType: string, version: number): Promise<{ status: string }> {
+  const { data } = await api.post<{ status: string }>(`/api/v1/templates/${documentType}/rollback`, { version });
+  return data;
+}
