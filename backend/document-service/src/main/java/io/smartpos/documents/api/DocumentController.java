@@ -4,7 +4,9 @@ import io.smartpos.documents.api.dto.*;
 import io.smartpos.documents.application.DeliveryService;
 import io.smartpos.documents.application.DocumentService;
 import io.smartpos.documents.domain.model.Document;
+import io.smartpos.documents.domain.model.DocumentVersion;
 import io.smartpos.documents.domain.repository.DocumentRepository;
+import io.smartpos.documents.domain.repository.DocumentVersionRepository;
 import io.smartpos.common.context.TenantContext;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +17,7 @@ import org.springframework.http.*;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -26,6 +29,7 @@ public class DocumentController {
     private final DocumentService documentService;
     private final DeliveryService deliveryService;
     private final DocumentRepository documentRepo;
+    private final DocumentVersionRepository versionRepo;
 
     @PostMapping("/generate")
     @PreAuthorize("isAuthenticated()")
@@ -101,5 +105,20 @@ public class DocumentController {
                     PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt")));
         }
         return ResponseEntity.ok(docs.map(d -> DocumentDto.from(d, null)));
+    }
+
+    @GetMapping("/{id}/versions")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<List<DocumentVersion>> listVersions(@PathVariable UUID id) {
+        return ResponseEntity.ok(versionRepo.findByDocumentIdOrderByVersionNumberDesc(id));
+    }
+
+    @GetMapping("/{id}/versions/{versionId}/pdf")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<byte[]> downloadVersionPdf(@PathVariable UUID id, @PathVariable UUID versionId) throws Exception {
+        DocumentVersion version = versionRepo.findById(versionId)
+                .orElseThrow(() -> new IllegalArgumentException("Version not found: " + versionId));
+        byte[] pdfBytes = documentService.downloadByPath(version.getStoragePath());
+        return ResponseEntity.ok().contentType(MediaType.APPLICATION_PDF).body(pdfBytes);
     }
 }

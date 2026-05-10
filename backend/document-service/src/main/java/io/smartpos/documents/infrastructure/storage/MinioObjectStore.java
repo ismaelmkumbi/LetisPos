@@ -1,5 +1,6 @@
 package io.smartpos.documents.infrastructure.storage;
 
+import io.minio.GetObjectArgs;
 import io.minio.GetPresignedObjectUrlArgs;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
@@ -9,6 +10,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
 import java.util.concurrent.TimeUnit;
 
 @Component
@@ -37,5 +40,20 @@ public class MinioObjectStore {
                 .object(objectKey)
                 .expiry(config.getPresignedTtlSeconds(), TimeUnit.SECONDS)
                 .build());
+    }
+
+    public byte[] download(String objectKey) throws Exception {
+        try (InputStream in = client.getObject(GetObjectArgs.builder()
+                .bucket(config.getBucket())
+                .object(objectKey)
+                .build());
+             ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            byte[] buf = new byte[8192];
+            int n;
+            while ((n = in.read(buf)) != -1) {
+                out.write(buf, 0, n);
+            }
+            return out.toByteArray();
+        }
     }
 }

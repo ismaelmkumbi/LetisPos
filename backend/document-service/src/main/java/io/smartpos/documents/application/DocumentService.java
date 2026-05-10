@@ -2,7 +2,9 @@ package io.smartpos.documents.application;
 
 import io.smartpos.common.context.TenantContext;
 import io.smartpos.documents.domain.model.Document;
+import io.smartpos.documents.domain.model.DocumentVersion;
 import io.smartpos.documents.domain.repository.DocumentRepository;
+import io.smartpos.documents.domain.repository.DocumentVersionRepository;
 import io.smartpos.documents.infrastructure.gotenberg.GotenbergClient;
 import io.smartpos.documents.infrastructure.storage.MinioObjectStore;
 import io.smartpos.documents.infrastructure.template.TemplateRenderer;
@@ -22,6 +24,7 @@ import java.util.UUID;
 public class DocumentService {
 
     private final DocumentRepository documentRepo;
+    private final DocumentVersionRepository versionRepo;
     private final TemplateResolver templateResolver;
     private final TemplateRenderer templateRenderer;
     private final GotenbergClient gotenbergClient;
@@ -102,12 +105,38 @@ public class DocumentService {
                 .build();
 
         Document saved = documentRepo.save(doc);
+
+        DocumentVersion v1 = DocumentVersion.builder()
+                .documentId(saved.getId())
+                .versionNumber(1)
+                .storagePath(saved.getStoragePath())
+                .changeType("created")
+                .changeSummary("Document generated")
+                .build();
+        versionRepo.save(v1);
+
         log.info("Generated document {} ({}) for tenant={}", docNumber, documentType, tenantId);
         return saved;
     }
 
     public String getPresignedUrl(Document doc) throws Exception {
         return storage.presignedGetUrl(doc.getStoragePath());
+    }
+
+    public byte[] downloadByPath(String storagePath) throws Exception {
+        return storage.download(storagePath);
+    }
+
+    public DocumentVersion createVersion(Document doc, String changeType, String summary) {
+        int nextVersion = versionRepo.countByDocumentId(doc.getId()) + 1;
+        DocumentVersion version = DocumentVersion.builder()
+                .documentId(doc.getId())
+                .versionNumber(nextVersion)
+                .storagePath(doc.getStoragePath())
+                .changeType(changeType)
+                .changeSummary(summary)
+                .build();
+        return versionRepo.save(version);
     }
 
     private String generateDocumentNumber(UUID tenantId, String documentType) {
