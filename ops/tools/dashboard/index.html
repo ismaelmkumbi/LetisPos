@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Letis Control Center</title>
+<style>
+  :root {
+    --bg: #0b1120; --card: #111827; --border: #1e293b;
+    --text: #e2e8f0; --muted: #64748b; --green: #22c55e;
+    --red: #ef4444; --amber: #f59e0b; --blue: #3b82f6; --purple: #8b5cf6;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+  .topbar { display: flex; align-items: center; justify-content: space-between; padding: 16px 24px; border-bottom: 1px solid var(--border); background: var(--card); }
+  .topbar h1 { font-size: 1.1rem; font-weight: 700; letter-spacing: -0.02em; }
+  .topbar .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+  .topbar .live { background: var(--green); box-shadow: 0 0 8px rgba(34,197,94,0.5); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100% { opacity:1 } 50% { opacity:0.5 } }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 16px; padding: 24px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+  .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .card-header h3 { font-size: 0.95rem; font-weight: 700; }
+  .status { display: flex; align-items: center; gap: 6px; font-size: 0.75rem; font-weight: 600; }
+  .status .dot { width: 7px; height: 7px; border-radius: 50%; }
+  .status .online { background: var(--green); }
+  .status .offline { background: var(--red); }
+  .metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .metric { background: #0f172a; border-radius: 8px; padding: 12px; }
+  .metric .label { font-size: 0.68rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px; }
+  .metric .value { font-size: 1.1rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .bar { height: 4px; background: #1e293b; border-radius: 2px; margin-top: 6px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 2px; transition: width 1s ease; }
+  .actions { display: flex; gap: 8px; margin-top: 14px; }
+  .btn { padding: 6px 14px; border-radius: 8px; border: 1px solid var(--border); background: transparent; color: var(--text); font-size: 0.75rem; font-weight: 600; cursor: pointer; transition: all 0.15s; }
+  .btn:hover { background: #1e293b; border-color: #334155; }
+  .btn.danger:hover { background: #3b1111; border-color: var(--red); color: var(--red); }
+  .empty { text-align: center; padding: 60px 20px; color: var(--muted); }
+  .empty h2 { font-size: 1.2rem; margin-bottom: 8px; }
+  .summary { display: flex; gap: 12px; padding: 0 24px; margin-bottom: -4px; }
+  .stat { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 12px 18px; text-align: center; }
+  .stat-num { font-size: 1.3rem; font-weight: 800; }
+  .stat-label { font-size: 0.65rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+  .last-seen { font-size: 0.65rem; color: var(--muted); margin-top: 4px; }
+  .chart-container { margin-top: 12px; }
+  canvas { width: 100%; border-radius: 6px; }
+  .refresh { font-size: 0.7rem; color: var(--muted); margin-left: 8px; }
+  .controls { display: flex; gap: 8px; align-items: center; }
+  input, select { padding: 6px 10px; background: #0f172a; border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 0.75rem; }
+  ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: var(--bg); } ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div>
+    <h1>Letis Control Center</h1>
+    <span class="refresh" id="refreshLabel">Auto-refresh 5s</span>
+  </div>
+  <div class="controls">
+    <span style="font-size:0.75rem;color:var(--muted)">Hub</span>
+    <span class="dot live"></span>
+    <span style="font-size:0.75rem;" id="hubStatus">connected</span>
+  </div>
+</div>
+
+<div class="summary" id="summary"></div>
+<div class="grid" id="servers"></div>
+<div class="empty" id="empty"><h2>No servers connected</h2><p>Deploy an agent to start monitoring.</p></div>
+
+<script>
+const API = '/hub/api/v1';
+let servers = [];
+
+async function fetchServers() {
+  try {
+    const res = await fetch(API + '/servers');
+    if (res.ok) {
+      const data = await res.json();
+      servers = data;
+      render();
+      document.getElementById('hubStatus').textContent = 'connected';
+      document.getElementById('hubStatus').style.color = 'var(--green)';
+    } else {
+      document.getElementById('hubStatus').textContent = 'auth required';
+      document.getElementById('hubStatus').style.color = 'var(--amber)';
+    }
+  } catch {
+    document.getElementById('hubStatus').textContent = 'disconnected';
+    document.getElementById('hubStatus').style.color = 'var(--red)';
+  }
+}
+
+function render() {
+  const grid = document.getElementById('servers');
+  const empty = document.getElementById('empty');
+  const summary = document.getElementById('summary');
+
+  if (!servers.length) {
+    grid.innerHTML = '';
+    empty.style.display = 'block';
+    summary.innerHTML = '';
+    return;
+  }
+
+  empty.style.display = 'none';
+  const online = servers.filter(s => s.status === 'online').length;
+  summary.innerHTML = `
+    <div class="stat"><div class="stat-num">${servers.length}</div><div class="stat-label">Servers</div></div>
+    <div class="stat"><div class="stat-num" style="color:var(--green)">${online}</div><div class="stat-label">Online</div></div>
+    <div class="stat"><div class="stat-num" style="color:var(--red)">${servers.length - online}</div><div class="stat-label">Offline</div></div>
+  `;
+
+  grid.innerHTML = servers.map(s => `
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <h3>${s.hostname}</h3>
+          <div class="last-seen">${s.version || '—'} · ${s.ipAddress || '—'}</div>
+        </div>
+        <div class="status">
+          <span class="dot ${s.status === 'online' ? 'online' : 'offline'}"></span>
+          ${s.status}
+        </div>
+      </div>
+      <div class="metrics" id="metrics-${s.hostname.replace(/[^a-zA-Z0-9]/g,'')}">
+        <div class="metric"><div class="label">CPU</div><div class="value">—</div><div class="bar"><div class="bar-fill" style="width:0%"></div></div></div>
+        <div class="metric"><div class="label">Memory</div><div class="value">—</div><div class="bar"><div class="bar-fill" style="width:0%"></div></div></div>
+        <div class="metric"><div class="label">Disk</div><div class="value">—</div><div class="bar"><div class="bar-fill" style="width:0%"></div></div></div>
+        <div class="metric"><div class="label">Load</div><div class="value">—</div></div>
+      </div>
+      <div class="actions">
+        <button class="btn" onclick="viewLogs('${s.hostname}')">Logs</button>
+      </div>
+    </div>
+  `).join('');
+
+  // Fetch latest metrics for each server
+  servers.forEach(s => fetchMetrics(s.hostname));
+}
+
+async function fetchMetrics(hostname) {
+  try {
+    const to = new Date().toISOString();
+    const from = new Date(Date.now() - 60000).toISOString();
+    const res = await fetch(`${API}/servers/${hostname}/metrics?from=${from}&to=${to}`);
+    if (!res.ok) return;
+    const data = await res.json();
+    if (!data.length) return;
+    const latest = data[data.length - 1];
+    const safeId = hostname.replace(/[^a-zA-Z0-9]/g, '');
+    const container = document.getElementById('metrics-' + safeId);
+    if (!container) return;
+
+    const memPct = latest.memTotalBytes ? ((latest.memUsedBytes / latest.memTotalBytes) * 100).toFixed(1) : 0;
+    const diskPct = latest.diskTotalBytes ? ((latest.diskUsedBytes / latest.diskTotalBytes) * 100).toFixed(1) : 0;
+    const cpu = latest.cpuPercent != null ? latest.cpuPercent.toFixed(1) : '—';
+    const load = latest.load1 != null ? latest.load1.toFixed(2) : '—';
+
+    container.innerHTML = `
+      <div class="metric"><div class="label">CPU</div><div class="value">${cpu}%</div><div class="bar"><div class="bar-fill" style="width:${cpu}%;background:var(--blue)"></div></div></div>
+      <div class="metric"><div class="label">Memory</div><div class="value">${memPct}%</div><div class="bar"><div class="bar-fill" style="width:${memPct}%;background:var(--purple)"></div></div></div>
+      <div class="metric"><div class="label">Disk</div><div class="value">${diskPct}%</div><div class="bar"><div class="bar-fill" style="width:${diskPct}%;background:var(--amber)"></div></div></div>
+      <div class="metric"><div class="label">Load</div><div class="value">${load}</div></div>
+    `;
+  } catch {}
+}
+
+function viewLogs(hostname) {
+  window.open('/hub/api/v1/servers/' + hostname + '/logs/nginx?tail=50', '_blank');
+}
+
+fetchServers();
+setInterval(fetchServers, 5000);
+document.getElementById('refreshLabel').textContent = 'Auto-refresh 5s';
+</script>
+</body>
+</html>
