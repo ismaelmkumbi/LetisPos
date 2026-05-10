@@ -1,0 +1,116 @@
+<h2>API Design — document-service</h2>
+<p class="subtitle">REST endpoints that power the entire Document & Print system</p>
+
+<div class="mockup">
+  <div class="mockup-header">Core Document Endpoints</div>
+  <div class="mockup-body">
+    <div style="font-family: monospace; font-size: 13px; line-height: 1.8; padding: 16px;">
+
+      <div style="margin-bottom: 16px;">
+        <span style="background:#22c55e;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;">POST</span>
+        <strong> /api/v1/documents/generate</strong><br>
+        <span style="color: var(--muted);">Body: { documentType, referenceId, tenantId }<br>
+        Returns: { documentId, pdfUrl, status }<br>
+        Sync: generates PDF, stores in MinIO, returns immediately</span>
+      </div>
+
+      <div style="margin-bottom: 16px;">
+        <span style="background:#3b82f6;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;">GET</span>
+        <strong> /api/v1/documents/{id}</strong><br>
+        <span style="color: var(--muted);">Returns: document metadata + presigned download URL</span>
+      </div>
+
+      <div style="margin-bottom: 16px;">
+        <span style="background:#3b82f6;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;">GET</span>
+        <strong> /api/v1/documents/{id}/pdf</strong><br>
+        <span style="color: var(--muted);">Returns: PDF binary (inline) or 302 redirect to MinIO presigned URL</span>
+      </div>
+
+      <div style="margin-bottom: 16px;">
+        <span style="background:#22c55e;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;">POST</span>
+        <strong> /api/v1/documents/{id}/email</strong><br>
+        <span style="color: var(--muted);">Body: { to, subject, message }<br>
+        Sends PDF as attachment via notification-service</span>
+      </div>
+
+      <div style="margin-bottom: 16px;">
+        <span style="background:#22c55e;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;">POST</span>
+        <strong> /api/v1/documents/{id}/whatsapp</strong><br>
+        <span style="color: var(--muted);">Body: { phone, message }<br>
+        Sends PDF link via WhatsApp through notification-service</span>
+      </div>
+
+      <div style="margin-bottom: 16px;">
+        <span style="background:#3b82f6;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;">GET</span>
+        <strong> /api/v1/documents?type=quotation&referenceId=X&tenantId=Y</strong><br>
+        <span style="color: var(--muted);">List/search documents with filters, pagination</span>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="mockup" style="margin-top: 20px;">
+  <div class="mockup-header">Template Endpoints</div>
+  <div class="mockup-body">
+    <div style="font-family: monospace; font-size: 13px; line-height: 1.8; padding: 16px;">
+
+      <div style="margin-bottom: 16px;">
+        <span style="background:#3b82f6;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;">GET</span>
+        <strong> /api/v1/templates</strong><br>
+        <span style="color: var(--muted);">List available templates (code defaults + tenant overrides)</span>
+      </div>
+
+      <div style="margin-bottom: 16px;">
+        <span style="background:#3b82f6;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;">GET</span>
+        <strong> /api/v1/templates/{documentType}</strong><br>
+        <span style="color: var(--muted);">Returns resolved template (override or default) + available placeholders</span>
+      </div>
+
+      <div style="margin-bottom: 16px;">
+        <span style="background:#f59e0b;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;">PUT</span>
+        <strong> /api/v1/templates/{documentType}</strong><br>
+        <span style="color: var(--muted);">Body: { bodyHtml, name }<br>
+        Creates or updates tenant template override. Validates placeholders.</span>
+      </div>
+
+      <div style="margin-bottom: 16px;">
+        <span style="background:#ef4444;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;">DELETE</span>
+        <strong> /api/v1/templates/{documentType}</strong><br>
+        <span style="color: var(--muted);">Removes tenant override, falls back to code default</span>
+      </div>
+
+      <div style="margin-bottom: 16px;">
+        <span style="background:#22c55e;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;">POST</span>
+        <strong> /api/v1/templates/{documentType}/preview</strong><br>
+        <span style="color: var(--muted);">Body: { bodyHtml, sampleData }<br>
+        Generates preview PDF using sample/test data — for template editor</span>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="mockup" style="margin-top: 20px;">
+  <div class="mockup-header">Document Database Table</div>
+  <div class="mockup-body">
+    <div style="font-family: monospace; font-size: 12px; line-height: 1.6; padding: 16px;">
+      <table style="width:100%; border-collapse:collapse;">
+        <tr style="border-bottom:2px solid var(--border);"><th style="text-align:left;padding:6px;">Column</th><th style="text-align:left;padding:6px;">Type</th><th style="text-align:left;padding:6px;">Notes</th></tr>
+        <tr><td style="padding:6px;">id</td><td style="padding:6px;">UUID</td><td style="padding:6px; color:var(--muted);">PK</td></tr>
+        <tr><td style="padding:6px;">tenant_id</td><td style="padding:6px;">UUID</td><td style="padding:6px; color:var(--muted);">Multi-tenant</td></tr>
+        <tr><td style="padding:6px;">document_type</td><td style="padding:6px;">VARCHAR</td><td style="padding:6px; color:var(--muted);">quotation, tax-invoice, etc.</td></tr>
+        <tr><td style="padding:6px;">document_number</td><td style="padding:6px;">VARCHAR</td><td style="padding:6px; color:var(--muted);">Auto-generated, sequential per tenant</td></tr>
+        <tr><td style="padding:6px;">reference_type</td><td style="padding:6px;">VARCHAR</td><td style="padding:6px; color:var(--muted);">sale, purchase, payment, etc.</td></tr>
+        <tr><td style="padding:6px;">reference_id</td><td style="padding:6px;">UUID</td><td style="padding:6px; color:var(--muted);">FK to source transaction</td></tr>
+        <tr><td style="padding:6px;">status</td><td style="padding:6px;">VARCHAR</td><td style="padding:6px; color:var(--muted);">draft, sent, approved, paid, cancelled, expired</td></tr>
+        <tr><td style="padding:6px;">storage_path</td><td style="padding:6px;">VARCHAR</td><td style="padding:6px; color:var(--muted);">MinIO object key</td></tr>
+        <tr><td style="padding:6px;">content_type</td><td style="padding:6px;">VARCHAR</td><td style="padding:6px; color:var(--muted);">application/pdf</td></tr>
+        <tr><td style="padding:6px;">size_bytes</td><td style="padding:6px;">BIGINT</td><td style="padding:6px; color:var(--muted);">File size</td></tr>
+        <tr><td style="padding:6px;">watermark</td><td style="padding:6px;">VARCHAR</td><td style="padding:6px; color:var(--muted);">DRAFT, PAID, CANCELLED — applied at render time</td></tr>
+        <tr><td style="padding:6px;">created_by</td><td style="padding:6px;">UUID</td><td style="padding:6px; color:var(--muted);">Audit</td></tr>
+        <tr><td style="padding:6px;">created_at</td><td style="padding:6px;">TIMESTAMP</td><td style="padding:6px; color:var(--muted);">Audit</td></tr>
+      </table>
+    </div>
+  </div>
+</div>

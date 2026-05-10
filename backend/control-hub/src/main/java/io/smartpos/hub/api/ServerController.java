@@ -53,10 +53,7 @@ public class ServerController {
     @GetMapping("/{name}/services")
     public ResponseEntity<String> listServices(@PathVariable String name) {
         Agent a = agentService.findByHostname(name);
-        String host = a.getIpAddress();
-        if (host == null || host.startsWith("0:") || host.startsWith("127.") || host.equals("::1")) {
-            host = a.getHostname();
-        }
-        return ResponseEntity.ok(proxyService.proxyGet(host, 9100, "/services"));
+        // Agent runs on same server, always use localhost
+        return ResponseEntity.ok(proxyService.proxyGet("127.0.0.1", 9100, "/services"));
     }
 }

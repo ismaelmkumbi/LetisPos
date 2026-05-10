@@ -22,18 +22,47 @@
  */
 import { Fragment } from 'react';
 import {
-  Box, Button, Card, Checkbox, Collapse, Divider, FormControlLabel, Menu,
-  MenuItem, Pagination, Skeleton, Stack, Table, TableBody, TableCell,
-  TableHead, TableRow, Tooltip, Typography, Chip, useMediaQuery, useTheme,
+  Box,
+  Button,
+  Card,
+  Checkbox,
+  Collapse,
+  Divider,
+  FormControlLabel,
+  Menu,
+  MenuItem,
+  Pagination,
+  Skeleton,
+  Stack,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
+  Tooltip,
+  Typography,
+  Chip,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
 import {
-  IconArrowDown, IconArrowsSort, IconArrowUp, IconChevronDown, IconChevronRight,
-  IconColumns, IconDownload, IconEyeOff,
+  IconArrowDown,
+  IconArrowsSort,
+  IconArrowUp,
+  IconChevronDown,
+  IconChevronRight,
+  IconColumns,
+  IconDownload,
+  IconEyeOff,
 } from '@tabler/icons-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  flexRender, getCoreRowModel, useReactTable,
-  type ColumnDef, type SortingState, type VisibilityState,
+  flexRender,
+  getCoreRowModel,
+  useReactTable,
+  type ColumnDef,
+  type SortingState,
+  type VisibilityState,
 } from '@tanstack/react-table';
 import { useContext } from 'react';
 import { CustomizerContext } from 'src/context/CustomizerContext';
@@ -72,7 +101,7 @@ export interface DataTableProps<T> {
   totalElements?: number;
   /** Singular/plural label used in the footer row count. Defaults to "products". */
   itemLabel?: string;
-  page?: number;            // 0-based
+  page?: number; // 0-based
   pageSize?: number;
   onPageChange?: (page: number) => void;
   onRowClick?: (row: T) => void;
@@ -115,12 +144,12 @@ export interface DataTableProps<T> {
 export type StatusTone = 'success' | 'warning' | 'error' | 'info' | 'neutral' | 'primary';
 
 const STATUS_STYLES: Record<StatusTone, { bg: string; color: string }> = {
-  success: { bg: brand.success.light,  color: brand.success.dark },
-  warning: { bg: brand.warning.light,  color: brand.warning.dark },
-  error:   { bg: brand.error.light,    color: brand.error.dark },
-  info:    { bg: brand.info.light,     color: brand.info.dark },
-  neutral: { bg: brand.neutral[100],   color: brand.neutral[700] },
-  primary: { bg: brand.primary[50],    color: brand.primary[700] },
+  success: { bg: brand.success.light, color: brand.success.dark },
+  warning: { bg: brand.warning.light, color: brand.warning.dark },
+  error: { bg: brand.error.light, color: brand.error.dark },
+  info: { bg: brand.info.light, color: brand.info.dark },
+  neutral: { bg: brand.neutral[100], color: brand.neutral[700] },
+  primary: { bg: brand.primary[50], color: brand.primary[700] },
 };
 
 export function StatusBadge({ label, tone = 'neutral' }: { label: string; tone?: StatusTone }) {
@@ -159,22 +188,34 @@ const loadVisibility = (key: string | undefined, columns: Column<unknown>[]): Vi
     const saved = JSON.parse(window.localStorage.getItem(VISIBILITY_LS_PREFIX + key) ?? '{}');
     // Merge: saved state wins over defaults (user may have shown/hidden columns since)
     return { ...defaults, ...saved };
-  } catch { return defaults; }
+  } catch {
+    return defaults;
+  }
 };
 const saveVisibility = (key: string | undefined, v: VisibilityState) => {
   if (!key || typeof window === 'undefined') return;
-  try { window.localStorage.setItem(VISIBILITY_LS_PREFIX + key, JSON.stringify(v)); } catch { /* ignore */ }
+  try {
+    window.localStorage.setItem(VISIBILITY_LS_PREFIX + key, JSON.stringify(v));
+  } catch {
+    /* ignore */
+  }
 };
 
 const loadColumnWidths = (key: string | undefined): Record<string, number> => {
   if (!key || typeof window === 'undefined') return {};
   try {
     return JSON.parse(window.localStorage.getItem(WIDTHS_LS_PREFIX + key) ?? '{}');
-  } catch { return {}; }
+  } catch {
+    return {};
+  }
 };
 const saveColumnWidths = (key: string | undefined, w: Record<string, number>) => {
   if (!key || typeof window === 'undefined') return;
-  try { window.localStorage.setItem(WIDTHS_LS_PREFIX + key, JSON.stringify(w)); } catch { /* ignore */ }
+  try {
+    window.localStorage.setItem(WIDTHS_LS_PREFIX + key, JSON.stringify(w));
+  } catch {
+    /* ignore */
+  }
 };
 
 /** Best-effort CSV cell serializer — escapes quotes, wraps if needed. */
@@ -199,11 +240,24 @@ const reactNodeToText = (node: React.ReactNode): string => {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function DataTable<T>({
-  columns, rows, loading, emptyText = 'No records found',
-  emptyIcon, totalPages, totalElements, page = 0, pageSize = 20,
+  columns,
+  rows,
+  loading,
+  emptyText = 'No records found',
+  emptyIcon,
+  totalPages,
+  totalElements,
+  page = 0,
+  pageSize = 20,
   itemLabel = 'products',
-  onPageChange, onRowClick, getRowKey, dense = false, density,
-  stickyHeader = true, getRowStatus, emptyAction,
+  onPageChange,
+  onRowClick,
+  getRowKey,
+  dense = false,
+  density,
+  stickyHeader = true,
+  getRowStatus,
+  emptyAction,
   tableKey,
   enableSorting = false,
   onSortChange,
@@ -235,20 +289,30 @@ export function DataTable<T>({
   useEffect(() => {
     if (!onSortChange) return;
     onSortChange(sorting.length === 0 ? null : { id: sorting[0].id, desc: sorting[0].desc });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sorting]);
 
   // ── Visibility state (with localStorage persistence per tableKey) ─────────
-  const [visibility, setVisibility] = useState<VisibilityState>(() => loadVisibility(tableKey, columns as Column<unknown>[]));
-  useEffect(() => { saveVisibility(tableKey, visibility); }, [tableKey, visibility]);
+  const [visibility, setVisibility] = useState<VisibilityState>(() =>
+    loadVisibility(tableKey, columns as Column<unknown>[]),
+  );
+  useEffect(() => {
+    saveVisibility(tableKey, visibility);
+  }, [tableKey, visibility]);
 
   // ── Column width state (with localStorage persistence per tableKey) ────────
-  const [colWidths, setColWidths] = useState<Record<string, number>>(() => loadColumnWidths(tableKey));
-  useEffect(() => { saveColumnWidths(tableKey, colWidths); }, [tableKey, colWidths]);
+  const [colWidths, setColWidths] = useState<Record<string, number>>(() =>
+    loadColumnWidths(tableKey),
+  );
+  useEffect(() => {
+    saveColumnWidths(tableKey, colWidths);
+  }, [tableKey, colWidths]);
 
   // ── Column resize (drag) state ──────────────────────────────────────────────
   const [resizing, setResizing] = useState<{
-    colKey: string; startX: number; startWidth: number;
+    colKey: string;
+    startX: number;
+    startWidth: number;
   } | null>(null);
 
   const handleResizeStart = useCallback((colKey: string, startX: number, startWidth: number) => {
@@ -266,25 +330,40 @@ export function DataTable<T>({
     const onUp = () => setResizing(null);
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', onUp);
-    return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
+    return () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
   }, [resizing]);
 
   // Merge column widths: static width from column def overridden by dynamic resize
-  const getColWidth = useCallback((colKey: string, staticWidth?: number | string) => {
-    if (colWidths[colKey]) return colWidths[colKey];
-    if (staticWidth) return staticWidth;
-    return undefined;
-  }, [colWidths]);
+  const getColWidth = useCallback(
+    (colKey: string, staticWidth?: number | string) => {
+      if (colWidths[colKey]) return colWidths[colKey];
+      if (staticWidth) return staticWidth;
+      return undefined;
+    },
+    [colWidths],
+  );
 
   // ── Adapt our Column<T> to TanStack's ColumnDef<T> ────────────────────────
   const tanColumns = useMemo<ColumnDef<T, unknown>[]>(
-    () => columns.map((c) => ({
-      id: c.key,
-      header: c.label,
-      enableSorting: enableSorting && (c.sortable !== false) && !!c.key && !c.key.startsWith('_') && c.key !== 'actions',
-      enableHiding: c.enableHiding !== false && c.key !== 'actions',
-      cell: (ctx) => (c.render ? c.render(ctx.row.original, ctx.row.index) : (ctx.row.original as Record<string, unknown>)[c.key] ?? '—'),
-    })),
+    () =>
+      columns.map((c) => ({
+        id: c.key,
+        header: c.label,
+        enableSorting:
+          enableSorting &&
+          c.sortable !== false &&
+          !!c.key &&
+          !c.key.startsWith('_') &&
+          c.key !== 'actions',
+        enableHiding: c.enableHiding !== false && c.key !== 'actions',
+        cell: (ctx) =>
+          c.render
+            ? c.render(ctx.row.original, ctx.row.index)
+            : ((ctx.row.original as Record<string, unknown>)[c.key] ?? '—'),
+      })),
     [columns, enableSorting],
   );
 
@@ -295,16 +374,16 @@ export function DataTable<T>({
     onSortingChange: setSorting,
     onColumnVisibilityChange: setVisibility,
     getCoreRowModel: getCoreRowModel(),
-    manualSorting: true,        // server-side: parent handles re-fetching via onSortChange
+    manualSorting: true, // server-side: parent handles re-fetching via onSortChange
     manualPagination: true,
     enableSortingRemoval: true, // clicking a sorted column 3 times clears it
   });
 
   const showPagination = totalPages !== undefined && totalPages > 1;
   const rowHeight = isCompact ? 46 : 56;
-  const cellPx    = isCompact ? 1.5 : 1.75;
-  const cellPyHd  = isCompact ? 0.9 : 1.2;
-  const cellPyBd  = isCompact ? 0.65 : 0.9;
+  const cellPx = isCompact ? 1.5 : 1.75;
+  const cellPyHd = isCompact ? 0.9 : 1.2;
+  const cellPyBd = isCompact ? 0.65 : 0.9;
   const startRow = page * pageSize + 1;
   const endRow = Math.min((page + 1) * pageSize, totalElements ?? rows.length);
 
@@ -316,9 +395,14 @@ export function DataTable<T>({
     fontWeight: 600,
     fontSize: '0.75rem',
     textTransform: 'none' as const,
-    py: 0.25, px: 1,
+    py: 0.25,
+    px: 1,
     minHeight: 28,
-    '&:hover': { borderColor: brand.primary[400], color: brand.primary[700], bgcolor: isDark ? brand.primary[900] : brand.primary[50] },
+    '&:hover': {
+      borderColor: brand.primary[400],
+      color: brand.primary[700],
+      bgcolor: isDark ? brand.primary[900] : brand.primary[50],
+    },
   };
 
   // ── Toolbar (rendered only when at least one enhancement is enabled) ──────
@@ -336,17 +420,22 @@ export function DataTable<T>({
 
   // ── CSV export ────────────────────────────────────────────────────────────
   const handleExport = () => {
-    const visibleCols = table.getVisibleLeafColumns()
+    const visibleCols = table
+      .getVisibleLeafColumns()
       .map((vc) => columns.find((c) => c.key === vc.id))
       .filter((c): c is Column<T> => !!c && c.key !== 'actions' && !c.key.startsWith('_'));
 
     const headers = visibleCols.map((c) => csvCell(c.label));
 
-    const lines = rows.map((row, i) => visibleCols.map((c) => {
-      if (c.exportValue) return csvCell(c.exportValue(row));
-      if (c.render) return csvCell(reactNodeToText(c.render(row, i)));
-      return csvCell((row as Record<string, unknown>)[c.key] ?? '');
-    }).join(','));
+    const lines = rows.map((row, i) =>
+      visibleCols
+        .map((c) => {
+          if (c.exportValue) return csvCell(c.exportValue(row));
+          if (c.render) return csvCell(reactNodeToText(c.render(row, i)));
+          return csvCell((row as Record<string, unknown>)[c.key] ?? '');
+        })
+        .join(','),
+    );
 
     const csv = [headers.join(','), ...lines].join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -362,7 +451,8 @@ export function DataTable<T>({
 
   // ── Excel export ───────────────────────────────────────────────────────────
   const handleExcelExport = () => {
-    const visibleCols = table.getVisibleLeafColumns()
+    const visibleCols = table
+      .getVisibleLeafColumns()
       .map((vc) => columns.find((c) => c.key === vc.id))
       .filter((c): c is Column<T> => !!c && c.key !== 'actions' && !c.key.startsWith('_'));
 
@@ -389,7 +479,10 @@ export function DataTable<T>({
   // ── Column visibility menu ────────────────────────────────────────────────
   const [colMenuAnchor, setColMenuAnchor] = useState<null | HTMLElement>(null);
   const hideableColumns = useMemo(
-    () => columns.filter((c) => c.enableHiding !== false && c.key !== 'actions' && !c.key.startsWith('_')),
+    () =>
+      columns.filter(
+        (c) => c.enableHiding !== false && c.key !== 'actions' && !c.key.startsWith('_'),
+      ),
     [columns],
   );
 
@@ -428,8 +521,10 @@ export function DataTable<T>({
               <Typography
                 variant="caption"
                 sx={{
-                  color: isDark ? brand.neutral[400] : brand.neutral[500], fontWeight: 700,
-                  textTransform: 'uppercase', letterSpacing: '0.06em',
+                  color: isDark ? brand.neutral[400] : brand.neutral[500],
+                  fontWeight: 700,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.06em',
                 }}
               >
                 {toolbarTitle}
@@ -463,9 +558,14 @@ export function DataTable<T>({
                       fontWeight: 600,
                       fontSize: '0.75rem',
                       textTransform: 'none',
-                      py: 0.25, px: 1,
+                      py: 0.25,
+                      px: 1,
                       minHeight: 28,
-                      '&:hover': { borderColor: brand.primary[400], color: brand.primary[700], bgcolor: isDark ? brand.primary[900] : brand.primary[50] },
+                      '&:hover': {
+                        borderColor: brand.primary[400],
+                        color: brand.primary[700],
+                        bgcolor: isDark ? brand.primary[900] : brand.primary[50],
+                      },
                     }}
                   >
                     Columns
@@ -477,17 +577,28 @@ export function DataTable<T>({
                   onClose={() => setColMenuAnchor(null)}
                   PaperProps={{
                     sx: {
-                      mt: 0.5, p: 0.5, minWidth: 220,
-                      borderRadius: '12px', border: `1px solid ${isDark ? brand.neutral[700] : brand.neutral[200]}`,
+                      mt: 0.5,
+                      p: 0.5,
+                      minWidth: 220,
+                      borderRadius: '12px',
+                      border: `1px solid ${isDark ? brand.neutral[700] : brand.neutral[200]}`,
                       boxShadow: '0 8px 24px rgba(15, 23, 42, 0.08)',
                     },
                   }}
                 >
-                  <Typography variant="caption" sx={{
-                    px: 1.5, pt: 0.75, pb: 0.5, display: 'block',
-                    color: isDark ? brand.neutral[400] : brand.neutral[500], fontWeight: 700,
-                    textTransform: 'uppercase', letterSpacing: '0.06em',
-                  }}>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      px: 1.5,
+                      pt: 0.75,
+                      pb: 0.5,
+                      display: 'block',
+                      color: isDark ? brand.neutral[400] : brand.neutral[500],
+                      fontWeight: 700,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.06em',
+                    }}
+                  >
                     Visible columns
                   </Typography>
                   {hideableColumns.map((c) => {
@@ -502,13 +613,7 @@ export function DataTable<T>({
                       >
                         <FormControlLabel
                           sx={{ m: 0, width: '100%' }}
-                          control={
-                            <Checkbox
-                              size="small"
-                              checked={isVisible}
-                              sx={{ p: 0.5 }}
-                            />
-                          }
+                          control={<Checkbox size="small" checked={isVisible} sx={{ p: 0.5 }} />}
                           label={
                             <Typography variant="body2" sx={{ fontWeight: 500 }}>
                               {c.label || c.key}
@@ -520,7 +625,10 @@ export function DataTable<T>({
                   })}
                   <Divider sx={{ my: 0.5 }} />
                   <MenuItem
-                    onClick={() => { table.resetColumnVisibility(); setColMenuAnchor(null); }}
+                    onClick={() => {
+                      table.resetColumnVisibility();
+                      setColMenuAnchor(null);
+                    }}
                     sx={{ borderRadius: '8px', color: brand.primary[600], fontWeight: 600 }}
                   >
                     Reset
@@ -560,10 +668,22 @@ export function DataTable<T>({
                   transformOrigin={{ horizontal: 'right', vertical: 'top' }}
                   anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
                 >
-                  <MenuItem onClick={() => { handleExport(); setExportAnchor(null); }} dense>
+                  <MenuItem
+                    onClick={() => {
+                      handleExport();
+                      setExportAnchor(null);
+                    }}
+                    dense
+                  >
                     Export as CSV
                   </MenuItem>
-                  <MenuItem onClick={() => { handleExcelExport(); setExportAnchor(null); }} dense>
+                  <MenuItem
+                    onClick={() => {
+                      handleExcelExport();
+                      setExportAnchor(null);
+                    }}
+                    dense
+                  >
                     Export as Excel
                   </MenuItem>
                 </Menu>
@@ -578,30 +698,93 @@ export function DataTable<T>({
         <Stack spacing={1} sx={{ flex: 1, px: 1.5, overflow: 'auto' }}>
           {loading ? (
             Array.from({ length: SKELETON_ROWS }).map((_, i) => (
-              <Card key={`sk-${i}`} sx={{ p: 2, borderRadius: 2, border: `1px solid ${isDark ? brand.neutral[700] : brand.neutral[200]}` }}>
+              <Card
+                key={`sk-${i}`}
+                sx={{
+                  p: 2,
+                  borderRadius: 2,
+                  border: `1px solid ${isDark ? brand.neutral[700] : brand.neutral[200]}`,
+                }}
+              >
                 {columns.slice(0, 4).map((col) => (
-                  <Stack key={col.key} direction="row" justifyContent="space-between" sx={{ mb: 1 }}>
-                    <Typography variant="caption" sx={{ color: isDark ? brand.neutral[400] : brand.neutral[500], fontWeight: 600, fontSize: '0.625rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{col.label}</Typography>
+                  <Stack
+                    key={col.key}
+                    direction="row"
+                    justifyContent="space-between"
+                    sx={{ mb: 1 }}
+                  >
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        color: isDark ? brand.neutral[400] : brand.neutral[500],
+                        fontWeight: 600,
+                        fontSize: '0.625rem',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                      }}
+                    >
+                      {col.label}
+                    </Typography>
                     <Skeleton variant="text" width={`${40 + Math.random() * 30}%`} height={14} />
                   </Stack>
                 ))}
               </Card>
             ))
           ) : rows.length === 0 ? (
-            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, py: 8 }}>
+            <Box
+              sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, py: 8 }}
+            >
               {emptyIcon ? (
                 <Box sx={{ color: brand.neutral[300], mb: 0.5 }}>{emptyIcon}</Box>
               ) : (
-                <Box sx={{ width: 48, height: 48, borderRadius: '14px', bgcolor: isDark ? brand.neutral[800] : brand.neutral[100], display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 0.5 }}>
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={brand.neutral[400]} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" />
+                <Box
+                  sx={{
+                    width: 48,
+                    height: 48,
+                    borderRadius: '14px',
+                    bgcolor: isDark ? brand.neutral[800] : brand.neutral[100],
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    mb: 0.5,
+                  }}
+                >
+                  <svg
+                    width="22"
+                    height="22"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke={brand.neutral[400]}
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <circle cx="11" cy="11" r="8" />
+                    <path d="m21 21-4.3-4.3" />
                   </svg>
                 </Box>
               )}
-              <Typography variant="body2" sx={{ fontWeight: 600, color: isDark ? brand.neutral[300] : brand.neutral[700] }}>{emptyText}</Typography>
-              <Typography variant="caption" sx={{ color: isDark ? brand.neutral[400] : brand.neutral[500] }}>Try adjusting your filters or search terms</Typography>
+              <Typography
+                variant="body2"
+                sx={{ fontWeight: 600, color: isDark ? brand.neutral[300] : brand.neutral[700] }}
+              >
+                {emptyText}
+              </Typography>
+              <Typography
+                variant="caption"
+                sx={{ color: isDark ? brand.neutral[400] : brand.neutral[500] }}
+              >
+                Try adjusting your filters or search terms
+              </Typography>
               {emptyAction && (
-                <Button size="small" variant="outlined" onClick={emptyAction.onClick} sx={{ mt: 1 }}>{emptyAction.label}</Button>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  onClick={emptyAction.onClick}
+                  sx={{ mt: 1 }}
+                >
+                  {emptyAction.label}
+                </Button>
               )}
             </Box>
           ) : (
@@ -613,31 +796,80 @@ export function DataTable<T>({
                   key={rowKey}
                   onClick={onRowClick ? () => onRowClick(row) : undefined}
                   sx={{
-                    p: 2, borderRadius: 2,
+                    p: 2,
+                    borderRadius: 2,
                     border: `1px solid ${isDark ? brand.neutral[700] : brand.neutral[200]}`,
                     bgcolor: isDark ? brand.neutral[800] : '#fff',
                     cursor: onRowClick ? 'pointer' : 'default',
                     transition: 'all 0.14s ease',
-                    '&:active': { bgcolor: isDark ? brand.primary[900] : brand.primary[50], borderColor: brand.primary[200] },
+                    '&:active': {
+                      bgcolor: isDark ? brand.primary[900] : brand.primary[50],
+                      borderColor: brand.primary[200],
+                    },
                   }}
                 >
                   {rowStatus && (
-                    <Stack direction="row" spacing={0.75} alignItems="center" sx={{ mb: 1.5, pb: 1.5, borderBottom: `1px solid ${brand.neutral[100]}` }}>
+                    <Stack
+                      direction="row"
+                      spacing={0.75}
+                      alignItems="center"
+                      sx={{ mb: 1.5, pb: 1.5, borderBottom: `1px solid ${brand.neutral[100]}` }}
+                    >
                       <StatusIndicator state={rowStatus.state} label="" size="sm" />
-                      <Typography variant="caption" sx={{ color: isDark ? brand.neutral[300] : brand.neutral[600], fontWeight: 600 }}>{rowStatus.label}</Typography>
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          color: isDark ? brand.neutral[300] : brand.neutral[600],
+                          fontWeight: 600,
+                        }}
+                      >
+                        {rowStatus.label}
+                      </Typography>
                     </Stack>
                   )}
                   <Stack spacing={1}>
-                    {columns.filter((c) => c.key !== '_select' && c.key !== 'actions').slice(0, 5).map((col) => (
-                      <Stack key={col.key} direction="row" justifyContent="space-between" alignItems="flex-start" spacing={1}>
-                        <Typography variant="caption" sx={{ color: isDark ? brand.neutral[400] : brand.neutral[500], fontWeight: 600, fontSize: '0.625rem', textTransform: 'uppercase', letterSpacing: '0.05em', flexShrink: 0, mt: 0.3 }}>
-                          {col.label}
-                        </Typography>
-                        <Typography variant="body2" sx={{ fontWeight: 600, color: isDark ? brand.neutral[200] : brand.neutral[800], textAlign: 'right', fontSize: '0.813rem', lineHeight: 1.4, wordBreak: 'break-word' }}>
-                          {col.render ? col.render(row, ri) : String((row as Record<string, unknown>)[col.key] ?? '—')}
-                        </Typography>
-                      </Stack>
-                    ))}
+                    {columns
+                      .filter((c) => c.key !== '_select' && c.key !== 'actions')
+                      .slice(0, 5)
+                      .map((col) => (
+                        <Stack
+                          key={col.key}
+                          direction="row"
+                          justifyContent="space-between"
+                          alignItems="flex-start"
+                          spacing={1}
+                        >
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              color: isDark ? brand.neutral[400] : brand.neutral[500],
+                              fontWeight: 600,
+                              fontSize: '0.625rem',
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.05em',
+                              flexShrink: 0,
+                              mt: 0.3,
+                            }}
+                          >
+                            {col.label}
+                          </Typography>
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              fontWeight: 600,
+                              color: isDark ? brand.neutral[200] : brand.neutral[800],
+                              textAlign: 'right',
+                              fontSize: '0.813rem',
+                              lineHeight: 1.4,
+                              wordBreak: 'break-word',
+                            }}
+                          >
+                            {col.render
+                              ? col.render(row, ri)
+                              : String((row as Record<string, unknown>)[col.key] ?? '—')}
+                          </Typography>
+                        </Stack>
+                      ))}
                   </Stack>
                 </Card>
               );
@@ -645,349 +877,487 @@ export function DataTable<T>({
           )}
         </Stack>
       ) : (
-      /* ── Desktop Table ── */
-      <Box sx={{ overflowX: 'auto', overflowY: 'hidden', flex: 1, minWidth: 0, maxWidth: '100%', ...(resizing ? { cursor: 'col-resize' } : {}) }}>
-        <Table
-          size={dense ? 'small' : 'medium'}
-          stickyHeader={stickyHeader}
+        /* ── Desktop Table ── */
+        <Box
           sx={{
-            minWidth: visibleTableMinWidth,
-            width: '100%',
-            tableLayout: 'fixed',
-            borderCollapse: 'separate',
-            borderSpacing: 0,
+            overflowX: 'auto',
+            overflowY: 'hidden',
+            flex: 1,
+            minWidth: 0,
+            maxWidth: '100%',
+            ...(resizing ? { cursor: 'col-resize' } : {}),
           }}
         >
-          <TableHead>
-            {table.getHeaderGroups().map((hg) => (
-              <TableRow key={hg.id}>
-                {getRowStatus && (
-                  <TableCell key="_status" sx={{ width: 32, py: cellPyHd, px: 0.25, backgroundColor: brand.neutral[50], borderBottom: `1px solid ${brand.neutral[200]}` }} />
-                )}
-                {expandable && (
-                  <TableCell key="_expand" sx={{ width: 40, py: cellPyHd, px: 0.5, backgroundColor: brand.neutral[50], borderBottom: `1px solid ${brand.neutral[200]}` }} />
-                )}
-                {hg.headers.map((header) => {
-                  const col = columns.find((c) => c.key === header.column.id);
-                  const canSort = header.column.getCanSort();
-                  const sortState = header.column.getIsSorted();
-                  return (
+          <Table
+            size={dense ? 'small' : 'medium'}
+            stickyHeader={stickyHeader}
+            sx={{
+              minWidth: visibleTableMinWidth,
+              width: '100%',
+              tableLayout: 'fixed',
+              borderCollapse: 'separate',
+              borderSpacing: 0,
+            }}
+          >
+            <TableHead>
+              {table.getHeaderGroups().map((hg) => (
+                <TableRow key={hg.id}>
+                  {getRowStatus && (
                     <TableCell
-                      key={header.id}
-                      align={col?.align ?? 'left'}
-                      onContextMenu={(e) => {
-                        e.preventDefault();
-                        setHeaderMenuColKey(col?.key ?? header.column.id);
-                        setHeaderMenuAnchor(e.currentTarget as HTMLElement);
-                      }}
+                      key="_status"
                       sx={{
-                        width: getColWidth(col?.key ?? header.column.id, col?.width),
+                        width: 32,
                         py: cellPyHd,
-                        px: cellPx,
+                        px: 0.25,
                         backgroundColor: brand.neutral[50],
-                        fontWeight: 800,
-                        color: isDark ? brand.neutral[200] : brand.neutral[800],
-                        fontSize: '0.82rem',
-                        letterSpacing: 0,
                         borderBottom: `1px solid ${brand.neutral[200]}`,
-                        whiteSpace: 'nowrap',
-                        userSelect: resizing ? 'none' : 'none',
-                        cursor: canSort ? 'pointer' : 'default',
-                        transition: resizing ? 'none' : 'color 0.12s ease',
-                        '&:hover': canSort ? { color: brand.primary[700] } : undefined,
-                        position: 'relative',
                       }}
-                      onClick={canSort && !resizing ? header.column.getToggleSortingHandler() : undefined}
-                    >
-                      <Stack
-                        direction="row"
-                        spacing={0.5}
-                        alignItems="center"
-                        justifyContent={col?.align === 'right' ? 'flex-end' : col?.align === 'center' ? 'center' : 'flex-start'}
-                      >
-                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}</span>
-                        {canSort && (
-                          <Box sx={{
-                            display: 'flex', alignItems: 'center',
-                            color: sortState ? brand.primary[700] : brand.neutral[300],
-                          }}>
-                            {sortState === 'asc' ? <IconArrowUp size={12} stroke={2.5} />
-                            : sortState === 'desc' ? <IconArrowDown size={12} stroke={2.5} />
-                            : <IconArrowsSort size={12} stroke={2} />}
-                          </Box>
-                        )}
-                        {col?.key !== '_select' && col?.key !== 'actions' && (
-                          <Box
-                            component="span"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setHeaderMenuColKey(col?.key ?? header.column.id);
-                              setHeaderMenuAnchor(e.currentTarget as unknown as HTMLElement);
-                            }}
-                            sx={{
-                              display: 'flex', alignItems: 'center',
-                              ml: 0.25, cursor: 'pointer',
-                              color: brand.neutral[300],
-                              borderRadius: '4px',
-                              '&:hover': { color: isDark ? brand.neutral[300] : brand.neutral[600], bgcolor: isDark ? brand.neutral[800] : brand.neutral[100] },
-                            }}
-                          >
-                            <IconChevronDown size={10} stroke={2} />
-                          </Box>
-                        )}
-                        {/* Column resize drag handle — always visible as a subtle line */}
-                        {col?.key !== '_select' && col?.key !== 'actions' && (
-                          <Box
-                            onMouseDown={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              const cell = (e.currentTarget as HTMLElement).parentElement!.closest('th');
-                              const currentWidth = cell ? cell.offsetWidth : 150;
-                              handleResizeStart(col?.key ?? header.column.id, e.clientX, currentWidth);
-                            }}
-                            sx={{
-                              position: 'absolute', right: 0, top: 0, bottom: 0,
-                              width: 10, cursor: 'col-resize', zIndex: 2,
-                              display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              '&::before': {
-                                content: '""',
-                                position: 'absolute',
-                                width: 1.5, height: '60%',
-                                borderRadius: '1px',
-                                bgcolor: brand.neutral[200],
-                                transition: 'all 0.15s ease',
-                              },
-                              '&:hover::before': {
-                                width: 3,
-                                height: '85%',
-                                bgcolor: brand.primary[400],
-                              },
-                              '&:active::before': {
-                                width: 3,
-                                height: '85%',
-                                bgcolor: brand.primary[600],
-                              },
-                            }}
-                          />
-                        )}
-                      </Stack>
-                    </TableCell>
-                  );
-                })}
-              </TableRow>
-            ))}
-          </TableHead>
-
-          {headerMenuOpen && headerMenuColKey && (
-            <Menu
-              anchorEl={headerMenuAnchor}
-              open={headerMenuOpen}
-              onClose={() => setHeaderMenuAnchor(null)}
-              anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-            >
-              {(() => {
-                const col = table.getColumn(headerMenuColKey);
-                const canSort = col?.getCanSort();
-                const sortState = col?.getIsSorted();
-                const canHide = headerMenuColKey !== 'actions' && !headerMenuColKey.startsWith('_');
-                return (
-                  <>
-                    {canSort && (
-                      <MenuItem
-                        onClick={() => { col!.toggleSorting(false); setHeaderMenuAnchor(null); }}
-                        dense
-                        selected={sortState === 'asc'}
-                      >
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <IconArrowUp size={14} />
-                          Sort A→Z
-                        </Box>
-                      </MenuItem>
-                    )}
-                    {canSort && (
-                      <MenuItem
-                        onClick={() => { col!.toggleSorting(true); setHeaderMenuAnchor(null); }}
-                        dense
-                        selected={sortState === 'desc'}
-                      >
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <IconArrowDown size={14} />
-                          Sort Z→A
-                        </Box>
-                      </MenuItem>
-                    )}
-                    {canSort && canHide && <Divider sx={{ my: 0.25 }} />}
-                    {canHide && (
-                      <MenuItem
-                        onClick={() => { col?.toggleVisibility(false); setHeaderMenuAnchor(null); }}
-                        dense
-                      >
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: isDark ? brand.neutral[300] : brand.neutral[600] }}>
-                          <IconEyeOff size={14} />
-                          Hide column
-                        </Box>
-                      </MenuItem>
-                    )}
-                  </>
-                );
-              })()}
-            </Menu>
-          )}
-
-          <TableBody>
-            {loading ? (
-              Array.from({ length: SKELETON_ROWS }).map((_, i) => (
-                <TableRow key={`sk-${i}`} sx={{ height: rowHeight }}>
-                  {table.getVisibleLeafColumns().map((vc) => (
-                    <TableCell key={vc.id} sx={{ py: cellPyBd, px: cellPx }}>
-                      <Skeleton
-                        variant="text"
-                        sx={{
-                          borderRadius: '6px',
-                          width: `${60 + Math.random() * 30}%`,
-                          height: 18,
-                        }}
-                      />
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
-            ) : table.getRowModel().rows.length === 0 ? (
-              <TableRow>
-                <TableCell
-                  colSpan={table.getVisibleLeafColumns().length}
-                  align="center"
-                  sx={{ py: 8, border: 0 }}
-                >
-                  <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
-                    {emptyIcon ? (
-                      <Box sx={{ color: brand.neutral[300], mb: 0.5 }}>{emptyIcon}</Box>
-                    ) : (
-                      <Box
-                        sx={{
-                          width: 48, height: 48, borderRadius: '14px',
-                          bgcolor: isDark ? brand.neutral[800] : brand.neutral[100],
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          mb: 0.5,
-                        }}
-                      >
-                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={brand.neutral[400]} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                          <circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" />
-                        </svg>
-                      </Box>
-                    )}
-                    <Typography variant="body2" sx={{ fontWeight: 600, color: isDark ? brand.neutral[300] : brand.neutral[700] }}>
-                      {emptyText}
-                    </Typography>
-                    <Typography variant="caption" sx={{ color: isDark ? brand.neutral[400] : brand.neutral[500] }}>
-                      Try adjusting your filters or search terms
-                    </Typography>
-                    {emptyAction && (
-                      <Button
-                        size="small"
-                        variant="outlined"
-                        onClick={emptyAction.onClick}
-                        sx={{ mt: 1 }}
-                      >
-                        {emptyAction.label}
-                      </Button>
-                    )}
-                  </Box>
-                </TableCell>
-              </TableRow>
-            ) : (
-              table.getRowModel().rows.map((row) => {
-                const original = row.original;
-                const rowKey = getRowKey ? getRowKey(original, row.index) : row.id;
-                const isExpanded = expandable && expandedRowId === rowKey;
-                const toggleExpand = () => setExpandedRowId(isExpanded ? null : rowKey);
-                const totalCells = row.getVisibleCells().length + (expandable ? 1 : 0) + (getRowStatus ? 1 : 0);
-                const rowStatus = getRowStatus?.(original) ?? null;
-                return (
-                  <Fragment key={rowKey}>
-                    <TableRow
-                      hover={!!onRowClick}
-                      onClick={onRowClick ? () => onRowClick(original) : undefined}
+                    />
+                  )}
+                  {expandable && (
+                    <TableCell
+                      key="_expand"
                       sx={{
-                        height: rowHeight,
-                        cursor: onRowClick ? 'pointer' : 'default',
-                        transition: 'background 0.14s ease, box-shadow 0.14s ease',
-                        bgcolor: isDark ? brand.neutral[800] : '#fff',
-                        '&.MuiTableRow-hover:hover': {
-                          backgroundColor: brand.primary[50],
-                          boxShadow: `inset 3px 0 0 ${brand.primary[600]}`,
-                        },
-                        '&:last-child td': { borderBottom: 0 },
+                        width: 40,
+                        py: cellPyHd,
+                        px: 0.5,
+                        backgroundColor: brand.neutral[50],
+                        borderBottom: `1px solid ${brand.neutral[200]}`,
                       }}
-                    >
-                      {/* Row status dot */}
-                      {getRowStatus && (
-                        <TableCell
-                          sx={{ width: 32, py: cellPyBd, px: 0.25, borderBottom: `1px solid ${brand.neutral[100]}` }}
-                          onClick={(e) => e.stopPropagation()}
+                    />
+                  )}
+                  {hg.headers.map((header) => {
+                    const col = columns.find((c) => c.key === header.column.id);
+                    const canSort = header.column.getCanSort();
+                    const sortState = header.column.getIsSorted();
+                    return (
+                      <TableCell
+                        key={header.id}
+                        align={col?.align ?? 'left'}
+                        onContextMenu={(e) => {
+                          e.preventDefault();
+                          setHeaderMenuColKey(col?.key ?? header.column.id);
+                          setHeaderMenuAnchor(e.currentTarget as HTMLElement);
+                        }}
+                        sx={{
+                          width: getColWidth(col?.key ?? header.column.id, col?.width),
+                          py: cellPyHd,
+                          px: cellPx,
+                          backgroundColor: brand.neutral[50],
+                          fontWeight: 800,
+                          color: isDark ? brand.neutral[200] : brand.neutral[800],
+                          fontSize: '0.82rem',
+                          letterSpacing: 0,
+                          borderBottom: `1px solid ${brand.neutral[200]}`,
+                          whiteSpace: 'nowrap',
+                          userSelect: resizing ? 'none' : 'none',
+                          cursor: canSort ? 'pointer' : 'default',
+                          transition: resizing ? 'none' : 'color 0.12s ease',
+                          '&:hover': canSort ? { color: brand.primary[700] } : undefined,
+                          position: 'relative',
+                        }}
+                        onClick={
+                          canSort && !resizing ? header.column.getToggleSortingHandler() : undefined
+                        }
+                      >
+                        <Stack
+                          direction="row"
+                          spacing={0.5}
+                          alignItems="center"
+                          justifyContent={
+                            col?.align === 'right'
+                              ? 'flex-end'
+                              : col?.align === 'center'
+                                ? 'center'
+                                : 'flex-start'
+                          }
                         >
-                          {rowStatus ? (
-                            <StatusIndicator state={rowStatus.state} label="" size="sm" />
-                          ) : null}
-                        </TableCell>
+                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {header.isPlaceholder
+                              ? null
+                              : flexRender(header.column.columnDef.header, header.getContext())}
+                          </span>
+                          {canSort && (
+                            <Box
+                              sx={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                color: sortState ? brand.primary[700] : brand.neutral[300],
+                              }}
+                            >
+                              {sortState === 'asc' ? (
+                                <IconArrowUp size={12} stroke={2.5} />
+                              ) : sortState === 'desc' ? (
+                                <IconArrowDown size={12} stroke={2.5} />
+                              ) : (
+                                <IconArrowsSort size={12} stroke={2} />
+                              )}
+                            </Box>
+                          )}
+                          {col?.key !== '_select' && col?.key !== 'actions' && (
+                            <Box
+                              component="span"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setHeaderMenuColKey(col?.key ?? header.column.id);
+                                setHeaderMenuAnchor(e.currentTarget as unknown as HTMLElement);
+                              }}
+                              sx={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                ml: 0.25,
+                                cursor: 'pointer',
+                                color: brand.neutral[300],
+                                borderRadius: '4px',
+                                '&:hover': {
+                                  color: isDark ? brand.neutral[300] : brand.neutral[600],
+                                  bgcolor: isDark ? brand.neutral[800] : brand.neutral[100],
+                                },
+                              }}
+                            >
+                              <IconChevronDown size={10} stroke={2} />
+                            </Box>
+                          )}
+                          {/* Column resize drag handle — always visible as a subtle line */}
+                          {col?.key !== '_select' && col?.key !== 'actions' && (
+                            <Box
+                              onMouseDown={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                const cell = (
+                                  e.currentTarget as HTMLElement
+                                ).parentElement!.closest('th');
+                                const currentWidth = cell ? cell.offsetWidth : 150;
+                                handleResizeStart(
+                                  col?.key ?? header.column.id,
+                                  e.clientX,
+                                  currentWidth,
+                                );
+                              }}
+                              sx={{
+                                position: 'absolute',
+                                right: 0,
+                                top: 0,
+                                bottom: 0,
+                                width: 10,
+                                cursor: 'col-resize',
+                                zIndex: 2,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                '&::before': {
+                                  content: '""',
+                                  position: 'absolute',
+                                  width: 1.5,
+                                  height: '60%',
+                                  borderRadius: '1px',
+                                  bgcolor: brand.neutral[200],
+                                  transition: 'all 0.15s ease',
+                                },
+                                '&:hover::before': {
+                                  width: 3,
+                                  height: '85%',
+                                  bgcolor: brand.primary[400],
+                                },
+                                '&:active::before': {
+                                  width: 3,
+                                  height: '85%',
+                                  bgcolor: brand.primary[600],
+                                },
+                              }}
+                            />
+                          )}
+                        </Stack>
+                      </TableCell>
+                    );
+                  })}
+                </TableRow>
+              ))}
+            </TableHead>
+
+            {headerMenuOpen && headerMenuColKey && (
+              <Menu
+                anchorEl={headerMenuAnchor}
+                open={headerMenuOpen}
+                onClose={() => setHeaderMenuAnchor(null)}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+              >
+                {(() => {
+                  const col = table.getColumn(headerMenuColKey);
+                  const canSort = col?.getCanSort();
+                  const sortState = col?.getIsSorted();
+                  const canHide =
+                    headerMenuColKey !== 'actions' && !headerMenuColKey.startsWith('_');
+                  return (
+                    <>
+                      {canSort && (
+                        <MenuItem
+                          onClick={() => {
+                            col!.toggleSorting(false);
+                            setHeaderMenuAnchor(null);
+                          }}
+                          dense
+                          selected={sortState === 'asc'}
+                        >
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <IconArrowUp size={14} />
+                            Sort A→Z
+                          </Box>
+                        </MenuItem>
                       )}
-                      {expandable && (
-                        <TableCell
-                          sx={{ width: 40, py: cellPyBd, px: 0.5, borderBottom: `1px solid ${brand.neutral[200]}` }}
-                          onClick={(e) => e.stopPropagation()}
+                      {canSort && (
+                        <MenuItem
+                          onClick={() => {
+                            col!.toggleSorting(true);
+                            setHeaderMenuAnchor(null);
+                          }}
+                          dense
+                          selected={sortState === 'desc'}
+                        >
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <IconArrowDown size={14} />
+                            Sort Z→A
+                          </Box>
+                        </MenuItem>
+                      )}
+                      {canSort && canHide && <Divider sx={{ my: 0.25 }} />}
+                      {canHide && (
+                        <MenuItem
+                          onClick={() => {
+                            col?.toggleVisibility(false);
+                            setHeaderMenuAnchor(null);
+                          }}
+                          dense
                         >
                           <Box
-                            onClick={toggleExpand}
                             sx={{
-                              display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              cursor: 'pointer', color: isExpanded ? brand.primary[600] : brand.neutral[400],
-                              transition: 'color 0.15s ease',
-                              '&:hover': { color: brand.primary[600] },
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 1,
+                              color: isDark ? brand.neutral[300] : brand.neutral[600],
                             }}
                           >
-                            {isExpanded ? <IconChevronDown size={16} stroke={2} /> : <IconChevronRight size={16} stroke={2} />}
+                            <IconEyeOff size={14} />
+                            Hide column
                           </Box>
-                        </TableCell>
+                        </MenuItem>
                       )}
-                      {row.getVisibleCells().map((cell) => {
-                        const col = columns.find((c) => c.key === cell.column.id);
-                        return (
+                    </>
+                  );
+                })()}
+              </Menu>
+            )}
+
+            <TableBody>
+              {loading ? (
+                Array.from({ length: SKELETON_ROWS }).map((_, i) => (
+                  <TableRow key={`sk-${i}`} sx={{ height: rowHeight }}>
+                    {table.getVisibleLeafColumns().map((vc) => (
+                      <TableCell key={vc.id} sx={{ py: cellPyBd, px: cellPx }}>
+                        <Skeleton
+                          variant="text"
+                          sx={{
+                            borderRadius: '6px',
+                            width: `${60 + Math.random() * 30}%`,
+                            height: 18,
+                          }}
+                        />
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              ) : table.getRowModel().rows.length === 0 ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={table.getVisibleLeafColumns().length}
+                    align="center"
+                    sx={{ py: 8, border: 0 }}
+                  >
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: 1,
+                      }}
+                    >
+                      {emptyIcon ? (
+                        <Box sx={{ color: brand.neutral[300], mb: 0.5 }}>{emptyIcon}</Box>
+                      ) : (
+                        <Box
+                          sx={{
+                            width: 48,
+                            height: 48,
+                            borderRadius: '14px',
+                            bgcolor: isDark ? brand.neutral[800] : brand.neutral[100],
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            mb: 0.5,
+                          }}
+                        >
+                          <svg
+                            width="22"
+                            height="22"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke={brand.neutral[400]}
+                            strokeWidth="1.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <circle cx="11" cy="11" r="8" />
+                            <path d="m21 21-4.3-4.3" />
+                          </svg>
+                        </Box>
+                      )}
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          fontWeight: 600,
+                          color: isDark ? brand.neutral[300] : brand.neutral[700],
+                        }}
+                      >
+                        {emptyText}
+                      </Typography>
+                      <Typography
+                        variant="caption"
+                        sx={{ color: isDark ? brand.neutral[400] : brand.neutral[500] }}
+                      >
+                        Try adjusting your filters or search terms
+                      </Typography>
+                      {emptyAction && (
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          onClick={emptyAction.onClick}
+                          sx={{ mt: 1 }}
+                        >
+                          {emptyAction.label}
+                        </Button>
+                      )}
+                    </Box>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                table.getRowModel().rows.map((row) => {
+                  const original = row.original;
+                  const rowKey = getRowKey ? getRowKey(original, row.index) : row.id;
+                  const isExpanded = expandable && expandedRowId === rowKey;
+                  const toggleExpand = () => setExpandedRowId(isExpanded ? null : rowKey);
+                  const totalCells =
+                    row.getVisibleCells().length + (expandable ? 1 : 0) + (getRowStatus ? 1 : 0);
+                  const rowStatus = getRowStatus?.(original) ?? null;
+                  return (
+                    <Fragment key={rowKey}>
+                      <TableRow
+                        hover={!!onRowClick}
+                        onClick={onRowClick ? () => onRowClick(original) : undefined}
+                        sx={{
+                          height: rowHeight,
+                          cursor: onRowClick ? 'pointer' : 'default',
+                          transition: 'background 0.14s ease, box-shadow 0.14s ease',
+                          bgcolor: isDark ? brand.neutral[800] : '#fff',
+                          '&.MuiTableRow-hover:hover': {
+                            backgroundColor: brand.primary[50],
+                            boxShadow: `inset 3px 0 0 ${brand.primary[600]}`,
+                          },
+                          '&:last-child td': { borderBottom: 0 },
+                        }}
+                      >
+                        {/* Row status dot */}
+                        {getRowStatus && (
                           <TableCell
-                            key={cell.id}
-                            align={col?.align ?? 'left'}
                             sx={{
+                              width: 32,
                               py: cellPyBd,
-                              px: cellPx,
+                              px: 0.25,
                               borderBottom: `1px solid ${brand.neutral[100]}`,
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: col?.key === 'actions' || col?.key === '_select' ? 'initial' : 'nowrap',
-                              color: isDark ? brand.neutral[200] : brand.neutral[800],
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {rowStatus ? (
+                              <StatusIndicator state={rowStatus.state} label="" size="sm" />
+                            ) : null}
+                          </TableCell>
+                        )}
+                        {expandable && (
+                          <TableCell
+                            sx={{
+                              width: 40,
+                              py: cellPyBd,
+                              px: 0.5,
+                              borderBottom: `1px solid ${brand.neutral[200]}`,
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <Box
+                              onClick={toggleExpand}
+                              sx={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                cursor: 'pointer',
+                                color: isExpanded ? brand.primary[600] : brand.neutral[400],
+                                transition: 'color 0.15s ease',
+                                '&:hover': { color: brand.primary[600] },
+                              }}
+                            >
+                              {isExpanded ? (
+                                <IconChevronDown size={16} stroke={2} />
+                              ) : (
+                                <IconChevronRight size={16} stroke={2} />
+                              )}
+                            </Box>
+                          </TableCell>
+                        )}
+                        {row.getVisibleCells().map((cell) => {
+                          const col = columns.find((c) => c.key === cell.column.id);
+                          const isInteractiveCell =
+                            col?.key === 'actions' || col?.key === '_select';
+                          return (
+                            <TableCell
+                              key={cell.id}
+                              align={col?.align ?? 'left'}
+                              onClick={isInteractiveCell ? (e) => e.stopPropagation() : undefined}
+                              sx={{
+                                py: cellPyBd,
+                                px: cellPx,
+                                borderBottom: `1px solid ${brand.neutral[100]}`,
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: isInteractiveCell ? 'initial' : 'nowrap',
+                                color: isDark ? brand.neutral[200] : brand.neutral[800],
+                              }}
+                            >
+                              {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                            </TableCell>
+                          );
+                        })}
+                      </TableRow>
+                      {expandable && isExpanded && (
+                        <TableRow key={`${rowKey}-exp`}>
+                          <TableCell
+                            colSpan={totalCells}
+                            sx={{
+                              py: 0,
+                              border: 0,
+                              bgcolor: isDark ? brand.neutral[900] : brand.neutral[50],
                             }}
                           >
-                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                            <Collapse in>
+                              <Box sx={{ px: 2.5, py: 2 }}>{renderExpanded?.(original)}</Box>
+                            </Collapse>
                           </TableCell>
-                        );
-                      })}
-                    </TableRow>
-                    {expandable && isExpanded && (
-                      <TableRow key={`${rowKey}-exp`}>
-                        <TableCell colSpan={totalCells} sx={{ py: 0, border: 0, bgcolor: isDark ? brand.neutral[900] : brand.neutral[50] }}>
-                          <Collapse in>
-                            <Box sx={{ px: 2.5, py: 2 }}>
-                              {renderExpanded?.(original)}
-                            </Box>
-                          </Collapse>
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </Fragment>
-                );
-              })
-            )}
-          </TableBody>
-        </Table>
-      </Box>
+                        </TableRow>
+                      )}
+                    </Fragment>
+                  );
+                })
+              )}
+            </TableBody>
+          </Table>
+        </Box>
       )}
 
       {/* ── Footer: row count + pagination ── */}
@@ -1006,13 +1376,24 @@ export function DataTable<T>({
           }}
         >
           {totalElements !== undefined ? (
-            <Typography variant="caption" sx={{ color: isDark ? brand.neutral[400] : brand.neutral[500], fontWeight: 500 }}>
+            <Typography
+              variant="caption"
+              sx={{ color: isDark ? brand.neutral[400] : brand.neutral[500], fontWeight: 500 }}
+            >
               Showing{' '}
-              <Typography component="span" variant="caption" sx={{ fontWeight: 700, color: isDark ? brand.neutral[300] : brand.neutral[700] }}>
+              <Typography
+                component="span"
+                variant="caption"
+                sx={{ fontWeight: 700, color: isDark ? brand.neutral[300] : brand.neutral[700] }}
+              >
                 {startRow} to {endRow}
               </Typography>{' '}
               of{' '}
-              <Typography component="span" variant="caption" sx={{ fontWeight: 700, color: isDark ? brand.neutral[300] : brand.neutral[700] }}>
+              <Typography
+                component="span"
+                variant="caption"
+                sx={{ fontWeight: 700, color: isDark ? brand.neutral[300] : brand.neutral[700] }}
+              >
                 {totalElements.toLocaleString()}
               </Typography>{' '}
               {itemLabel}

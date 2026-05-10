@@ -1,0 +1,38 @@
+<h2>How should document preview work?</h2>
+<p class="subtitle">This determines the user experience in the frontend. Users need to see the document before printing or sending.</p>
+
+<div class="options">
+  <div class="option" data-choice="browser-render" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Live Browser Preview (React Components)</h3>
+      <p>The same HTML/CSS templates are rendered as React components in the browser for instant preview. Gotenberg is only called for PDF generation (download/email/WhatsApp).</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>Pros</h4><ul><li>Instant preview (no server round-trip)</li><li>Same templates, same CSS = WYSIWYG</li><li>Works offline for POS receipts</li><li>No PDF rendering cost for preview</li><li>Matches existing Receipt.tsx pattern</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>Maintain template in two formats (React + HTML)</li><li>Risk of preview/PDF mismatch</li><li>Must sync template changes to both</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <div class="option" data-choice="server-preview" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Server-Side Preview (PDF → Image)</h3>
+      <p>Backend generates PDF via Gotenberg, converts page 1 to PNG, returns image to frontend. Preview is always pixel-perfect with the final PDF. Already have pdfjs-dist for PDF→image.</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>Pros</h4><ul><li>100% fidelity — preview IS the PDF</li><li>Single template source of truth</li><li>No duplicate template maintenance</li><li>Reuse pdfRender.ts already in codebase</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>~1-2s delay for preview</li><li>Server load for every preview</li><li>No offline preview</li><li>Preview isn't interactive (image, not DOM)</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <div class="option" data-choice="hybrid-preview" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Hybrid: React preview + PDF verify</h3>
+      <p>React components for fast interactive preview during editing. One-click "Preview PDF" renders the real PDF via Gotenberg and shows it side-by-side or in a modal.</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>Pros</h4><ul><li>Fast editing experience</li><li>Final PDF verification available</li><li>Best of both worlds</li><li>Most POS/ERP systems use this pattern</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>Most engineering effort</li><li>Still have template in two forms</li><li>More code to maintain</li></ul></div>
+      </div>
+    </div>
+  </div>
+</div>

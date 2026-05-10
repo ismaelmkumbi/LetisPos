@@ -1,0 +1,68 @@
+<h2>Architecture Overview</h2>
+<p class="subtitle">Document & Print Management System — how the pieces fit together</p>
+
+<div class="mockup">
+  <div class="mockup-header">System Architecture</div>
+  <div class="mockup-body">
+    <div style="font-family: monospace; font-size: 13px; line-height: 1.8; padding: 20px;">
+      <div style="display: flex; gap: 16px; margin-bottom: 20px;">
+        <div style="flex:1; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px;">
+          <strong>Frontend (React)</strong><br>
+          <span style="color: var(--muted);">DocumentPreview.tsx</span><br>
+          <span style="color: var(--muted);">TemplateRenderer.tsx</span><br>
+          <span style="color: var(--muted);">PrintSettingsPanel.tsx</span><br>
+          <span style="color: var(--muted);">ShareActions (email/WA)</span>
+        </div>
+        <div style="flex:1; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px;">
+          <strong>API Gateway</strong><br>
+          <span style="color: var(--muted);">/api/v1/documents/*</span><br>
+          <span style="color: var(--muted);">/api/v1/templates/*</span><br>
+          <span style="color: var(--muted);">Auth + rate limiting</span>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 16px; margin-bottom: 20px;">
+        <div style="flex:1; background: #f0f4ff; border: 2px solid #4f46e5; border-radius: 8px; padding: 12px;">
+          <strong style="color: #4f46e5;">NEW: document-service</strong><br>
+          <span style="color: var(--muted);">TemplateEngine.java</span><br>
+          <span style="color: var(--muted);">DocumentGenerator.java</span><br>
+          <span style="color: var(--muted);">GotenbergClient.java</span><br>
+          <span style="color: var(--muted);">TemplateRepository.java</span><br>
+          <span style="color: var(--muted);">DeliveryService (email/WA)</span>
+        </div>
+        <div style="flex:1; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px;">
+          <strong>Existing Services</strong><br>
+          <span style="color: var(--muted);">sales-service (→ document-service)</span><br>
+          <span style="color: var(--muted);">purchase-service (→ document-service)</span><br>
+          <span style="color: var(--muted);">inventory-service (→ document-service)</span><br>
+          <span style="color: var(--muted);">payment-service (→ document-service)</span>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 16px; margin-bottom: 20px;">
+        <div style="flex:1; background: #fef3c7; border: 2px solid #d97706; border-radius: 8px; padding: 12px;">
+          <strong style="color: #d97706;">Gotenberg (Docker)</strong><br>
+          <span style="color: var(--muted);">Chromium headless</span><br>
+          <span style="color: var(--muted);">HTML → PDF conversion</span><br>
+          <span style="color: var(--muted);">Stateless REST API :3000</span>
+        </div>
+        <div style="flex:1; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px;">
+          <strong>Storage</strong><br>
+          <span style="color: var(--muted);">PostgreSQL (templates, docs)</span><br>
+          <span style="color: var(--muted);">MinIO (generated PDFs)</span>
+        </div>
+      </div>
+
+      <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px;">
+        <strong>Flow</strong><br>
+        <span style="color: var(--muted);">
+          1. Existing service sends document request → document-service<br>
+          2. document-service loads template + data, renders HTML<br>
+          3. HTML sent to Gotenberg → PDF returned<br>
+          4. PDF stored in MinIO, metadata in PostgreSQL<br>
+          5. Frontend downloads/emails/shares via presigned URL
+        </span>
+      </div>
+    </div>
+  </div>
+</div>

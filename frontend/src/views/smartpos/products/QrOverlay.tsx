@@ -1,13 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import QRCode from 'qrcode';
-import {
-  Box,
-  Button,
-  CircularProgress,
-  IconButton,
-  Stack,
-  Typography,
-} from '@mui/material';
+import { Box, Button, CircularProgress, IconButton, Stack, Typography } from '@mui/material';
 import { IconChecks, IconLink, IconRefresh, IconX } from '@tabler/icons-react';
 import {
   createCaptureSession,
@@ -15,7 +8,7 @@ import {
   deleteCaptureSession,
   type PhotoInfo,
 } from 'src/api/smartpos/captureSession';
-import { api, API_BASE_URL, tokenStore } from 'src/api/smartpos/client';
+import { api, API_BASE_URL } from 'src/api/smartpos/client';
 
 const POLL_INTERVAL_MS = 3_000;
 
@@ -29,7 +22,9 @@ export default function QrOverlay({ onPhotosReceived, onUseWebcam, onClose }: Qr
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [qrUrl, setQrUrl] = useState<string | null>(null);
-  const [status, setStatus] = useState<'creating' | 'waiting' | 'receiving' | 'complete' | 'error'>('creating');
+  const [status, setStatus] = useState<'creating' | 'waiting' | 'receiving' | 'complete' | 'error'>(
+    'creating',
+  );
   const [photoCount, setPhotoCount] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const pollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -53,7 +48,7 @@ export default function QrOverlay({ onPhotosReceived, onUseWebcam, onClose }: Qr
         // The backend's default base-url is http://localhost:5173, which
         // doesn't work from a phone. Rewrite the QR URL to use the same
         // origin the POS terminal is loaded from.
-        const correctedQrUrl = rewriteQrUrl(resp.qrUrl, tokenStore.get() ?? undefined);
+        const correctedQrUrl = rewriteQrUrl(resp.qrUrl);
         setQrUrl(correctedQrUrl);
 
         // Generate QR as data URL
@@ -99,9 +94,7 @@ export default function QrOverlay({ onPhotosReceived, onUseWebcam, onClose }: Qr
           );
           return await blobToDataUrl(res.data);
         } catch {
-          return p.fullUrl.startsWith('http')
-            ? p.fullUrl
-            : `${API_BASE_URL}${p.fullUrl}`;
+          return p.fullUrl.startsWith('http') ? p.fullUrl : `${API_BASE_URL}${p.fullUrl}`;
         }
       }),
     );
@@ -209,7 +202,15 @@ export default function QrOverlay({ onPhotosReceived, onUseWebcam, onClose }: Qr
               sx={{ width: 240, height: 240, display: 'block' }}
             />
           ) : (
-            <Box sx={{ width: 240, height: 240, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Box
+              sx={{
+                width: 240,
+                height: 240,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
               <CircularProgress size={40} />
             </Box>
           )}
@@ -309,15 +310,10 @@ export default function QrOverlay({ onPhotosReceived, onUseWebcam, onClose }: Qr
  *
  * Example: http://localhost:5173/capture/abc → http://192.168.1.100:5173/capture/abc
  */
-function rewriteQrUrl(url: string, token?: string): string {
+function rewriteQrUrl(url: string): string {
   try {
     const parsed = new URL(url);
-    let result = `${window.location.origin}${parsed.pathname}${parsed.search}${parsed.hash}`;
-    // Pass the access token so the phone can authenticate API calls
-    if (token) {
-      result += `${parsed.search || parsed.hash ? '&' : '?'}token=${encodeURIComponent(token)}`;
-    }
-    return result;
+    return `${window.location.origin}${parsed.pathname}${parsed.search}${parsed.hash}`;
   } catch {
     return url;
   }
