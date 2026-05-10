@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const AUTH_URL = import.meta.env.VITE_AUTH_URL || 'http://localhost:8081';
+const AUTH_URL = import.meta.env.VITE_AUTH_URL || '/auth';
 const HUB_URL = import.meta.env.VITE_HUB_URL || '/hub';
 
 export const authApi = axios.create({ baseURL: AUTH_URL, timeout: 10000 });
