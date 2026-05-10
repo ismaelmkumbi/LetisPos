@@ -3,6 +3,7 @@ package io.smartpos.hub.api;
 import io.smartpos.hub.api.dto.AgentResponse;
 import io.smartpos.hub.application.AgentService;
 import io.smartpos.hub.application.MetricsService;
+import io.smartpos.hub.application.ProxyService;
 import io.smartpos.hub.domain.Agent;
 import io.smartpos.hub.domain.MetricPoint;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +20,7 @@ public class ServerController {
 
     private final AgentService agentService;
     private final MetricsService metricsService;
+    private final ProxyService proxyService;
 
     @GetMapping
     public List<AgentResponse> listServers() {
@@ -45,5 +47,15 @@ public class ServerController {
         if (from == null) from = Instant.now().minusSeconds(3600);
         if (to == null) to = Instant.now();
         return metricsService.query(name, from, to);
+    }
+
+    @GetMapping("/{name}/services")
+    public ResponseEntity<String> listServices(@PathVariable String name) {
+        Agent a = agentService.findByHostname(name);
+        String host = a.getIpAddress();
+        if (host == null || host.startsWith("0:") || host.startsWith("127.") || host.equals("::1")) {
+            host = a.getHostname();
+        }
+        return ResponseEntity.ok(proxyService.proxyGet(host, 9100, "/services"));
     }
 }
