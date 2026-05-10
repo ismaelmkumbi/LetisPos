@@ -3,6 +3,7 @@ import {
   Box, Button, Card, CardContent, Grid, Typography, Chip, CircularProgress,
   IconButton, Tooltip, Stack, LinearProgress, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow, TextField, MenuItem, Collapse,
+  Dialog, DialogTitle, DialogContent, DialogActions,
 } from '@mui/material';
 import { Refresh, Logout, Storage, Circle, KeyboardArrowDown, KeyboardArrowUp } from '@mui/icons-material';
 import { LineChart, Line, CartesianGrid, Tooltip as ReTooltip, ResponsiveContainer } from 'recharts';
@@ -92,6 +93,7 @@ function ServerPanel({ server, metrics: m, backendSvcs, services, svcFilter, onF
   const memPct = latest?.memTotalBytes ? (latest.memUsedBytes! / latest.memTotalBytes * 100).toFixed(1) : null;
   const diskPct = latest?.diskTotalBytes ? (latest.diskUsedBytes! / latest.diskTotalBytes * 100).toFixed(1) : null;
   const [showSystem, setShowSystem] = useState(false);
+  const [detailSvc, setDetailSvc] = useState<BackendService | null>(null);
 
   const chartData = m.slice(-30).map(p => ({ time: new Date(p.time).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }), cpu: p.cpuPercent?.toFixed(1) }));
 
@@ -157,7 +159,7 @@ function ServerPanel({ server, metrics: m, backendSvcs, services, svcFilter, onF
             </TableHead>
             <TableBody>
               {filtered.map(svc => (
-                <TableRow key={svc.name} hover sx={{ '&:hover': { bgcolor: `${brand.neutral[700]}30` }, '& .MuiTableCell-root': { fontSize: '0.78rem', color: brand.neutral[50] } }}>
+                <TableRow key={svc.name} hover onClick={() => setDetailSvc(svc)} sx={{ cursor: 'pointer', '&:hover': { bgcolor: `${brand.neutral[700]}50` }, '& .MuiTableCell-root': { fontSize: '0.78rem', color: brand.neutral[50] } }}>
                   <TableCell sx={{ fontWeight: 600 }}>{svc.name}</TableCell>
                   <TableCell>
                     <Chip label={svc.category} size="small" sx={{ height: 20, fontWeight: 600, fontSize: '0.6rem', bgcolor: `${CATEGORY_COLORS[svc.category] || brand.primary[500]}20`, color: CATEGORY_COLORS[svc.category] || brand.primary[500], borderRadius: '6px' }} />
@@ -181,6 +183,43 @@ function ServerPanel({ server, metrics: m, backendSvcs, services, svcFilter, onF
             </TableBody>
           </Table>
         </TableContainer>
+
+        {/* Service Detail Dialog */}
+        <Dialog open={!!detailSvc} onClose={() => setDetailSvc(null)} maxWidth="sm" fullWidth slotProps={{ paper: { sx: { borderRadius: '14px', bgcolor: brand.neutral[800], border: `1px solid ${brand.neutral[700]}` } } }}>
+          {detailSvc && (
+            <>
+              <DialogTitle sx={{ fontWeight: 800, fontSize: '1.1rem', letterSpacing: '-0.02em', pb: 0 }}>
+                <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
+                  <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: detailSvc.status === 'UP' ? brand.success.main : brand.error.main, boxShadow: detailSvc.status === 'UP' ? `0 0 8px ${brand.success.main}80` : 'none' }} />
+                  {detailSvc.name}
+                  <Chip label={detailSvc.status} size="small" sx={{ height: 22, fontWeight: 700, fontSize: '0.65rem', bgcolor: detailSvc.status === 'UP' ? brand.success.light : brand.error.light, color: detailSvc.status === 'UP' ? brand.success.dark : brand.error.dark, borderRadius: '6px' }} />
+                </Stack>
+              </DialogTitle>
+              <DialogContent sx={{ pt: 2 }}>
+                <Stack spacing={2}>
+                  <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5 }}>
+                    <Box sx={{ bgcolor: brand.neutral[900], borderRadius: '10px', p: 1.5 }}>
+                      <Typography sx={{ fontSize: '0.6rem', color: muted, textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 600, mb: 0.5 }}>Category</Typography>
+                      <Chip label={detailSvc.category} size="small" sx={{ fontWeight: 600, bgcolor: `${(CATEGORY_COLORS[detailSvc.category] || brand.primary[500])}20`, color: CATEGORY_COLORS[detailSvc.category] || brand.primary[500], borderRadius: '6px' }} />
+                    </Box>
+                    <Box sx={{ bgcolor: brand.neutral[900], borderRadius: '10px', p: 1.5 }}>
+                      <Typography sx={{ fontSize: '0.6rem', color: muted, textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 600, mb: 0.5 }}>Port</Typography>
+                      <Typography sx={{ fontWeight: 800, fontFamily: "'DM Mono', monospace", fontSize: '1rem' }}>:{detailSvc.port}</Typography>
+                    </Box>
+                    <Box sx={{ bgcolor: brand.neutral[900], borderRadius: '10px', p: 1.5, gridColumn: '1 / -1' }}>
+                      <Typography sx={{ fontSize: '0.6rem', color: muted, textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 600, mb: 0.5 }}>Description</Typography>
+                      <Typography sx={{ fontSize: '0.85rem' }}>{detailSvc.description}</Typography>
+                    </Box>
+                  </Box>
+                </Stack>
+              </DialogContent>
+              <DialogActions sx={{ px: 3, pb: 2 }}>
+                <Button onClick={() => setDetailSvc(null)} sx={{ fontWeight: 600, borderRadius: '10px', textTransform: 'none', color: muted }}>Close</Button>
+                <Button variant="outlined" color="warning" onClick={() => { serviceAction(server.hostname, detailSvc.name.toLowerCase().replace(/\s+/g, '-'), 'restart').catch(() => {}); }} sx={{ fontWeight: 700, borderRadius: '10px', textTransform: 'none', ml: 1 }}>Restart Service</Button>
+              </DialogActions>
+            </>
+          )}
+        </Dialog>
 
         {/* Systemd Services — collapsed by default */}
         <Box sx={{ mt: 2 }}>
