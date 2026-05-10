@@ -10,6 +10,7 @@ import { listCustomers } from 'src/api/smartpos/customers';
 import type { Customer } from 'src/api/smartpos/types';
 import PageHeader from 'src/components/smartpos/PageHeader';
 import DataTable, { type Column } from 'src/components/smartpos/DataTable';
+import DocumentActionsBar from 'src/components/smartpos/documents/DocumentActionsBar';
 import CustomerEditDrawer from './CustomerEditDrawer';
 import { useAuth } from 'src/context/smartpos/AuthContext';
 import { brand } from 'src/theme/smartpos/brand';
@@ -106,6 +107,18 @@ export default function CustomersListPage() {
             fontWeight: 600,
           }}
         />
+      ),
+    },
+    {
+      key: 'actions',
+      label: '',
+      align: 'right' as const,
+      width: 120,
+      enableHiding: false,
+      render: (c) => (
+        <Box onClick={(e) => e.stopPropagation()}>
+          <DocumentActionsBar documentType="customer-statement" referenceType="customer" referenceId={c.id} />
+        </Box>
       ),
     },
   ];

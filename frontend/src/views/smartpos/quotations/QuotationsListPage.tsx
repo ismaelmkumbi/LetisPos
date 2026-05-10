@@ -14,6 +14,7 @@ import {
 import { parseApiError } from 'src/utils/smartpos/apiErrors';
 import PageHeader from 'src/components/smartpos/PageHeader';
 import DataTable, { type Column } from 'src/components/smartpos/DataTable';
+import DocumentActionsBar from 'src/components/smartpos/documents/DocumentActionsBar';
 import { brand } from 'src/theme/smartpos/brand';
 import { formatMoney } from 'src/utils/smartpos/currency';
 import QuotationEditDrawer from './QuotationEditDrawer';
@@ -191,7 +192,9 @@ export default function QuotationsListPage() {
     {
       key: 'actions', label: '', align: 'right' as const,
       render: (q) => (
-        <Stack direction="row" spacing={0.5} justifyContent="flex-end" onClick={(e) => e.stopPropagation()}>
+        <Stack direction="row" spacing={0.5} justifyContent="flex-end" alignItems="center" onClick={(e) => e.stopPropagation()}>
+          <DocumentActionsBar documentType="quotation" referenceType="quotation" referenceId={q.id} />
+
           {q.status === 'DRAFT' && (
             <Button size="small" startIcon={<IconSend size={14} />}
               onClick={() => handleStatusAction(q, 'SENT')}

@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { listSales, getSaleStats, type Sale, type SaleStatus, type PaymentStatus, type SaleStats } from 'src/api/smartpos/sales';
 import PageHeader from 'src/components/smartpos/PageHeader';
 import DataTable, { type Column } from 'src/components/smartpos/DataTable';
+import DocumentActionsBar from 'src/components/smartpos/documents/DocumentActionsBar';
 import MetricCard from 'src/components/smartpos/MetricCard';
 import EmptyStateGuide from 'src/components/smartpos/EmptyStateGuide';
 import { brand } from 'src/theme/smartpos/brand';
@@ -279,6 +280,19 @@ export default function SalesListPage() {
           >
             {fmt(s.dueTotal)}
           </Typography>
+        </Box>
+      ),
+    },
+    {
+      key: 'actions',
+      label: '',
+      align: 'right' as const,
+      width: 120,
+      enableHiding: false,
+      exportValue: () => '',
+      render: (s) => (
+        <Box onClick={(e) => e.stopPropagation()}>
+          <DocumentActionsBar documentType="tax-invoice" referenceType="sale" referenceId={s.id} />
         </Box>
       ),
     },

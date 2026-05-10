@@ -36,6 +36,7 @@ import { useOfflineSyncQueue } from 'src/hooks/useOfflineSyncQueue';
 import { useOnlineStatus } from 'src/components/smartpos/OfflineBanner';
 import { parseApiError } from 'src/utils/smartpos/apiErrors';
 import { printReceipt, ReceiptPreviewModal } from 'src/components/smartpos/Receipt';
+import DocumentActionsBar from 'src/components/smartpos/documents/DocumentActionsBar';
 import {
   getCurrentRegister,
   type CashRegisterSession,
@@ -710,6 +711,12 @@ export default function PosTerminalPage() {
           paymentMethod={receiptPreview.paymentMethod}
           lookups={buildReceiptLookups(receiptPreview.sale)}
         />
+      )}
+
+      {lastSale && (
+        <Box sx={{ position: 'fixed', bottom: 16, right: 16, zIndex: 1300 }}>
+          <DocumentActionsBar documentType="payment-receipt" referenceType="payment" referenceId={lastSale.id} />
+        </Box>
       )}
 
       <TodaySalesModal

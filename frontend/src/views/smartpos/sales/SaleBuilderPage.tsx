@@ -56,6 +56,7 @@ import type { Customer } from 'src/api/smartpos/types';
 import LineEditor, { type EditableLine } from 'src/components/smartpos/LineEditor';
 import StatusIndicator, { type OperationalState } from 'src/components/smartpos/StatusIndicator';
 import { printReceipt } from 'src/components/smartpos/Receipt';
+import DocumentActionsBar from 'src/components/smartpos/documents/DocumentActionsBar';
 import { brand } from 'src/theme/smartpos/brand';
 import { formatMoney } from 'src/utils/smartpos/currency';
 import { parseApiError } from 'src/utils/smartpos/apiErrors';
@@ -803,6 +804,13 @@ export default function SaleBuilderPage() {
             {/* Actions */}
             <Box sx={{ px: 2.5, pt: 1.5, pb: 2.5 }}>
               <Stack spacing={1}>
+                {/* Document actions */}
+                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: sale?.id ? 1 : 0 }}>
+                  <DocumentActionsBar documentType="quotation" referenceType="sale" referenceId={sale?.id} disabled={!sale?.id} />
+                  <DocumentActionsBar documentType="tax-invoice" referenceType="sale" referenceId={sale?.id} disabled={!sale?.id} />
+                  <DocumentActionsBar documentType="delivery-note" referenceType="sale" referenceId={sale?.id} disabled={!sale?.id} />
+                </Box>
+
                 {/* Primary: Save as draft (new) or Confirm (existing draft) */}
                 {!isReadonly && (
                   <>

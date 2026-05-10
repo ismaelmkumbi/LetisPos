@@ -43,6 +43,7 @@ import type { Supplier } from 'src/api/smartpos/types';
 
 import PageHeader from 'src/components/smartpos/PageHeader';
 import LineEditor, { type EditableLine } from 'src/components/smartpos/LineEditor';
+import DocumentActionsBar from 'src/components/smartpos/documents/DocumentActionsBar';
 import { brand } from 'src/theme/smartpos/brand';
 import { formatMoney } from 'src/utils/smartpos/currency';
 
@@ -580,6 +581,11 @@ export default function PurchaseBuilderPage() {
 
               {isEditable && (
                 <Stack spacing={1} sx={{ mt: 2 }}>
+                  {id && (
+                    <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+                      <DocumentActionsBar documentType="purchase-order" referenceType="purchase" referenceId={id} />
+                    </Box>
+                  )}
                   <Button
                     fullWidth
                     variant="outlined"
