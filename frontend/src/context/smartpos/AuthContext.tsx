@@ -5,7 +5,7 @@ import {
   CurrentUser, fetchMe, fetchMyProfile, fetchTenants, login as apiLogin, logout as apiLogout,
   type Tenant,
 } from 'src/api/smartpos/auth';
-import { tokenStore } from 'src/api/smartpos/client';
+import { bootstrapAuthSession, tokenStore } from 'src/api/smartpos/client';
 
 interface AuthContextValue {
   user: CurrentUser | null;
@@ -50,6 +50,7 @@ export function SmartPosAuthProvider({ children }: { children: React.ReactNode }
 
   useEffect(() => {
     (async () => {
+      await bootstrapAuthSession();
       await loadMe();
 
       // Load available tenants for the switcher

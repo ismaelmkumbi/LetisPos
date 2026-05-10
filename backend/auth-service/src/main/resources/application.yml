@@ -76,6 +76,8 @@ smartpos:
       private-key-path: ${JWT_PRIVATE_KEY_PATH:}
       public-key-path: ${JWT_PUBLIC_KEY_PATH:}
       key-id: smartpos-auth-key-1
+      refresh-cookie-name: ${REFRESH_COOKIE_NAME:smartpos_refresh}
+      refresh-cookie-secure: ${REFRESH_COOKIE_SECURE:false}
     bootstrap:
       # Creates an initial admin user on first startup if no users exist.
       admin-email: ${BOOTSTRAP_ADMIN_EMAIL:admin@smartpos.local}

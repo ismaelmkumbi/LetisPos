@@ -30,6 +30,8 @@ const cfg = {
 };
 
 let accessToken = '';
+/** Opaque refresh from login JSON — rotated on each refresh (HttpOnly cookie is for browsers only). */
+let refreshToken = '';
 
 const state = {
   warehouses: [],
@@ -129,7 +131,24 @@ async function login() {
     auth: false,
   });
   accessToken = data.accessToken;
+  refreshToken = data.refreshToken ?? '';
   console.log(`Logged in as ${data.user?.email ?? cfg.email}`);
+}
+
+async function refreshAccessToken() {
+  if (!refreshToken) return false;
+  const url = new URL('/api/v1/auth/refresh', cfg.baseUrl);
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+    body: JSON.stringify({ refreshToken }),
+  });
+  const text = await res.text();
+  const data = text ? tryJson(text) : null;
+  if (!res.ok) return false;
+  accessToken = data.accessToken;
+  if (data.refreshToken) refreshToken = data.refreshToken;
+  return true;
 }
 
 async function seedWarehouses() {
@@ -531,6 +550,10 @@ async function ensureExpenseCategories() {
 }
 
 async function api(path, opts = {}) {
+  return apiWithRefreshRetry(path, opts, false);
+}
+
+async function apiWithRefreshRetry(path, opts, alreadyRefreshed) {
   const method = opts.method ?? 'GET';
   const url = new URL(path, cfg.baseUrl);
   if (opts.params) {
@@ -554,6 +577,17 @@ async function api(path, opts = {}) {
   const text = await res.text();
   const data = text ? tryJson(text) : null;
   if (!res.ok) {
+    if (
+      res.status === 401
+      && opts.auth !== false
+      && refreshToken
+      && !alreadyRefreshed
+      && !path.includes('/auth/login')
+      && !path.includes('/auth/refresh')
+    ) {
+      const renewed = await refreshAccessToken();
+      if (renewed) return apiWithRefreshRetry(path, opts, true);
+    }
     const err = new Error(`${method} ${url.pathname} failed (${res.status})`);
     err.details = typeof data === 'object' ? JSON.stringify(data, null, 2) : text;
     throw err;

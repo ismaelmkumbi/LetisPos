@@ -35,7 +35,6 @@ export interface CurrentUser {
 export async function login(email: string, password: string): Promise<LoginResponse> {
   const { data } = await api.post<LoginResponse>('/api/v1/auth/login', { email, password });
   tokenStore.set(data.accessToken);
-  tokenStore.setRefresh(data.refreshToken);
   tokenStore.setTenantId(data.user?.tenantId || null);
   schedulePreemptiveRefresh(data.accessToken);
   return data;
@@ -56,9 +55,10 @@ export async function register(payload: RegisterPayload): Promise<{ userId: stri
 }
 
 export async function logout(): Promise<void> {
-  const refreshToken = tokenStore.getRefresh();
   try {
-    if (refreshToken) await api.post('/api/v1/auth/logout', { refreshToken });
+    await api.post('/api/v1/auth/logout', {});
+  } catch {
+    /* still clear client state */
   } finally {
     tokenStore.clear();
   }

@@ -1,9 +1,16 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Box, Button, Card, TextField, Typography, Alert } from '@mui/material';
+import { Box, Button, Card, TextField, Typography, Alert, Stack } from '@mui/material';
 import { Storage } from '@mui/icons-material';
 import { login } from '../api/client';
-import { brand, darkBrand as b } from '../theme';
+import { brand } from '../theme';
+
+const cardSx = {
+  border: `1px solid ${brand.neutral[700]}`,
+  borderRadius: '12px',
+  bgcolor: brand.neutral[800],
+  boxShadow: '0 18px 40px rgba(15,23,42,0.045)',
+} as const;
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -18,23 +25,46 @@ export default function Login() {
   };
 
   return (
-    <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: b.background, p: 2 }}>
-      <Card sx={{ maxWidth: 420, width: '100%', p: 4, borderRadius: 3, bgcolor: b.surface }}>
-        <Box sx={{ textAlign: 'center', mb: 3 }}>
-          <Box sx={{ width: 48, height: 48, borderRadius: 3, bgcolor: brand.primary[900], display: 'flex', alignItems: 'center', justifyContent: 'center', mx: 'auto', mb: 2 }}>
-            <Storage sx={{ color: brand.primary[400], fontSize: 24 }} />
+    <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: brand.neutral[900], p: 2 }}>
+      <Card elevation={0} sx={{ ...cardSx, maxWidth: 420, width: '100%', p: 4 }}>
+        <Box sx={{ textAlign: 'center', mb: 4 }}>
+          <Box sx={{ width: 56, height: 56, borderRadius: '12px', bgcolor: `${brand.primary[600]}15`, display: 'grid', placeItems: 'center', mx: 'auto', mb: 2.5 }}>
+            <Storage sx={{ color: brand.primary[600], fontSize: 26 }} />
           </Box>
-          <Typography variant="h5" sx={{ fontWeight: 800, color: b.text, letterSpacing: '-0.02em' }}>Letis Control Center</Typography>
-          <Typography variant="body2" sx={{ color: b.textMuted, mt: 0.5 }}>Sign in to manage your infrastructure</Typography>
+          <Typography variant="h4" sx={{ fontWeight: 900, letterSpacing: '-0.5px', color: brand.neutral[50], mb: 0.5 }}>
+            Letis Control Center
+          </Typography>
+          <Typography variant="body2" sx={{ color: brand.neutral[500], fontWeight: 500, fontSize: '0.85rem' }}>
+            Sign in to manage your infrastructure
+          </Typography>
         </Box>
-        {error && <Alert severity="error" sx={{ mb: 2, borderRadius: 2, bgcolor: brand.error.light, color: brand.error.dark }}>{error}</Alert>}
+
+        {error && <Alert severity="error" sx={{ mb: 2, borderRadius: '10px', bgcolor: brand.error.light, color: brand.error.dark, fontWeight: 600, fontSize: '0.8rem' }}>{error}</Alert>}
+
         <form onSubmit={handleSubmit}>
-          <TextField fullWidth label="Email" value={email} onChange={e => setEmail(e.target.value)} sx={{ mb: 2 }} required />
-          <TextField fullWidth label="Password" type="password" value={password} onChange={e => setPassword(e.target.value)} sx={{ mb: 3 }} required />
-          <Button fullWidth variant="contained" type="submit" disabled={loading}
-            sx={{ py: 1.5, fontWeight: 700, borderRadius: '10px', textTransform: 'none', bgcolor: brand.primary[600], '&:hover': { bgcolor: brand.primary[700] } }}>
-            {loading ? 'Signing in...' : 'Sign In'}
-          </Button>
+          <Stack spacing={2.5}>
+            <TextField
+              fullWidth label="Email" value={email} onChange={e => setEmail(e.target.value)}
+              required
+              sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px', '& fieldset': { borderColor: brand.neutral[700] }, '&:hover fieldset': { borderColor: brand.neutral[500] }, '&.Mui-focused fieldset': { borderColor: brand.primary[500] } }, '& .MuiInputLabel-root': { color: brand.neutral[400] }, '& .MuiInputBase-input': { color: brand.neutral[50], fontWeight: 500 } }}
+            />
+            <TextField
+              fullWidth label="Password" type="password" value={password} onChange={e => setPassword(e.target.value)}
+              required
+              sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px', '& fieldset': { borderColor: brand.neutral[700] }, '&:hover fieldset': { borderColor: brand.neutral[500] }, '&.Mui-focused fieldset': { borderColor: brand.primary[500] } }, '& .MuiInputLabel-root': { color: brand.neutral[400] }, '& .MuiInputBase-input': { color: brand.neutral[50], fontWeight: 500 } }}
+            />
+            <Button
+              fullWidth variant="contained" type="submit" disabled={loading}
+              sx={{
+                minHeight: 46, fontWeight: 800, borderRadius: '10px', textTransform: 'none',
+                background: `linear-gradient(135deg, ${brand.primary[600]} 0%, ${brand.primary[700]} 100%)`,
+                boxShadow: `0 12px 24px -16px ${brand.primary[800]}`,
+                '&:hover': { background: `linear-gradient(135deg, ${brand.primary[700]} 0%, ${brand.primary[800]} 100%)` },
+              }}
+            >
+              {loading ? 'Signing in...' : 'Sign In'}
+            </Button>
+          </Stack>
         </form>
       </Card>
     </Box>
