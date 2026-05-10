@@ -29,5 +29,7 @@ CREATE INDEX IF NOT EXISTS idx_metric_server_time
 
 DO $$
 BEGIN
-    PERFORM create_hypertable('metric_points', 'time', if_not_exists => true);
+    EXECUTE 'SELECT create_hypertable(''metric_points'', ''time'', if_not_exists => true)';
+EXCEPTION WHEN OTHERS THEN
+    RAISE NOTICE 'TimescaleDB not available — skipping hypertable creation';
 END $$;
