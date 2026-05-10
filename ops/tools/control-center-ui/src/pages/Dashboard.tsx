@@ -175,14 +175,8 @@ function ServerPanel({ server, metrics: m, backendSvcs, services, svcFilter, onF
                   </TableCell>
                   <TableCell sx={{ color: muted, fontSize: '0.72rem' }}>{svc.description}</TableCell>
                   <TableCell align="right" onClick={e => e.stopPropagation()}>
-                    <Stack direction="row" spacing={0.5} sx={{ justifyContent: 'flex-end' }}>
-                      <Button size="small" variant="outlined" onClick={() => setLogSvc({ name: svc.name })}
-                        sx={{ minWidth: 28, height: 26, p: 0, fontSize: '0.6rem', fontWeight: 700, color: brand.info.main, borderColor: `${brand.info.main}40`, borderRadius: '6px', '&:hover': { borderColor: brand.info.main, bgcolor: `${brand.info.main}15` } }}>
-                        <Article sx={{ fontSize: 13 }} />
-                      </Button>
-                      <Button size="small" variant="outlined" onClick={() => { serviceAction(server.hostname, svc.name.toLowerCase().replace(' ', '-'), 'restart').catch(() => {}); }}
-                        sx={{ minWidth: 28, height: 26, p: 0, fontSize: '0.6rem', fontWeight: 700, color: brand.warning.main, borderColor: `${brand.warning.main}40`, borderRadius: '6px', '&:hover': { borderColor: brand.warning.main, bgcolor: `${brand.warning.main}15` } }}>↻</Button>
-                    </Stack>
+                    <Button size="small" variant="outlined" onClick={() => { serviceAction(server.hostname, svc.name.toLowerCase().replace(' ', '-'), 'restart').catch(() => {}); }}
+                      sx={{ minWidth: 28, height: 26, p: 0, fontSize: '0.6rem', fontWeight: 700, color: brand.warning.main, borderColor: `${brand.warning.main}40`, borderRadius: '6px', '&:hover': { borderColor: brand.warning.main, bgcolor: `${brand.warning.main}15` } }}>↻</Button>
                   </TableCell>
                 </TableRow>
               ))}
@@ -245,6 +239,7 @@ function ServerPanel({ server, metrics: m, backendSvcs, services, svcFilter, onF
                   <Box key={svc.name} sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.4, px: 1, borderRadius: '6px', '&:hover': { bgcolor: `${brand.neutral[700]}30` } }}>
                     <Box sx={{ width: 5, height: 5, borderRadius: '50%', bgcolor: up ? brand.success.main : brand.error.main, flexShrink: 0 }} />
                     <Typography variant="caption" noWrap sx={{ flex: 1, fontSize: '0.68rem', color: brand.neutral[300] }}>{name}</Typography>
+                    <Button size="small" onClick={() => setLogSvc({ name: svc.name })} sx={{ minWidth: 20, height: 18, p: 0, fontSize: '0.55rem', fontWeight: 700, color: brand.info.main, borderColor: `${brand.info.main}30`, borderRadius: '4px', mr: 0.25 }} variant="outlined">📋</Button>
                     <Button size="small" onClick={() => { serviceAction(server.hostname, svc.name, 'restart').catch(() => {}); }} sx={{ minWidth: 20, height: 18, p: 0, fontSize: '0.55rem', fontWeight: 700, color: brand.warning.main, borderColor: `${brand.warning.main}30`, borderRadius: '4px' }} variant="outlined">↻</Button>
                   </Box>
                 );
