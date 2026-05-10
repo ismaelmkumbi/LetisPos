@@ -6,11 +6,13 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/ismaelmkumbi/lsa/collector"
 	"github.com/ismaelmkumbi/lsa/config"
+	"github.com/ismaelmkumbi/lsa/logs"
 	"github.com/ismaelmkumbi/lsa/manager"
 )
 
@@ -21,7 +23,7 @@ type Server struct {
 	lastMetrics *collector.SystemMetrics
 }
 
-func New(cfg *config.Config, sysMgr *manager.SystemdManager) *Server {
+func New(cfg *config.Config, sysMgr *manager.SystemdManager, logStreamer *logs.Streamer) *Server {
 	s := &Server{cfg: cfg}
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", s.handleHealth)
@@ -30,6 +32,11 @@ func New(cfg *config.Config, sysMgr *manager.SystemdManager) *Server {
 	svcH := &ServicesHandler{Systemd: sysMgr}
 	mux.HandleFunc("/services", svcH.List)
 	mux.HandleFunc("/services/", svcH.Action)
+
+	mux.HandleFunc("/logs/", func(w http.ResponseWriter, r *http.Request) {
+		service := strings.TrimPrefix(r.URL.Path, "/logs/")
+		logStreamer.ServeLogs(w, r, service)
+	})
 
 	s.http = &http.Server{
 		Addr:    cfg.ListenAddr,
