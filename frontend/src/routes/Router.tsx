@@ -77,6 +77,7 @@ const SmartPosTerminals = Loadable(lazy(() => import('../views/smartpos/pos/Term
 const SmartPosCustomerDisplay = Loadable(
   lazy(() => import('../views/smartpos/pos/CustomerDisplayPage')),
 );
+const CameraPage = Loadable(lazy(() => import('../views/smartpos/products/CameraPage')));
 const SmartPosIntegrations = Loadable(
   lazy(() => import('../views/smartpos/integrations/IntegrationsPage')),
 );
@@ -177,9 +178,6 @@ const SmartPosOnboarding = Loadable(
       default: m.OnboardingSettings,
     })),
   ),
-);
-const SetupPage = Loadable(
-  lazy(() => import('../views/smartpos/onboarding/SetupPage')),
 );
 
 /* ****Pages***** */
@@ -471,7 +469,6 @@ const Router = [
       { path: 'settings/tenants', element: <SmartPosTenants /> },
       { path: 'settings/locale', element: <SmartPosLocale /> },
       { path: 'settings/onboarding', element: <SmartPosOnboarding /> },
-      { path: 'setup', element: <SetupPage /> },
     ],
   },
   // ---- Modernize demo (left intact while we build; can be stripped later) ----
@@ -600,6 +597,8 @@ const Router = [
       { path: '/auth/two-steps', element: <TwoSteps /> },
       { path: '/auth/two-steps2', element: <TwoSteps2 /> },
       { path: '/auth/maintenance', element: <Maintenance /> },
+      // Phone camera page — opened by scanning QR code; no auth.
+      { path: '/capture/:sessionId', element: <CameraPage /> },
       // Customer-display screen — open in second monitor; no chrome.
       { path: '/smartpos/pos/display/:id', element: <SmartPosCustomerDisplay /> },
       { path: '/landingpage', element: <Landingpage /> },

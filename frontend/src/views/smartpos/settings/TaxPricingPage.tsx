@@ -34,7 +34,12 @@ import { listWarehouses, type Warehouse } from 'src/api/smartpos/inventory';
 import { useAuth } from 'src/context/smartpos/AuthContext';
 import type { UUID } from 'src/api/smartpos/types';
 
-const fieldSx = { ...premiumFieldSx, '& .MuiOutlinedInput-root': { ...premiumFieldSx['& .MuiOutlinedInput-root'], borderRadius: '10px' } };
+import type { Theme } from '@mui/material/styles';
+
+const fieldSx = (theme: Theme) => {
+  const base = premiumFieldSx(theme);
+  return { ...base, '& .MuiOutlinedInput-root': { ...base['& .MuiOutlinedInput-root'], borderRadius: '10px' } };
+};
 
 const toggleGroupSx = {
   '& .MuiToggleButton-root': {
@@ -148,7 +153,7 @@ export default function TaxPricingPage() {
           options={warehouses}
           getOptionLabel={(w) => `${w.name}${w.city ? ` — ${w.city}` : ''}`}
           onChange={(_, v) => v && setWarehouseId(v.id)}
-          renderInput={(p) => <TextField {...p} size="small" sx={{ ...fieldSx, minWidth: 360 }} />}
+          renderInput={(p) => <TextField {...p} size="small" sx={(theme) => ({ ...fieldSx(theme), minWidth: 360 })} />}
           sx={{ maxWidth: 480 }}
         />
       </Box>
@@ -180,7 +185,7 @@ export default function TaxPricingPage() {
                     }}
                     type="number"
                     size="small"
-                    sx={{ maxWidth: 180, ...fieldSx }}
+                    sx={(theme) => ({ maxWidth: 180, ...fieldSx(theme) })}
                     InputProps={{ endAdornment: <InputAdornment position="end">%</InputAdornment> }}
                     helperText="0–100 %"
                   />
@@ -213,7 +218,7 @@ export default function TaxPricingPage() {
                   value={settings.currencyCode}
                   onChange={(e) => update({ currencyCode: e.target.value })}
                   size="small"
-                  sx={{ minWidth: 140, ...fieldSx }}
+                  sx={(theme) => ({ minWidth: 140, ...fieldSx(theme) })}
                   helperText="ISO 4217 code"
                   SelectProps={{ native: false }}
                 >
@@ -229,7 +234,7 @@ export default function TaxPricingPage() {
                   value={settings.currencySymbol}
                   onChange={(e) => update({ currencySymbol: e.target.value.slice(0, 8) })}
                   size="small"
-                  sx={{ maxWidth: 160, ...fieldSx }}
+                  sx={(theme) => ({ maxWidth: 160, ...fieldSx(theme) })}
                   helperText="Shown on receipts (e.g. $, €, TSh)"
                 />
               </Stack>
@@ -264,7 +269,7 @@ export default function TaxPricingPage() {
                       if (!isNaN(v) && v >= 0 && v <= 100) update({ maxDiscountPercent: v });
                     }}
                     size="small" type="number"
-                    sx={{ width: 100, ...fieldSx }}
+                    sx={(theme) => ({ width: 100, ...fieldSx(theme) })}
                     InputProps={{ endAdornment: <InputAdornment position="end">%</InputAdornment> }}
                   />
                 </Stack>
@@ -303,7 +308,7 @@ export default function TaxPricingPage() {
                     }
                   }}
                   size="small" type="number"
-                  sx={{ maxWidth: 240, ...fieldSx }}
+                  sx={(theme) => ({ maxWidth: 240, ...fieldSx(theme) })}
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">

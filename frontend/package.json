@@ -53,6 +53,7 @@
     "mui-tiptap": "^1.18.1",
     "pdfjs-dist": "^4.10.38",
     "prop-types": "^15.8.1",
+    "qrcode": "^1.5.4",
     "react": "19.0.0-rc-02c0e824-20241028",
     "react-apexcharts": "^1.7.0",
     "react-big-calendar": "1.18.0",
@@ -78,10 +79,12 @@
     "yup": "^1.6.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.59.1",
     "@types/chance": "^1.1.6",
     "@types/fslightbox-react": "^1.7.8",
     "@types/lodash": "^4.17.24",
     "@types/node": "22.10.1",
+    "@types/qrcode": "^1.5.6",
     "@types/react": "19.0.1",
     "@types/react-big-calendar": "^1.15.0",
     "@types/react-dom": "19.0.1",

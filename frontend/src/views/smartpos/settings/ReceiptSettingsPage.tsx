@@ -28,6 +28,7 @@ import {
   cardSx, SectionTitle, FloatingSaveBar, CardSkeletonGroup,
 } from 'src/components/smartpos/SettingsHelpers';
 import { brand } from 'src/theme/smartpos/brand';
+import type { Theme } from '@mui/material/styles';
 import { premiumFieldSx } from 'src/components/smartpos/PosLayouts/shared';
 import {
   getReceiptConfig,
@@ -41,7 +42,10 @@ import { listWarehouses, type Warehouse } from 'src/api/smartpos/inventory';
 import { useAuth } from 'src/context/smartpos/AuthContext';
 import type { UUID } from 'src/api/smartpos/types';
 
-const fieldSx = { ...premiumFieldSx, '& .MuiOutlinedInput-root': { ...premiumFieldSx['& .MuiOutlinedInput-root'], borderRadius: '10px' } };
+const fieldSx = (theme: Theme) => {
+  const base = premiumFieldSx(theme);
+  return { ...base, '& .MuiOutlinedInput-root': { ...base['& .MuiOutlinedInput-root'], borderRadius: '10px' } };
+};
 
 const toggleGroupSx = {
   '& .MuiToggleButton-root': {
@@ -214,7 +218,7 @@ export default function ReceiptSettingsPage() {
             getOptionLabel={(w) => `${w.name}${w.city ? ` — ${w.city}` : ''}`}
             onChange={(_, v) => v && setWarehouseId(v.id)}
             size="small"
-            renderInput={(p) => <TextField {...p} size="small" sx={{ ...fieldSx, minWidth: 320 }} />}
+            renderInput={(p) => <TextField {...p} size="small" sx={(theme) => ({ ...fieldSx(theme), minWidth: 320 })} />}
           />
           {!warehouseId && (
             <Typography variant="caption" sx={{ color: brand.neutral[400], alignSelf: 'flex-end', pb: 0.5 }}>
@@ -266,21 +270,21 @@ export default function ReceiptSettingsPage() {
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
                 <TextField label="Store Name" value={config.storeName}
                   onChange={(e) => update({ storeName: e.target.value })}
-                  size="small" fullWidth sx={fieldSx} />
+                  size="small" fullWidth sx={(theme) => fieldSx(theme)} />
                 <TextField label="Tax ID (TIN)" value={config.storeTaxId}
                   onChange={(e) => update({ storeTaxId: e.target.value })}
-                  size="small" fullWidth sx={fieldSx} />
+                  size="small" fullWidth sx={(theme) => fieldSx(theme)} />
               </Stack>
               <TextField label="Store Address" value={config.storeAddress}
                 onChange={(e) => update({ storeAddress: e.target.value })}
-                size="small" fullWidth sx={fieldSx} />
+                size="small" fullWidth sx={(theme) => fieldSx(theme)} />
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
                 <TextField label="Store Phone" value={config.storePhone}
                   onChange={(e) => update({ storePhone: e.target.value })}
-                  size="small" fullWidth sx={fieldSx} />
+                  size="small" fullWidth sx={(theme) => fieldSx(theme)} />
                 <TextField label="Store Email" value={config.storeEmail}
                   onChange={(e) => update({ storeEmail: e.target.value })}
-                  size="small" fullWidth sx={fieldSx} />
+                  size="small" fullWidth sx={(theme) => fieldSx(theme)} />
               </Stack>
             </Stack>
           </Box>
@@ -348,7 +352,7 @@ export default function ReceiptSettingsPage() {
                 />
                 <TextField label="Footer Message" value={config.footerMessage}
                   onChange={(e) => update({ footerMessage: e.target.value })}
-                  size="small" fullWidth sx={fieldSx} />
+                  size="small" fullWidth sx={(theme) => fieldSx(theme)} />
               </Stack>
             </Box>
 

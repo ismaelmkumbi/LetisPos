@@ -24,8 +24,8 @@ export const CHECKOUT_PANEL_MIN_WIDTH = 420;
 export const FOOTER_HEIGHT = 72;
 export const PRODUCT_PAGE_SIZE = 10;
 
-export const posSurface = (theme: Theme) => {
-  const isDark = theme.palette.mode === 'dark';
+export const posSurface = (themeOrDark: Theme | boolean) => {
+  const isDark = typeof themeOrDark === 'boolean' ? themeOrDark : themeOrDark.palette.mode === 'dark';
   return {
     border: `1px solid ${isDark ? brand.neutral[700] : brand.neutral[200]}`,
     borderRadius: '18px',
@@ -34,8 +34,8 @@ export const posSurface = (theme: Theme) => {
   };
 };
 
-export const premiumFieldSx = (theme: Theme) => {
-  const isDark = theme.palette.mode === 'dark';
+export const premiumFieldSx = (themeOrDark: Theme | boolean) => {
+  const isDark = typeof themeOrDark === 'boolean' ? themeOrDark : themeOrDark.palette.mode === 'dark';
   return {
     '& .MuiOutlinedInput-root': {
       borderRadius: '10px',

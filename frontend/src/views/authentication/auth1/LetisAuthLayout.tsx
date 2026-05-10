@@ -83,9 +83,9 @@ function ProductShowcase({ mode }: { mode: AuthMode }) {
     <Box
       sx={{
         position: 'relative',
-        mt: { xs: 2.5, md: 4 },
-        height: { xs: 260, sm: 330, lg: 390 },
-        maxWidth: 560,
+        mt: { xs: 2.5, md: 2.6, xl: 3 },
+        height: { xs: 260, sm: 330, lg: 280, xl: 320 },
+        maxWidth: 520,
         animation: `${anim(260)}, ${softFloat} 6s ease-in-out 1s infinite`,
       }}
     >
@@ -95,7 +95,7 @@ function ProductShowcase({ mode }: { mode: AuthMode }) {
           inset: { xs: '16px 10px 36px 22px', sm: '10px 20px 48px 36px' },
           borderRadius: { xs: '28px', sm: '34px' },
           background: 'linear-gradient(145deg, #111827 0%, #1F2937 100%)',
-          boxShadow: '0 34px 70px rgba(15,23,42,0.24), 0 14px 30px rgba(15,23,42,0.12)',
+          boxShadow: '0 42px 86px rgba(15,23,42,0.25), 0 18px 34px rgba(15,23,42,0.14)',
         }}
       />
 
@@ -212,131 +212,143 @@ function ProductShowcase({ mode }: { mode: AuthMode }) {
       <Box
         sx={{
           position: 'absolute',
-          left: { xs: 20, sm: 32 },
-          bottom: { xs: 16, sm: 26 },
-          width: { xs: 120, sm: 154 },
-          height: { xs: 82, sm: 104 },
-          borderRadius: '18px 18px 14px 14px',
-          background: 'linear-gradient(135deg, #111827 0%, #28313C 56%, #05070A 100%)',
-          boxShadow: '0 26px 44px rgba(15,23,42,0.28), inset 12px 0 18px rgba(255,255,255,0.04)',
-          zIndex: 4,
+          left: { xs: 18, sm: 26 },
+          bottom: { xs: -28, sm: -42, lg: -54, xl: -42 },
+          width: { xs: 190, sm: 224, lg: 218, xl: 250 },
+          height: { xs: 146, sm: 178, lg: 168, xl: 198 },
+          zIndex: 5,
+          pointerEvents: 'none',
         }}
       >
         <Box
           sx={{
             position: 'absolute',
-            left: '14%',
-            right: '14%',
-            top: { xs: 26, sm: 32 },
-            height: 9,
-            borderRadius: '999px',
-            bgcolor: '#05070A',
+            left: 0,
+            bottom: { xs: 36, sm: 48, lg: 50, xl: 54 },
+            width: { xs: 108, sm: 132, lg: 126, xl: 148 },
+            height: { xs: 74, sm: 90, lg: 86, xl: 100 },
+            borderRadius: '18px 18px 14px 14px',
+            background: 'linear-gradient(135deg, #111827 0%, #28313C 56%, #05070A 100%)',
+            boxShadow: '0 26px 44px rgba(15,23,42,0.28), inset 12px 0 18px rgba(255,255,255,0.04)',
+            zIndex: 2,
           }}
-        />
+        >
+          <Box
+            sx={{
+              position: 'absolute',
+              left: '14%',
+              right: '14%',
+              top: { xs: 24, sm: 28, lg: 27, xl: 31 },
+              height: { xs: 8, sm: 9 },
+              borderRadius: '999px',
+              bgcolor: '#05070A',
+            }}
+          />
+          <Box
+            sx={{
+              position: 'absolute',
+              left: { xs: 14, sm: 16 },
+              bottom: { xs: 12, sm: 14 },
+              transform: { xs: 'scale(0.44)', sm: 'scale(0.5)', xl: 'scale(0.56)' },
+              transformOrigin: 'left center',
+            }}
+          >
+            <BrandLogo size="sm" color="onDark" />
+          </Box>
+        </Box>
+
         <Box
           sx={{
             position: 'absolute',
-            left: 16,
-            bottom: 14,
-            transform: { xs: 'scale(0.48)', sm: 'scale(0.56)' },
-            transformOrigin: 'left center',
+            left: { xs: 70, sm: 82, lg: 78, xl: 94 },
+            bottom: { xs: -12, sm: -16, lg: -20, xl: -18 },
+            width: { xs: 84, sm: 100, lg: 96, xl: 112 },
+            minHeight: { xs: 124, sm: 148, lg: 142, xl: 166 },
+            borderRadius: '10px 10px 18px 18px',
+            bgcolor: '#FFFFFF',
+            color: brand.neutral[900],
+            border: `1px solid ${brand.neutral[100]}`,
+            boxShadow: '0 26px 48px rgba(15,23,42,0.20), inset 6px 0 10px rgba(15,23,42,0.04)',
+            transform: 'rotate(7deg)',
+            transformOrigin: 'center top',
+            zIndex: 3,
+            overflow: 'hidden',
+            p: { xs: 0.75, sm: 0.9, xl: 1.05 },
+            '&:before': {
+              content: '""',
+              position: 'absolute',
+              inset: 0,
+              background:
+                'repeating-linear-gradient(0deg, transparent 0, transparent 11px, rgba(15,23,42,0.055) 12px)',
+              pointerEvents: 'none',
+            },
           }}
         >
-          <BrandLogo size="sm" color="onDark" />
+          <Stack alignItems="center" spacing={0.45} sx={{ position: 'relative' }}>
+            <LetisMark size={24} />
+            <Typography sx={{ fontSize: { xs: '0.42rem', sm: '0.5rem' }, fontWeight: 950 }}>
+              Letis POS
+            </Typography>
+            <Typography
+              sx={{
+                fontSize: { xs: '0.3rem', sm: '0.36rem' },
+                fontWeight: 800,
+                color: brand.neutral[500],
+              }}
+            >
+              INV-2026-000433
+            </Typography>
+          </Stack>
+
+          <Stack spacing={0.5} sx={{ position: 'relative', mt: 1 }}>
+            {['Sukari Kilo', 'Mchele Mbeya', 'Unga Ngano', 'Mafuta 1L'].map((name, index) => (
+              <Stack
+                key={name}
+                direction="row"
+                justifyContent="space-between"
+                sx={{
+                  pb: 0.35,
+                  borderBottom: '1px dotted rgba(15,23,42,0.55)',
+                  fontSize: { xs: '0.34rem', sm: '0.4rem' },
+                  fontWeight: 850,
+                  lineHeight: 1,
+                }}
+              >
+                <Box component="span">{name}</Box>
+                <Box component="span">{['22.4K', '68.4K', '25K', '18.6K'][index]}</Box>
+              </Stack>
+            ))}
+          </Stack>
+
+          <Stack
+            direction="row"
+            justifyContent="space-between"
+            sx={{
+              position: 'relative',
+              mt: 1,
+              pt: 0.6,
+              borderTop: '1px dotted rgba(15,23,42,0.8)',
+              fontSize: { xs: '0.42rem', sm: '0.48rem' },
+              fontWeight: 950,
+            }}
+          >
+            <Box component="span">TOTAL</Box>
+            <Box component="span">293.8K</Box>
+          </Stack>
         </Box>
       </Box>
 
       <Box
         sx={{
           position: 'absolute',
-          left: { xs: 82, sm: 116 },
-          bottom: { xs: -4, sm: 0 },
-          width: { xs: 112, sm: 142 },
-          minHeight: { xs: 164, sm: 214 },
-          borderRadius: '10px 10px 18px 18px',
-          bgcolor: '#FFFFFF',
-          color: brand.neutral[900],
-          border: `1px solid ${brand.neutral[100]}`,
-          boxShadow: '0 24px 42px rgba(15,23,42,0.18), inset 6px 0 10px rgba(15,23,42,0.04)',
-          transform: 'rotate(-10deg)',
-          transformOrigin: '20% 0',
-          zIndex: 5,
-          overflow: 'hidden',
-          p: { xs: 0.9, sm: 1.15 },
-          '&:before': {
-            content: '""',
-            position: 'absolute',
-            inset: 0,
-            background:
-              'repeating-linear-gradient(0deg, transparent 0, transparent 11px, rgba(15,23,42,0.055) 12px)',
-            pointerEvents: 'none',
-          },
-        }}
-      >
-        <Stack alignItems="center" spacing={0.45} sx={{ position: 'relative' }}>
-          <LetisMark size={24} />
-          <Typography sx={{ fontSize: { xs: '0.42rem', sm: '0.5rem' }, fontWeight: 950 }}>
-            Letis POS
-          </Typography>
-          <Typography
-            sx={{
-              fontSize: { xs: '0.3rem', sm: '0.36rem' },
-              fontWeight: 800,
-              color: brand.neutral[500],
-            }}
-          >
-            INV-2026-000433
-          </Typography>
-        </Stack>
-
-        <Stack spacing={0.5} sx={{ position: 'relative', mt: 1 }}>
-          {['Sukari Kilo', 'Mchele Mbeya', 'Unga Ngano', 'Mafuta 1L'].map((name, index) => (
-            <Stack
-              key={name}
-              direction="row"
-              justifyContent="space-between"
-              sx={{
-                pb: 0.35,
-                borderBottom: '1px dotted rgba(15,23,42,0.55)',
-                fontSize: { xs: '0.34rem', sm: '0.4rem' },
-                fontWeight: 850,
-                lineHeight: 1,
-              }}
-            >
-              <Box component="span">{name}</Box>
-              <Box component="span">{['22.4K', '68.4K', '25K', '18.6K'][index]}</Box>
-            </Stack>
-          ))}
-        </Stack>
-
-        <Stack
-          direction="row"
-          justifyContent="space-between"
-          sx={{
-            position: 'relative',
-            mt: 1,
-            pt: 0.6,
-            borderTop: '1px dotted rgba(15,23,42,0.8)',
-            fontSize: { xs: '0.42rem', sm: '0.48rem' },
-            fontWeight: 950,
-          }}
-        >
-          <Box component="span">TOTAL</Box>
-          <Box component="span">293.8K</Box>
-        </Stack>
-      </Box>
-
-      <Box
-        sx={{
-          position: 'absolute',
-          right: { xs: 20, sm: 36 },
-          bottom: { xs: 30, sm: 50 },
+          right: { xs: 16, sm: 28 },
+          bottom: { xs: 34, sm: 54 },
           px: { xs: 1.1, sm: 1.4 },
           py: { xs: 0.9, sm: 1.1 },
           borderRadius: '16px',
           bgcolor: 'rgba(255,255,255,0.88)',
           border: `1px solid ${brand.primary[100]}`,
-          boxShadow: '0 18px 34px rgba(15,23,42,0.12)',
+          boxShadow: '0 24px 44px rgba(15,23,42,0.16)',
           backdropFilter: 'blur(12px)',
           zIndex: 6,
         }}
@@ -433,7 +445,7 @@ export default function LetisAuthLayout({
         sx={{
           minHeight: '100dvh',
           display: 'grid',
-          gridTemplateColumns: { xs: '1fr', lg: '1.05fr 0.95fr' },
+          gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' },
           bgcolor: '#FFFFFF',
         }}
       >
@@ -441,22 +453,22 @@ export default function LetisAuthLayout({
           sx={{
             position: 'relative',
             overflow: 'hidden',
-            px: { xs: 2.4, sm: 5, md: 7, xl: 9 },
-            py: { xs: 2.5, sm: 4, lg: 5.5 },
+            px: { xs: 2.4, sm: 5, md: 7, lg: 6, xl: 9 },
+            py: { xs: 2.5, sm: 4, lg: 3.5, xl: 4.5 },
             minHeight: { xs: 'auto', lg: '100dvh' },
             display: { xs: 'none', lg: 'flex' },
             alignItems: 'center',
             background:
-              'radial-gradient(circle at 0% 0%, rgba(22,163,74,0.14), transparent 32%), linear-gradient(150deg, #FFFFFF 0%, #F8FAFC 44%, #EAF8F0 100%)',
+              'radial-gradient(circle at 6% 8%, rgba(22,163,74,0.16), transparent 30%), linear-gradient(150deg, #FFFFFF 0%, #F8FAFC 42%, #ECFDF3 100%)',
             '&:before': {
               content: '""',
               position: 'absolute',
-              width: { xs: 260, sm: 420 },
-              height: { xs: 260, sm: 420 },
+              width: { xs: 260, sm: 360, xl: 430 },
+              height: { xs: 260, sm: 360, xl: 430 },
               borderRadius: '50%',
-              right: { xs: -150, sm: -190 },
-              top: { xs: 70, sm: -60 },
-              bgcolor: 'rgba(22,163,74,0.08)',
+              right: { xs: -150, sm: -170, xl: -210 },
+              top: { xs: 70, sm: -140, xl: -170 },
+              bgcolor: 'rgba(22,163,74,0.075)',
             },
             '&:after': {
               content: '""',
@@ -468,7 +480,7 @@ export default function LetisAuthLayout({
             },
           }}
         >
-          <Box sx={{ position: 'relative', zIndex: 1, width: '100%', maxWidth: 640 }}>
+          <Box sx={{ position: 'relative', zIndex: 1, width: '100%', maxWidth: 610 }}>
             <Box sx={{ animation: anim(0) }}>
               <BrandLogo size="lg" />
             </Box>
@@ -478,7 +490,7 @@ export default function LetisAuthLayout({
               spacing={0.75}
               alignItems="center"
               sx={{
-                mt: { xs: 3, sm: 4.5 },
+                mt: { xs: 3, sm: 4.5, lg: 2.5, xl: 3.5 },
                 width: 'fit-content',
                 px: 1.1,
                 py: 0.55,
@@ -508,7 +520,7 @@ export default function LetisAuthLayout({
                 fontWeight: 950,
                 letterSpacing: 0,
                 lineHeight: 1.05,
-                fontSize: { xs: '2.1rem', sm: '3rem', lg: '3.65rem' },
+                fontSize: { xs: '2.1rem', sm: '3rem', lg: '3rem', xl: '3.45rem' },
                 color: brand.neutral[900],
                 animation: anim(130),
               }}
@@ -521,10 +533,10 @@ export default function LetisAuthLayout({
 
             <Typography
               sx={{
-                mt: 1.5,
+                mt: { xs: 1.5, lg: 1.1, xl: 1.35 },
                 maxWidth: 470,
-                fontSize: { xs: '0.95rem', sm: '1.04rem' },
-                lineHeight: 1.65,
+                fontSize: { xs: '0.95rem', sm: '1.04rem', lg: '0.94rem', xl: '1rem' },
+                lineHeight: { xs: 1.65, lg: 1.5, xl: 1.6 },
                 color: brand.neutral[600],
                 animation: anim(190),
               }}
@@ -532,7 +544,10 @@ export default function LetisAuthLayout({
               {supportingText}
             </Typography>
 
-            <Stack spacing={1.7} sx={{ mt: { xs: 2.5, sm: 3.5 }, maxWidth: 450 }}>
+            <Stack
+              spacing={{ xs: 1.7, lg: 1.2, xl: 1.5 }}
+              sx={{ mt: { xs: 2.5, sm: 3.5, lg: 2, xl: 2.6 }, maxWidth: 450 }}
+            >
               {benefits.map((item, index) => (
                 <BenefitRow key={item.title} {...item} delay={250 + index * 70} />
               ))}
@@ -545,14 +560,26 @@ export default function LetisAuthLayout({
         <Box
           sx={{
             position: 'relative',
-            px: { xs: 1.5, sm: 4, md: 7, xl: 9 },
-            py: { xs: 1.5, sm: 5 },
+            px: { xs: 1.25, sm: 4, md: 7, xl: 9 },
+            py: { xs: 1, sm: 5 },
             minHeight: '100dvh',
             display: 'flex',
-            alignItems: { xs: 'flex-start', sm: 'center' },
+            alignItems: 'center',
             justifyContent: 'center',
+            overflow: 'hidden',
             background:
-              'radial-gradient(circle at 80% 10%, rgba(22,163,74,0.08), transparent 34%), #FFFFFF',
+              'radial-gradient(circle at 78% 18%, rgba(22,163,74,0.12), transparent 32%), radial-gradient(circle at 15% 82%, rgba(59,130,246,0.07), transparent 28%), #FFFFFF',
+            '&:before': {
+              content: '""',
+              position: 'absolute',
+              width: { sm: 460, xl: 560 },
+              height: { sm: 460, xl: 560 },
+              borderRadius: '50%',
+              right: { sm: -260, xl: -300 },
+              bottom: { sm: -280, xl: -340 },
+              bgcolor: 'rgba(22,163,74,0.045)',
+              pointerEvents: 'none',
+            },
           }}
         >
           <Stack
@@ -564,6 +591,12 @@ export default function LetisAuthLayout({
               position: 'absolute',
               top: 24,
               right: { sm: 28, xl: 44 },
+              px: 1.2,
+              py: 0.65,
+              borderRadius: '999px',
+              bgcolor: 'rgba(255,255,255,0.78)',
+              border: `1px solid ${brand.neutral[100]}`,
+              boxShadow: '0 12px 28px rgba(15,23,42,0.05)',
               color: brand.primary[600],
             }}
           >
@@ -576,27 +609,32 @@ export default function LetisAuthLayout({
           <Box
             sx={{
               width: '100%',
-              maxWidth: { xs: 440, lg: 500 },
-              borderRadius: { xs: '18px', sm: '32px' },
-              p: { xs: 1.6, sm: 4.2 },
-              bgcolor: 'rgba(255,255,255,0.92)',
-              border: `1px solid ${brand.neutral[100]}`,
-              boxShadow: '0 34px 90px rgba(15,23,42,0.10), 0 14px 36px rgba(15,23,42,0.06)',
-              backdropFilter: 'blur(16px)',
+              maxWidth: { xs: 440, lg: 470, xl: 500 },
+              borderRadius: { xs: 0, sm: '32px' },
+              p: { xs: 0.75, sm: 4.2 },
+              bgcolor: { xs: 'transparent', sm: 'rgba(255,255,255,0.92)' },
+              border: { xs: 'none', sm: '1px solid rgba(226,232,240,0.92)' },
+              boxShadow: {
+                xs: 'none',
+                sm: '0 44px 110px rgba(15,23,42,0.13), 0 18px 44px rgba(15,23,42,0.08)',
+              },
+              backdropFilter: { xs: 'none', sm: 'blur(16px)' },
               animation: anim(170),
+              position: 'relative',
+              zIndex: 1,
             }}
           >
             <Box
               sx={{
-                width: { xs: 42, sm: 70 },
-                height: { xs: 42, sm: 70 },
+                width: { xs: 38, sm: 70 },
+                height: { xs: 38, sm: 70 },
                 borderRadius: { xs: '14px', sm: '22px' },
                 bgcolor: brand.primary[50],
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 mx: 'auto',
-                mb: { xs: 1, sm: 2.1 },
+                mb: { xs: 0.8, sm: 2.1 },
                 boxShadow: `inset 0 0 0 1px ${brand.primary[100]}`,
               }}
             >
@@ -607,7 +645,7 @@ export default function LetisAuthLayout({
               component="h2"
               sx={{
                 textAlign: 'center',
-                fontSize: { xs: '1.25rem', sm: '1.85rem' },
+                fontSize: { xs: '1.18rem', sm: '1.85rem' },
                 fontWeight: 950,
                 letterSpacing: 0,
                 color: brand.neutral[900],
@@ -622,7 +660,7 @@ export default function LetisAuthLayout({
                 lineHeight: { xs: 1.35, sm: 1.5 },
                 color: brand.neutral[500],
                 mt: { xs: 0.3, sm: 0.6 },
-                mb: { xs: 1.3, sm: 3.2 },
+                mb: { xs: 1, sm: 3.2 },
               }}
             >
               {formDescription}

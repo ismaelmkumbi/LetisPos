@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, ReactNode } from 'react';
 
-export type PosLayout = 'split' | 'classic' | 'compact' | 'sidebar' | 'modal' | 'split';
+export type PosLayout = 'modern' | 'split' | 'classic' | 'compact' | 'sidebar' | 'modal';
 
 interface PosLayoutContextType {
   layout: PosLayout;
@@ -9,15 +9,17 @@ interface PosLayoutContextType {
 
 const PosLayoutContext = createContext<PosLayoutContextType | undefined>(undefined);
 
-const STORAGE_KEY = 'smartpos.posLayout';
+const DEFAULT_LAYOUT: PosLayout = 'modern';
+const STORAGE_KEY = 'smartpos.posLayout.v2';
+const LEGACY_STORAGE_KEY = 'smartpos.posLayout';
+const VALID_LAYOUTS: PosLayout[] = ['modern', 'split', 'classic', 'compact', 'sidebar', 'modal'];
 
 export function PosLayoutProvider({ children }: { children: ReactNode }) {
   const [layout, setLayoutState] = useState<PosLayout>(() => {
-    if (typeof window === 'undefined') return 'split';
+    if (typeof window === 'undefined') return DEFAULT_LAYOUT;
     const stored = localStorage.getItem(STORAGE_KEY) as PosLayout | null;
-    return stored && ['split', 'classic', 'compact', 'sidebar', 'modal', 'modern'].includes(stored)
-      ? stored
-      : 'split';
+    localStorage.removeItem(LEGACY_STORAGE_KEY);
+    return stored && VALID_LAYOUTS.includes(stored) ? stored : DEFAULT_LAYOUT;
   });
 
   const setLayout = (newLayout: PosLayout) => {
@@ -26,9 +28,7 @@ export function PosLayoutProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <PosLayoutContext.Provider value={{ layout, setLayout }}>
-      {children}
-    </PosLayoutContext.Provider>
+    <PosLayoutContext.Provider value={{ layout, setLayout }}>{children}</PosLayoutContext.Provider>
   );
 }
 

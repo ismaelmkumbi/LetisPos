@@ -15,17 +15,12 @@ const STEP_INFO: Record<string, { label: string; cta: string; path: string }> = 
   tax: {
     label: 'Set up tax rules',
     cta: 'Configure Tax',
-    path: '/smartpos/settings/tax',
+    path: '/smartpos/settings/tax-pricing',
   },
   products: {
     label: 'Import your products',
     cta: 'Smart Import',
     path: '/smartpos/products',
-  },
-  staff: {
-    label: 'Invite a team member',
-    cta: 'Invite Staff',
-    path: '/smartpos/settings/users',
   },
   firstSale: {
     label: 'Record your first sale',
@@ -84,7 +79,7 @@ export default function OnboardingBanner() {
             variant="contained"
             size="small"
             endIcon={<IconChevronRight size={16} />}
-            onClick={() => (state.percent <= 16 ? setWizardOpen(true) : navigate(path))}
+            onClick={() => (state.percent <= 20 ? setWizardOpen(true) : navigate(path))}
             sx={{
               bgcolor: brand.primary[600],
               textTransform: 'none',
@@ -93,7 +88,7 @@ export default function OnboardingBanner() {
               whiteSpace: 'nowrap',
             }}
           >
-            {state.percent <= 16 ? 'Start Setup' : cta}
+            {state.percent <= 20 ? 'Start Setup' : cta}
           </Button>
           <IconButton
             size="small"

@@ -22,7 +22,7 @@ const DEFAULT_STATE: OnboardingState = {
   products: false,
   staff: false,
   firstSale: false,
-  percent: 16,
+  percent: 20,
   isComplete: false,
   completedAt: null,
 };
@@ -52,9 +52,11 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
   const completeStep = React.useCallback(async (step: OnboardingStep) => {
     await updateOnboardingStep(step, true);
     setState((prev) => {
-      const next = { ...prev, [step]: true };
-      const steps = ['workspace', 'warehouse', 'tax', 'products', 'staff', 'firstSale'];
-      const completed = steps.filter((k) => next[k as keyof OnboardingState]).length;
+      // Map snake_case step key to camelCase state property (e.g. 'first_sale' → 'firstSale')
+      const stateKey = step === 'first_sale' ? 'firstSale' : step;
+      const next = { ...prev, [stateKey]: true };
+      const steps: (keyof OnboardingState)[] = ['workspace', 'warehouse', 'tax', 'products', 'firstSale'];
+      const completed = steps.filter((k) => next[k]).length;
       return {
         ...next,
         percent: Math.round((completed / steps.length) * 100),
@@ -74,7 +76,7 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
   }, []);
 
   const resetOnboarding = React.useCallback(async () => {
-    const steps: OnboardingStep[] = ['workspace', 'warehouse', 'tax', 'products', 'staff', 'first_sale'];
+    const steps: OnboardingStep[] = ['workspace', 'warehouse', 'tax', 'products', 'first_sale'];
     await Promise.all(steps.map((s) => updateOnboardingStep(s, false)));
     setState(DEFAULT_STATE);
     setBannerDismissed(false);

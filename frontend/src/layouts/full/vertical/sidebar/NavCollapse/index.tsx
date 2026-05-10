@@ -74,8 +74,12 @@ const NavCollapse = ({
   const menuIcon =
     level > 1 ? <Icon stroke={1.5} size="1rem" /> : <Icon stroke={1.5} size="1.3rem" />;
 
-  const handleClick = () => {
-    if (hideMenu) return; // no click expand in collapsed mode
+  const handleClick = (event: React.MouseEvent<HTMLElement>) => {
+    if (hideMenu) {
+      if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+      setFlyoutAnchor((current) => current ? null : event.currentTarget);
+      return;
+    }
     setOpen(!open);
   };
 
@@ -98,6 +102,11 @@ const NavCollapse = ({
   const closeFlyoutSoon = () => {
     if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
     closeTimerRef.current = setTimeout(() => setFlyoutAnchor(null), 260);
+  };
+
+  const handleFlyoutItemClick = (event: React.MouseEvent<HTMLElement>) => {
+    setFlyoutAnchor(null);
+    onClick(event);
   };
 
   // menu collapse for sub-levels
@@ -190,7 +199,7 @@ const NavCollapse = ({
                 component={NavLink}
                 to={grandchild.href}
                 selected={pathDirect === grandchild.href}
-                onClick={onClick}
+                onClick={handleFlyoutItemClick}
                 sx={{ borderRadius: '8px', mb: 0.25, minHeight: 44 }}
               >
                 {grandchild.icon && (
@@ -223,7 +232,7 @@ const NavCollapse = ({
           component={NavLink}
           to={child.href}
           selected={pathDirect === child.href}
-          onClick={onClick}
+          onClick={handleFlyoutItemClick}
           sx={{ borderRadius: '8px', mb: 0.25, minHeight: 44 }}
         >
           {child.icon && (

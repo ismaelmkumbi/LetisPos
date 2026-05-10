@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Box } from '@mui/material';
 import { IconArrowRight, IconLogin2 } from '@tabler/icons-react';
 import { LpThemeProvider } from './LandingpageTheme';
@@ -18,6 +18,27 @@ import Footer from './sections/Footer';
 import './Landingpage.css';
 
 const Landingpage: React.FC = () => {
+  useEffect(() => {
+    const html = document.documentElement;
+    html.classList.add('lp-scrollbar');
+
+    let timer: ReturnType<typeof setTimeout>;
+    const onScroll = () => {
+      html.classList.add('scrolling');
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        html.classList.remove('scrolling');
+      }, 1500);
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      clearTimeout(timer);
+      html.classList.remove('lp-scrollbar', 'scrolling');
+    };
+  }, []);
+
   return (
     <LpThemeProvider>
       <DemoDialogProvider>

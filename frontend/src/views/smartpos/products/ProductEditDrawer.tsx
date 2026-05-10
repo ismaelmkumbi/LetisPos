@@ -134,7 +134,7 @@ function SectionTitle({ icon, title, hint }: { icon: React.ReactNode; title: str
 
 // Price tile used in the 4-up Price Levels grid
 function PriceTile({
-  icon, label, helper, value, onChange, accent, required, prefix = 'TZS',
+  icon, label, helper, value, onChange, accent, required, prefix = 'TZS', isDark,
 }: {
   icon: React.ReactNode;
   label: string;
@@ -144,6 +144,7 @@ function PriceTile({
   accent: { bg: string; fg: string; border: string };
   required?: boolean;
   prefix?: string;
+  isDark: boolean;
 }) {
   return (
     <Box
@@ -1024,6 +1025,7 @@ export default function ProductEditDrawer({ open, initial, onClose, onSaved, onD
                   value={form.cost}
                   onChange={(v) => patch('cost', v)}
                   accent={priceTiles.cost}
+                  isDark={isDark}
                 />
                 <PriceTile
                   icon={<IconTag size={14} />}
@@ -1033,6 +1035,7 @@ export default function ProductEditDrawer({ open, initial, onClose, onSaved, onD
                   onChange={(v) => patch('price', v)}
                   accent={priceTiles.retail}
                   required
+                  isDark={isDark}
                 />
                 <PriceTile
                   icon={<IconBox size={14} />}
@@ -1041,6 +1044,7 @@ export default function ProductEditDrawer({ open, initial, onClose, onSaved, onD
                   value={form.wholesalePrice ?? ''}
                   onChange={(v) => patch('wholesalePrice', v || undefined)}
                   accent={priceTiles.wholesale}
+                  isDark={isDark}
                 />
                 <PriceTile
                   icon={<IconShield size={14} />}
@@ -1049,6 +1053,7 @@ export default function ProductEditDrawer({ open, initial, onClose, onSaved, onD
                   value={form.minPrice ?? ''}
                   onChange={(v) => patch('minPrice', v || undefined)}
                   accent={priceTiles.min}
+                  isDark={isDark}
                 />
               </Box>
 

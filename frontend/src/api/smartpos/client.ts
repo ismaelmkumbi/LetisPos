@@ -11,8 +11,20 @@
  */
 import axios, { AxiosError, AxiosRequestConfig, InternalAxiosRequestConfig } from 'axios';
 
+// When accessed from another device (phone/tablet) the frontend is loaded via the
+// computer's LAN IP. Use that same IP for API calls so they reach the backend
+// instead of the phone's own localhost.
+function autoApiBaseUrl(): string {
+  if (typeof window === 'undefined') return 'http://localhost:8080';
+  const { hostname, protocol } = window.location;
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return 'http://localhost:8080';
+  }
+  return `${protocol}//${hostname}:8080`;
+}
+
 export const API_BASE_URL: string =
-  (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? 'http://localhost:8080';
+  (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? autoApiBaseUrl();
 
 export const TOKEN_KEY = 'smartpos.accessToken';
 export const REFRESH_KEY = 'smartpos.refreshToken';

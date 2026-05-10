@@ -7,6 +7,7 @@ import type { PosLayoutProps } from './PosLayoutProps';
 import CashRegisterIndicator from 'src/components/smartpos/CashRegisterIndicator';
 import { listCategories, listBrands } from 'src/api/smartpos/products';
 import type { Brand as BrandRef, Category } from 'src/api/smartpos/types';
+import { CustomizerContext } from 'src/context/CustomizerContext';
 import { brand, brandGradients } from 'src/theme/smartpos/brand';
 import { formatMoney } from 'src/utils/smartpos/currency';
 
