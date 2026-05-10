@@ -8,6 +8,7 @@ import io.smartpos.hub.domain.Agent;
 import io.smartpos.hub.domain.MetricPoint;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
