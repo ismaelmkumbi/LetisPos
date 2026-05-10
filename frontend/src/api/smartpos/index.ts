@@ -4,6 +4,7 @@ export * from './types';
 export * as authApi from './auth';
 export * as productsApi from './products';
 export * as customersApi from './customers';
+export * as documentsApi from './documents';
 export * as suppliersApi from './suppliers';
 export * as inventoryApi from './inventory';
 export * as salesApi from './sales';
