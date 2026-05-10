@@ -18,7 +18,7 @@
   .badge.live { background: var(--green-bg); color: var(--green); }
   .badge .pulse { width: 7px; height: 7px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; }
   @keyframes pulse { 0%,100% { opacity:1; box-shadow: 0 0 4px var(--green); } 50% { opacity:0.4; box-shadow: 0 0 12px var(--green); } }
-  .summary { display: flex; gap: 10px; padding: 20px 24px 0; }
+  .summary { display: flex; gap: 10px; padding: 20px 24px 0; flex-wrap: wrap; }
   .stat { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px 20px; text-align: center; min-width: 100px; }
   .stat-num { font-size: 1.5rem; font-weight: 800; line-height: 1.2; }
   .stat-label { font-size: 0.65rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 2px; }
@@ -44,93 +44,99 @@
   .section-title { font-size: 0.65rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; padding: 16px 20px 8px; font-weight: 700; }
   .svc-row { display: flex; align-items: center; gap: 10px; padding: 8px 20px; font-size: 0.8rem; }
   .svc-row:hover { background: var(--hover); }
-  .svc-name { flex: 1; font-weight: 500; }
-  .svc-status { font-size: 0.65rem; padding: 2px 8px; border-radius: 10px; font-weight: 600; text-transform: uppercase; }
-  .svc-status.active { background: var(--green-bg); color: var(--green); }
-  .svc-status.inactive { background: var(--red-bg); color: var(--red); }
+  .svc-name { flex: 1; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .svc-status { font-size: 0.65rem; padding: 2px 8px; border-radius: 10px; font-weight: 600; text-transform: uppercase; white-space: nowrap; }
+  .svc-status.active, .svc-status.running { background: var(--green-bg); color: var(--green); }
+  .svc-status.inactive, .svc-status.failed { background: var(--red-bg); color: var(--red); }
   .svc-actions { display: flex; gap: 4px; }
   .btn { padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border); background: transparent; color: var(--text); font-size: 0.68rem; font-weight: 600; cursor: pointer; transition: all 0.15s; }
   .btn:hover { background: var(--hover); border-color: #475569; }
-  .btn.primary { background: #1d4ed8; border-color: #1d4ed8; color: #fff; }
-  .btn.primary:hover { background: #2563eb; }
   .btn.warn { color: var(--amber); border-color: #78350f; }
   .btn.warn:hover { background: #451a03; }
   .btn.danger { color: var(--red); border-color: #7f1d1d; }
   .btn.danger:hover { background: #450a0a; }
   .btn.sm { padding: 2px 8px; font-size: 0.62rem; }
-  .empty { text-align: center; padding: 80px 20px; color: var(--muted); }
+  .empty { text-align: center; padding: 80px 20px; color: var(--muted); display: none; }
   .empty h2 { font-size: 1.3rem; margin-bottom: 8px; color: var(--text); }
   .footer { padding: 0 24px 20px; font-size: 0.65rem; color: var(--muted); text-align: center; }
   @media (max-width: 480px) {
     .grid { grid-template-columns: 1fr; padding: 12px; }
     .metrics { grid-template-columns: repeat(2, 1fr); }
-    .summary { padding: 12px; flex-wrap: wrap; }
   }
 </style>
 </head>
 <body>
 <div class="topbar">
-  <div>
-    <h1>Letis Control Center</h1>
-  </div>
+  <h1>Letis Control Center</h1>
   <div style="display:flex;align-items:center;gap:12px;">
     <span style="font-size:0.7rem;color:var(--muted)" id="clock"></span>
-    <span class="badge live"><span class="pulse"></span> <span id="hbStatus">Live</span></span>
+    <span class="badge live"><span class="pulse"></span> <span id="hbStatus">—</span></span>
   </div>
 </div>
 
 <div class="summary" id="summary"></div>
 <div class="grid" id="servers"></div>
-<div class="empty" id="empty"><h2>No servers connected</h2><p>Run the agent installer on a server to start monitoring.</p></div>
+<div class="empty" id="empty"><h2>No servers connected</h2><p>Run the agent installer to start monitoring.</p></div>
 <div class="footer">Letis Control Center · Auto-refresh 5s · <span id="lastCheck">—</span></div>
 
 <script>
 const API = '/hub/api/v1';
 const AGENT_PORT = 9100;
-let servers = [];
-let services = {};
+let serverList = [];
+let cardIds = [];
 
 function fmt(n, d) { if (n == null) return '—'; return Number(n).toFixed(d ?? 1); }
 function ago(ts) { if (!ts) return '—'; const s = (Date.now() - new Date(ts).getTime()) / 1000; if (s < 60) return Math.floor(s) + 's ago'; if (s < 3600) return Math.floor(s/60) + 'm ago'; if (s < 86400) return Math.floor(s/3600) + 'h ago'; return Math.floor(s/86400) + 'd ago'; }
 function pct(v, t) { if (!t || t === 0) return 0; return Math.min(100, (v / t) * 100); }
 
-async function fetchAll() {
+async function fetchServers() {
   try {
     const res = await fetch(API + '/servers');
-    if (!res.ok) throw new Error('API unavailable');
-    servers = await res.json();
+    if (!res.ok) throw new Error('API down');
+    const servers = await res.json();
+    const prevIds = serverList.map(s => s.hostname).sort().join(',');
+    const newIds = servers.map(s => s.hostname).sort().join(',');
+    serverList = servers;
     document.getElementById('hbStatus').textContent = servers.length + ' online';
+    if (prevIds !== newIds) renderCards();
+    return true;
   } catch(e) {
     document.getElementById('hbStatus').textContent = 'offline';
+    return false;
   }
-  renderServers();
-  document.getElementById('lastCheck').textContent = new Date().toLocaleTimeString();
-  document.getElementById('clock').textContent = new Date().toLocaleTimeString();
 }
 
-function renderServers() {
+function renderCards() {
   const grid = document.getElementById('servers');
   const empty = document.getElementById('empty');
   const summary = document.getElementById('summary');
-  if (!servers.length) { grid.innerHTML = ''; empty.style.display = 'block'; summary.innerHTML = ''; return; }
+  cardIds = [];
+
+  if (!serverList.length) {
+    grid.innerHTML = '';
+    empty.style.display = 'block';
+    summary.innerHTML = '';
+    return;
+  }
   empty.style.display = 'none';
-  const online = servers.filter(s => s.status === 'online').length;
+  const online = serverList.filter(s => s.status === 'online').length;
   summary.innerHTML = `
-    <div class="stat"><div class="stat-num">${servers.length}</div><div class="stat-label">Servers</div></div>
+    <div class="stat"><div class="stat-num">${serverList.length}</div><div class="stat-label">Servers</div></div>
     <div class="stat"><div class="stat-num" style="color:var(--green)">${online}</div><div class="stat-label">Online</div></div>
-    <div class="stat"><div class="stat-num" style="color:var(--red)">${servers.length - online}</div><div class="stat-label">Offline</div></div>
+    <div class="stat"><div class="stat-num" style="color:var(--red)">${serverList.length - online}</div><div class="stat-label">Offline</div></div>
   `;
 
-  grid.innerHTML = servers.map(s => {
+  grid.innerHTML = serverList.map(s => {
     const id = s.hostname.replace(/[^a-zA-Z0-9]/g, '');
+    cardIds.push({ hostname: s.hostname, id });
     return `
-    <div class="card">
+    <div class="card" id="card-${id}">
       <div class="card-header">
         <div>
           <h3>${s.hostname}</h3>
-          <div class="sub">v${s.version || '—'} · ${s.ipAddress || '—'} · seen ${ago(s.lastSeen)}</div>
+          <div class="sub" id="sub-${id}">v${s.version || '—'} · ${s.ipAddress || '—'} · seen ${ago(s.lastSeen)}</div>
         </div>
-        <span class="status-text ${s.status === 'online' ? 'online-text' : 'offline-text'}">
+        <span class="status-text ${s.status === 'online' ? 'online-text' : 'offline-text'}" id="status-${id}">
           <span class="status-dot ${s.status}"></span>${s.status}
         </span>
       </div>
@@ -146,11 +152,20 @@ function renderServers() {
       </div>
     </div>`;
   }).join('');
-
-  servers.forEach(s => { fetchMetrics(s.hostname); fetchServices(s.hostname); });
 }
 
-async function fetchMetrics(hostname) {
+function updateServerCard(s) {
+  const id = s.hostname.replace(/[^a-zA-Z0-9]/g, '');
+  const subEl = document.getElementById('sub-' + id);
+  const statusEl = document.getElementById('status-' + id);
+  if (subEl) subEl.textContent = `v${s.version || '—'} · ${s.ipAddress || '—'} · seen ${ago(s.lastSeen)}`;
+  if (statusEl) {
+    statusEl.className = 'status-text ' + (s.status === 'online' ? 'online-text' : 'offline-text');
+    statusEl.innerHTML = `<span class="status-dot ${s.status}"></span>${s.status}`;
+  }
+}
+
+async function updateMetrics(hostname) {
   try {
     const to = new Date().toISOString();
     const from = new Date(Date.now() - 120000).toISOString();
@@ -164,8 +179,9 @@ async function fetchMetrics(hostname) {
     if (!el) return;
     const memPct = pct(m.memUsedBytes, m.memTotalBytes);
     const diskPct = pct(m.diskUsedBytes, m.diskTotalBytes);
+    const cpu = fmt(m.cpuPercent);
     el.innerHTML = `
-      <div class="metric"><div class="label">CPU</div><div class="value">${fmt(m.cpuPercent)}<span class="unit">%</span></div><div class="bar-wrap"><div class="bar-fill" style="width:${fmt(m.cpuPercent,0)}%;background:var(--blue)"></div></div></div>
+      <div class="metric"><div class="label">CPU</div><div class="value">${cpu}<span class="unit">%</span></div><div class="bar-wrap"><div class="bar-fill" style="width:${fmt(m.cpuPercent,0)}%;background:var(--blue)"></div></div></div>
       <div class="metric"><div class="label">Memory</div><div class="value">${fmt(memPct)}<span class="unit">%</span></div><div class="bar-wrap"><div class="bar-fill" style="width:${memPct}%;background:var(--purple)"></div></div></div>
       <div class="metric"><div class="label">Disk</div><div class="value">${fmt(diskPct)}<span class="unit">%</span></div><div class="bar-wrap"><div class="bar-fill" style="width:${diskPct}%;background:var(--amber)"></div></div></div>
       <div class="metric"><div class="label">Load</div><div class="value">${fmt(m.load1,2)}</div></div>
@@ -173,69 +189,74 @@ async function fetchMetrics(hostname) {
   } catch(e) {}
 }
 
-async function fetchServices(hostname) {
+async function updateServices(hostname) {
+  const id = hostname.replace(/[^a-zA-Z0-9]/g, '');
+  const el = document.getElementById('svc-' + id);
+  const sc = document.getElementById('sc-' + id);
+  if (!el) return;
+
   try {
     const res = await fetch(`${API}/servers/${hostname}/services`);
     if (!res.ok) throw new Error('unavailable');
     const data = await res.json();
-    renderServices(hostname, data);
+    if (!Array.isArray(data) || !data.length) {
+      el.innerHTML = '<div class="svc-row" style="color:var(--muted);justify-content:center">No services</div>';
+      if (sc) sc.textContent = '';
+      return;
+    }
+    if (sc) sc.textContent = '· ' + data.length + ' units';
+
+    const keySvcs = data.filter(s => s.name && (s.name.includes('.service') || s.name.includes('nginx') || s.name.includes('docker') || s.name.includes('ssh')));
+    const display = keySvcs.length > 0 ? keySvcs : data.slice(0, 8);
+
+    el.innerHTML = display.map(s => {
+      const isActive = s.status === 'active' || s.status === 'running';
+      const name = s.name.replace('.service','').replace(/\\x[0-9a-f]{2}/gi,'');
+      return `
+      <div class="svc-row">
+        <span class="svc-status ${isActive ? 'active' : s.status}">${isActive ? 'UP' : s.status}</span>
+        <span class="svc-name" title="${s.name}">${name}</span>
+        <div class="svc-actions">
+          <button class="btn sm warn" onclick="svcAction('${hostname}','${s.name}','restart')" title="Restart">↻</button>
+          <button class="btn sm danger" onclick="svcAction('${hostname}','${s.name}','stop')" title="Stop">■</button>
+        </div>
+      </div>`;
+    }).join('');
   } catch(e) {
-    const id = hostname.replace(/[^a-zA-Z0-9]/g, '');
-    const el = document.getElementById('svc-' + id);
-    if (el) el.innerHTML = '<div class="svc-row" style="color:var(--muted);justify-content:center">Agent unreachable</div>';
-    const sc = document.getElementById('sc-' + id);
+    el.innerHTML = '<div class="svc-row" style="color:var(--muted);justify-content:center">Agent unreachable</div>';
     if (sc) sc.textContent = '';
   }
 }
 
-function renderServices(hostname, data) {
-  const id = hostname.replace(/[^a-zA-Z0-9]/g, '');
-  const el = document.getElementById('svc-' + id);
-  if (!el) return;
-  if (!Array.isArray(data) || !data.length) {
-    el.innerHTML = '<div class="svc-row" style="color:var(--muted);justify-content:center">No services</div>';
-    return;
-  }
-  const sc = document.getElementById('sc-' + id);
-  if (sc) sc.textContent = '· ' + data.length + ' units';
-
-  // Show key services only
-  const keySvcs = data.filter(s => s.name && (s.name.includes('.service') || s.name.includes('nginx') || s.name.includes('docker') || s.name.includes('ssh')));
-  const display = keySvcs.length > 0 ? keySvcs : data.slice(0, 8);
-
-  el.innerHTML = display.map(s => {
-    const isActive = s.status === 'active' || s.status === 'running';
-    return `
-    <div class="svc-row">
-      <span class="svc-status ${isActive ? 'active' : 'inactive'}">${isActive ? 'UP' : s.status}</span>
-      <span class="svc-name">${s.name.replace('.service','')}</span>
-      <div class="svc-actions">
-        <button class="btn sm warn" onclick="svcAction('${hostname}','${s.name}','restart')" title="Restart">↻</button>
-        <button class="btn sm danger" onclick="svcAction('${hostname}','${s.name}','stop')" title="Stop">■</button>
-      </div>
-    </div>`;
-  }).join('');
-}
-
-async function svcAction(hostname, svc, action) {
+function svcAction(hostname, svc, action) {
   if (!confirm(action.toUpperCase() + ' ' + svc.replace('.service','') + ' on ' + hostname + '?')) return;
-  try {
-    const res = await fetch(API + '/servers/' + hostname + '/services/' + encodeURIComponent(svc) + '/' + action, { method: 'POST' });
-    if (res.ok) {
-      setTimeout(() => fetchServices(hostname), 2000);
-    } else {
-      alert('Failed: ' + res.status);
-    }
-  } catch(e) { alert('Error: ' + e.message); }
+  fetch(API + '/servers/' + hostname + '/services/' + encodeURIComponent(svc) + '/' + action, { method: 'POST' })
+    .then(r => { if (r.ok) setTimeout(() => updateServices(hostname), 2000); else alert('Failed: ' + r.status); })
+    .catch(e => alert('Error: ' + e.message));
 }
 
-function viewLogs(hostname) {
-  window.open('/hub/api/v1/servers/' + hostname + '/logs/nginx?tail=50', '_blank');
+async function refresh() {
+  const changed = await fetchServers();
+  if (changed) {
+    // Cards just rendered — fetch all data
+    serverList.forEach(s => {
+      updateMetrics(s.hostname);
+      updateServices(s.hostname);
+    });
+  } else {
+    // Just update data in-place
+    serverList.forEach(s => {
+      updateServerCard(s);
+      updateMetrics(s.hostname);
+      updateServices(s.hostname);
+    });
+  }
+  document.getElementById('lastCheck').textContent = new Date().toLocaleTimeString();
+  document.getElementById('clock').textContent = new Date().toLocaleTimeString();
 }
 
-fetchAll();
-setInterval(fetchAll, 5000);
-setInterval(() => { document.getElementById('clock').textContent = new Date().toLocaleTimeString(); }, 1000);
+refresh();
+setInterval(refresh, 5000);
 </script>
 </body>
 </html>
