@@ -51,9 +51,11 @@ public class ProxyController {
     public ResponseEntity<String> logs(@PathVariable String serverName,
                                         @PathVariable String svc,
                                         @RequestParam(defaultValue = "100") int tail,
-                                        @RequestParam(required = false) String filter) {
+                                        @RequestParam(required = false) String filter,
+                                        @RequestParam(defaultValue = "0") String grep) {
         Agent a = agentService.findByHostname(serverName);
-        String result = proxyService.proxyLogs(agentHost(a), 9100, svc, tail, filter);
+        boolean isGrep = "1".equals(grep);
+        String result = proxyService.proxyLogs(agentHost(a), 9100, svc, tail, filter, isGrep);
         return ResponseEntity.ok(result);
     }
 }

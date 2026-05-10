@@ -15,8 +15,13 @@ func New() *Streamer {
 	return &Streamer{}
 }
 
-func (s *Streamer) StreamJournal(service string, tail int, filter string) (io.ReadCloser, error) {
-	args := []string{"-u", service, "--no-pager", "-n", strconv.Itoa(tail), "-o", "short-iso"}
+func (s *Streamer) StreamJournal(service string, tail int, filter string, grep bool) (io.ReadCloser, error) {
+	var args []string
+	if grep {
+		args = []string{"--grep=" + service, "--no-pager", "-n", strconv.Itoa(tail), "-o", "short-iso"}
+	} else {
+		args = []string{"-u", service, "--no-pager", "-n", strconv.Itoa(tail), "-o", "short-iso"}
+	}
 	if filter != "" {
 		args = append(args, "-g", filter)
 	}
@@ -48,8 +53,9 @@ func (s *Streamer) ServeLogs(w http.ResponseWriter, r *http.Request, service str
 		tail = 100
 	}
 	filter := r.URL.Query().Get("filter")
+	grep := r.URL.Query().Get("grep") == "1"
 
-	rc, err := s.StreamJournal(service, tail, filter)
+	rc, err := s.StreamJournal(service, tail, filter, grep)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

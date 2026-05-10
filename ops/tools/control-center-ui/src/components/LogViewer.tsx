@@ -11,10 +11,11 @@ interface Props {
   open: boolean;
   server: string;
   service: string;
+  grep?: boolean;
   onClose: () => void;
 }
 
-export default function LogViewer({ open, server, service, onClose }: Props) {
+export default function LogViewer({ open, server, service, grep, onClose }: Props) {
   const [tail, setTail] = useState(100);
   const [filter, setFilter] = useState('');
   const [logs, setLogs] = useState('');
@@ -27,7 +28,7 @@ export default function LogViewer({ open, server, service, onClose }: Props) {
     if (!open) return;
     setLoading(true); setError('');
     try {
-      const data = await getLogs(server, service, tail, filter || undefined);
+      const data = await getLogs(server, service, tail, filter || undefined, grep);
       setLogs(data);
     } catch {
       setError('Failed to fetch logs. Agent may be unreachable.');

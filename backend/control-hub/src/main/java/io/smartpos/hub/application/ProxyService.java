@@ -42,9 +42,10 @@ public class ProxyService {
         }
     }
 
-    public String proxyLogs(String host, int port, String service, int tail, String filter) {
+    public String proxyLogs(String host, int port, String service, int tail, String filter, boolean grep) {
         String uri = String.format("http://%s:%d/logs/%s?tail=%d", host, port, service, tail);
         if (filter != null && !filter.isEmpty()) uri += "&filter=" + filter;
+        if (grep) uri += "&grep=1";
         try {
             return client.get()
                 .uri(uri)
