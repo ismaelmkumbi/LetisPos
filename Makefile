@@ -87,10 +87,13 @@ clean:  ## Remove all build artifacts
 
 # ── Dev Dashboard ───────────────────────────────────────────────────────────────
 
-status:  ## Show which services are running (live refresh)
+status:  ## Terminal live status of all services
 	@bash ops/tools/dev-dashboard.sh status
 
-restart:  ## Restart a specific service. Usage: make restart svc=ai-service
+status-ui:  ## Start browser dashboard at http://localhost:9999
+	@bash ops/tools/dev-status-ui.sh
+
+restart:  ## Restart a service. Usage: make restart svc=ai-service
 	@bash ops/tools/dev-dashboard.sh restart $(svc)
 
 # ── Help ────────────────────────────────────────────────────────────────────────
