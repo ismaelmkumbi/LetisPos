@@ -1,7 +1,7 @@
 # LetisPOS — Developer Commands
 # ================================
 
-.PHONY: dev dev-infra dev-backend dev-frontend build build-backend build-frontend test lint docker-up docker-down clean help
+.PHONY: dev dev-infra dev-backend dev-frontend build build-backend build-frontend test lint docker-up docker-down clean help gotenberg-up gotenberg-down
 
 # ── Development ────────────────────────────────────────────────────────────────
 
@@ -10,9 +10,10 @@ dev: dev-infra  ## Start infrastructure + run all services locally
 	@echo "Run: cd backend && mvn -q spring-boot:run -pl gateway &"
 	@echo "Or open each service separately."
 
-dev-infra:  ## Start PostgreSQL, Redis, Kafka, MinIO, Mailhog, Jaeger
+dev-infra:  ## Start PostgreSQL, Redis, Kafka, MinIO, Mailhog, Jaeger, Gotenberg
 	docker compose -f ops/infra/docker-compose.yml up -d
-	@echo "Infra ready. Postgres: 5434 | Redis: 6379 | Kafka: 9094 | Kafka UI: http://localhost:8088 | MinIO: http://localhost:9001 | MailHog: http://localhost:8025 | Jaeger: http://localhost:16686"
+	$(MAKE) gotenberg-up
+	@echo "Infra ready. Postgres: 5434 | Redis: 6379 | Kafka: 9094 | Kafka UI: http://localhost:8088 | MinIO: http://localhost:9001 | MailHog: http://localhost:8025 | Jaeger: http://localhost:16686 | Gotenberg: http://localhost:3000"
 
 dev-backend:  ## Start all backend services via Maven (foreground)
 	cd backend && mvn -q spring-boot:run -pl gateway &
@@ -28,6 +29,7 @@ dev-backend:  ## Start all backend services via Maven (foreground)
 	cd backend && mvn -q spring-boot:run -pl hrm-service &
 	cd backend && mvn -q spring-boot:run -pl ai-service &
 	cd backend && mvn -q spring-boot:run -pl integration-service &
+	cd backend && mvn -q spring-boot:run -pl document-service &
 	@echo "All services starting..."
 
 dev-frontend:  ## Start frontend dev server
@@ -77,6 +79,12 @@ docker-down:  ## Stop full production stack
 
 docker-logs:  ## Tail production stack logs
 	docker compose -f ops/docker-compose.prod.yml logs -f
+
+gotenberg-up:  ## Start Gotenberg (HTML-to-PDF engine)
+	docker run -d --name gotenberg -p 3000:3000 gotenberg/gotenberg:8
+
+gotenberg-down:  ## Stop Gotenberg
+	docker rm -f gotenberg
 
 # ── Clean ────────────────────────────────────────────────────────────────────────
 
