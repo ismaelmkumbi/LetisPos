@@ -513,6 +513,22 @@ export async function deletePurchase(id: UUID): Promise<void> {
   await api.delete(`/api/v1/purchases/${id}`);
 }
 
+export interface PurchaseStats {
+  count: number;
+  gross: number;
+  paid: number;
+  due: number;
+}
+
+export async function getPurchaseStats(params: {
+  dateFrom?: string;
+  dateTo?: string;
+  warehouseId?: UUID;
+} = {}): Promise<PurchaseStats> {
+  const { data } = await api.get<PurchaseStats>('/api/v1/purchases/stats', { params });
+  return data;
+}
+
 // ─── Purchase payments ───
 
 export interface PurchasePayment {

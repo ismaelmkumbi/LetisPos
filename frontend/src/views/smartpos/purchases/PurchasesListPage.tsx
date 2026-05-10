@@ -14,8 +14,8 @@ import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 
 import {
-  listPurchases, deletePurchase, cancelPurchase, receivePurchase,
-  type Purchase, type PurchaseStatus, type PaymentStatus,
+  listPurchases, deletePurchase, cancelPurchase, receivePurchase, getPurchaseStats,
+  type Purchase, type PurchaseStatus, type PaymentStatus, type PurchaseStats,
 } from 'src/api/smartpos/sales';
 import { listSuppliers } from 'src/api/smartpos/suppliers';
 import type { Supplier } from 'src/api/smartpos/types';
@@ -159,6 +159,9 @@ export default function PurchasesListPage() {
   // Suppliers
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
 
+  // Global stats (filtered by date range — covers entire dataset, not just this page)
+  const [globalStats, setGlobalStats] = useState<PurchaseStats | null>(null);
+
   // Selection
   const sel = useSelection(rows);
 
@@ -227,14 +230,25 @@ export default function PurchasesListPage() {
   }, [search, status, payStatus, supplierId, dateFrom, dateTo, page, refreshToken, sort, user?.tenantId]);
 
   // ── Stats ────────────────────────────────────────────────────────────────────
+  // Global totals (whole dataset for the active date range), fetched separately
+  // from the page query so the cards don't lie about scope.
 
-  const stats = useMemo(() => {
-    const total = rows.reduce((s, p) => s + p.grandTotal, 0);
-    const paid = rows.reduce((s, p) => s + p.paidTotal, 0);
-    const due = rows.reduce((s, p) => s + p.dueTotal, 0);
-    const received = rows.filter((p) => p.status === 'RECEIVED').length;
-    return { total, paid, due, received, count: rows.length };
-  }, [rows]);
+  useEffect(() => {
+    let cancelled = false;
+    getPurchaseStats({
+      dateFrom: dateFrom || undefined,
+      dateTo: dateTo || undefined,
+    })
+      .then((s) => { if (!cancelled) setGlobalStats(s); })
+      .catch(() => { if (!cancelled) setGlobalStats(null); });
+    return () => { cancelled = true; };
+  }, [dateFrom, dateTo, refreshToken, user?.tenantId]);
+
+  // Page-scoped received count (backend stats don't break down by status).
+  const pageReceived = useMemo(
+    () => rows.filter((p) => p.status === 'RECEIVED').length,
+    [rows],
+  );
 
   // ── Row menu ─────────────────────────────────────────────────────────────────
 
@@ -390,7 +404,7 @@ export default function PurchasesListPage() {
       key: 'supplier',
       label: 'Supplier',
       width: 190,
-      sortable: true,
+      sortable: false, // Purchase entity stores supplierId only — no joinable name column.
       exportValue: (p) => p.supplierName ?? '',
       render: (p) => (
         <Stack direction="row" spacing={1.25} alignItems="center" sx={{ minWidth: 0 }}>
@@ -487,7 +501,7 @@ export default function PurchasesListPage() {
       label: 'Due',
       align: 'right',
       width: 112,
-      sortable: true,
+      sortable: false, // dueTotal is derived (grandTotal - paidTotal), not a column.
       exportValue: (p) => fmt(p.dueTotal),
       render: (p) => (
         <Stack direction="row" spacing={0.5} alignItems="center" justifyContent="flex-end">
@@ -511,10 +525,17 @@ export default function PurchasesListPage() {
       key: 'dueDate',
       label: 'Due date',
       width: 112,
-      sortable: true,
+      sortable: false, // dueDate is not persisted on Purchase.
       exportValue: (p) => p.dueDate ?? '',
       render: (p) => {
-        const overdue = p.dueDate && new Date(p.dueDate) < new Date() && p.dueTotal > 0;
+        // Compare date-only — p.dueDate ("YYYY-MM-DD") parses as midnight UTC, so
+        // a purchase due today was previously flagged overdue from 03:00 local time
+        // in TZ+3.
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const due = p.dueDate ? new Date(p.dueDate) : null;
+        if (due) due.setHours(0, 0, 0, 0);
+        const overdue = !!due && due < today && p.dueTotal > 0;
         return (
           <Stack direction="row" spacing={0.75} alignItems="center">
             {overdue && <IconAlertTriangle size={14} color={brand.error.main} style={{ flexShrink: 0 }} />}
@@ -570,15 +591,15 @@ export default function PurchasesListPage() {
         title="Purchases"
         subtitle="Supplier orders, payments and receiving"
         breadcrumbs={[
-          { label: 'Money', href: '/smartpos/purchases' },
+          { label: 'Money' },
           { label: 'Purchases' },
         ]}
         badge={totalElements > 0 ? { label: `${totalElements.toLocaleString()} orders`, tone: 'neutral' } : undefined}
-        metrics={[
-          { label: 'Page total', value: fmt(stats.total) },
-          { label: 'Paid', value: fmt(stats.paid) },
-          { label: 'Outstanding', value: fmt(stats.due) },
-        ]}
+        metrics={globalStats ? [
+          { label: 'Total', value: fmt(globalStats.gross) },
+          { label: 'Paid', value: fmt(globalStats.paid) },
+          { label: 'Outstanding', value: fmt(globalStats.due) },
+        ] : undefined}
         actions={[{
           label: 'New purchase',
           icon: <IconPlus size={18} />,
@@ -587,32 +608,35 @@ export default function PurchasesListPage() {
       />
 
       {/* ── Stat cards ── */}
+      {/* Cards 1-3 use globalStats from /purchases/stats so totals reflect the full
+          dataset (filtered by date range). Card 4 is page-scoped and labeled as such
+          since the backend stats endpoint doesn't break down by status. */}
       <Stack direction="row" spacing={1.5} sx={{ mb: 2.5, flexWrap: 'wrap', gap: 1.5 }}>
         <StatCard
           icon={<IconShoppingCart size={18} color={brand.primary[600]} />}
           label="Total value"
-          value={fmt(stats.total)}
+          value={globalStats ? fmt(globalStats.gross) : '—'}
           color={brand.primary[500]}
           accentBg={`linear-gradient(135deg, ${brand.primary[50]}, ${brand.primary[100]})`}
         />
         <StatCard
           icon={<IconCurrencyDollar size={18} color={brand.success.dark} />}
           label="Paid"
-          value={fmt(stats.paid)}
+          value={globalStats ? fmt(globalStats.paid) : '—'}
           color={brand.success.main}
           accentBg={`linear-gradient(135deg, ${brand.success.light}, #DCFCE7)`}
         />
         <StatCard
           icon={<IconAlertTriangle size={18} color={brand.error.dark} />}
           label="Outstanding"
-          value={fmt(stats.due)}
+          value={globalStats ? fmt(globalStats.due) : '—'}
           color={brand.error.main}
           accentBg={`linear-gradient(135deg, ${brand.error.light}, #FEE2E2)`}
         />
         <StatCard
           icon={<IconTruckDelivery size={18} color={brand.accent[500]} />}
-          label="Received"
-          value={`${stats.received}/${stats.count}`}
+          label="Received (this page)"
+          value={`${pageReceived}/${rows.length}`}
           color={brand.accent[500]}
           accentBg={`linear-gradient(135deg, ${brand.accent[50]}, ${brand.accent[100]})`}
         />
@@ -661,6 +685,7 @@ export default function PurchasesListPage() {
           <MenuItem value="UNPAID">Unpaid</MenuItem>
           <MenuItem value="PARTIAL">Partial</MenuItem>
           <MenuItem value="PAID">Paid</MenuItem>
+          <MenuItem value="REFUNDED">Refunded</MenuItem>
         </TextField>
         <TextField
           select
