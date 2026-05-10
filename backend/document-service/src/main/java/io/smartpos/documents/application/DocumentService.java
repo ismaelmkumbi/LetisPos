@@ -41,7 +41,12 @@ public class DocumentService {
         Map.entry("stock-count", "stock-count.hbs"),
         Map.entry("stock-adjustment", "stock-adjustment.hbs"),
         Map.entry("batch-traceability", "batch-traceability.hbs"),
-        Map.entry("expiry-report", "expiry-report.hbs")
+        Map.entry("expiry-report", "expiry-report.hbs"),
+        Map.entry("journal-voucher", "journal-voucher.hbs"),
+        Map.entry("payment-voucher", "payment-voucher.hbs"),
+        Map.entry("receipt-voucher", "receipt-voucher.hbs"),
+        Map.entry("expense-voucher", "expense-voucher.hbs"),
+        Map.entry("debit-note", "debit-note.hbs")
     );
 
     @Transactional

@@ -29,7 +29,9 @@ public class TemplateService {
         "payment-receipt", "credit-note", "delivery-note", "goods-received",
         "customer-statement",
         "stock-transfer", "stock-count", "stock-adjustment",
-        "batch-traceability", "expiry-report"
+        "batch-traceability", "expiry-report",
+        "journal-voucher", "payment-voucher", "receipt-voucher",
+        "expense-voucher", "debit-note"
     );
 
     public record TemplateInfo(String documentType, String name, boolean isOverridden,
