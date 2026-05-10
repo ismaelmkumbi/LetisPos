@@ -2,7 +2,9 @@ package io.smartpos.documents.application;
 
 import io.smartpos.common.context.TenantContext;
 import io.smartpos.documents.domain.model.TemplateOverride;
+import io.smartpos.documents.domain.model.TemplateVersion;
 import io.smartpos.documents.domain.repository.TemplateOverrideRepository;
+import io.smartpos.documents.domain.repository.TemplateVersionRepository;
 import io.smartpos.documents.infrastructure.gotenberg.GotenbergClient;
 import io.smartpos.documents.infrastructure.template.TemplateRenderer;
 import io.smartpos.documents.infrastructure.template.TemplateResolver;
@@ -20,6 +22,7 @@ import java.util.stream.Collectors;
 public class TemplateService {
 
     private final TemplateOverrideRepository overrideRepo;
+    private final TemplateVersionRepository templateVersionRepo;
     private final TemplateResolver resolver;
     private final TemplateRenderer renderer;
     private final GotenbergClient gotenbergClient;
@@ -72,6 +75,18 @@ public class TemplateService {
                         .documentType(documentType)
                         .build());
 
+        // Archive current version before updating
+        if (override.getId() != null) {
+            int nextVersion = templateVersionRepo.countByTemplateOverrideId(override.getId()) + 1;
+            TemplateVersion archived = TemplateVersion.builder()
+                .templateOverrideId(override.getId())
+                .versionNumber(nextVersion)
+                .bodyHtml(override.getBodyHtml())
+                .changeDescription("Template updated")
+                .build();
+            templateVersionRepo.save(archived);
+        }
+
         override.setBodyHtml(bodyHtml);
         override.setName(name != null ? name : toDisplayName(documentType));
         override.setActive(true);
@@ -88,6 +103,25 @@ public class TemplateService {
                     o.setUpdatedAt(Instant.now());
                     overrideRepo.save(o);
                 });
+    }
+
+    @Transactional
+    public void rollback(String documentType, int targetVersion) {
+        UUID tenantId = TenantContext.require();
+        TemplateOverride override = overrideRepo
+            .findByTenantIdAndDocumentTypeAndIsActiveTrue(tenantId, documentType)
+            .orElseThrow(() -> new IllegalArgumentException("No active override for: " + documentType));
+
+        TemplateVersion version = templateVersionRepo
+            .findByTemplateOverrideIdOrderByVersionNumberDesc(override.getId())
+            .stream()
+            .filter(v -> v.getVersionNumber() == targetVersion)
+            .findFirst()
+            .orElseThrow(() -> new IllegalArgumentException("Version not found: " + targetVersion));
+
+        override.setBodyHtml(version.getBodyHtml());
+        override.setUpdatedAt(Instant.now());
+        overrideRepo.save(override);
     }
 
     public byte[] preview(String documentType, String bodyHtml) throws Exception {

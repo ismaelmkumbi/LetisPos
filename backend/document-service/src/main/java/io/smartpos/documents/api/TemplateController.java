@@ -1,8 +1,12 @@
 package io.smartpos.documents.api;
 
+import io.smartpos.common.context.TenantContext;
 import io.smartpos.documents.application.TemplateService;
 import io.smartpos.documents.application.TemplateService.TemplateInfo;
 import io.smartpos.documents.domain.model.TemplateOverride;
+import io.smartpos.documents.domain.model.TemplateVersion;
+import io.smartpos.documents.domain.repository.TemplateOverrideRepository;
+import io.smartpos.documents.domain.repository.TemplateVersionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.*;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -10,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/templates")
@@ -17,6 +22,8 @@ import java.util.Map;
 public class TemplateController {
 
     private final TemplateService templateService;
+    private final TemplateOverrideRepository templateOverrideRepo;
+    private final TemplateVersionRepository templateVersionRepo;
 
     @GetMapping
     @PreAuthorize("isAuthenticated()")
@@ -33,6 +40,27 @@ public class TemplateController {
             "documentType", documentType,
             "bodyHtml", template
         ));
+    }
+
+    @GetMapping("/{documentType}/versions")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<List<TemplateVersion>> listVersions(@PathVariable String documentType) {
+        UUID tenantId = TenantContext.require();
+        var override = templateOverrideRepo
+            .findByTenantIdAndDocumentTypeAndIsActiveTrue(tenantId, documentType);
+        if (override.isEmpty()) return ResponseEntity.ok(List.of());
+        return ResponseEntity.ok(templateVersionRepo
+            .findByTemplateOverrideIdOrderByVersionNumberDesc(override.get().getId()));
+    }
+
+    @PostMapping("/{documentType}/rollback")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Map<String, String>> rollback(@PathVariable String documentType,
+                                                         @RequestBody Map<String, Integer> body) {
+        int version = body.getOrDefault("version", 0);
+        if (version <= 0) return ResponseEntity.badRequest().body(Map.of("error", "version is required"));
+        templateService.rollback(documentType, version);
+        return ResponseEntity.ok(Map.of("status", "rolled back to version " + version));
     }
 
     @PutMapping("/{documentType}")
