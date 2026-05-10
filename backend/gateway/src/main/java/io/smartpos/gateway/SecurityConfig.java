@@ -26,6 +26,10 @@ public class SecurityConfig {
                         // CORS preflights must never require auth — browsers send them
                         // before the real request and without the Authorization header.
                         .pathMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .pathMatchers(HttpMethod.POST,
+                                "/api/v1/ai/capture-sessions/*/photos",
+                                "/api/v1/ai/capture-sessions/*/complete"
+                        ).permitAll()
                         .pathMatchers(
                                 "/api/v1/auth/login",
                                 "/api/v1/auth/refresh",
