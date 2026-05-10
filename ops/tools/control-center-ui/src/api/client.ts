@@ -1,56 +1,82 @@
 import axios from 'axios';
 
-const AUTH_URL = import.meta.env.VITE_AUTH_URL || '/auth';
+const AUTH_URL = import.meta.env.VITE_AUTH_URL || '/api/v1/auth';
 const HUB_URL = import.meta.env.VITE_HUB_URL || '/hub';
 
-export const authApi = axios.create({ baseURL: AUTH_URL, timeout: 10000 });
-export const hubApi = axios.create({ baseURL: HUB_URL, timeout: 15000 });
+export const authApi = axios.create({ baseURL: AUTH_URL, timeout: 10000, withCredentials: true });
+export const hubApi = axios.create({ baseURL: HUB_URL, timeout: 15000, withCredentials: true });
 
 const TOKEN_KEY = 'lcc_token';
-const REFRESH_KEY = 'lcc_refresh';
 
 export const tokenStore = {
   get: () => localStorage.getItem(TOKEN_KEY),
   set: (t: string) => localStorage.setItem(TOKEN_KEY, t),
-  getRefresh: () => localStorage.getItem(REFRESH_KEY),
-  setRefresh: (t: string) => localStorage.setItem(REFRESH_KEY, t),
-  clear: () => { localStorage.removeItem(TOKEN_KEY); localStorage.removeItem(REFRESH_KEY); },
+  clear: () => {
+    localStorage.removeItem(TOKEN_KEY);
+  },
 };
 
-// Attach token to hub requests
 hubApi.interceptors.request.use((config) => {
   const token = tokenStore.get();
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
 
-// Refresh on 401
+let refreshInFlight: Promise<string | null> | null = null;
+
+async function doRefresh(): Promise<string | null> {
+  try {
+    const res = await authApi.post('/api/v1/auth/refresh', {});
+    tokenStore.set(res.data.accessToken);
+    return res.data.accessToken;
+  } catch {
+    return null;
+  }
+}
+
+async function refreshAccessToken(): Promise<string | null> {
+  const runInsideLock = async (): Promise<string | null> => {
+    const locks = typeof navigator !== 'undefined' && navigator.locks;
+    if (!locks) return doRefresh();
+    return navigator.locks.request('letis-control-center-auth-refresh', { mode: 'exclusive' }, doRefresh);
+  };
+
+  if (!refreshInFlight) {
+    refreshInFlight = runInsideLock().finally(() => {
+      refreshInFlight = null;
+    });
+  }
+  return refreshInFlight;
+}
+
 hubApi.interceptors.response.use(
   (r) => r,
   async (error) => {
     if (error.response?.status === 401 && !error.config._retry) {
       error.config._retry = true;
-      const refresh = tokenStore.getRefresh();
-      if (refresh) {
-        try {
-          const res = await authApi.post('/api/v1/auth/refresh', { refreshToken: refresh });
-          tokenStore.set(res.data.accessToken);
-          tokenStore.setRefresh(res.data.refreshToken);
-          error.config.headers.Authorization = `Bearer ${res.data.accessToken}`;
-          return hubApi.request(error.config);
-        } catch { tokenStore.clear(); }
+      const next = await refreshAccessToken();
+      if (next) {
+        error.config.headers.Authorization = `Bearer ${next}`;
+        return hubApi.request(error.config);
       }
+      tokenStore.clear();
     }
     return Promise.reject(error);
-  }
+  },
 );
 
 export async function login(email: string, password: string) {
   const res = await authApi.post('/api/v1/auth/login', { email, password });
   tokenStore.set(res.data.accessToken);
-  tokenStore.setRefresh(res.data.refreshToken);
   return res.data;
 }
 
-export function logout() { tokenStore.clear(); window.location.href = '/login'; }
-export function isAuthenticated() { return !!tokenStore.get(); }
+export function logout() {
+  tokenStore.clear();
+  void authApi.post('/api/v1/auth/logout', {}).catch(() => {});
+  window.location.href = '/login';
+}
+
+export function isAuthenticated() {
+  return !!tokenStore.get();
+}

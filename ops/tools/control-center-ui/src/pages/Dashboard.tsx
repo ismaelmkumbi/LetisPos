@@ -87,7 +87,10 @@ function ServerCard({ server, metrics, services: svcs }: { server: Server; metri
     load: m.load1?.toFixed(2),
   }));
 
-  const keySvcs = svcs.filter(s => s.name && (s.name.includes('.service') || s.name.includes('nginx') || s.name.includes('docker') || s.name.includes('ssh'))).slice(0, 8);
+  const keySvcs = svcs
+    .filter(s => s.name?.endsWith('.service'))
+    .filter(s => !s.name.includes('\\x2d') && !s.name.includes('/'))
+    .slice(0, 10);
 
   return (
     <Card sx={{ bgcolor: '#111827', border: '1px solid #1e293b', borderRadius: 3, color: '#e2e8f0' }}>
@@ -132,7 +135,7 @@ function ServerCard({ server, metrics, services: svcs }: { server: Server; metri
             </Typography>
             {keySvcs.map(svc => {
               const isActive = svc.status === 'active' || svc.status === 'running';
-              const name = svc.name.replace('.service', '').replace(/\\x[0-9a-f]{2}/gi, '');
+              const name = svc.name.replace('.service', '').replace(/\\x[0-9a-f]{2}/gi, '').replace(/^dev-/, '').substring(0, 40);
               return (
                 <Box key={svc.name} sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.5, '&:hover': { bgcolor: '#1e293b' }, borderRadius: 1, px: 1 }}>
                   <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: isActive ? '#22c55e' : '#ef4444', flexShrink: 0 }} />
