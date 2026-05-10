@@ -11,6 +11,7 @@ import type { ElementType } from 'react';
 import type { TFunction } from 'i18next';
 import {
   IconDashboard,
+  IconSearch,
   IconCashRegister,
   IconReceipt,
   IconFileInvoice,
@@ -135,6 +136,10 @@ export function buildSmartPosMenu(t: TFunction): MenuItem[] {
     { id: uid(), title: 'Goods Received', icon: IconPackage, ...soon },
     { id: uid(), title: 'Supplier Returns', icon: IconArrowBackUp, ...soon },
     { id: uid(), title: 'Supplier Payments', icon: IconCoin, ...soon },
+
+    // ── Documents ────────────────────────────────────────────────────────
+    { subheader: 'Documents' },
+    { id: uid(), title: 'Document Search', icon: IconSearch, href: '/smartpos/documents/search' },
 
     // ── Customers ───────────────────────────────────────────────────────
     { subheader: 'Customers' },

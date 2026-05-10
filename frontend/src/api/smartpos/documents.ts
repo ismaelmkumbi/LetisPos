@@ -228,3 +228,22 @@ export async function downloadBulkJob(jobId: UUID): Promise<Blob> {
   const response = await api.get<Blob>(`/api/v1/documents/bulk/${jobId}/download`, { responseType: 'blob' });
   return response.data;
 }
+
+// ---- Search Endpoints ----
+
+export interface DocumentSearchParams {
+  q?: string;
+  documentType?: string;
+  status?: string;
+  referenceType?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  page?: number;
+  size?: number;
+  sort?: string;
+}
+
+export async function searchDocuments(params: DocumentSearchParams = {}): Promise<Page<DocumentDto>> {
+  const { data } = await api.get<Page<DocumentDto>>('/api/v1/documents/search', { params });
+  return data;
+}

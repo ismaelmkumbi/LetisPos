@@ -182,6 +182,9 @@ const SmartPosOnboarding = Loadable(
     })),
   ),
 );
+const SmartPosDocumentSearch = Loadable(
+  lazy(() => import('../views/smartpos/documents/DocumentSearchPage')),
+);
 
 /* ****Pages***** */
 const ModernDash = Loadable(lazy(() => import('../views/dashboard/Modern')));
@@ -448,6 +451,7 @@ const Router = [
       { path: 'sales/:id/edit', element: <SmartPosSaleBuilder /> },
       { path: 'quotations', element: <SmartPosQuotations /> },
       { path: 'returns', element: <SmartPosReturns /> },
+      { path: 'documents/search', element: <SmartPosDocumentSearch /> },
       // Procurement
       { path: 'purchases', element: <SmartPosPurchases /> },
       { path: 'purchases/new', element: <SmartPosPurchaseBuilder /> },
