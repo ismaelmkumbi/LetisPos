@@ -77,6 +77,7 @@ public class DocumentService {
 
         Map<String, Object> mergedContext = new java.util.HashMap<>(contextData);
         mergedContext.putIfAbsent("company", Map.of("name", "Letis POS"));
+        mergedContext.put("qrData", buildQrData(documentType, referenceType, referenceId));
         String html = templateRenderer.render(templateContent, mergedContext);
 
         byte[] pdfBytes = gotenbergClient.convertHtmlToPdf(html);
@@ -113,5 +114,15 @@ public class DocumentService {
         String prefix = documentType.substring(0, 3).toUpperCase().replaceAll("[^A-Z]", "X");
         long count = documentRepo.count();
         return prefix + "-" + String.format("%06d", count + 1);
+    }
+
+    private String buildQrData(String documentType, String referenceType, UUID referenceId) {
+        return switch (documentType) {
+            case "tax-invoice", "proforma-invoice" ->
+                "https://letispos.com/verify/" + referenceType + "/" + referenceId;
+            case "payment-receipt" ->
+                "https://pay.letispos.com/" + referenceType + "/" + referenceId;
+            default -> "";
+        };
     }
 }
