@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Alert, Box, Button, Chip, MenuItem, Stack, TextField, Typography } from '@mui/material';
-import { IconPlus, IconBolt, IconReceipt, IconCoin, IconPercentage, IconCash, IconReceipt2 } from '@tabler/icons-react';
+import { IconPlus, IconBolt, IconReceipt, IconCoin, IconPercentage, IconCash, IconReceipt2, IconFileStack } from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 
@@ -8,6 +8,9 @@ import { listSales, getSaleStats, type Sale, type SaleStatus, type PaymentStatus
 import PageHeader from 'src/components/smartpos/PageHeader';
 import DataTable, { type Column } from 'src/components/smartpos/DataTable';
 import DocumentActionsBar from 'src/components/smartpos/documents/DocumentActionsBar';
+import BulkGenerateDialog from 'src/components/smartpos/documents/BulkGenerateDialog';
+import BulkActionBar from 'src/components/smartpos/BulkActionBar';
+import { useSelection } from 'src/components/smartpos/useSelection';
 import MetricCard from 'src/components/smartpos/MetricCard';
 import EmptyStateGuide from 'src/components/smartpos/EmptyStateGuide';
 import { brand } from 'src/theme/smartpos/brand';
@@ -42,6 +45,9 @@ export default function SalesListPage() {
   const [status, setStatus] = useState<SaleStatus | ''>('');
   const [stats, setStats] = useState<SaleStats | null>(null);
 
+  const sel = useSelection(rows);
+  const [bulkOpen, setBulkOpen] = useState(false);
+
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
@@ -74,6 +80,7 @@ export default function SalesListPage() {
   }, []);
 
   const columns: Column<Sale>[] = useMemo(() => [
+    sel.selectionColumn(),
     {
       key: '_num',
       label: '#',
@@ -296,7 +303,9 @@ export default function SalesListPage() {
         </Box>
       ),
     },
-  ], [page]);
+  ], [page, sel]);
+
+  const selectedIds = Array.from(sel.selectedIds);
 
   return (
     <Box>
@@ -381,6 +390,21 @@ export default function SalesListPage() {
         </Alert>
       )}
 
+      {/* Bulk action bar */}
+      {selectedIds.length > 0 && (
+        <BulkActionBar selectedCount={selectedIds.length} onClear={sel.clearSelection} itemLabel="sale">
+          <Button
+            size="small"
+            variant="outlined"
+            startIcon={<IconFileStack size={14} />}
+            onClick={() => setBulkOpen(true)}
+            sx={{ borderRadius: '8px', fontWeight: 700 }}
+          >
+            Bulk Generate
+          </Button>
+        </BulkActionBar>
+      )}
+
       {!loading && rows.length === 0 && !status && (
         <EmptyStateGuide
           title="No sales yet"
@@ -407,6 +431,13 @@ export default function SalesListPage() {
         enableExcelExport
         exportFileName="sales"
         toolbarTitle="Sales transactions"
+      />
+
+      <BulkGenerateDialog
+        open={bulkOpen}
+        onClose={() => setBulkOpen(false)}
+        referenceType="sale"
+        referenceIds={selectedIds}
       />
     </Box>
   );

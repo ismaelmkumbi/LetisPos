@@ -14,7 +14,7 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import { IconPlus, IconCurrencyDollar, IconCheck, IconClock } from '@tabler/icons-react';
+import { IconPlus, IconCurrencyDollar, IconCheck, IconClock, IconFileStack } from '@tabler/icons-react';
 
 import {
   listPayments,
@@ -31,6 +31,9 @@ import PageHeader from 'src/components/smartpos/PageHeader';
 import FilterBar, { type ActiveFilter } from 'src/components/smartpos/FilterBar';
 import DataTable, { type Column } from 'src/components/smartpos/DataTable';
 import DocumentActionsBar from 'src/components/smartpos/documents/DocumentActionsBar';
+import BulkGenerateDialog from 'src/components/smartpos/documents/BulkGenerateDialog';
+import BulkActionBar from 'src/components/smartpos/BulkActionBar';
+import { useSelection } from 'src/components/smartpos/useSelection';
 import { useAuth } from 'src/context/smartpos/AuthContext';
 import { brand } from 'src/theme/smartpos/brand';
 import { formatMoney } from 'src/utils/smartpos/currency';
@@ -78,6 +81,9 @@ export default function PaymentsListPage() {
   const [formError, setFormError] = useState<string | null>(null);
 
   const refresh = () => setRefreshToken((n) => n + 1);
+
+  const sel = useSelection(rows);
+  const [bulkOpen, setBulkOpen] = useState(false);
 
   useEffect(() => {
     listAccounts()
@@ -210,6 +216,7 @@ export default function PaymentsListPage() {
     setPayForm((f) => ({ ...f, [k]: v }));
 
   const columns: Column<Payment>[] = [
+    sel.selectionColumn(),
     {
       key: 'ref',
       label: 'Ref',
@@ -451,6 +458,21 @@ export default function PaymentsListPage() {
         </Alert>
       )}
 
+      {/* Bulk action bar */}
+      {sel.selectedIds.size > 0 && (
+        <BulkActionBar selectedCount={sel.selectedIds.size} onClear={sel.clearSelection} itemLabel="payment">
+          <Button
+            size="small"
+            variant="outlined"
+            startIcon={<IconFileStack size={14} />}
+            onClick={() => setBulkOpen(true)}
+            sx={{ borderRadius: '8px', fontWeight: 700 }}
+          >
+            Bulk Generate
+          </Button>
+        </BulkActionBar>
+      )}
+
       <DataTable
         columns={columns}
         rows={rows}
@@ -576,6 +598,13 @@ export default function PaymentsListPage() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      <BulkGenerateDialog
+        open={bulkOpen}
+        onClose={() => setBulkOpen(false)}
+        referenceType="payment"
+        referenceIds={Array.from(sel.selectedIds)}
+      />
     </Box>
   );
 }

@@ -196,3 +196,35 @@ export async function rollbackTemplate(documentType: string, version: number): P
   const { data } = await api.post<{ status: string }>(`/api/v1/templates/${documentType}/rollback`, { version });
   return data;
 }
+
+// ---- Bulk Generation Endpoints ----
+
+export interface BulkGenerateRequest {
+  documentType: string;
+  referenceType: string;
+  referenceIds: UUID[];
+}
+
+export interface BulkJobDto {
+  id: UUID;
+  status: string;
+  progress: number;
+  total: number;
+  results?: Array<{ referenceId: UUID; documentId: UUID; documentNumber: string; status: string }>;
+  createdAt: string;
+}
+
+export async function bulkGenerate(req: BulkGenerateRequest): Promise<BulkJobDto> {
+  const { data } = await api.post<BulkJobDto>('/api/v1/documents/bulk', req);
+  return data;
+}
+
+export async function getBulkJobStatus(jobId: UUID): Promise<BulkJobDto> {
+  const { data } = await api.get<BulkJobDto>(`/api/v1/documents/bulk/${jobId}`);
+  return data;
+}
+
+export async function downloadBulkJob(jobId: UUID): Promise<Blob> {
+  const response = await api.get<Blob>(`/api/v1/documents/bulk/${jobId}/download`, { responseType: 'blob' });
+  return response.data;
+}

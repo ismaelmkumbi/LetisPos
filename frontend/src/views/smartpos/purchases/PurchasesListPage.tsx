@@ -10,6 +10,7 @@ import {
   IconAlertTriangle, IconCircleCheck, IconCurrencyDollar,
   IconDotsVertical, IconEdit, IconEye, IconLayoutList, IconLayoutRows,
   IconPlus, IconRotate, IconShoppingCart, IconTrash, IconTruckDelivery, IconX,
+  IconFileStack,
 } from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
@@ -25,6 +26,7 @@ import FilterBar, { type ActiveFilter } from 'src/components/smartpos/FilterBar'
 import DataTable, { type Column } from 'src/components/smartpos/DataTable';
 import DocumentActionsBar from 'src/components/smartpos/documents/DocumentActionsBar';
 import BulkActionBar from 'src/components/smartpos/BulkActionBar';
+import BulkGenerateDialog from 'src/components/smartpos/documents/BulkGenerateDialog';
 import { useSelection } from 'src/components/smartpos/useSelection';
 import { useAuth } from 'src/context/smartpos/AuthContext';
 import { brand } from 'src/theme/smartpos/brand';
@@ -195,6 +197,7 @@ export default function PurchasesListPage() {
 
   // Selection
   const sel = useSelection(rows);
+  const [bulkOpen, setBulkOpen] = useState(false);
 
   // Row menu
   const [rowMenu, setRowMenu] = useState<{
@@ -840,6 +843,15 @@ export default function PurchasesListPage() {
           <Button
             size="small"
             variant="outlined"
+            startIcon={<IconFileStack size={14} />}
+            onClick={() => setBulkOpen(true)}
+            sx={{ borderRadius: '8px', fontWeight: 700 }}
+          >
+            Bulk Generate
+          </Button>
+          <Button
+            size="small"
+            variant="outlined"
             color="warning"
             startIcon={<IconX size={14} />}
             onClick={() => setBatchCancelOpen(true)}
@@ -1073,6 +1085,13 @@ export default function PurchasesListPage() {
           setNotice({ message: `Return ${ref} created. Stock removed from warehouse.`, severity: 'success' });
           setRefreshToken((n) => n + 1);
         }}
+      />
+
+      <BulkGenerateDialog
+        open={bulkOpen}
+        onClose={() => setBulkOpen(false)}
+        referenceType="purchase"
+        referenceIds={Array.from(sel.selectedIds)}
       />
     </Box>
   );
