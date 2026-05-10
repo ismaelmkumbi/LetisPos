@@ -127,6 +127,10 @@ public class DocumentService {
         return storage.download(storagePath);
     }
 
+    public byte[] downloadPdf(Document doc) throws Exception {
+        return storage.download(doc.getStoragePath());
+    }
+
     public DocumentVersion createVersion(Document doc, String changeType, String summary) {
         int nextVersion = versionRepo.countByDocumentId(doc.getId()) + 1;
         DocumentVersion version = DocumentVersion.builder()

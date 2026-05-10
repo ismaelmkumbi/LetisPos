@@ -1,13 +1,17 @@
 package io.smartpos.documents.api;
 
 import io.smartpos.documents.api.dto.*;
+import io.smartpos.documents.application.BulkGenerationService;
 import io.smartpos.documents.application.DeliveryService;
 import io.smartpos.documents.application.DocumentService;
+import io.smartpos.documents.domain.model.BulkJob;
 import io.smartpos.documents.domain.model.Document;
 import io.smartpos.documents.domain.model.DocumentVersion;
+import io.smartpos.documents.domain.repository.BulkJobRepository;
 import io.smartpos.documents.domain.repository.DocumentRepository;
 import io.smartpos.documents.domain.repository.DocumentVersionRepository;
 import io.smartpos.common.context.TenantContext;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -20,6 +24,8 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 @RestController
 @RequestMapping("/api/v1/documents")
@@ -30,6 +36,8 @@ public class DocumentController {
     private final DeliveryService deliveryService;
     private final DocumentRepository documentRepo;
     private final DocumentVersionRepository versionRepo;
+    private final BulkGenerationService bulkService;
+    private final BulkJobRepository bulkJobRepo;
 
     @PostMapping("/generate")
     @PreAuthorize("isAuthenticated()")
@@ -120,5 +128,59 @@ public class DocumentController {
                 .orElseThrow(() -> new IllegalArgumentException("Version not found: " + versionId));
         byte[] pdfBytes = documentService.downloadByPath(version.getStoragePath());
         return ResponseEntity.ok().contentType(MediaType.APPLICATION_PDF).body(pdfBytes);
+    }
+
+    @PostMapping("/bulk")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<BulkJobDto> bulkGenerate(@Valid @RequestBody BulkGenerateRequest req) {
+        UUID tenantId = TenantContext.require();
+        BulkJob job = BulkJob.builder()
+                .tenantId(tenantId)
+                .documentType(req.getDocumentType())
+                .referenceType(req.getReferenceType())
+                .status("pending")
+                .total(req.getReferenceIds().size())
+                .build();
+        job = bulkJobRepo.save(job);
+        bulkService.process(job, req.getReferenceIds());
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(BulkJobDto.from(job));
+    }
+
+    @GetMapping("/bulk/{jobId}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<BulkJobDto> bulkJobStatus(@PathVariable UUID jobId) {
+        BulkJob job = bulkJobRepo.findById(jobId)
+                .orElseThrow(() -> new IllegalArgumentException("Job not found: " + jobId));
+        return ResponseEntity.ok(BulkJobDto.from(job));
+    }
+
+    @GetMapping("/bulk/{jobId}/download")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<byte[]> bulkJobDownload(@PathVariable UUID jobId) throws Exception {
+        BulkJob job = bulkJobRepo.findById(jobId)
+                .orElseThrow(() -> new IllegalArgumentException("Job not found: " + jobId));
+        if (!"completed".equals(job.getStatus())) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(null);
+        }
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> results = new ObjectMapper().readValue(job.getResultsJson(), List.class);
+        java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
+        try (ZipOutputStream zos = new ZipOutputStream(baos)) {
+            for (var r : results) {
+                if (!"success".equals(r.get("status"))) continue;
+                UUID docId = UUID.fromString((String) r.get("documentId"));
+                var doc = documentRepo.findById(docId).orElse(null);
+                if (doc == null) continue;
+                byte[] pdfBytes = documentService.downloadPdf(doc);
+                ZipEntry entry = new ZipEntry((String) r.get("documentNumber") + ".pdf");
+                zos.putNextEntry(entry);
+                zos.write(pdfBytes);
+                zos.closeEntry();
+            }
+        }
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"documents.zip\"")
+                .body(baos.toByteArray());
     }
 }
