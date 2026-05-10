@@ -78,7 +78,7 @@ export default function Dashboard() {
         <Grid container spacing={1.5}>
           {servers.map(s => (
             <Grid size={{ xs: 12 }} key={s.id}>
-              <ServerPanel server={s} metrics={metrics[s.hostname] || []} backendSvcs={backendSvcs[s.hostname] || []} svcFilter={svcFilter} onFilterChange={setSvcFilter} />
+              <ServerPanel server={s} metrics={metrics[s.hostname] || []} backendSvcs={backendSvcs[s.hostname] || []} services={services[s.hostname] || []} svcFilter={svcFilter} onFilterChange={setSvcFilter} />
             </Grid>
           ))}
         </Grid>
@@ -87,7 +87,7 @@ export default function Dashboard() {
   );
 }
 
-function ServerPanel({ server, metrics: m, backendSvcs, svcFilter, onFilterChange }: { server: Server; metrics: MetricPoint[]; backendSvcs: BackendService[]; svcFilter: string; onFilterChange: (v: string) => void }) {
+function ServerPanel({ server, metrics: m, backendSvcs, services, svcFilter, onFilterChange }: { server: Server; metrics: MetricPoint[]; backendSvcs: BackendService[]; services: ServiceInfo[]; svcFilter: string; onFilterChange: (v: string) => void }) {
   const latest = m.length ? m[m.length - 1] : null;
   const memPct = latest?.memTotalBytes ? (latest.memUsedBytes! / latest.memTotalBytes * 100).toFixed(1) : null;
   const diskPct = latest?.diskTotalBytes ? (latest.diskUsedBytes! / latest.diskTotalBytes * 100).toFixed(1) : null;
@@ -185,11 +185,11 @@ function ServerPanel({ server, metrics: m, backendSvcs, svcFilter, onFilterChang
         {/* Systemd Services — collapsed by default */}
         <Box sx={{ mt: 2 }}>
           <Button onClick={() => setShowSystem(!showSystem)} endIcon={showSystem ? <KeyboardArrowUp /> : <KeyboardArrowDown />} sx={{ textTransform: 'none', fontWeight: 600, fontSize: '0.78rem', color: muted, '&:hover': { color: brand.neutral[50] } }}>
-            System Services ({services[server.hostname]?.filter(s => s.name?.endsWith('.service')).length || 0} units)
+            System Services ({services.filter((s: ServiceInfo) => s.name?.endsWith('.service')).length} units)
           </Button>
           <Collapse in={showSystem}>
             <Box sx={{ mt: 1, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 0.5, maxHeight: 300, overflow: 'auto' }}>
-              {(services[server.hostname] || []).filter(s => s.name?.endsWith('.service')).filter(s => !s.name.includes('\\x2d') && !s.name.includes('/')).slice(0, 40).map(svc => {
+              {services.filter((s: ServiceInfo) => s.name?.endsWith('.service')).filter((s: ServiceInfo) => !s.name.includes('\\x2d') && !s.name.includes('/')).slice(0, 40).map((svc: ServiceInfo) => {
                 const up = svc.status === 'active' || svc.status === 'running';
                 const name = svc.name.replace('.service', '').replace(/\\x[0-9a-f]{2}/gi, '').substring(0, 35);
                 return (
