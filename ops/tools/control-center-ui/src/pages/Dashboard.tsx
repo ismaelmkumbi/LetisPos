@@ -170,6 +170,8 @@ function ServerPanel({ server, metrics: m, backendSvcs, services, processes, svc
                     <Chip label={svc.category} size="small" sx={{ height: 20, fontWeight: 600, fontSize: '0.6rem', bgcolor: `${CATEGORY_COLORS[svc.category] || brand.primary[500]}20`, color: CATEGORY_COLORS[svc.category] || brand.primary[500], borderRadius: '6px' }} />
                   </TableCell>
                   <TableCell sx={{ fontFamily: "'DM Mono', 'Courier New', monospace", fontSize: '0.75rem', color: muted }}>:{svc.port}</TableCell>
+                  <TableCell sx={{ fontFamily: "'DM Mono', 'Courier New', monospace", fontSize: '0.72rem', color: (() => { const p = processes.find((x: ProcessInfo) => x.port === svc.port); return p ? brand.info.main : muted; })() }}>{(() => { const p = processes.find((x: ProcessInfo) => x.port === svc.port); return p ? p.cpu_pct.toFixed(1) + '%' : '—'; })()}</TableCell>
+                  <TableCell sx={{ fontFamily: "'DM Mono', 'Courier New', monospace", fontSize: '0.72rem', color: (() => { const p = processes.find((x: ProcessInfo) => x.port === svc.port); return p ? brand.purple.main : muted; })() }}>{(() => { const p = processes.find((x: ProcessInfo) => x.port === svc.port); return p ? Math.round(p.mem_mb) + ' MB' : '—'; })()}</TableCell>
                   <TableCell>
                     <Stack direction="row" spacing={0.75} sx={{ alignItems: 'center' }}>
                       <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: svc.status === 'UP' ? brand.success.main : brand.error.main, boxShadow: svc.status === 'UP' ? `0 0 6px ${brand.success.main}80` : 'none' }} />
