@@ -46,6 +46,7 @@
     "fslightbox-react": "^1.8.0",
     "fuse.js": "^7.3.0",
     "gray-matter": "^4.0.3",
+    "handlebars": "^4.7.9",
     "i18next": "^25.1.1",
     "lodash": "^4.17.21",
     "moment": "^2.30.1",

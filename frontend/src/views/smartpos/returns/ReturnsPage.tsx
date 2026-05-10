@@ -20,6 +20,7 @@ import type { Customer, UUID } from 'src/api/smartpos/types';
 
 import PageHeader from 'src/components/smartpos/PageHeader';
 import DataTable, { type Column } from 'src/components/smartpos/DataTable';
+import DocumentActionsBar from 'src/components/smartpos/documents/DocumentActionsBar';
 import OperationalAlert from 'src/components/smartpos/OperationalAlert';
 import { brand } from 'src/theme/smartpos/brand';
 import { formatMoney } from 'src/utils/smartpos/currency';
@@ -198,6 +199,19 @@ export default function ReturnsPage() {
           />
         );
       },
+    },
+    {
+      key: 'actions',
+      label: '',
+      align: 'right' as const,
+      width: 120,
+      enableHiding: false,
+      exportValue: () => '',
+      render: (r) => (
+        <Box onClick={(e) => e.stopPropagation()}>
+          <DocumentActionsBar documentType="credit-note" referenceType="return" referenceId={r.id} />
+        </Box>
+      ),
     },
   ], [page, customerName, warehouseName]);
 

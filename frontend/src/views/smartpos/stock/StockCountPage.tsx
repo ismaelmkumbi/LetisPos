@@ -16,6 +16,7 @@ import type { UUID } from 'src/api/smartpos/types';
 import DataTable, { type Column, StatusBadge } from 'src/components/smartpos/DataTable';
 import { PageHeader } from 'src/components/smartpos/PageHeader';
 import FilterBar, { type ActiveFilter } from 'src/components/smartpos/FilterBar';
+
 import { brand } from 'src/theme/smartpos/brand';
 
 const countStatusTone: Record<string, 'info' | 'success' | 'neutral'> = {

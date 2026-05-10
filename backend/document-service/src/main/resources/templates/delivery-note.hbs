@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+  @page { size: A4; margin: 15mm; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 12px; color: #1a1a1a; }
+  .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 30px; border-bottom: 3px solid #7c3aed; padding-bottom: 16px; }
+  .logo { font-size: 24px; font-weight: 700; color: #7c3aed; }
+  .company-info { text-align: right; font-size: 11px; color: #555; line-height: 1.5; }
+  .doc-title { font-size: 22px; font-weight: 700; color: #7c3aed; margin-bottom: 4px; }
+  .doc-meta { display: flex; justify-content: space-between; margin-bottom: 24px; }
+  .meta-box { flex: 1; }
+  .meta-label { font-size: 10px; text-transform: uppercase; color: #888; letter-spacing: 1px; margin-bottom: 2px; }
+  .meta-value { font-size: 13px; font-weight: 500; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
+  thead th { background: #f5f3ff; padding: 10px 12px; text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: #6d28d9; border-bottom: 2px solid #ddd6fe; }
+  tbody td { padding: 10px 12px; border-bottom: 1px solid #e2e8f0; font-size: 12px; }
+  .text-right { text-align: right; }
+  .footer { margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 16px; font-size: 10px; color: #888; line-height: 1.6; }
+  .terms { margin-top: 20px; }
+  .terms h4 { font-size: 11px; margin-bottom: 6px; }
+  .terms p { font-size: 10px; color: #666; }
+  .signature { display: flex; justify-content: space-between; margin-top: 50px; }
+  .sig-block { text-align: center; }
+  .sig-line { border-bottom: 1px solid #1a1a1a; width: 200px; margin-bottom: 6px; }
+  .sig-label { font-size: 11px; color: #555; }
+  .info-box { background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 6px; padding: 10px 14px; font-size: 11px; color: #0369a1; margin-top: 16px; }
+  .carrier-info { background: #f5f3ff; border: 1px solid #ddd6fe; border-radius: 6px; padding: 14px; margin-bottom: 24px; }
+  .carrier-info h4 { font-size: 11px; color: #6d28d9; margin-bottom: 8px; }
+  .carrier-info p { font-size: 11px; color: #555; line-height: 1.6; }
+  .price-toggle { display: inline-block; background: #f1f5f9; padding: 4px 10px; border-radius: 4px; font-size: 10px; color: #555; margin-bottom: 12px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="logo">{{company.name}}</div>
+    <div style="font-size:11px;color:#555;">{{company.address}}</div>
+    <div style="font-size:11px;color:#555;">TIN: {{company.tin}}</div>
+  </div>
+  <div class="company-info">
+    <div>{{company.phone}}</div>
+    <div>{{company.email}}</div>
+    <div>{{company.website}}</div>
+  </div>
+</div>
+
+<div class="doc-title">DELIVERY NOTE</div>
+
+<div class="doc-meta">
+  <div class="meta-box">
+    <div class="meta-label">Delivery Note #</div>
+    <div class="meta-value">{{document.number}}</div>
+  </div>
+  <div class="meta-box">
+    <div class="meta-label">Date</div>
+    <div class="meta-value">{{document.date}}</div>
+  </div>
+  <div class="meta-box">
+    <div class="meta-label">Reference</div>
+    <div class="meta-value">{{document.reference}}</div>
+  </div>
+</div>
+
+<div class="doc-meta">
+  <div class="meta-box">
+    <div class="meta-label">Deliver To</div>
+    <div class="meta-value">{{customer.name}}</div>
+    <div style="font-size:11px;color:#555;">{{customer.address}}</div>
+    <div style="font-size:11px;color:#555;">{{customer.phone}}</div>
+  </div>
+  <div class="meta-box">
+    <div class="meta-label">Prepared By</div>
+    <div class="meta-value">{{preparedBy.name}}</div>
+  </div>
+</div>
+
+<div class="carrier-info">
+  <h4>Carrier Information</h4>
+  <p>
+    Carrier: {{carrier.name}}<br>
+    {{#if carrier.tracking}}Tracking #: {{carrier.tracking}}<br>{{/if}}
+    {{#if carrier.vehicleReg}}Vehicle: {{carrier.vehicleReg}}<br>{{/if}}
+    {{#if carrier.contact}}Contact: {{carrier.contact}}{{/if}}
+  </p>
+</div>
+
+{{#if showPrices}}
+<div class="price-toggle">Prices shown for reference</div>
+{{/if}}
+
+<table>
+  <thead>
+    <tr>
+      <th style="width:40px;">#</th>
+      <th>Item / Description</th>
+      <th style="width:80px;" class="text-right">Qty</th>
+      {{#if showPrices}}
+      <th style="width:100px;" class="text-right">Unit Price</th>
+      <th style="width:110px;" class="text-right">Total</th>
+      {{/if}}
+    </tr>
+  </thead>
+  <tbody>
+    {{#each items}}
+    <tr>
+      <td>{{inc @index}}</td>
+      <td><strong>{{name}}</strong>{{#if description}}<br><span style="font-size:10px;color:#888;">{{description}}</span>{{/if}}</td>
+      <td class="text-right">{{quantity}}</td>
+      {{#if ../showPrices}}
+      <td class="text-right">{{unitPrice}}</td>
+      <td class="text-right"><strong>{{total}}</strong></td>
+      {{/if}}
+    </tr>
+    {{/each}}
+  </tbody>
+</table>
+
+{{#if notes}}
+<div style="margin-bottom: 24px; font-size: 11px; color: #555;">
+  <strong>Notes:</strong> {{notes}}
+</div>
+{{/if}}
+
+<div class="signature">
+  <div class="sig-block">
+    <div class="sig-line"></div>
+    <div class="sig-label">Dispatched By</div>
+  </div>
+  <div class="sig-block">
+    <div class="sig-line"></div>
+    <div class="sig-label">Received By (Recipient)</div>
+  </div>
+  <div class="sig-block">
+    <div class="sig-line"></div>
+    <div class="sig-label">Date & Time</div>
+  </div>
+</div>
+
+<div class="footer">
+  <div>{{company.name}} | {{company.address}} | TIN: {{company.tin}}</div>
+  <div>Phone: {{company.phone}} | Email: {{company.email}}</div>
+  <div>Page 1 of 1 | Generated on {{document.date}}</div>
+</div>
+
+</body>
+</html>

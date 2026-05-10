@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+  @page { size: A4; margin: 15mm; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 12px; color: #1a1a1a; }
+  .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 30px; border-bottom: 3px solid #2563eb; padding-bottom: 16px; }
+  .logo { font-size: 24px; font-weight: 700; color: #2563eb; }
+  .company-info { text-align: right; font-size: 11px; color: #555; line-height: 1.5; }
+  .doc-title { font-size: 22px; font-weight: 700; color: #2563eb; margin-bottom: 4px; }
+  .doc-meta { display: flex; justify-content: space-between; margin-bottom: 24px; }
+  .meta-box { flex: 1; }
+  .meta-label { font-size: 10px; text-transform: uppercase; color: #888; letter-spacing: 1px; margin-bottom: 2px; }
+  .meta-value { font-size: 13px; font-weight: 500; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
+  thead th { background: #f1f5f9; padding: 10px 12px; text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: #555; border-bottom: 2px solid #e2e8f0; }
+  tbody td { padding: 10px 12px; border-bottom: 1px solid #e2e8f0; font-size: 12px; }
+  .text-right { text-align: right; }
+  .totals { margin-left: auto; width: 280px; }
+  .total-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 12px; }
+  .total-row.grand { border-top: 2px solid #2563eb; font-size: 16px; font-weight: 700; color: #2563eb; padding-top: 10px; margin-top: 4px; }
+  .footer { margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 16px; font-size: 10px; color: #888; line-height: 1.6; }
+  .terms { margin-top: 20px; }
+  .terms h4 { font-size: 11px; margin-bottom: 6px; }
+  .terms p { font-size: 10px; color: #666; }
+  .validity { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; padding: 10px 14px; font-size: 11px; color: #1e40af; margin-top: 16px; }
+  .signature { display: flex; justify-content: space-between; margin-top: 50px; }
+  .sig-block { text-align: center; }
+  .sig-line { border-bottom: 1px solid #1a1a1a; width: 200px; margin-bottom: 6px; }
+  .sig-label { font-size: 11px; color: #555; }
+  .disclaimer { background: #fef3c7; border: 1px solid #fcd34d; border-radius: 6px; padding: 10px 14px; font-size: 11px; color: #92400e; margin-top: 16px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="logo">{{company.name}}</div>
+    <div style="font-size:11px;color:#555;">{{company.address}}</div>
+    <div style="font-size:11px;color:#555;">TIN: {{company.tin}}</div>
+  </div>
+  <div class="company-info">
+    <div>{{company.phone}}</div>
+    <div>{{company.email}}</div>
+    <div>{{company.website}}</div>
+  </div>
+</div>
+
+<div class="doc-title">QUOTATION</div>
+
+<div class="doc-meta">
+  <div class="meta-box">
+    <div class="meta-label">Quotation #</div>
+    <div class="meta-value">{{document.number}}</div>
+  </div>
+  <div class="meta-box">
+    <div class="meta-label">Date</div>
+    <div class="meta-value">{{document.date}}</div>
+  </div>
+  <div class="meta-box">
+    <div class="meta-label">Valid Until</div>
+    <div class="meta-value">{{document.validUntil}}</div>
+  </div>
+</div>
+
+<div class="doc-meta">
+  <div class="meta-box">
+    <div class="meta-label">Customer</div>
+    <div class="meta-value">{{customer.name}}</div>
+    <div style="font-size:11px;color:#555;">{{customer.address}}</div>
+    <div style="font-size:11px;color:#555;">{{customer.phone}}</div>
+  </div>
+  <div class="meta-box">
+    <div class="meta-label">Prepared By</div>
+    <div class="meta-value">{{preparedBy.name}}</div>
+  </div>
+</div>
+
+<table>
+  <thead>
+    <tr>
+      <th style="width:40px;">#</th>
+      <th>Item / Description</th>
+      <th style="width:70px;" class="text-right">Qty</th>
+      <th style="width:100px;" class="text-right">Unit Price</th>
+      <th style="width:50px;" class="text-right">Tax %</th>
+      <th style="width:110px;" class="text-right">Total</th>
+    </tr>
+  </thead>
+  <tbody>
+    {{#each items}}
+    <tr>
+      <td>{{inc @index}}</td>
+      <td><strong>{{name}}</strong>{{#if description}}<br><span style="font-size:10px;color:#888;">{{description}}</span>{{/if}}</td>
+      <td class="text-right">{{quantity}}</td>
+      <td class="text-right">{{unitPrice}}</td>
+      <td class="text-right">{{taxRate}}%</td>
+      <td class="text-right"><strong>{{total}}</strong></td>
+    </tr>
+    {{/each}}
+  </tbody>
+</table>
+
+<div class="totals">
+  <div class="total-row"><span>Subtotal</span><span>{{totals.subtotal}}</span></div>
+  {{#if totals.discount}}
+  <div class="total-row"><span>Discount</span><span>-{{totals.discount}}</span></div>
+  {{/if}}
+  {{#each totals.taxLines}}
+  <div class="total-row"><span>{{label}}</span><span>{{amount}}</span></div>
+  {{/each}}
+  <div class="total-row grand"><span>Grand Total</span><span>{{totals.grandTotal}}</span></div>
+</div>
+
+<div class="validity">
+  This quotation is valid for <strong>{{document.validityDays}} days</strong> from the date of issue.
+  Prices and availability are subject to change after this period.
+</div>
+
+{{#if terms}}
+<div class="terms">
+  <h4>Terms & Conditions</h4>
+  <p>{{terms}}</p>
+</div>
+{{/if}}
+
+<div class="signature">
+  <div class="sig-block">
+    <div class="sig-line"></div>
+    <div class="sig-label">Prepared By</div>
+  </div>
+  <div class="sig-block">
+    <div class="sig-line"></div>
+    <div class="sig-label">Customer Acceptance</div>
+  </div>
+  <div class="sig-block">
+    <div class="sig-line"></div>
+    <div class="sig-label">Date</div>
+  </div>
+</div>
+
+<div class="footer">
+  <div>{{company.name}} | {{company.address}} | TIN: {{company.tin}}</div>
+  <div>Phone: {{company.phone}} | Email: {{company.email}}</div>
+  <div>Page 1 of 1 | Generated on {{document.date}}</div>
+</div>
+
+</body>
+</html>

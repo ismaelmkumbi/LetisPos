@@ -1,0 +1,51 @@
+server:
+  port: 8088
+
+spring:
+  application.name: document-service
+
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5434/documents_db}?preferQueryMode=${DB_PREFER_QUERY_MODE:simple}
+    username: ${DB_USER:documents_user}
+    password: ${DB_PASSWORD:documents_pass}
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+
+  jpa:
+    hibernate.ddl-auto: ${SPRING_JPA_DDL_AUTO:none}
+    open-in-view: false
+    properties.hibernate.jdbc.time_zone: UTC
+
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+
+  security.oauth2.resourceserver.jwt:
+    jwk-set-uri: ${AUTH_JWKS_URI:http://localhost:8081/.well-known/jwks.json}
+
+  cloud.openfeign.client.config:
+    sales-service:
+      url: ${SALES_URI:http://localhost:8085}
+    purchase-service:
+      url: ${SALES_URI:http://localhost:8085}
+    payment-service:
+      url: ${PAYMENT_URI:http://localhost:8086}
+    notification-service:
+      url: ${NOTIFICATION_URI:http://localhost:8089}
+
+smartpos:
+  documents:
+    document-number-prefix: DOC
+  minio:
+    endpoint: ${MINIO_ENDPOINT:http://localhost:9000}
+    access-key: ${MINIO_ACCESS_KEY:smartpos}
+    secret-key: ${MINIO_SECRET_KEY:smartpos-secret}
+    bucket: ${MINIO_BUCKET:smartpos-documents}
+    presigned-ttl-seconds: ${MINIO_PRESIGNED_TTL:3600}
+  gotenberg:
+    url: ${GOTENBERG_URL:http://localhost:3000}
+    request-timeout-seconds: 30
+
+management:
+  endpoints.web.exposure.include: health,info

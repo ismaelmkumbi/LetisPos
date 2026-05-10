@@ -18,6 +18,7 @@ import type { UUID } from 'src/api/smartpos/types';
 import DataTable, { type Column, StatusBadge } from 'src/components/smartpos/DataTable';
 import { PageHeader } from 'src/components/smartpos/PageHeader';
 import FilterBar, { type ActiveFilter } from 'src/components/smartpos/FilterBar';
+
 import { brand } from 'src/theme/smartpos/brand';
 
 const statusTone: Record<TransferStatus, 'info' | 'warning' | 'success' | 'neutral'> = {
@@ -207,24 +208,29 @@ export default function StockTransferPage() {
       ),
     },
     {
-      key: 'actions', label: '', width: 80, enableHiding: false,
-      render: (t) => t.status === 'DRAFT' ? (
-        <Tooltip title="Complete transfer">
-          <Button
-            size="small"
-            variant="outlined"
-            disabled={completing.has(t.id)}
-            onClick={(e) => { e.stopPropagation(); handleComplete(t); }}
-            sx={{
-              fontWeight: 600, fontSize: '0.7rem', borderRadius: '8px',
-              color: brand.success.dark, borderColor: brand.success.main,
-              '&:hover': { bgcolor: brand.success.light, borderColor: brand.success.dark },
-            }}
-          >
-            Complete
-          </Button>
-        </Tooltip>
-      ) : null,
+      key: 'actions', label: '', width: 210, enableHiding: false,
+      render: (t) => (
+        <Stack direction="row" spacing={0.5} alignItems="center" justifyContent="flex-end" onClick={(e) => e.stopPropagation()}>
+
+          {t.status === 'DRAFT' && (
+            <Tooltip title="Complete transfer">
+              <Button
+                size="small"
+                variant="outlined"
+                disabled={completing.has(t.id)}
+                onClick={(e) => { e.stopPropagation(); handleComplete(t); }}
+                sx={{
+                  fontWeight: 600, fontSize: '0.7rem', borderRadius: '8px',
+                  color: brand.success.dark, borderColor: brand.success.main,
+                  '&:hover': { bgcolor: brand.success.light, borderColor: brand.success.dark },
+                }}
+              >
+                Complete
+              </Button>
+            </Tooltip>
+          )}
+        </Stack>
+      ),
     },
   ], [completing, wh, handleComplete]);
 

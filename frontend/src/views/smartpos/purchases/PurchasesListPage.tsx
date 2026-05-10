@@ -23,6 +23,7 @@ import type { Supplier } from 'src/api/smartpos/types';
 import { PageHeader } from 'src/components/smartpos/PageHeader';
 import FilterBar, { type ActiveFilter } from 'src/components/smartpos/FilterBar';
 import DataTable, { type Column } from 'src/components/smartpos/DataTable';
+import DocumentActionsBar from 'src/components/smartpos/documents/DocumentActionsBar';
 import BulkActionBar from 'src/components/smartpos/BulkActionBar';
 import { useSelection } from 'src/components/smartpos/useSelection';
 import { useAuth } from 'src/context/smartpos/AuthContext';
@@ -613,12 +614,14 @@ export default function PurchasesListPage() {
       key: 'actions',
       label: '',
       align: 'right',
-      width: 52,
+      width: 180,
       enableHiding: false,
       exportValue: () => '',
       render: (p) => (
-        <Tooltip title="More actions">
-          <IconButton
+        <Stack direction="row" spacing={0.5} alignItems="center" justifyContent="flex-end" onClick={(e) => e.stopPropagation()}>
+          <DocumentActionsBar documentType="purchase-order" referenceType="purchase" referenceId={p.id} />
+          <Tooltip title="More actions">
+            <IconButton
             size="small"
             onClick={(e) => {
               e.stopPropagation();
@@ -636,6 +639,7 @@ export default function PurchasesListPage() {
             <IconDotsVertical size={14} />
           </IconButton>
         </Tooltip>
+        </Stack>
       ),
     },
   ], [page, sel]);
