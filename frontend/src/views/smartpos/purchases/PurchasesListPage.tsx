@@ -27,6 +27,7 @@ import { useSelection } from 'src/components/smartpos/useSelection';
 import { useAuth } from 'src/context/smartpos/AuthContext';
 import { brand } from 'src/theme/smartpos/brand';
 import { formatMoney } from 'src/utils/smartpos/currency';
+import { parseApiError } from 'src/utils/smartpos/apiErrors';
 
 const fmt = formatMoney;
 const PAGE_SIZE = 20;
@@ -221,7 +222,7 @@ export default function PurchasesListPage() {
           }
         })
         .catch((e) => {
-          if (!cancelled) setError(e instanceof Error ? e.message : 'Failed to load');
+          if (!cancelled) setError(parseApiError(e).message || 'Failed to load');
         })
         .finally(() => {
           if (!cancelled) setLoading(false);
@@ -269,7 +270,7 @@ export default function PurchasesListPage() {
       await receivePurchase(id);
       setRefreshToken((n) => n + 1);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to receive purchase');
+      setError(parseApiError(e).message || 'Failed to receive purchase');
     }
   }, []);
 
@@ -283,7 +284,7 @@ export default function PurchasesListPage() {
       setRefreshToken((n) => n + 1);
       sel.clearSelection();
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Delete failed');
+      setError(parseApiError(e).message || 'Delete failed');
     } finally {
       setDeleting(false);
       setDeleteTarget(null);
@@ -297,7 +298,7 @@ export default function PurchasesListPage() {
       setRefreshToken((n) => n + 1);
       sel.clearSelection();
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Batch delete failed');
+      setError(parseApiError(e).message || 'Batch delete failed');
     } finally {
       setBatchDeleting(false);
       setBatchDeleteOpen(false);
@@ -314,7 +315,7 @@ export default function PurchasesListPage() {
       setRefreshToken((n) => n + 1);
       sel.clearSelection();
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Cancel failed');
+      setError(parseApiError(e).message || 'Cancel failed');
     } finally {
       setCancelling(false);
       setCancelTarget(null);
@@ -328,7 +329,7 @@ export default function PurchasesListPage() {
       setRefreshToken((n) => n + 1);
       sel.clearSelection();
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Batch cancel failed');
+      setError(parseApiError(e).message || 'Batch cancel failed');
     } finally {
       setBatchCancelling(false);
       setBatchCancelOpen(false);
