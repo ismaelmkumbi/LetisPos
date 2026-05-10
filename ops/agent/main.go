@@ -12,7 +12,9 @@ import (
 	"github.com/ismaelmkumbi/lsa/api"
 	"github.com/ismaelmkumbi/lsa/collector"
 	"github.com/ismaelmkumbi/lsa/config"
+	"github.com/ismaelmkumbi/lsa/logs"
 	"github.com/ismaelmkumbi/lsa/manager"
+	"github.com/ismaelmkumbi/lsa/reporter"
 )
 
 func main() {
@@ -39,7 +41,8 @@ func main() {
 	if err != nil {
 		log.Printf("systemd: %v (management endpoints disabled)", err)
 	}
-	srv := api.New(cfg, sysMgr)
+	logStreamer := logs.New()
+	srv := api.New(cfg, sysMgr, logStreamer)
 
 	// Background metrics collection
 	interval, _ := time.ParseDuration(cfg.MetricsInterval)
@@ -66,6 +69,12 @@ func main() {
 			}
 		}
 	}()
+
+	// Start heartbeat reporter (non-fatal if Hub URL not configured)
+	if cfg.HubURL != "" && cfg.HubSecret != "" {
+		rep := reporter.New(cfg)
+		go rep.Loop(ctx, interval, collector.Snapshot)
+	}
 
 	go func() {
 		if err := srv.Start(); err != nil {
