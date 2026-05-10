@@ -4,6 +4,7 @@ import {
   DialogContentText, DialogTitle, IconButton,
   ListItemIcon, Menu, MenuItem,
   Stack, TextField, ToggleButton, ToggleButtonGroup, Tooltip, Typography,
+  type AlertColor,
 } from '@mui/material';
 import {
   IconAlertTriangle, IconCircleCheck, IconCurrencyDollar,
@@ -35,6 +36,29 @@ const PAGE_SIZE = 20;
 const outstandingAmount = (purchase: Purchase) => Math.max(0, purchase.dueTotal);
 const supplierCreditAmount = (purchase: Purchase) =>
   Math.max(0, purchase.paidTotal - purchase.grandTotal, -purchase.dueTotal);
+
+type PageNotice = {
+  message: string;
+  severity: AlertColor;
+};
+
+const noticeFromError = (e: unknown, fallback: string): PageNotice => {
+  const parsed = parseApiError(e);
+  const message = parsed.message || fallback;
+  const guidancePatterns = [
+    'cannot cancel',
+    'cannot delete',
+    'received purchase',
+    'issue a return',
+    'already received',
+    'is cancelled',
+  ];
+  const isGuidance = guidancePatterns.some((pattern) => message.toLowerCase().includes(pattern));
+  return {
+    message,
+    severity: isGuidance ? 'warning' : 'error',
+  };
+};
 
 const STATUS_TONE: Record<PurchaseStatus, { bg: string; fg: string; dot: string }> = {
   DRAFT:     { bg: brand.neutral[100], fg: brand.neutral[700], dot: brand.neutral[400] },
@@ -147,7 +171,7 @@ export default function PurchasesListPage() {
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<PageNotice | null>(null);
   const [refreshToken, setRefreshToken] = useState(0);
 
   // Filters & sort
@@ -222,7 +246,7 @@ export default function PurchasesListPage() {
           }
         })
         .catch((e) => {
-          if (!cancelled) setError(parseApiError(e).message || 'Failed to load');
+          if (!cancelled) setNotice(noticeFromError(e, 'Failed to load'));
         })
         .finally(() => {
           if (!cancelled) setLoading(false);
@@ -270,7 +294,7 @@ export default function PurchasesListPage() {
       await receivePurchase(id);
       setRefreshToken((n) => n + 1);
     } catch (e) {
-      setError(parseApiError(e).message || 'Failed to receive purchase');
+      setNotice(noticeFromError(e, 'Failed to receive purchase'));
     }
   }, []);
 
@@ -284,7 +308,7 @@ export default function PurchasesListPage() {
       setRefreshToken((n) => n + 1);
       sel.clearSelection();
     } catch (e) {
-      setError(parseApiError(e).message || 'Delete failed');
+      setNotice(noticeFromError(e, 'Delete failed'));
     } finally {
       setDeleting(false);
       setDeleteTarget(null);
@@ -298,7 +322,7 @@ export default function PurchasesListPage() {
       setRefreshToken((n) => n + 1);
       sel.clearSelection();
     } catch (e) {
-      setError(parseApiError(e).message || 'Batch delete failed');
+      setNotice(noticeFromError(e, 'Batch delete failed'));
     } finally {
       setBatchDeleting(false);
       setBatchDeleteOpen(false);
@@ -315,7 +339,7 @@ export default function PurchasesListPage() {
       setRefreshToken((n) => n + 1);
       sel.clearSelection();
     } catch (e) {
-      setError(parseApiError(e).message || 'Cancel failed');
+      setNotice(noticeFromError(e, 'Cancel failed'));
     } finally {
       setCancelling(false);
       setCancelTarget(null);
@@ -329,7 +353,7 @@ export default function PurchasesListPage() {
       setRefreshToken((n) => n + 1);
       sel.clearSelection();
     } catch (e) {
-      setError(parseApiError(e).message || 'Batch cancel failed');
+      setNotice(noticeFromError(e, 'Batch cancel failed'));
     } finally {
       setBatchCancelling(false);
       setBatchCancelOpen(false);
@@ -780,10 +804,25 @@ export default function PurchasesListPage() {
         </ToggleButtonGroup>
       </FilterBar>
 
-      {/* ── Error ── */}
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
-          {error}
+      {/* ── Notice ── */}
+      {notice && (
+        <Alert
+          severity={notice.severity}
+          sx={{
+            mb: 2,
+            borderRadius: '12px',
+            alignItems: 'center',
+            fontWeight: 650,
+            ...(notice.severity === 'warning' ? {
+              bgcolor: '#FFF7ED',
+              color: '#9A3412',
+              border: '1px solid #FED7AA',
+              '& .MuiAlert-icon': { color: '#EA580C' },
+            } : {}),
+          }}
+          onClose={() => setNotice(null)}
+        >
+          {notice.message}
         </Alert>
       )}
 
