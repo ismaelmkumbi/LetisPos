@@ -10,9 +10,13 @@ import io.smartpos.user.domain.repository.RoleRepository;
 import io.smartpos.user.domain.repository.UserOnboardingStateRepository;
 import io.smartpos.user.domain.repository.UserProfileRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -20,6 +24,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.*;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class UserProfileService {
@@ -54,6 +59,18 @@ public class UserProfileService {
                                               String firstName, String lastName,
                                               UUID tenantId) {
         boolean isNew = !userRepo.existsById(userId);
+
+        // Enforce plan maxUsers limit on new user creation
+        if (isNew && tenantId != null) {
+            int maxUsers = getMaxUsersFromJwt();
+            long currentCount = userRepo.countByTenantId(tenantId);
+            if (currentCount >= maxUsers) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT,
+                        "User limit reached. Your plan allows " + maxUsers
+                        + " users. Upgrade to add more.");
+            }
+        }
+
         UserProfile profile = userRepo.findById(userId).orElseGet(() ->
                 UserProfile.builder()
                         .id(userId)
@@ -134,5 +151,26 @@ public class UserProfileService {
         if (user.getTenantId() != null && !currentTenant.equals(user.getTenantId())) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found");
         }
+    }
+
+    /**
+     * Reads the tenantMaxUsers claim from the current JWT.
+     * Falls back to {@link Integer#MAX_VALUE} (no enforcement) when running
+     * outside an HTTP request (e.g. Kafka consumer), so the primary enforcement
+     * in auth-service's RegisterUserUseCase takes precedence.
+     */
+    private int getMaxUsersFromJwt() {
+        try {
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            if (auth != null && auth.getPrincipal() instanceof Jwt jwt) {
+                Integer maxUsers = jwt.getClaim("tenantMaxUsers");
+                if (maxUsers != null && maxUsers > 0) {
+                    return maxUsers;
+                }
+            }
+        } catch (Exception e) {
+            log.debug("Could not read tenantMaxUsers from JWT: {}", e.getMessage());
+        }
+        return Integer.MAX_VALUE;
     }
 }

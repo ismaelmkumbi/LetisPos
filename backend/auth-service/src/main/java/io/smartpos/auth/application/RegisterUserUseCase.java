@@ -46,6 +46,19 @@ public class RegisterUserUseCase {
             tenantId = tenant.getId();
         }
 
+        // Enforce plan maxUsers limit
+        if (tenantId != null) {
+            if (tenant == null) {
+                tenant = tenantService.getById(tenantId);
+            }
+            long currentCount = userRepository.countByTenantId(tenantId);
+            if (currentCount >= tenant.getMaxUsers()) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT,
+                        "User limit reached. Your plan allows " + tenant.getMaxUsers()
+                        + " users. Upgrade to add more.");
+            }
+        }
+
         User user = User.builder()
                 .email(req.email().toLowerCase())
                 .username(req.username())
