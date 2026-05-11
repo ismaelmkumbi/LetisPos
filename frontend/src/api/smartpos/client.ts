@@ -105,7 +105,8 @@ async function doRefresh(): Promise<string | null> {
     } catch {
       legacyRefresh = null;
     }
-    const body = legacyRefresh ? { refreshToken: legacyRefresh } : {};
+    if (!legacyRefresh) return null;
+    const body = { refreshToken: legacyRefresh };
     try {
       const res = await axios.post(`${API_BASE_URL}/api/v1/auth/refresh`, body, {
         withCredentials: true,

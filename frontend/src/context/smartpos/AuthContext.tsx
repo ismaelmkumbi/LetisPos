@@ -53,12 +53,14 @@ export function SmartPosAuthProvider({ children }: { children: React.ReactNode }
       await bootstrapAuthSession();
       await loadMe();
 
-      // Load available tenants for the switcher
-      try {
-        const list = await fetchTenants();
-        setTenants(list);
-      } catch {
-        // Tenant list is non-critical — user can still work with their default tenant
+      // Load available tenants for the switcher (only if authenticated)
+      if (tokenStore.get()) {
+        try {
+          const list = await fetchTenants();
+          setTenants(list);
+        } catch {
+          // Tenant list is non-critical
+        }
       }
 
       setLoading(false);
