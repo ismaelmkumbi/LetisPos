@@ -1,5 +1,6 @@
 package io.smartpos.report.application;
 
+import io.smartpos.report.api.dto.CategoryBucket;
 import io.smartpos.report.api.dto.DashboardDto;
 import io.smartpos.report.api.dto.PurchaseSummaryDto;
 import io.smartpos.report.infrastructure.config.RedisCacheConfig;
@@ -39,6 +40,11 @@ public class PurchaseReportService {
     private SalesFeign.PurchaseStats safeStats(LocalDate from, LocalDate to, UUID warehouseId) {
         try { return sales.purchaseStats(from, to, warehouseId); }
         catch (Exception e) { return new SalesFeign.PurchaseStats(0, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO); }
+    }
+
+    public List<CategoryBucket> byCategory(LocalDate from, LocalDate to, UUID warehouseId) {
+        // TODO: wire to purchase-by-category query
+        return List.of();
     }
 
     private static BigDecimal nz(BigDecimal v) { return v == null ? BigDecimal.ZERO : v; }

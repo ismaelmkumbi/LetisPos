@@ -1,6 +1,7 @@
 package io.smartpos.report.application;
 
 import io.smartpos.common.context.TenantContext;
+import io.smartpos.report.api.dto.MonthlyTaxBucket;
 import io.smartpos.report.api.dto.TaxSummaryDto;
 import io.smartpos.report.infrastructure.config.RedisCacheConfig;
 import lombok.RequiredArgsConstructor;
@@ -12,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.sql.Date;
 import java.time.LocalDate;
+import java.time.Year;
 import java.util.List;
 import java.util.UUID;
 
@@ -76,6 +78,11 @@ public class TaxReportService {
     private static BigDecimal bd(java.sql.ResultSet rs, String col) throws java.sql.SQLException {
         BigDecimal v = rs.getBigDecimal(col);
         return v == null ? BigDecimal.ZERO : v;
+    }
+
+    public List<MonthlyTaxBucket> monthlySchedule(int year) {
+        // TODO: compute monthly tax schedule from fact tables
+        return List.of();
     }
 
     private static BigDecimal bdMap(java.util.Map<String, Object> m, String k) {

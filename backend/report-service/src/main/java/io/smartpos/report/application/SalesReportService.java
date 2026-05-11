@@ -1,6 +1,8 @@
 package io.smartpos.report.application;
 
 import io.smartpos.report.api.dto.DashboardDto;
+import io.smartpos.report.api.dto.DiscountVoidAnalysis;
+import io.smartpos.report.api.dto.HourlyBucket;
 import io.smartpos.report.api.dto.SalesSummaryDto;
 import io.smartpos.report.infrastructure.config.RedisCacheConfig;
 import io.smartpos.report.infrastructure.feign.SalesFeign;
@@ -48,6 +50,16 @@ public class SalesReportService {
                unless = "#result == null")
     public List<SalesFeign.TopCustomer> topCustomers(LocalDate from, LocalDate to, int limit) {
         return sales.topCustomers(from, to, limit);
+    }
+
+    public List<HourlyBucket> byHour(LocalDate from, LocalDate to, UUID warehouseId) {
+        // TODO: wire to salesFeign hourly query
+        return List.of();
+    }
+
+    public DiscountVoidAnalysis discountsVoids(LocalDate from, LocalDate to, UUID warehouseId) {
+        // TODO: wire to real discount/void analytics
+        return new DiscountVoidAnalysis(BigDecimal.ZERO, 0, BigDecimal.ZERO, 0, BigDecimal.ZERO, BigDecimal.ZERO);
     }
 
     private static BigDecimal nz(BigDecimal v) { return v == null ? BigDecimal.ZERO : v; }

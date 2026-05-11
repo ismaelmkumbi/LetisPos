@@ -1,5 +1,6 @@
 package io.smartpos.report.application;
 
+import io.smartpos.report.api.dto.ArAging;
 import io.smartpos.report.api.dto.PaymentSummaryDto;
 import io.smartpos.report.infrastructure.config.RedisCacheConfig;
 import io.smartpos.report.infrastructure.feign.PaymentFeign;
@@ -61,6 +62,11 @@ public class PaymentReportService {
             log.warn("byMethod failed: {}", e.getMessage());
             return Collections.emptyList();
         }
+    }
+
+    public ArAging aging(LocalDate asOf) {
+        // TODO: compute AR aging buckets from open invoices
+        return new ArAging(List.of(), BigDecimal.ZERO);
     }
 
     private static BigDecimal nz(BigDecimal v) { return v == null ? BigDecimal.ZERO : v; }

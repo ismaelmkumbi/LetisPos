@@ -1,6 +1,8 @@
 package io.smartpos.report.application;
 
 import io.smartpos.report.api.dto.CustomerSummaryDto;
+import io.smartpos.report.api.dto.RetentionRate;
+import io.smartpos.report.api.dto.RfmSegments;
 import io.smartpos.report.infrastructure.config.RedisCacheConfig;
 import io.smartpos.report.infrastructure.feign.SalesFeign;
 import lombok.RequiredArgsConstructor;
@@ -44,6 +46,16 @@ public class CustomerReportService {
 
         return new CustomerSummaryDto(from, to, totalCustomers, activeCustomers, 0,
                 totalRevenue, avgRevenue, topCustomers, freq);
+    }
+
+    public RfmSegments rfm(LocalDate from, LocalDate to) {
+        // TODO: compute recency/frequency/monetary segments from sales data
+        return new RfmSegments(0, 0, 0, 0, List.of());
+    }
+
+    public RetentionRate retention(LocalDate from, LocalDate to) {
+        // TODO: compute retention from repeat-customer data
+        return new RetentionRate(0.0, 0, 0, 0.0, 0.0);
     }
 
     private List<SalesFeign.TopCustomer> safeTopCustomers(LocalDate from, LocalDate to, int limit) {

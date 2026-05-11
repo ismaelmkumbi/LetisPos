@@ -1,15 +1,24 @@
 package io.smartpos.report.api;
 
 import io.smartpos.report.api.dto.AdvancedReports.*;
+import io.smartpos.report.api.dto.ArAging;
+import io.smartpos.report.api.dto.CategoryBucket;
 import io.smartpos.report.api.dto.CustomerSummaryDto;
 import io.smartpos.report.api.dto.DashboardDto;
+import io.smartpos.report.api.dto.DiscountVoidAnalysis;
 import io.smartpos.report.api.dto.EmployeeSalesDto;
+import io.smartpos.report.api.dto.HourlyBucket;
+import io.smartpos.report.api.dto.MonthlyTaxBucket;
+import io.smartpos.report.api.dto.MoversReport;
 import io.smartpos.report.api.dto.PaymentSummaryDto;
 import io.smartpos.report.api.dto.Period;
 import io.smartpos.report.api.dto.ProfitLossDto;
 import io.smartpos.report.api.dto.PurchaseSummaryDto;
+import io.smartpos.report.api.dto.RetentionRate;
+import io.smartpos.report.api.dto.RfmSegments;
 import io.smartpos.report.api.dto.SalesSummaryDto;
 import io.smartpos.report.api.dto.TaxSummaryDto;
+import io.smartpos.report.api.dto.TurnoverRow;
 import io.smartpos.report.application.AdvancedReportService;
 import io.smartpos.report.application.CustomerReportService;
 import io.smartpos.report.application.DashboardService;
@@ -28,6 +37,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.time.Year;
 import java.util.List;
 import java.util.UUID;
 
@@ -176,6 +186,88 @@ public class ReportController {
     public CustomerSummaryDto customerSummary(@RequestParam(required = false) LocalDate dateFrom,
                                                @RequestParam(required = false) LocalDate dateTo) {
         return customerReports.summary(defaultFrom(dateFrom), defaultTo(dateTo));
+    }
+
+    // ---- Sales: hourly breakdown ----
+
+    @GetMapping("/sales/by-hour")
+    @PreAuthorize("hasAuthority('report.sales')")
+    public List<HourlyBucket> salesByHour(@RequestParam(required = false) LocalDate dateFrom,
+                                           @RequestParam(required = false) LocalDate dateTo,
+                                           @RequestParam(required = false) UUID warehouseId) {
+        return salesReports.byHour(defaultFrom(dateFrom), defaultTo(dateTo), warehouseId);
+    }
+
+    // ---- Sales: discount/void analysis ----
+
+    @GetMapping("/sales/discounts-voids")
+    @PreAuthorize("hasAuthority('report.sales')")
+    public DiscountVoidAnalysis discountsVoids(@RequestParam(required = false) LocalDate dateFrom,
+                                                @RequestParam(required = false) LocalDate dateTo,
+                                                @RequestParam(required = false) UUID warehouseId) {
+        return salesReports.discountsVoids(defaultFrom(dateFrom), defaultTo(dateTo), warehouseId);
+    }
+
+    // ---- Customer: RFM segments ----
+
+    @GetMapping("/customers/rfm")
+    @PreAuthorize("hasAuthority('report.sales')")
+    public RfmSegments customerRfm(@RequestParam(required = false) LocalDate dateFrom,
+                                    @RequestParam(required = false) LocalDate dateTo) {
+        return customerReports.rfm(defaultFrom(dateFrom), defaultTo(dateTo));
+    }
+
+    // ---- Customer: retention rate ----
+
+    @GetMapping("/customers/retention")
+    @PreAuthorize("hasAuthority('report.sales')")
+    public RetentionRate customerRetention(@RequestParam(required = false) LocalDate dateFrom,
+                                            @RequestParam(required = false) LocalDate dateTo) {
+        return customerReports.retention(defaultFrom(dateFrom), defaultTo(dateTo));
+    }
+
+    // ---- Purchase: by-category ----
+
+    @GetMapping("/purchases/by-category")
+    @PreAuthorize("hasAuthority('report.financial')")
+    public List<CategoryBucket> purchasesByCategory(@RequestParam(required = false) LocalDate dateFrom,
+                                                      @RequestParam(required = false) LocalDate dateTo,
+                                                      @RequestParam(required = false) UUID warehouseId) {
+        return purchaseReports.byCategory(defaultFrom(dateFrom), defaultTo(dateTo), warehouseId);
+    }
+
+    // ---- Payment: AR aging ----
+
+    @GetMapping("/payments/aging")
+    @PreAuthorize("hasAuthority('report.financial')")
+    public ArAging paymentAging(@RequestParam(required = false) LocalDate asOf) {
+        return paymentReports.aging(asOf != null ? asOf : LocalDate.now());
+    }
+
+    // ---- Tax: monthly schedule ----
+
+    @GetMapping("/tax/monthly-schedule")
+    @PreAuthorize("hasAuthority('report.financial')")
+    public List<MonthlyTaxBucket> taxMonthlySchedule(@RequestParam(required = false) Integer year) {
+        return taxReports.monthlySchedule(year != null ? year : Year.now().getValue());
+    }
+
+    // ---- Inventory: turnover ----
+
+    @GetMapping("/inventory/turnover")
+    @PreAuthorize("hasAuthority('report.inventory')")
+    public List<TurnoverRow> inventoryTurnover(@RequestParam(required = false) UUID warehouseId,
+                                                @RequestParam(defaultValue = "12") int months) {
+        return inventoryReports.turnover(warehouseId, months);
+    }
+
+    // ---- Inventory: top/bottom movers ----
+
+    @GetMapping("/inventory/movers")
+    @PreAuthorize("hasAuthority('report.inventory')")
+    public MoversReport inventoryMovers(@RequestParam(required = false) UUID warehouseId,
+                                         @RequestParam(defaultValue = "20") int limit) {
+        return inventoryReports.movers(warehouseId, limit);
     }
 
     // ---- Employee sales ----

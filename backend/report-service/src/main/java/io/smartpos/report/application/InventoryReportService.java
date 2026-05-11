@@ -1,11 +1,14 @@
 package io.smartpos.report.application;
 
+import io.smartpos.report.api.dto.MoversReport;
+import io.smartpos.report.api.dto.TurnoverRow;
 import io.smartpos.report.infrastructure.config.RedisCacheConfig;
 import io.smartpos.report.infrastructure.feign.InventoryFeign;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -23,5 +26,15 @@ public class InventoryReportService {
                unless = "#result == null")
     public InventoryFeign.WarehouseSummary summary(UUID warehouseId) {
         return inventory.summary(warehouseId);
+    }
+
+    public List<TurnoverRow> turnover(UUID warehouseId, int months) {
+        // TODO: compute inventory turnover from snapshots and COGS
+        return List.of();
+    }
+
+    public MoversReport movers(UUID warehouseId, int limit) {
+        // TODO: compute top/bottom movers from sales data
+        return new MoversReport(List.of(), List.of());
     }
 }
