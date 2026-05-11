@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import {
   Button,
   ButtonGroup,
+  Chip,
   CircularProgress,
   useTheme,
 } from '@mui/material';
@@ -12,11 +13,13 @@ import {
   IconMail,
   IconBrandWhatsapp,
   IconSparkles,
+  IconRefresh,
 } from '@tabler/icons-react';
 import {
   generateDocument,
   downloadDocumentPdf,
   summarizeDocument,
+  retryVfdSubmission,
   type DocumentDto,
 } from '../../../api/smartpos/documents';
 import DocumentPreviewModal from './DocumentPreviewModal';
@@ -99,6 +102,14 @@ export default function DocumentActionsBar({
     }, 60000);
   }, [doc]);
 
+  const handleRetryVfd = useCallback(async () => {
+    if (!doc) return;
+    try {
+      const result = await retryVfdSubmission(doc.id);
+      setDoc({ ...doc, vfdStatus: result.status });
+    } catch (e) { console.error('VFD retry failed', e); }
+  }, [doc]);
+
   const handleSummarize = useCallback(async () => {
     if (!doc) return;
     setSummarizing(true);
@@ -147,6 +158,18 @@ export default function DocumentActionsBar({
       >
         AI Summarize
       </Button>
+
+      {doc && doc.documentType === 'tax-invoice' && (
+        <Chip
+          size="small"
+          label={doc.vfdStatus === 'registered' ? 'VFD Registered' : doc.vfdStatus === 'failed' ? 'VFD Failed - Retry' : 'VFD Pending'}
+          color={doc.vfdStatus === 'registered' ? 'success' : doc.vfdStatus === 'failed' ? 'error' : 'warning'}
+          variant="outlined"
+          sx={{ mt: 0.5, fontSize: '0.7rem' }}
+          onDelete={doc.vfdStatus === 'failed' ? handleRetryVfd : undefined}
+          deleteIcon={doc.vfdStatus === 'failed' ? <IconRefresh size={12} /> : undefined}
+        />
+      )}
 
       {doc && (
         <DocumentPreviewModal

@@ -22,6 +22,10 @@ export interface DocumentDto {
   sizeBytes?: number;
   presignedUrl?: string;
   createdAt: string;
+  fiscalCode?: string;
+  zNumber?: string;
+  vfdStatus?: string;
+  buyerTin?: string;
 }
 
 export interface TemplateInfo {
@@ -245,6 +249,13 @@ export interface DocumentSearchParams {
 
 export async function searchDocuments(params: DocumentSearchParams = {}): Promise<Page<DocumentDto>> {
   const { data } = await api.get<Page<DocumentDto>>('/api/v1/documents/search', { params });
+  return data;
+}
+
+// ---- VFD Endpoints ----
+
+export async function retryVfdSubmission(id: UUID): Promise<{ status: string }> {
+  const { data } = await api.post<{ status: string }>(`/api/v1/documents/${id}/vfd/retry`);
   return data;
 }
 
