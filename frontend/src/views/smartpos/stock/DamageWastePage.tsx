@@ -90,6 +90,7 @@ export default function DamageWastePage() {
   // ── Shared state ──────────────────────────────────────────────────────────
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [productNames, setProductNames] = useState<Record<string, string>>({});
 
   useEffect(() => {
     listWarehouses()
@@ -144,10 +145,23 @@ export default function DamageWastePage() {
   const fetchPending = useCallback(async (page = 0) => {
     setPendingLoading(true);
     try {
-      const { data } = await api.get<Page<DamageRecord>>('/api/v1/adjustments', {
+      const { data } = await api.get<Page<{ id: UUID; ref: string; date: string; warehouseId: UUID; status: string; reasonCode?: string; notes?: string; lines?: { productId: UUID; variantId?: UUID; qtyDelta: number }[] }>>('/api/v1/adjustments', {
         params: { status: 'PENDING_REVIEW', page, size: 20 },
       });
-      setPendingRows(data.content);
+      const rows: DamageRecord[] = data.content.map((adj) => ({
+        id: adj.id,
+        ref: adj.ref,
+        date: adj.date,
+        warehouseId: adj.warehouseId,
+        productId: adj.lines?.[0]?.productId || '',
+        variantId: adj.lines?.[0]?.variantId || null,
+        qty: Math.abs(adj.lines?.[0]?.qtyDelta || 0),
+        reasonCode: adj.reasonCode || 'Other',
+        type: 'DAMAGE',
+        notes: adj.notes,
+        status: adj.status as DamageStatus,
+      }));
+      setPendingRows(rows);
       setPendingTotalPages(data.totalPages || 1);
       setPendingTotalElements(data.totalElements || 0);
     } catch (e: unknown) {
@@ -157,6 +171,26 @@ export default function DamageWastePage() {
       setPendingLoading(false);
     }
   }, []);
+
+  // Fetch product names for displayed records
+  useEffect(() => {
+    const unseen = pendingRows.map((r) => r.productId).filter((id) => id && !productNames[id]);
+    if (unseen.length === 0) return;
+    let cancelled = false;
+    listProducts({ size: 200 })
+      .then((p) => {
+        if (cancelled) return;
+        setProductNames((prev) => {
+          const next = { ...prev };
+          for (const product of p.content) next[product.id] = product.name;
+          for (const id of unseen) { if (!next[id]) next[id] = id.slice(0, 8) + '…'; }
+          return next;
+        });
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingRows]);
 
   const handleSubmit = useCallback(async () => {
     if (!form.warehouseId || !form.product || !form.qty || !form.reasonCode) return;
@@ -245,7 +279,7 @@ export default function DamageWastePage() {
       render: (r) => (
         <Stack>
           <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.8rem' }}>
-            {r.productName ?? r.productId.slice(0, 8)}
+            {productNames[r.productId] || (r.productId ? r.productId.slice(0, 8) : '—')}
           </Typography>
           {r.variantId && (
             <Typography variant="caption" sx={{ color: brand.neutral[500], fontFamily: 'monospace' }}>
@@ -368,7 +402,7 @@ export default function DamageWastePage() {
         );
       },
     },
-  ], [approving, rejecting, handleApprove]);
+  ], [approving, rejecting, handleApprove, productNames]);
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
@@ -628,7 +662,7 @@ export default function DamageWastePage() {
             {rejectTarget && (
               <Typography variant="body2" sx={{ color: brand.neutral[600] }}>
                 Rejecting <strong>{rejectTarget.ref}</strong> —{' '}
-                {rejectTarget.productName ?? rejectTarget.productId.slice(0, 8)} ({rejectTarget.qty} units)
+                {productNames[rejectTarget.productId] || (rejectTarget.productId ? rejectTarget.productId.slice(0, 8) : '—')} ({rejectTarget.qty} units)
               </Typography>
             )}
             <TextField
