@@ -11,6 +11,7 @@ import {
   updateCustomerGroup,
   type CustomerGroup, type CustomerGroupInput,
 } from 'src/api/smartpos/customerGroups';
+import type { Page } from 'src/api/smartpos/types';
 import PageHeader from 'src/components/smartpos/PageHeader';
 import DataTable, { type Column } from 'src/components/smartpos/DataTable';
 import { brand } from 'src/theme/smartpos/brand';
@@ -37,8 +38,8 @@ export default function CustomerGroupsPage() {
   useEffect(() => {
     setLoading(true);
     listCustomerGroups(page, 50)
-      .then((p) => { setRows(p.content); setTotalPages(p.totalPages || 1); })
-      .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load'))
+      .then((p: Page<CustomerGroup>) => { setRows(p.content); setTotalPages(p.totalPages || 1); })
+      .catch((e: unknown) => setError(e instanceof Error ? e.message : 'Failed to load'))
       .finally(() => setLoading(false));
   }, [page, refreshToken]);
 
@@ -176,7 +177,7 @@ export default function CustomerGroupsPage() {
             <TextField
               label="Group Name"
               value={form.name}
-              onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+              onChange={(e) => setForm((f: CustomerGroupInput) => ({ ...f, name: e.target.value }))}
               size="small"
               required
               fullWidth
@@ -184,7 +185,7 @@ export default function CustomerGroupsPage() {
             <TextField
               label="Description"
               value={form.description}
-              onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+              onChange={(e) => setForm((f: CustomerGroupInput) => ({ ...f, description: e.target.value }))}
               size="small"
               multiline
               minRows={2}
@@ -194,7 +195,7 @@ export default function CustomerGroupsPage() {
               label="Discount %"
               type="number"
               value={form.discountPercent ?? 0}
-              onChange={(e) => setForm((f) => ({ ...f, discountPercent: Number(e.target.value) }))}
+              onChange={(e) => setForm((f: CustomerGroupInput) => ({ ...f, discountPercent: Number(e.target.value) }))}
               size="small"
               fullWidth
             />
