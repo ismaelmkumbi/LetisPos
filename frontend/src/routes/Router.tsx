@@ -96,6 +96,7 @@ const SmartPosIntegrations = Loadable(
 const SmartPosBranches = Loadable(lazy(() => import('../views/smartpos/settings/BranchesPage')));
 const SmartPosBilling = Loadable(lazy(() => import('../views/smartpos/settings/BillingPage')));
 const SmartPosBillingPlans = Loadable(lazy(() => import('../views/smartpos/settings/BillingPlansPage')));
+import TenantBillingPage from '../views/smartpos/billing/TenantBillingPage';
 const SmartPosI18nAdmin = Loadable(lazy(() => import('../views/smartpos/settings/I18nAdminPage')));
 const SmartPosReceiptSettings = Loadable(
   lazy(() => import('../views/smartpos/settings/ReceiptSettingsPage')),
@@ -487,6 +488,8 @@ const Router = [
       { path: 'pos/terminals', element: <SmartPosTerminals /> },
       // Integrations
       { path: 'integrations', element: <SmartPosIntegrations /> },
+      // Billing (tenant self-service)
+      { path: 'billing', element: <TenantBillingPage /> },
       // Settings
       { path: 'settings/i18n', element: <SmartPosI18nAdmin /> },
       { path: 'settings/receipt', element: <SmartPosReceiptSettings /> },
