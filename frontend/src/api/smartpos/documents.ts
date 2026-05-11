@@ -69,6 +69,11 @@ export async function generateDocument(
   return data;
 }
 
+export async function previewDocument(req: GenerateDocumentRequest): Promise<Blob> {
+  const response = await api.post<Blob>('/api/v1/documents/preview', req, { responseType: 'blob' });
+  return response.data;
+}
+
 export async function getDocument(id: UUID): Promise<DocumentDto> {
   const { data } = await api.get<DocumentDto>(`/api/v1/documents/${id}`);
   return data;

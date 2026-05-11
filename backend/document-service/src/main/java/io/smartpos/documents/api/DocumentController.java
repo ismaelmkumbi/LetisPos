@@ -4,6 +4,7 @@ import io.smartpos.documents.api.dto.*;
 import io.smartpos.documents.application.BulkGenerationService;
 import io.smartpos.documents.application.DeliveryService;
 import io.smartpos.documents.application.DocumentService;
+import io.smartpos.documents.application.VfdService;
 import io.smartpos.documents.domain.model.BulkJob;
 import io.smartpos.documents.domain.model.Document;
 import io.smartpos.documents.domain.model.DocumentVersion;
@@ -11,6 +12,9 @@ import io.smartpos.documents.domain.repository.BulkJobRepository;
 import io.smartpos.documents.domain.repository.DocumentRepository;
 import io.smartpos.documents.domain.repository.DocumentVersionRepository;
 import io.smartpos.documents.infrastructure.feign.AiServiceClient;
+import io.smartpos.documents.infrastructure.gotenberg.GotenbergClient;
+import io.smartpos.documents.infrastructure.template.TemplateRenderer;
+import io.smartpos.documents.infrastructure.template.TemplateResolver;
 import io.smartpos.common.context.TenantContext;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.validation.Valid;
@@ -42,6 +46,10 @@ public class DocumentController {
     private final BulkGenerationService bulkService;
     private final BulkJobRepository bulkJobRepo;
     private final AiServiceClient aiClient;
+    private final VfdService vfdService;
+    private final TemplateResolver templateResolver;
+    private final TemplateRenderer templateRenderer;
+    private final GotenbergClient gotenbergClient;
 
     @PostMapping("/generate")
     @PreAuthorize("isAuthenticated()")
@@ -54,6 +62,31 @@ public class DocumentController {
                 req.getContextData() != null ? req.getContextData() : Map.of());
         String url = documentService.getPresignedUrl(doc);
         return ResponseEntity.status(HttpStatus.CREATED).body(DocumentDto.from(doc, url));
+    }
+
+    @PostMapping("/preview")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<byte[]> preview(@Valid @RequestBody GenerateDocumentRequest req) throws Exception {
+        UUID tenantId = TenantContext.require();
+        String templateFile = documentService.getTemplateFile(req.getDocumentType());
+        if (templateFile == null) {
+            throw new IllegalArgumentException("Unknown document type: " + req.getDocumentType());
+        }
+        String templateContent = templateResolver.resolve(tenantId, req.getDocumentType(), templateFile);
+        Map<String, Object> context = new java.util.HashMap<>(
+            req.getContextData() != null ? req.getContextData() : Map.of());
+        context.putIfAbsent("company", Map.of("name", "Letis POS"));
+        if (req.getReferenceType() != null && req.getReferenceId() != null) {
+            try {
+                context.putAll(documentService.fetchReferenceData(
+                    req.getReferenceType(), req.getReferenceId()));
+            } catch (Exception e) {
+                /* preview without reference data */
+            }
+        }
+        String html = templateRenderer.render(templateContent, context);
+        byte[] pdf = gotenbergClient.convertHtmlToPdf(html);
+        return ResponseEntity.ok().contentType(MediaType.APPLICATION_PDF).body(pdf);
     }
 
     @GetMapping("/{id}")
@@ -263,5 +296,14 @@ public class DocumentController {
             )
         );
         return ResponseEntity.ok(aiClient.detectAnomalies(req));
+    }
+
+    @PostMapping("/{id}/vfd/retry")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Map<String, String>> retryVfd(@PathVariable UUID id) throws Exception {
+        Document doc = documentRepo.findByIdAndTenantId(id, TenantContext.require())
+            .orElseThrow(() -> new IllegalArgumentException("Document not found: " + id));
+        vfdService.submitToVfd(doc, Map.of());
+        return ResponseEntity.ok(Map.of("status", doc.getVfdStatus()));
     }
 }
