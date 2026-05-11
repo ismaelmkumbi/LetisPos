@@ -93,6 +93,9 @@ const CameraPage = Loadable(lazy(() => import('../views/smartpos/products/Camera
 const SmartPosIntegrations = Loadable(
   lazy(() => import('../views/smartpos/integrations/IntegrationsPage')),
 );
+const SmartPosBranches = Loadable(lazy(() => import('../views/smartpos/settings/BranchesPage')));
+const SmartPosBilling = Loadable(lazy(() => import('../views/smartpos/settings/BillingPage')));
+const SmartPosBillingPlans = Loadable(lazy(() => import('../views/smartpos/settings/BillingPlansPage')));
 const SmartPosI18nAdmin = Loadable(lazy(() => import('../views/smartpos/settings/I18nAdminPage')));
 const SmartPosReceiptSettings = Loadable(
   lazy(() => import('../views/smartpos/settings/ReceiptSettingsPage')),
@@ -531,6 +534,9 @@ const Router = [
       { path: 'settings/tenants', element: <SmartPosTenants /> },
       { path: 'settings/locale', element: <SmartPosLocale /> },
       { path: 'settings/onboarding', element: <SmartPosOnboarding /> },
+      { path: 'admin/branches', element: <SmartPosBranches /> },
+      { path: 'admin/billing', element: <SmartPosBilling /> },
+      { path: 'admin/billing/plans', element: <SmartPosBillingPlans /> },
     ],
   },
   // ---- Modernize demo (left intact while we build; can be stripped later) ----
