@@ -4,6 +4,9 @@ import type { Customer, Page, UUID } from './types';
 export interface CustomerSearchParams {
   search?: string;
   active?: boolean;
+  country?: string;
+  creditMin?: number;
+  creditMax?: number;
   page?: number;
   size?: number;
   sort?: string;
@@ -30,6 +33,7 @@ export interface CustomerInput {
   country?: string;
   creditLimit?: number;
   notes?: string;
+  active?: boolean;
 }
 
 export async function createCustomer(body: CustomerInput): Promise<Customer> {
