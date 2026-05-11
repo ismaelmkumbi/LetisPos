@@ -247,3 +247,25 @@ export async function searchDocuments(params: DocumentSearchParams = {}): Promis
   const { data } = await api.get<Page<DocumentDto>>('/api/v1/documents/search', { params });
   return data;
 }
+
+// ---- AI Endpoints ----
+
+export async function summarizeDocument(id: UUID): Promise<{ summary: string }> {
+  const { data } = await api.post<{ summary: string }>(`/api/v1/documents/${id}/summarize`);
+  return data;
+}
+
+export async function detectAnomalies(id: UUID): Promise<{ anomalies: Array<{ field: string; severity: string; message: string; suggestion?: string }> }> {
+  const { data } = await api.post<{ anomalies: Array<{ field: string; severity: string; message: string; suggestion?: string }> }>(`/api/v1/documents/${id}/anomalies`);
+  return data;
+}
+
+export async function fieldMap(body: { documentType: string; headers: string[] }): Promise<{ mappings: Record<string, string>; confidence: number }> {
+  const { data } = await api.post<{ mappings: Record<string, string>; confidence: number }>('/api/v1/documents/field-map', body);
+  return data;
+}
+
+export async function assistTemplate(documentType: string, prompt: string, currentConfig: string): Promise<Record<string, unknown>> {
+  const { data } = await api.post<Record<string, unknown>>(`/api/v1/templates/${documentType}/assist`, { prompt, currentConfig });
+  return data;
+}

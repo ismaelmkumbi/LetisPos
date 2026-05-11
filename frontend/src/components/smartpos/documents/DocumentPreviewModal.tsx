@@ -10,11 +10,14 @@ import {
   Tab,
   CircularProgress,
   Typography,
+  Alert,
+  AlertTitle,
 } from '@mui/material';
-import { IconEye, IconFileTypePdf, IconHistory } from '@tabler/icons-react';
-import { getTemplate, previewTemplate } from '../../../api/smartpos/documents';
+import { IconEye, IconFileTypePdf, IconHistory, IconSparkles } from '@tabler/icons-react';
+import { getTemplate, previewTemplate, summarizeDocument } from '../../../api/smartpos/documents';
 import TemplatePreviewRenderer from './TemplatePreviewRenderer';
 import DocumentVersionTimeline from './DocumentVersionTimeline';
+import AnomalyBanner from './AnomalyBanner';
 
 interface DocumentPreviewModalProps {
   open: boolean;
@@ -36,6 +39,8 @@ export default function DocumentPreviewModal({
   const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [docSummary, setDocSummary] = useState<string | null>(null);
+  const [summarizing, setSummarizing] = useState(false);
 
   const loadTemplate = useCallback(async () => {
     if (templateHtml) return;
@@ -65,6 +70,19 @@ export default function DocumentPreviewModal({
     }
   }, [documentType, templateHtml]);
 
+  const handleSummarize = useCallback(async () => {
+    if (!documentId) return;
+    try {
+      setSummarizing(true);
+      const result = await summarizeDocument(documentId);
+      setDocSummary(result.summary);
+    } catch {
+      console.error('Failed to summarize document');
+    } finally {
+      setSummarizing(false);
+    }
+  }, [documentId]);
+
   const handleOpen = useCallback(() => {
     if (open) {
       loadTemplate();
@@ -92,6 +110,18 @@ export default function DocumentPreviewModal({
     >
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
         <IconEye size={20} /> Document Preview
+        <Box sx={{ flexGrow: 1 }} />
+        {documentId && (
+          <Button
+            size="small"
+            variant="outlined"
+            onClick={handleSummarize}
+            disabled={summarizing}
+            startIcon={summarizing ? <CircularProgress size={14} /> : <IconSparkles size={16} />}
+          >
+            Summarize
+          </Button>
+        )}
       </DialogTitle>
 
       <Box sx={{ borderBottom: 1, borderColor: 'divider', px: 3 }}>
@@ -103,6 +133,14 @@ export default function DocumentPreviewModal({
       </Box>
 
       <DialogContent>
+        {documentId && <AnomalyBanner documentId={documentId} />}
+        {docSummary && (
+          <Alert severity="info" icon={<IconSparkles size={16} />} sx={{ mb: 2 }}
+            action={<Button size="small" onClick={() => setDocSummary(null)}>Dismiss</Button>}>
+            <AlertTitle sx={{ fontSize: '0.8rem', fontWeight: 600 }}>AI Summary</AlertTitle>
+            {docSummary}
+          </Alert>
+        )}
         {loading && (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
             <CircularProgress />

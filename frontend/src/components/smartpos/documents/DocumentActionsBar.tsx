@@ -11,10 +11,12 @@ import {
   IconDownload,
   IconMail,
   IconBrandWhatsapp,
+  IconSparkles,
 } from '@tabler/icons-react';
 import {
   generateDocument,
   downloadDocumentPdf,
+  summarizeDocument,
   type DocumentDto,
 } from '../../../api/smartpos/documents';
 import DocumentPreviewModal from './DocumentPreviewModal';
@@ -40,6 +42,7 @@ export default function DocumentActionsBar({
 }: DocumentActionsBarProps) {
   const [doc, setDoc] = useState<DocumentDto | null>(null);
   const [generating, setGenerating] = useState(false);
+  const [summarizing, setSummarizing] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [emailOpen, setEmailOpen] = useState(false);
   const [whatsappOpen, setWhatsappOpen] = useState(false);
@@ -96,6 +99,16 @@ export default function DocumentActionsBar({
     }, 60000);
   }, [doc]);
 
+  const handleSummarize = useCallback(async () => {
+    if (!doc) return;
+    setSummarizing(true);
+    try {
+      await summarizeDocument(doc.id);
+    } finally {
+      setSummarizing(false);
+    }
+  }, [doc]);
+
   return (
     <>
       <ButtonGroup variant="outlined" size="small" disabled={disabled || generating}>
@@ -124,6 +137,16 @@ export default function DocumentActionsBar({
           WhatsApp
         </Button>
       </ButtonGroup>
+      <Button
+        onClick={handleSummarize}
+        disabled={!doc || summarizing}
+        startIcon={summarizing ? <CircularProgress size={14} /> : <IconSparkles size={16} />}
+        size="small"
+        variant="outlined"
+        sx={{ mt: 0.5 }}
+      >
+        AI Summarize
+      </Button>
 
       {doc && (
         <DocumentPreviewModal
