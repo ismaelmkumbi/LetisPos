@@ -7,9 +7,11 @@ import io.smartpos.report.api.dto.CustomerSummaryDto;
 import io.smartpos.report.api.dto.DashboardDto;
 import io.smartpos.report.api.dto.DiscountVoidAnalysis;
 import io.smartpos.report.api.dto.EmployeeSalesDto;
+import io.smartpos.report.api.dto.FinancialReportDto;
 import io.smartpos.report.api.dto.HourlyBucket;
 import io.smartpos.report.api.dto.MonthlyTaxBucket;
 import io.smartpos.report.api.dto.MoversReport;
+import io.smartpos.report.api.dto.OperationsReportDto;
 import io.smartpos.report.api.dto.PaymentSummaryDto;
 import io.smartpos.report.api.dto.Period;
 import io.smartpos.report.api.dto.ProfitLossDto;
@@ -17,16 +19,21 @@ import io.smartpos.report.api.dto.PurchaseSummaryDto;
 import io.smartpos.report.api.dto.RetentionRate;
 import io.smartpos.report.api.dto.RfmSegments;
 import io.smartpos.report.api.dto.SalesSummaryDto;
+import io.smartpos.report.api.dto.SupplierReportDto;
 import io.smartpos.report.api.dto.TaxSummaryDto;
 import io.smartpos.report.api.dto.TurnoverRow;
 import io.smartpos.report.application.AdvancedReportService;
 import io.smartpos.report.application.CustomerReportService;
 import io.smartpos.report.application.DashboardService;
+import io.smartpos.report.application.EmployeeReportService;
+import io.smartpos.report.application.FinancialReportService;
 import io.smartpos.report.application.InventoryReportService;
+import io.smartpos.report.application.OperationsReportService;
 import io.smartpos.report.application.PaymentReportService;
 import io.smartpos.report.application.ProfitLossService;
 import io.smartpos.report.application.PurchaseReportService;
 import io.smartpos.report.application.SalesReportService;
+import io.smartpos.report.application.SupplierReportService;
 import io.smartpos.report.application.TaxReportService;
 import io.smartpos.report.infrastructure.feign.InventoryFeign;
 import io.smartpos.report.infrastructure.feign.PaymentFeign;
@@ -46,15 +53,19 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class ReportController {
 
-    private final DashboardService        dashboardService;
-    private final SalesReportService      salesReports;
-    private final InventoryReportService  inventoryReports;
-    private final ProfitLossService       profitLoss;
-    private final AdvancedReportService   advanced;
-    private final TaxReportService        taxReports;
-    private final PurchaseReportService   purchaseReports;
-    private final PaymentReportService    paymentReports;
-    private final CustomerReportService   customerReports;
+    private final DashboardService          dashboardService;
+    private final SalesReportService        salesReports;
+    private final InventoryReportService    inventoryReports;
+    private final ProfitLossService         profitLoss;
+    private final AdvancedReportService     advanced;
+    private final TaxReportService          taxReports;
+    private final PurchaseReportService     purchaseReports;
+    private final PaymentReportService      paymentReports;
+    private final CustomerReportService     customerReports;
+    private final SupplierReportService     supplierReports;
+    private final FinancialReportService    financialReports;
+    private final EmployeeReportService     employeeReports;
+    private final OperationsReportService   operationsReports;
 
     @GetMapping("/dashboard")
     @PreAuthorize("hasAuthority('report.sales') or hasAuthority('report.financial') " +
@@ -276,7 +287,46 @@ public class ReportController {
     @PreAuthorize("hasAuthority('report.sales')")
     public EmployeeSalesDto salesByEmployee(@RequestParam(required = false) LocalDate dateFrom,
                                              @RequestParam(required = false) LocalDate dateTo) {
-        return new EmployeeSalesDto(defaultFrom(dateFrom), defaultTo(dateTo), List.of());
+        return employeeReports.sales(defaultFrom(dateFrom), defaultTo(dateTo));
+    }
+
+    // ---- Supplier reports ----
+
+    @GetMapping("/suppliers/summary")
+    @PreAuthorize("hasAuthority('report.financial')")
+    public SupplierReportDto supplierSummary(@RequestParam(required = false) LocalDate dateFrom,
+                                              @RequestParam(required = false) LocalDate dateTo) {
+        return supplierReports.report(defaultFrom(dateFrom), defaultTo(dateTo));
+    }
+
+    // ---- Financial reports ----
+
+    @GetMapping("/financial/balance-sheet")
+    @PreAuthorize("hasAuthority('report.financial')")
+    public FinancialReportDto.BalanceSheet balanceSheet(@RequestParam(required = false) LocalDate asOf) {
+        return financialReports.balanceSheet(asOf != null ? asOf : LocalDate.now());
+    }
+
+    @GetMapping("/financial/trial-balance")
+    @PreAuthorize("hasAuthority('report.financial')")
+    public FinancialReportDto.TrialBalance trialBalance(@RequestParam(required = false) LocalDate dateFrom,
+                                                          @RequestParam(required = false) LocalDate dateTo) {
+        return financialReports.trialBalance(defaultFrom(dateFrom), defaultTo(dateTo));
+    }
+
+    @GetMapping("/financial/cash-flow")
+    @PreAuthorize("hasAuthority('report.financial')")
+    public FinancialReportDto.CashFlowStatement cashFlow(@RequestParam(required = false) LocalDate dateFrom,
+                                                           @RequestParam(required = false) LocalDate dateTo) {
+        return financialReports.cashFlow(defaultFrom(dateFrom), defaultTo(dateTo));
+    }
+
+    // ---- Operations reports ----
+
+    @GetMapping("/operations/summary")
+    @PreAuthorize("hasAuthority('report.sales')")
+    public OperationsReportDto operationsSummary(@RequestParam(required = false) LocalDate date) {
+        return operationsReports.report(date != null ? date : LocalDate.now());
     }
 
     // ---- helpers ----
