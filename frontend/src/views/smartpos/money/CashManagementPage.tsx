@@ -428,6 +428,12 @@ export default function CashManagementPage() {
         />
       </Stack>
 
+      {!warehouseId && (
+        <Alert severity="info" sx={{ mb: 2, borderRadius: '12px' }}>
+          No warehouse assigned to your account. Contact an administrator to assign a warehouse.
+        </Alert>
+      )}
+
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>
           {error}
@@ -435,6 +441,7 @@ export default function CashManagementPage() {
       )}
 
       {/* History table */}
+      {warehouseId && (
       <DataTable
         columns={columns}
         rows={history}
@@ -447,6 +454,7 @@ export default function CashManagementPage() {
         exportFileName="cash-register-history"
         toolbarTitle="Register Sessions"
       />
+      )}
 
       {/* ---- Open Register dialog ---- */}
       <Dialog
