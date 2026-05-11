@@ -473,3 +473,78 @@ export async function runExportJob(
   }
   return finished;
 }
+
+// ─── Hourly Sales ───
+
+export interface HourlyBucket { hour: number; count: number; net: number; }
+export async function getSalesByHour(params: { dateFrom?: string; dateTo?: string; warehouseId?: UUID } = {}): Promise<HourlyBucket[]> {
+  const { data } = await api.get<HourlyBucket[]>('/api/v1/reports/sales/by-hour', { params });
+  return data;
+}
+
+// ─── Discounts & Voids ───
+
+export interface DiscountVoidAnalysis { totalDiscounts: number; discountCount: number; totalVoids: number; voidCount: number; discountRate: number; voidRate: number; }
+export async function getDiscountsVoids(params: { dateFrom?: string; dateTo?: string; warehouseId?: UUID } = {}): Promise<DiscountVoidAnalysis> {
+  const { data } = await api.get<DiscountVoidAnalysis>('/api/v1/reports/sales/discounts-voids', { params });
+  return data;
+}
+
+// ─── Customer RFM ───
+
+export interface RfmCustomer { customerId: UUID; customerName: string; recency: number; frequency: number; monetary: number; segment: string; }
+export interface RfmSegments { champions: number; loyal: number; atRisk: number; lost: number; customers: RfmCustomer[]; }
+export async function getCustomerRfm(params: { dateFrom?: string; dateTo?: string } = {}): Promise<RfmSegments> {
+  const { data } = await api.get<RfmSegments>('/api/v1/reports/customers/rfm', { params });
+  return data;
+}
+
+// ─── Customer Retention ───
+
+export interface RetentionRate { rate: number; returningCustomers: number; totalCustomers: number; priorPeriodRate: number; change: number; }
+export async function getCustomerRetention(params: { dateFrom?: string; dateTo?: string } = {}): Promise<RetentionRate> {
+  const { data } = await api.get<RetentionRate>('/api/v1/reports/customers/retention', { params });
+  return data;
+}
+
+// ─── Purchases by Category ───
+
+export interface CategoryBucket { categoryId?: UUID | null; categoryName?: string | null; count: number; net: number; }
+export async function getPurchasesByCategory(params: { dateFrom?: string; dateTo?: string; warehouseId?: UUID } = {}): Promise<CategoryBucket[]> {
+  const { data } = await api.get<CategoryBucket[]>('/api/v1/reports/purchases/by-category', { params });
+  return data;
+}
+
+// ─── AR Aging ───
+
+export interface AgingBucket { label: string; daysFrom: number; daysTo: number; amount: number; invoiceCount: number; }
+export interface ArAging { buckets: AgingBucket[]; totalOutstanding: number; }
+export async function getArAging(params: { asOf?: string } = {}): Promise<ArAging> {
+  const { data } = await api.get<ArAging>('/api/v1/reports/payments/aging', { params });
+  return data;
+}
+
+// ─── Monthly Tax Schedule ───
+
+export interface MonthlyTaxBucket { month: number; taxableSales: number; taxCollected: number; outputTax: number; inputTax: number; netPayable: number; }
+export async function getMonthlyTaxSchedule(params: { year?: number } = {}): Promise<MonthlyTaxBucket[]> {
+  const { data } = await api.get<MonthlyTaxBucket[]>('/api/v1/reports/tax/monthly-schedule', { params });
+  return data;
+}
+
+// ─── Inventory Turnover ───
+
+export interface TurnoverRow { productId: UUID; productName: string; productCode?: string | null; avgInventory: number; costOfGoodsSold: number; turnoverRatio: number; }
+export async function getInventoryTurnover(params: { warehouseId?: UUID; months?: number } = {}): Promise<TurnoverRow[]> {
+  const { data } = await api.get<TurnoverRow[]>('/api/v1/reports/inventory/turnover', { params });
+  return data;
+}
+
+// ─── Inventory Movers ───
+
+export interface MoverRow { productId: UUID; productName: string; qtySold: number; revenue: number; direction: string; }
+export interface MoversReport { top: MoverRow[]; bottom: MoverRow[]; }
+export async function getInventoryMovers(params: { warehouseId?: UUID; limit?: number } = {}): Promise<MoversReport> {
+  const { data } = await api.get<MoversReport>('/api/v1/reports/inventory/movers', { params });
+  return data;
+}
