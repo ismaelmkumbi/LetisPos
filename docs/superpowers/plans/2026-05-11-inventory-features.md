@@ -100,7 +100,7 @@ public interface ReorderRuleRepository extends JpaRepository<ReorderRule, UUID>,
 
 **ReorderRuleDto.java:**
 ```java
-package stepio.smartpos.inventory.api.dto;
+package io.smartpos.inventory.api.dto;
 
 import io.smartpos.inventory.domain.model.ReorderRule;
 import java.math.BigDecimal;
@@ -283,11 +283,7 @@ public class ReorderRuleController {
 }
 ```
 
-- [ ] **Step 3: Fix ReorderRuleDto package typo**
-
-The DTO package in step 1 has typo `stepio`. Fix it to `io.smartpos.inventory.api.dto`.
-
-- [ ] **Step 4: Commit**
+- [ ] **Step 3: Commit**
 
 ```bash
 git add backend/inventory-service/src/main/java/io/smartpos/inventory/application/ReorderRuleService.java backend/inventory-service/src/main/java/io/smartpos/inventory/api/ReorderRuleController.java
