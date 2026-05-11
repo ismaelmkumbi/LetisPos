@@ -1,0 +1,23 @@
+server:
+  port: 8094
+
+spring:
+  application:
+    name: billing-service
+  datasource:
+    url: jdbc:postgresql://localhost:5434/billing_db
+    username: ${DB_USERNAME:smartpos}
+    password: ${DB_PASSWORD:smartpos}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+
+smartpos:
+  internal:
+    shared-secret: ${INTERNAL_SHARED_SECRET:dev-internal-token-change-me}
+  auth-service:
+    base-url: http://localhost:8081
