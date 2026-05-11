@@ -48,6 +48,14 @@ smartpos:
   gotenberg:
     url: ${GOTENBERG_URL:http://localhost:3000}
     request-timeout-seconds: 30
+  tra:
+    vfd-url: ${TRA_VFD_URL:http://localhost:9999/vfd}
+    vfd-api-key: ${TRA_VFD_API_KEY:stub-key}
+    seller-tin: ${TRA_SELLER_TIN:123-456-789}
+    vat-registration: ${TRA_VAT_REG:VAT-123456}
+    retry-max-attempts: 5
+    retry-backoff-seconds: 60
+    auto-submit: ${TRA_AUTO_SUBMIT:false}
 
 management:
   endpoints.web.exposure.include: health,info

@@ -29,6 +29,7 @@ public class DocumentService {
     private final TemplateRenderer templateRenderer;
     private final GotenbergClient gotenbergClient;
     private final MinioObjectStore storage;
+    private final VfdService vfdService;
 
     private static final Map<String, String> TEMPLATE_FILES = Map.ofEntries(
         Map.entry("quotation", "quotation.hbs"),
@@ -81,6 +82,9 @@ public class DocumentService {
         Map<String, Object> mergedContext = new java.util.HashMap<>(contextData);
         mergedContext.putIfAbsent("company", Map.of("name", "Letis POS"));
         mergedContext.put("qrData", buildQrData(documentType, referenceType, referenceId));
+        if ("tax-invoice".equals(documentType)) {
+            mergedContext.put("sellerTin", vfdService.getSellerTin());
+        }
         String html = templateRenderer.render(templateContent, mergedContext);
 
         byte[] pdfBytes = gotenbergClient.convertHtmlToPdf(html);
@@ -114,6 +118,10 @@ public class DocumentService {
                 .changeSummary("Document generated")
                 .build();
         versionRepo.save(v1);
+
+        if ("tax-invoice".equals(documentType)) {
+            vfdService.submitToVfd(saved, mergedContext);
+        }
 
         log.info("Generated document {} ({}) for tenant={}", docNumber, documentType, tenantId);
         return saved;

@@ -191,6 +191,16 @@
   </div>
 </div>
 
+<div style="margin-top:16px;padding:10px;border:1px solid #e2e8f0;border-radius:6px;font-size:10px;color:#555;">
+  <div style="font-weight:600;margin-bottom:4px;">TRA Fiscal Information</div>
+  {{#if fiscalCode}}<div>Fiscal Code: {{fiscalCode}}</div>{{/if}}
+  {{#if zNumber}}<div>Z-Number: {{zNumber}}</div>{{/if}}
+  {{#if receiptNumber}}<div>Receipt #: {{receiptNumber}}</div>{{/if}}
+  <div>Seller TIN: {{sellerTin}}</div>
+  {{#if buyerTin}}<div>Buyer TIN: {{buyerTin}}</div>{{/if}}
+  <div style="margin-top:4px;font-style:italic;">This invoice was electronically generated via VFD and is valid without a physical signature.</div>
+</div>
+
 <div class="footer">
   <div>{{company.name}} | {{company.address}} | TIN: {{company.tin}}</div>
   <div>Phone: {{company.phone}} | Email: {{company.email}}</div>

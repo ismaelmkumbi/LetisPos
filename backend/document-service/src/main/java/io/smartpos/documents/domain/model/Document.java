@@ -57,4 +57,26 @@ public class Document {
     @Column(name = "created_at", nullable = false, updatable = false)
     @Builder.Default
     private Instant createdAt = Instant.now();
+
+    @Column(name = "fiscal_code", length = 50)
+    private String fiscalCode;
+
+    @Column(name = "z_number", length = 50)
+    private String zNumber;
+
+    @Column(name = "receipt_number", length = 50)
+    private String receiptNumber;
+
+    @Column(name = "buyer_tin", length = 30)
+    private String buyerTin;
+
+    @Column(name = "vfd_status", length = 20)
+    @Builder.Default
+    private String vfdStatus = "pending";
+
+    @Column(name = "vfd_submitted_at")
+    private Instant vfdSubmittedAt;
+
+    @Column(name = "vfd_response", columnDefinition = "jsonb")
+    private String vfdResponse;
 }
