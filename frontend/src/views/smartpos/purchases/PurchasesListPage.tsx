@@ -12,7 +12,7 @@ import {
   IconPlus, IconRotate, IconShoppingCart, IconTrash, IconTruckDelivery, IconX,
   IconFileStack,
 } from '@tabler/icons-react';
-import { useNavigate } from 'react-router';
+import { useNavigate, useSearchParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 
 import {
@@ -21,6 +21,7 @@ import {
 } from 'src/api/smartpos/sales';
 import { listSuppliers } from 'src/api/smartpos/suppliers';
 import type { Supplier } from 'src/api/smartpos/types';
+import { listWarehouses, type Warehouse } from 'src/api/smartpos/inventory';
 import { PageHeader } from 'src/components/smartpos/PageHeader';
 import FilterBar, { type ActiveFilter } from 'src/components/smartpos/FilterBar';
 import DataTable, { type Column } from 'src/components/smartpos/DataTable';
@@ -189,8 +190,11 @@ export default function PurchasesListPage() {
   const [dense, setDense] = useState(false);
   const [sort, setSort] = useState<{ id: string; desc: boolean } | null>({ id: 'date', desc: true });
 
-  // Suppliers
+  // Suppliers & warehouses
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [searchParams] = useSearchParams();
+  const [warehouseId, setWarehouseId] = useState(searchParams.get('warehouse') ?? '');
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
 
   // Global stats (filtered by date range — covers entire dataset, not just this page)
   const [globalStats, setGlobalStats] = useState<PurchaseStats | null>(null);
@@ -228,6 +232,12 @@ export default function PurchasesListPage() {
       .catch(() => {});
   }, [user?.tenantId]);
 
+  useEffect(() => {
+    listWarehouses()
+      .then((w) => setWarehouses(w))
+      .catch(() => {});
+  }, [user?.tenantId]);
+
   // ── Fetch purchases ──────────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -240,6 +250,7 @@ export default function PurchasesListPage() {
         status: (status || undefined) as PurchaseStatus | undefined,
         paymentStatus: (payStatus || undefined) as PaymentStatus | undefined,
         supplierId: supplierId || undefined,
+        warehouseId: warehouseId || undefined,
         dateFrom: dateFrom || undefined,
         dateTo: dateTo || undefined,
         page,
@@ -264,7 +275,7 @@ export default function PurchasesListPage() {
       cancelled = true;
       clearTimeout(t);
     };
-  }, [search, status, payStatus, supplierId, dateFrom, dateTo, page, refreshToken, sort, user?.tenantId]);
+  }, [search, status, payStatus, supplierId, warehouseId, dateFrom, dateTo, page, refreshToken, sort, user?.tenantId]);
 
   // ── Stats ────────────────────────────────────────────────────────────────────
   // Global totals (whole dataset for the active date range), fetched separately
@@ -375,6 +386,7 @@ export default function PurchasesListPage() {
     setStatus('');
     setPayStatus('');
     setSupplierId('');
+    setWarehouseId('');
     setDateFrom('');
     setDateTo('');
     setDense(false);
@@ -393,6 +405,10 @@ export default function PurchasesListPage() {
       const sn = suppliers.find((s) => s.id === supplierId)?.name ?? supplierId.slice(0, 8);
       out.push({ key: 'supplier', label: `Supplier: ${sn}`, clear: () => { setSupplierId(''); setPage(0); } });
     }
+    if (warehouseId) {
+      const wn = warehouses.find((w) => w.id === warehouseId)?.name ?? warehouseId.slice(0, 8);
+      out.push({ key: 'warehouse', label: `Warehouse: ${wn}`, clear: () => { setWarehouseId(''); setPage(0); } });
+    }
     if (dateFrom)
       out.push({ key: 'from', label: `From: ${dateFrom}`, clear: () => { setDateFrom(''); setPage(0); } });
     if (dateTo)
@@ -400,7 +416,7 @@ export default function PurchasesListPage() {
     if (dense)
       out.push({ key: 'density', label: 'Compact table', clear: () => setDense(false) });
     return out;
-  }, [search, status, payStatus, supplierId, dateFrom, dateTo, dense, suppliers]);
+  }, [search, status, payStatus, supplierId, warehouseId, dateFrom, dateTo, dense, suppliers, warehouses]);
 
   // ── Columns ──────────────────────────────────────────────────────────────────
 
@@ -770,6 +786,19 @@ export default function PurchasesListPage() {
           <MenuItem value="">All suppliers</MenuItem>
           {suppliers.map((s) => (
             <MenuItem key={s.id} value={s.id}>{s.name}</MenuItem>
+          ))}
+        </TextField>
+        <TextField
+          select
+          size="small"
+          value={warehouseId}
+          label="Warehouse"
+          onChange={(e) => { setWarehouseId(e.target.value); setPage(0); }}
+          sx={{ minWidth: 180, '& .MuiOutlinedInput-root': { borderRadius: '10px', height: 42 } }}
+        >
+          <MenuItem value="">All warehouses</MenuItem>
+          {warehouses.map((w) => (
+            <MenuItem key={w.id} value={w.id}>{w.name}</MenuItem>
           ))}
         </TextField>
         <TextField
