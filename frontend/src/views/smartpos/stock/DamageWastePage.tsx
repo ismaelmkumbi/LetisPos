@@ -133,6 +133,31 @@ export default function DamageWastePage() {
     return () => clearTimeout(searchTimer.current);
   }, [form.productSearch]);
 
+  // ── Tab 2: Pending approval (state + fetch, declared above Tab 1's submit
+  //     because handleSubmit calls fetchPending on success)
+  const [pendingRows, setPendingRows] = useState<DamageRecord[]>([]);
+  const [pendingLoading, setPendingLoading] = useState(true);
+  const [pendingPage, setPendingPage] = useState(0);
+  const [pendingTotalPages, setPendingTotalPages] = useState(1);
+  const [pendingTotalElements, setPendingTotalElements] = useState(0);
+
+  const fetchPending = useCallback(async (page = 0) => {
+    setPendingLoading(true);
+    try {
+      const { data } = await api.get<Page<DamageRecord>>('/api/v1/adjustments', {
+        params: { status: 'PENDING_REVIEW', page, size: 20 },
+      });
+      setPendingRows(data.content);
+      setPendingTotalPages(data.totalPages || 1);
+      setPendingTotalElements(data.totalElements || 0);
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } }; message?: string };
+      setError(err?.response?.data?.message ?? err?.message ?? 'Failed to load adjustments');
+    } finally {
+      setPendingLoading(false);
+    }
+  }, []);
+
   const handleSubmit = useCallback(async () => {
     if (!form.warehouseId || !form.product || !form.qty || !form.reasonCode) return;
     setSubmitting(true);
@@ -149,39 +174,15 @@ export default function DamageWastePage() {
       });
       setSuccessMsg(`Recorded ${form.type.toLowerCase()} of ${form.qty} × ${form.product.name}`);
       setForm(EMPTY_FORM);
-      // Switch to pending tab
       setTab(1);
       fetchPending();
-    } catch (e: any) {
-      const msg = e?.response?.data?.message ?? e?.message ?? 'Failed to record';
-      setFormError(msg);
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } }; message?: string };
+      setFormError(err?.response?.data?.message ?? err?.message ?? 'Failed to record');
     } finally {
       setSubmitting(false);
     }
-  }, [form]);
-
-  // ── Tab 2: Pending approval ───────────────────────────────────────────────
-  const [pendingRows, setPendingRows] = useState<DamageRecord[]>([]);
-  const [pendingLoading, setPendingLoading] = useState(true);
-  const [pendingPage, setPendingPage] = useState(0);
-  const [pendingTotalPages, setPendingTotalPages] = useState(1);
-  const [pendingTotalElements, setPendingTotalElements] = useState(0);
-
-  const fetchPending = useCallback(async (page = 0) => {
-    setPendingLoading(true);
-    try {
-      const { data } = await api.get<Page<DamageRecord>>('/api/v1/adjustments', {
-        params: { status: 'PENDING_REVIEW', page, size: 20 },
-      });
-      setPendingRows(data.content);
-      setPendingTotalPages(data.totalPages || 1);
-      setPendingTotalElements(data.totalElements || 0);
-    } catch (e: any) {
-      setError(e?.response?.data?.message ?? e?.message ?? 'Failed to load adjustments');
-    } finally {
-      setPendingLoading(false);
-    }
-  }, []);
+  }, [form, fetchPending]);
 
   useEffect(() => {
     if (tab === 1) fetchPending(pendingPage);

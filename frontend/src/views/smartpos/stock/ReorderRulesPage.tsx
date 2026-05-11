@@ -153,12 +153,17 @@ export default function ReorderRulesPage() {
   }, [filtered, warehouseId]);
 
   // ── Lookup helpers ──────────────────────────────────────────────────────
-  const warehouseName = (id: string) =>
-    warehouses.find((w) => w.id === id)?.name ?? id.slice(0, 8);
-  const supplierName = (id?: string | null) => {
-    if (!id) return '—';
-    return suppliers.find((s) => s.id === id)?.name ?? id.slice(0, 8);
-  };
+  const warehouseName = useCallback(
+    (id: string) => warehouses.find((w) => w.id === id)?.name ?? id.slice(0, 8),
+    [warehouses],
+  );
+  const supplierName = useCallback(
+    (id?: string | null) => {
+      if (!id) return '—';
+      return suppliers.find((s) => s.id === id)?.name ?? id.slice(0, 8);
+    },
+    [suppliers],
+  );
 
   // ── Filter chips ────────────────────────────────────────────────────────
   const activeFilters: ActiveFilter[] = useMemo(() => {
@@ -367,7 +372,7 @@ export default function ReorderRulesPage() {
         </Stack>
       ),
     },
-  ], [warehouses, suppliers]);
+  ], [warehouses, suppliers, warehouseName, supplierName]);
 
   return (
     <Box>
