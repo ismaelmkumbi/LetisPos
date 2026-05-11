@@ -24,4 +24,9 @@ class CaptureExceptionHandler {
     ResponseEntity<Map<String, String>> badRequest(IllegalArgumentException e) {
         return ResponseEntity.status(400).body(Map.of("error", e.getMessage()));
     }
+
+    @ExceptionHandler(SecurityException.class)
+    ResponseEntity<Map<String, String>> forbidden(SecurityException e) {
+        return ResponseEntity.status(403).body(Map.of("error", e.getMessage()));
+    }
 }

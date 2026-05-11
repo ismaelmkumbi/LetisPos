@@ -2,7 +2,10 @@ import { api } from './client';
 
 export interface CreateSessionResponse {
   sessionId: string;
+  /** Pre-baked URL for the QR code; already carries the upload token in `?t=`. */
   qrUrl: string;
+  /** Session-scoped credential the phone must echo back as X-Capture-Token. */
+  uploadToken: string;
   expiresAt: string;
 }
 

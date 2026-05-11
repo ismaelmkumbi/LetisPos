@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useParams } from 'react-router';
+import { useParams, useSearchParams } from 'react-router';
 import axios from 'axios';
 import {
   Box,
@@ -22,6 +22,11 @@ const publicCaptureApi = axios.create({
 
 export default function CameraPage() {
   const { sessionId } = useParams<{ sessionId: string }>();
+  const [search] = useSearchParams();
+  // The QR encoded by the POS includes `?t=<uploadToken>` — this is what binds
+  // an anonymous phone browser to the session and is the only thing the
+  // ai-service accepts for the upload-only endpoints.
+  const uploadToken = search.get('t') ?? '';
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -121,16 +126,23 @@ export default function CameraPage() {
 
   const handleDone = async () => {
     if (captures.length === 0 || !sessionId) return;
+    if (!uploadToken) {
+      setError('This capture link is missing its security token. Refresh the QR code on the POS and scan again.');
+      return;
+    }
     setUploading(true);
     setError(null);
     setUploaded(0);
 
+    const headers = { 'X-Capture-Token': uploadToken };
     for (let i = 0; i < captures.length; i++) {
       try {
         const blob = dataUrlToBlob(captures[i]);
         const form = new FormData();
         form.append('photo', blob, `photo-${i}.jpg`);
-        await publicCaptureApi.post(`/api/v1/ai/capture-sessions/${sessionId}/photos`, form);
+        await publicCaptureApi.post(
+          `/api/v1/ai/capture-sessions/${sessionId}/photos`, form, { headers },
+        );
         setUploaded((prev) => prev + 1);
       } catch (err) {
         setError(uploadErrorMessage(err, i + 1));
@@ -140,7 +152,9 @@ export default function CameraPage() {
     }
 
     try {
-      await publicCaptureApi.post(`/api/v1/ai/capture-sessions/${sessionId}/complete`);
+      await publicCaptureApi.post(
+        `/api/v1/ai/capture-sessions/${sessionId}/complete`, null, { headers },
+      );
     } catch {
       // complete is best-effort — photos are already uploaded
     }

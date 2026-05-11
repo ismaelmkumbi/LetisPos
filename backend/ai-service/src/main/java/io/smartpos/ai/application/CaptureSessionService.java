@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.InputStream;
+import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -34,9 +35,11 @@ public class CaptureSessionService {
     private static final long CLEANUP_TTL_HOURS = 1;
 
     private final Map<UUID, SessionState> sessions = new ConcurrentHashMap<>();
+    private final SecureRandom secureRandom = new SecureRandom();
 
     private record SessionState(
             Instant createdAt,
+            String uploadToken,
             List<PhotoInfo> photos,
             boolean complete
     ) {}
@@ -44,11 +47,43 @@ public class CaptureSessionService {
     public CreateSessionResponse createSession() {
         UUID sessionId = UUID.randomUUID();
         Instant now = Instant.now();
-        sessions.put(sessionId, new SessionState(now, new CopyOnWriteArrayList<>(), false));
-        String qrUrl = baseUrl + "/capture/" + sessionId;
+        String uploadToken = newToken();
+        sessions.put(sessionId, new SessionState(now, uploadToken, new CopyOnWriteArrayList<>(), false));
+        // Embed the upload token in the QR URL so the phone (which has no JWT)
+        // can authenticate itself to the capture-only endpoints. The token is
+        // session-scoped, single-purpose, and expires with the session.
+        String qrUrl = baseUrl + "/capture/" + sessionId + "?t=" + uploadToken;
         Instant expiresAt = now.plusSeconds(SESSION_TTL_MINUTES * 60);
         ensureBucket();
-        return new CreateSessionResponse(sessionId, qrUrl, expiresAt);
+        return new CreateSessionResponse(sessionId, qrUrl, uploadToken, expiresAt);
+    }
+
+    /** Reject anything that doesn't present the session's bound upload token. */
+    public void verifyUploadToken(UUID sessionId, String presentedToken) {
+        SessionState state = getSessionOrThrow(sessionId);
+        if (presentedToken == null || presentedToken.isBlank()
+                || !MessageDigestSafeEquals.equals(state.uploadToken(), presentedToken)) {
+            throw new SecurityException("Invalid or missing capture token");
+        }
+    }
+
+    private String newToken() {
+        byte[] bytes = new byte[24];
+        secureRandom.nextBytes(bytes);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+    }
+
+    /** Constant-time string comparison so token validation can't be timed. */
+    private static final class MessageDigestSafeEquals {
+        static boolean equals(String a, String b) {
+            if (a == null || b == null) return false;
+            byte[] x = a.getBytes();
+            byte[] y = b.getBytes();
+            if (x.length != y.length) return false;
+            int diff = 0;
+            for (int i = 0; i < x.length; i++) diff |= x[i] ^ y[i];
+            return diff == 0;
+        }
     }
 
     public PhotoUploadResponse uploadPhoto(UUID sessionId, MultipartFile file) {
@@ -96,7 +131,7 @@ public class CaptureSessionService {
     public CompleteResponse completeSession(UUID sessionId) {
         SessionState state = getSessionOrThrow(sessionId);
         checkNotExpired(state);
-        sessions.put(sessionId, new SessionState(state.createdAt(), state.photos(), true));
+        sessions.put(sessionId, new SessionState(state.createdAt(), state.uploadToken(), state.photos(), true));
         return new CompleteResponse(sessionId, state.photos().size(), true);
     }
 

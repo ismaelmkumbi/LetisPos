@@ -11,6 +11,7 @@ public final class CaptureSessionDtos {
     public record CreateSessionResponse(
             UUID sessionId,
             String qrUrl,
+            String uploadToken,
             Instant expiresAt
     ) {}
 

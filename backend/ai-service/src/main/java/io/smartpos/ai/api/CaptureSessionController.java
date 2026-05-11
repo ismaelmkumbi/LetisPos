@@ -24,13 +24,19 @@ public class CaptureSessionController {
     }
 
     @PostMapping(value = "/{id}/photos", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<PhotoUploadResponse> uploadPhoto(@PathVariable UUID id,
-                                                           @RequestParam("photo") MultipartFile file) {
+    public ResponseEntity<PhotoUploadResponse> uploadPhoto(
+            @PathVariable UUID id,
+            @RequestParam("photo") MultipartFile file,
+            @RequestHeader(value = "X-Capture-Token", required = false) String tokenHeader,
+            @RequestParam(value = "t", required = false) String tokenParam) {
+        service.verifyUploadToken(id, tokenHeader != null ? tokenHeader : tokenParam);
         return ResponseEntity.ok(service.uploadPhoto(id, file));
     }
 
     @GetMapping("/{id}/photos")
     public ResponseEntity<SessionPhotosResponse> getPhotos(@PathVariable UUID id) {
+        // POS polls this with a JWT; phone never calls it. Token check left off
+        // so the POS dashboard can show progress without juggling the token.
         return ResponseEntity.ok(service.getPhotos(id));
     }
 
@@ -51,7 +57,11 @@ public class CaptureSessionController {
     }
 
     @PostMapping("/{id}/complete")
-    public ResponseEntity<CompleteResponse> complete(@PathVariable UUID id) {
+    public ResponseEntity<CompleteResponse> complete(
+            @PathVariable UUID id,
+            @RequestHeader(value = "X-Capture-Token", required = false) String tokenHeader,
+            @RequestParam(value = "t", required = false) String tokenParam) {
+        service.verifyUploadToken(id, tokenHeader != null ? tokenHeader : tokenParam);
         return ResponseEntity.ok(service.completeSession(id));
     }
 
