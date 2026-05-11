@@ -34,4 +34,7 @@ public interface DocumentRepository extends JpaRepository<Document, UUID> {
         Pageable pageable);
 
     List<Document> findByDocumentTypeAndVfdStatus(String documentType, String vfdStatus);
+
+    @Query("SELECT COUNT(d) FROM Document d WHERE d.tenantId = :tenantId")
+    long countByTenantId(@Param("tenantId") UUID tenantId);
 }

@@ -99,6 +99,7 @@ public class DocumentService {
         if ("tax-invoice".equals(documentType)) {
             mergedContext.put("sellerTin", vfdService.getSellerTin());
         }
+        mergedContext.put("watermark", "DRAFT");
         String html = templateRenderer.render(templateContent, mergedContext);
 
         byte[] pdfBytes = gotenbergClient.convertHtmlToPdf(html);
@@ -116,6 +117,7 @@ public class DocumentService {
                 .referenceType(referenceType)
                 .referenceId(referenceId)
                 .status("draft")
+                .watermark("DRAFT")
                 .storagePath(objectKey)
                 .contentType("application/pdf")
                 .sizeBytes((long) pdfBytes.length)
@@ -167,12 +169,16 @@ public class DocumentService {
 
     private String generateDocumentNumber(UUID tenantId, String documentType) {
         String prefix = documentType.substring(0, 3).toUpperCase().replaceAll("[^A-Z]", "X");
-        long count = documentRepo.count();
+        long count = documentRepo.countByTenantId(tenantId);
         return prefix + "-" + String.format("%06d", count + 1);
     }
 
+    public String getTemplateFile(String documentType) {
+        return TEMPLATE_FILES.get(documentType);
+    }
+
     @SuppressWarnings("unchecked")
-    private Map<String, Object> fetchReferenceData(String referenceType, UUID referenceId) {
+    public Map<String, Object> fetchReferenceData(String referenceType, UUID referenceId) {
         try {
             Map<String, Object> raw = switch (referenceType) {
                 case "sale" -> salesClient.getSale(referenceId);
