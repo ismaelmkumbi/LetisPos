@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   Box, Typography, TextField, Select, MenuItem, FormControl,
-  InputLabel, Button, Stack,
+  InputLabel, Button, Stack, Skeleton,
 } from '@mui/material';
-import { IconSearch, IconX } from '@tabler/icons-react';
+import { IconSearch, IconX, IconFileSearch } from '@tabler/icons-react';
 import { EnhancedDataTable, type Column } from 'src/components/smartpos/EnhancedDataTable';
 import DocumentStatusBadge from 'src/components/smartpos/documents/DocumentStatusBadge';
 import DocumentActionsBar from 'src/components/smartpos/documents/DocumentActionsBar';
@@ -150,6 +150,23 @@ export default function DocumentSearchPage() {
         <Button onClick={clearFilters} startIcon={<IconX size={14} />} size="small">Clear</Button>
       </Stack>
 
+      {loading && results.length === 0 && (
+        <Stack spacing={1} sx={{ p: 2 }}>
+          {[1, 2, 3, 4, 5].map((i) => (
+            <Skeleton key={i} variant="rectangular" height={48} sx={{ borderRadius: 1 }} />
+          ))}
+        </Stack>
+      )}
+
+      {!loading && results.length === 0 && (
+        <Box sx={{ textAlign: 'center', py: 8 }}>
+          <IconFileSearch size={48} color="#ccc" />
+          <Typography color="text.secondary" sx={{ mt: 2 }}>No documents found</Typography>
+          <Typography variant="caption" color="text.secondary">Try adjusting your search filters</Typography>
+        </Box>
+      )}
+
+      {(results.length > 0) && (
       <EnhancedDataTable<DocumentDto>
         columns={columns}
         rows={results}
@@ -162,6 +179,7 @@ export default function DocumentSearchPage() {
         getRowKey={(row) => row.id}
         getRowId={(row) => row.id}
       />
+      )}
     </Box>
   );
 }

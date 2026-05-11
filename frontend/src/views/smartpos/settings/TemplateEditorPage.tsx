@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Box, Typography, Select, MenuItem, FormControl, InputLabel, Button } from '@mui/material';
 import { IconSparkles } from '@tabler/icons-react';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
@@ -29,8 +29,26 @@ export default function TemplateEditorPage() {
   const [selectedBlock, setSelectedBlock] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [showAssistant, setShowAssistant] = useState(false);
+  const [, setPreviewRefresh] = useState(0);
+  const handleSaveRef = useRef<() => void>(() => {});
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        handleSaveRef.current();
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        setPreviewRefresh((n) => n + 1);
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
 
   // Load available templates
   useEffect(() => {
@@ -90,6 +108,7 @@ export default function TemplateEditorPage() {
       setSaving(false);
     }
   };
+  handleSaveRef.current = handleSave;
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 80px)', p: 2, gap: 2 }}>
