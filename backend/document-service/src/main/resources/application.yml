@@ -33,6 +33,8 @@ spring:
       url: ${PAYMENT_URI:http://localhost:8086}
     notification-service:
       url: ${NOTIFICATION_URI:http://localhost:8089}
+    ai-service:
+      url: ${AI_SERVICE_URI:http://localhost:8091}
 
 smartpos:
   documents:
@@ -46,6 +48,23 @@ smartpos:
   gotenberg:
     url: ${GOTENBERG_URL:http://localhost:3000}
     request-timeout-seconds: 30
+  printers:
+    - id: main
+      name: Main Receipt Printer
+      ip: ${PRINTER_MAIN_IP:192.168.1.100}
+      port: ${PRINTER_MAIN_PORT:9100}
+      paper-width: 80
+      auto-cut: true
+      cash-drawer: false
+      enabled: ${PRINTER_MAIN_ENABLED:false}
+  tra:
+    vfd-url: ${TRA_VFD_URL:http://localhost:9999/vfd}
+    vfd-api-key: ${TRA_VFD_API_KEY:stub-key}
+    seller-tin: ${TRA_SELLER_TIN:123-456-789}
+    vat-registration: ${TRA_VAT_REG:VAT-123456}
+    retry-max-attempts: 5
+    retry-backoff-seconds: 60
+    auto-submit: ${TRA_AUTO_SUBMIT:false}
 
 management:
   endpoints.web.exposure.include: health,info

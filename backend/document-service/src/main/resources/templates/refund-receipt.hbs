@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+  @page { size: A4; margin: 15mm; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 12px; color: #1a1a1a; }
+  .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 30px; border-bottom: 3px solid #16a34a; padding-bottom: 16px; }
+  .logo { font-size: 24px; font-weight: 700; color: #16a34a; }
+  .company-info { text-align: right; font-size: 11px; color: #555; line-height: 1.5; }
+  .doc-title { font-size: 22px; font-weight: 700; color: #16a34a; margin-bottom: 4px; }
+  .doc-meta { display: flex; justify-content: space-between; margin-bottom: 24px; }
+  .meta-box { flex: 1; }
+  .meta-label { font-size: 10px; text-transform: uppercase; color: #888; letter-spacing: 1px; margin-bottom: 2px; }
+  .meta-value { font-size: 13px; font-weight: 500; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
+  thead th { background: #f0fdf4; padding: 10px 12px; text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: #16a34a; border-bottom: 2px solid #bbf7d0; }
+  tbody td { padding: 10px 12px; border-bottom: 1px solid #e2e8f0; font-size: 12px; }
+  .text-right { text-align: right; }
+  .footer { margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 16px; font-size: 10px; color: #888; line-height: 1.6; }
+  .signature { display: flex; justify-content: space-between; margin-top: 50px; }
+  .sig-block { text-align: center; }
+  .sig-line { border-bottom: 1px solid #1a1a1a; width: 200px; margin-bottom: 6px; }
+  .sig-label { font-size: 11px; color: #555; }
+  .section-title { font-size: 13px; font-weight: 700; color: #15803d; margin-bottom: 10px; margin-top: 20px; text-transform: uppercase; }
+  .refund-amount { background: #f0fdf4; border: 2px solid #16a34a; border-radius: 8px; padding: 16px 20px; text-align: center; margin: 20px 0; }
+  .refund-amount .label { font-size: 11px; text-transform: uppercase; color: #15803d; letter-spacing: 1px; margin-bottom: 4px; }
+  .refund-amount .amount { font-size: 28px; font-weight: 700; color: #16a34a; }
+  .info-card { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 12px 16px; font-size: 12px; color: #166534; line-height: 1.8; margin-bottom: 16px; }
+  .reference-box { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 10px 14px; font-size: 11px; color: #15803d; margin-bottom: 16px; }
+  .stamp-area { border: 2px dashed #16a34a; border-radius: 8px; padding: 16px; text-align: center; margin-top: 24px; color: #16a34a; font-size: 11px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="logo">{{company.name}}</div>
+    <div style="font-size:11px;color:#555;">{{company.address}}</div>
+    <div style="font-size:11px;color:#555;">TIN: {{company.tin}}</div>
+  </div>
+  <div class="company-info">
+    <div>{{company.phone}}</div>
+    <div>{{company.email}}</div>
+    <div>{{company.website}}</div>
+  </div>
+</div>
+
+<div class="doc-title">REFUND RECEIPT</div>
+
+<div class="doc-meta">
+  <div class="meta-box">
+    <div class="meta-label">Receipt #</div>
+    <div class="meta-value">{{document.number}}</div>
+  </div>
+  <div class="meta-box">
+    <div class="meta-label">Date</div>
+    <div class="meta-value">{{document.date}}</div>
+  </div>
+  <div class="meta-box">
+    <div class="meta-label">Status</div>
+    <div class="meta-value">{{document.status}}</div>
+  </div>
+</div>
+
+<div class="reference-box">
+  <strong>Original Payment Reference:</strong> {{document.paymentReference}}
+</div>
+
+<div class="section-title">Customer Information</div>
+<div class="info-card">
+  <strong>Name:</strong> {{customer.name}}<br>
+  <strong>Address:</strong> {{customer.address}}<br>
+  <strong>Phone:</strong> {{customer.phone}} &nbsp;&nbsp;|&nbsp;&nbsp; <strong>Email:</strong> {{customer.email}}
+</div>
+
+<div class="doc-meta">
+  <div class="meta-box">
+    <div class="meta-label">Refund Method</div>
+    <div class="meta-value">{{document.refundMethod}}</div>
+  </div>
+  <div class="meta-box">
+    <div class="meta-label">Transaction Reference</div>
+    <div class="meta-value">{{document.transactionRef}}</div>
+  </div>
+</div>
+
+<div class="refund-amount">
+  <div class="label">Refund Amount</div>
+  <div class="amount">{{totals.grandTotal}}</div>
+</div>
+
+<div class="section-title">Reason for Refund</div>
+<div class="info-card" style="background:#f0fdf4;color:#166534;">
+  {{document.reason}}
+</div>
+
+<div class="signature">
+  <div class="sig-block">
+    <div class="sig-line"></div>
+    <div class="sig-label">Processed By</div>
+  </div>
+  <div class="sig-block">
+    <div class="sig-line"></div>
+    <div class="sig-label">Authorized By</div>
+  </div>
+  <div class="sig-block">
+    <div class="sig-line"></div>
+    <div class="sig-label">Customer Signature</div>
+  </div>
+</div>
+
+<div class="stamp-area">
+  OFFICIAL STAMP / SEAL
+</div>
+
+<div class="footer">
+  <div>{{company.name}} | {{company.address}} | TIN: {{company.tin}}</div>
+  <div>Phone: {{company.phone}} | Email: {{company.email}}</div>
+  <div>Page 1 of 1 | Generated on {{document.date}}</div>
+</div>
+
+</body>
+</html>

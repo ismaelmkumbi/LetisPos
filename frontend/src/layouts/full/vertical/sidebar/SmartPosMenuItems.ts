@@ -11,6 +11,7 @@ import type { ElementType } from 'react';
 import type { TFunction } from 'i18next';
 import {
   IconDashboard,
+  IconSearch,
   IconCashRegister,
   IconReceipt,
   IconFileInvoice,
@@ -136,6 +137,10 @@ export function buildSmartPosMenu(t: TFunction): MenuItem[] {
     { id: uid(), title: 'Supplier Returns', icon: IconArrowBackUp, ...soon },
     { id: uid(), title: 'Supplier Payments', icon: IconCoin, ...soon },
 
+    // ── Documents ────────────────────────────────────────────────────────
+    { subheader: 'Documents' },
+    { id: uid(), title: 'Document Search', icon: IconSearch, href: '/smartpos/documents/search' },
+
     // ── Customers ───────────────────────────────────────────────────────
     { subheader: 'Customers' },
     { id: uid(), title: t('smartpos:nav.customers'), icon: IconUsers, href: '/smartpos/customers' },
@@ -239,6 +244,7 @@ export function buildSmartPosMenu(t: TFunction): MenuItem[] {
     { id: uid(), title: 'Branches', icon: IconBuilding, ...soon },
     { id: uid(), title: t('smartpos:nav.pos_terminals'), icon: IconDeviceDesktop, href: '/smartpos/pos/terminals' },
     { id: uid(), title: t('smartpos:nav.receipt_settings'), icon: IconReceipt, href: '/smartpos/settings/receipt' },
+    { id: uid(), title: 'Printer Settings', icon: IconPrinter, href: '/smartpos/settings/printers' },
     { id: uid(), title: 'Tax & Pricing', icon: IconPercentage, href: '/smartpos/settings/tax-pricing' },
     { id: uid(), title: t('smartpos:nav.languages_admin'), icon: IconLanguage, href: '/smartpos/settings/i18n' },
     { id: uid(), title: t('smartpos:nav.localization'), icon: IconWorld, href: '/smartpos/settings/locale' },

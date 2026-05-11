@@ -25,19 +25,11 @@ export const getServices = (name: string) =>
   hubApi.get<ServiceInfo[]>(`/api/v1/servers/${name}/services`).then(r => r.data);
 export const serviceAction = (server: string, svc: string, action: string) =>
   hubApi.post(`/api/v1/servers/${server}/services/${encodeURIComponent(svc)}/${action}`);
-export const getLogs = (server: string, svc: string, tail = 100, filter?: string, grep?: boolean) =>
-  hubApi.get<string>(`/api/v1/servers/${server}/logs/${svc}`, { params: { tail, filter, grep: grep ? '1' : undefined } }).then(r => r.data);
+export const getLogs = (server: string, svc: string, tail = 100, filter?: string) =>
+  hubApi.get<string>(`/api/v1/servers/${server}/logs/${svc}`, { params: { tail, filter } }).then(r => r.data);
 
 export interface BackendService {
   name: string; category: string; port: number; status: 'UP' | 'DOWN'; description: string;
 }
 export const getBackendServices = (server: string) =>
   hubApi.get<BackendService[]>(`/api/v1/servers/${server}/backend-services`).then(r => r.data);
-
-export interface ProcessInfo {
-  name: string; pid: number; cpu_pct: number; mem_mb: number; port: number;
-}
-export const getProcesses = (server: string) =>
-  hubApi.get<ProcessInfo[]>(`/api/v1/servers/${server}/processes`).then(r => r.data);
-export const clearLogs = (server: string, svc?: string) =>
-  hubApi.post(`/api/v1/servers/${server}/logs/${svc || 'clear-all'}/clear`).then(r => r.data);

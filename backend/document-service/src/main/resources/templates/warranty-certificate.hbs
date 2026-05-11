@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+  @page { size: A4; margin: 15mm; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 12px; color: #1a1a1a; }
+  .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 30px; border-bottom: 3px solid #ca8a04; padding-bottom: 16px; }
+  .logo { font-size: 24px; font-weight: 700; color: #ca8a04; }
+  .company-info { text-align: right; font-size: 11px; color: #555; line-height: 1.5; }
+  .doc-title { font-size: 22px; font-weight: 700; color: #ca8a04; margin-bottom: 4px; text-align: center; margin-top: 20px; }
+  .doc-subtitle { text-align: center; font-size: 13px; color: #555; margin-bottom: 30px; }
+  .doc-meta { display: flex; justify-content: space-between; margin-bottom: 24px; }
+  .meta-box { flex: 1; }
+  .meta-label { font-size: 10px; text-transform: uppercase; color: #888; letter-spacing: 1px; margin-bottom: 2px; }
+  .meta-value { font-size: 13px; font-weight: 500; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
+  thead th { background: #fefce8; padding: 10px 12px; text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: #ca8a04; border-bottom: 2px solid #fde047; }
+  tbody td { padding: 10px 12px; border-bottom: 1px solid #e2e8f0; font-size: 12px; }
+  .text-right { text-align: right; }
+  .footer { margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 16px; font-size: 10px; color: #888; line-height: 1.6; }
+  .signature { display: flex; justify-content: space-between; margin-top: 50px; }
+  .sig-block { text-align: center; }
+  .sig-line { border-bottom: 1px solid #1a1a1a; width: 200px; margin-bottom: 6px; }
+  .sig-label { font-size: 11px; color: #555; }
+  .section-title { font-size: 13px; font-weight: 700; color: #a16207; margin-bottom: 10px; margin-top: 20px; text-transform: uppercase; border-bottom: 1px solid #fde047; padding-bottom: 6px; }
+  .product-info { background: #fefce8; border: 1px solid #fde047; border-radius: 6px; padding: 14px 18px; font-size: 12px; color: #854d0e; line-height: 2; margin-bottom: 20px; }
+  .cert-number { text-align: center; font-size: 14px; font-weight: 700; color: #ca8a04; margin-bottom: 20px; }
+  .info-grid { display: flex; gap: 16px; }
+  .info-grid .item { flex: 1; }
+  .coverage-box { background: #fefce8; border: 1px solid #fde047; border-radius: 6px; padding: 14px 18px; font-size: 12px; color: #854d0e; line-height: 1.8; margin-bottom: 16px; }
+  .exclusions-box { background: #fef2f2; border: 1px solid #fecaca; border-radius: 6px; padding: 14px 18px; font-size: 12px; color: #991b1b; line-height: 1.8; margin-bottom: 16px; }
+  .claim-box { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 14px 18px; font-size: 12px; color: #166534; line-height: 1.8; margin-bottom: 16px; }
+  .stamp-area { border: 2px dashed #ca8a04; border-radius: 8px; padding: 20px; text-align: center; margin-top: 24px; color: #ca8a04; font-size: 11px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="logo">{{company.name}}</div>
+    <div style="font-size:11px;color:#555;">{{company.address}}</div>
+    <div style="font-size:11px;color:#555;">TIN: {{company.tin}}</div>
+  </div>
+  <div class="company-info">
+    <div>{{company.phone}}</div>
+    <div>{{company.email}}</div>
+    <div>{{company.website}}</div>
+  </div>
+</div>
+
+<div class="doc-title">WARRANTY CERTIFICATE</div>
+<div class="cert-number">Certificate #: {{document.number}}</div>
+
+<div class="doc-meta">
+  <div class="meta-box">
+    <div class="meta-label">Issue Date</div>
+    <div class="meta-value">{{document.date}}</div>
+  </div>
+  <div class="meta-box">
+    <div class="meta-label">Customer</div>
+    <div class="meta-value">{{customer.name}}</div>
+  </div>
+</div>
+
+<div class="section-title">Product Information</div>
+<div class="product-info">
+  <div style="display:flex;gap:40px;">
+    <div class="item">
+      <strong>Product:</strong> {{product.name}}<br>
+      <strong>Model:</strong> {{product.model}}<br>
+    </div>
+    <div class="item">
+      <strong>Serial Number:</strong> {{product.serialNumber}}<br>
+      <strong>Purchase Date:</strong> {{product.purchaseDate}}<br>
+    </div>
+  </div>
+</div>
+
+<div class="doc-meta">
+  <div class="meta-box">
+    <div class="meta-label">Warranty Period</div>
+    <div class="meta-value">{{document.warrantyPeriod}}</div>
+  </div>
+  <div class="meta-box">
+    <div class="meta-label">Warranty Expires</div>
+    <div class="meta-value" style="color:#ca8a04;font-weight:700;">{{document.warrantyExpires}}</div>
+  </div>
+  <div class="meta-box">
+    <div class="meta-label">Coverage Type</div>
+    <div class="meta-value">{{document.coverageType}}</div>
+  </div>
+</div>
+
+<div class="section-title">Coverage Details</div>
+<div class="coverage-box">
+  {{document.coverageDetails}}
+</div>
+
+<div class="section-title">Exclusions</div>
+<div class="exclusions-box">
+  {{document.exclusions}}
+</div>
+
+<div class="section-title">Claim Procedure</div>
+<div class="claim-box">
+  {{document.claimProcedure}}
+</div>
+
+<div class="signature">
+  <div class="sig-block">
+    <div class="sig-line"></div>
+    <div class="sig-label">Authorized Signatory</div>
+  </div>
+  <div class="sig-block">
+    <div class="sig-line"></div>
+    <div class="sig-label">Customer Acceptance</div>
+  </div>
+</div>
+
+<div class="stamp-area">
+  OFFICIAL STAMP / SEAL
+</div>
+
+<div class="footer">
+  <div>{{company.name}} | {{company.address}} | TIN: {{company.tin}}</div>
+  <div>Phone: {{company.phone}} | Email: {{company.email}}</div>
+  <div>Page 1 of 1 | Generated on {{document.date}}</div>
+</div>
+
+</body>
+</html>

@@ -22,6 +22,11 @@ export interface DocumentDto {
   sizeBytes?: number;
   presignedUrl?: string;
   createdAt: string;
+  fiscalCode?: string;
+  zNumber?: string;
+  vfdStatus?: string;
+  buyerTin?: string;
+  notes?: string;
 }
 
 export interface TemplateInfo {
@@ -42,6 +47,17 @@ export interface WhatsAppRequest {
   message?: string;
 }
 
+export interface DocumentVersion {
+  id: UUID;
+  documentId: UUID;
+  versionNumber: number;
+  storagePath: string;
+  changeType: string;
+  changeSummary?: string;
+  createdBy?: UUID;
+  createdAt: string;
+}
+
 // ---- Document Endpoints ----
 
 export async function generateDocument(
@@ -52,6 +68,11 @@ export async function generateDocument(
     req,
   );
   return data;
+}
+
+export async function previewDocument(req: GenerateDocumentRequest): Promise<Blob> {
+  const response = await api.post<Blob>('/api/v1/documents/preview', req, { responseType: 'blob' });
+  return response.data;
 }
 
 export async function getDocument(id: UUID): Promise<DocumentDto> {
@@ -150,4 +171,154 @@ export async function previewTemplate(
     { responseType: 'blob' },
   );
   return response.data;
+}
+
+// ---- Version Endpoints ----
+
+export async function listDocumentVersions(id: UUID): Promise<DocumentVersion[]> {
+  const { data } = await api.get<DocumentVersion[]>(`/api/v1/documents/${id}/versions`);
+  return data;
+}
+
+export async function downloadVersionPdf(documentId: UUID, versionId: UUID): Promise<Blob> {
+  const response = await api.get<Blob>(`/api/v1/documents/${documentId}/versions/${versionId}/pdf`, { responseType: 'blob' });
+  return response.data;
+}
+
+// ---- Template Version Endpoints ----
+
+export interface TemplateVersionDto {
+  id: UUID;
+  templateOverrideId: UUID;
+  versionNumber: number;
+  bodyHtml: string;
+  changeDescription?: string;
+  updatedBy?: UUID;
+  updatedAt: string;
+}
+
+export async function listTemplateVersions(documentType: string): Promise<TemplateVersionDto[]> {
+  const { data } = await api.get<TemplateVersionDto[]>(`/api/v1/templates/${documentType}/versions`);
+  return data;
+}
+
+export async function rollbackTemplate(documentType: string, version: number): Promise<{ status: string }> {
+  const { data } = await api.post<{ status: string }>(`/api/v1/templates/${documentType}/rollback`, { version });
+  return data;
+}
+
+// ---- Bulk Generation Endpoints ----
+
+export interface BulkGenerateRequest {
+  documentType: string;
+  referenceType: string;
+  referenceIds: UUID[];
+  deliveryChannel?: string; // null, "email", "whatsapp"
+  deliveryRecipient?: string; // email address or phone number
+}
+
+export interface BulkJobDto {
+  id: UUID;
+  status: string;
+  progress: number;
+  total: number;
+  deliveryChannel?: string;
+  deliveryRecipient?: string;
+  results?: Array<{ referenceId: UUID; documentId: UUID; documentNumber: string; status: string }>;
+  createdAt: string;
+}
+
+export async function bulkGenerate(req: BulkGenerateRequest): Promise<BulkJobDto> {
+  const { data } = await api.post<BulkJobDto>('/api/v1/documents/bulk', req);
+  return data;
+}
+
+export async function getBulkJobStatus(jobId: UUID): Promise<BulkJobDto> {
+  const { data } = await api.get<BulkJobDto>(`/api/v1/documents/bulk/${jobId}`);
+  return data;
+}
+
+export async function downloadBulkJob(jobId: UUID): Promise<Blob> {
+  const response = await api.get<Blob>(`/api/v1/documents/bulk/${jobId}/download`, { responseType: 'blob' });
+  return response.data;
+}
+
+// ---- Search Endpoints ----
+
+export interface DocumentSearchParams {
+  q?: string;
+  documentType?: string;
+  status?: string;
+  referenceType?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  page?: number;
+  size?: number;
+  sort?: string;
+}
+
+export async function searchDocuments(params: DocumentSearchParams = {}): Promise<Page<DocumentDto>> {
+  const { data } = await api.get<Page<DocumentDto>>('/api/v1/documents/search', { params });
+  return data;
+}
+
+// ---- Notes Endpoints ----
+
+export async function updateDocumentNotes(id: UUID, notes: string): Promise<{ status: string }> {
+  const { data } = await api.put<{ status: string }>(`/api/v1/documents/${id}/notes`, { notes });
+  return data;
+}
+
+// ---- VFD Endpoints ----
+
+export async function retryVfdSubmission(id: UUID): Promise<{ status: string }> {
+  const { data } = await api.post<{ status: string }>(`/api/v1/documents/${id}/vfd/retry`);
+  return data;
+}
+
+// ---- Printer Endpoints ----
+
+export interface PrinterInfo {
+  id: string;
+  name: string;
+  paperWidth: number;
+  autoCut: boolean;
+  cashDrawer: boolean;
+}
+
+export async function listPrinters(): Promise<PrinterInfo[]> {
+  const { data } = await api.get<PrinterInfo[]>('/api/v1/print/printers');
+  return data;
+}
+
+export async function printThermal(printerId: string, saleData: Record<string, unknown>): Promise<{ status: string }> {
+  const { data } = await api.post<{ status: string }>('/api/v1/print/thermal', { printerId, saleData });
+  return data;
+}
+
+export async function testPrint(printerId: string): Promise<{ status: string }> {
+  const { data } = await api.post<{ status: string }>('/api/v1/print/thermal/test', { printerId });
+  return data;
+}
+
+// ---- AI Endpoints ----
+
+export async function summarizeDocument(id: UUID): Promise<{ summary: string }> {
+  const { data } = await api.post<{ summary: string }>(`/api/v1/documents/${id}/summarize`);
+  return data;
+}
+
+export async function detectAnomalies(id: UUID): Promise<{ anomalies: Array<{ field: string; severity: string; message: string; suggestion?: string }> }> {
+  const { data } = await api.post<{ anomalies: Array<{ field: string; severity: string; message: string; suggestion?: string }> }>(`/api/v1/documents/${id}/anomalies`);
+  return data;
+}
+
+export async function fieldMap(body: { documentType: string; headers: string[] }): Promise<{ mappings: Record<string, string>; confidence: number }> {
+  const { data } = await api.post<{ mappings: Record<string, string>; confidence: number }>('/api/v1/documents/field-map', body);
+  return data;
+}
+
+export async function assistTemplate(documentType: string, prompt: string, currentConfig: string): Promise<Record<string, unknown>> {
+  const { data } = await api.post<Record<string, unknown>>(`/api/v1/templates/${documentType}/assist`, { prompt, currentConfig });
+  return data;
 }

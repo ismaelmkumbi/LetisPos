@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import {
   Button,
   ButtonGroup,
+  Chip,
   CircularProgress,
   useTheme,
 } from '@mui/material';
@@ -11,10 +12,14 @@ import {
   IconDownload,
   IconMail,
   IconBrandWhatsapp,
+  IconSparkles,
+  IconRefresh,
 } from '@tabler/icons-react';
 import {
   generateDocument,
   downloadDocumentPdf,
+  summarizeDocument,
+  retryVfdSubmission,
   type DocumentDto,
 } from '../../../api/smartpos/documents';
 import DocumentPreviewModal from './DocumentPreviewModal';
@@ -40,6 +45,7 @@ export default function DocumentActionsBar({
 }: DocumentActionsBarProps) {
   const [doc, setDoc] = useState<DocumentDto | null>(null);
   const [generating, setGenerating] = useState(false);
+  const [summarizing, setSummarizing] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [emailOpen, setEmailOpen] = useState(false);
   const [whatsappOpen, setWhatsappOpen] = useState(false);
@@ -96,6 +102,24 @@ export default function DocumentActionsBar({
     }, 60000);
   }, [doc]);
 
+  const handleRetryVfd = useCallback(async () => {
+    if (!doc) return;
+    try {
+      const result = await retryVfdSubmission(doc.id);
+      setDoc({ ...doc, vfdStatus: result.status });
+    } catch (e) { console.error('VFD retry failed', e); }
+  }, [doc]);
+
+  const handleSummarize = useCallback(async () => {
+    if (!doc) return;
+    setSummarizing(true);
+    try {
+      await summarizeDocument(doc.id);
+    } finally {
+      setSummarizing(false);
+    }
+  }, [doc]);
+
   return (
     <>
       <ButtonGroup variant="outlined" size="small" disabled={disabled || generating}>
@@ -124,12 +148,35 @@ export default function DocumentActionsBar({
           WhatsApp
         </Button>
       </ButtonGroup>
+      <Button
+        onClick={handleSummarize}
+        disabled={!doc || summarizing}
+        startIcon={summarizing ? <CircularProgress size={14} /> : <IconSparkles size={16} />}
+        size="small"
+        variant="outlined"
+        sx={{ mt: 0.5 }}
+      >
+        AI Summarize
+      </Button>
+
+      {doc && doc.documentType === 'tax-invoice' && (
+        <Chip
+          size="small"
+          label={doc.vfdStatus === 'registered' ? 'VFD Registered' : doc.vfdStatus === 'failed' ? 'VFD Failed - Retry' : 'VFD Pending'}
+          color={doc.vfdStatus === 'registered' ? 'success' : doc.vfdStatus === 'failed' ? 'error' : 'warning'}
+          variant="outlined"
+          sx={{ mt: 0.5, fontSize: '0.7rem' }}
+          onDelete={doc.vfdStatus === 'failed' ? handleRetryVfd : undefined}
+          deleteIcon={doc.vfdStatus === 'failed' ? <IconRefresh size={12} /> : undefined}
+        />
+      )}
 
       {doc && (
         <DocumentPreviewModal
           open={previewOpen}
           onClose={() => setPreviewOpen(false)}
           documentType={documentType}
+          documentId={doc.id}
           data={contextData ?? {}}
         />
       )}

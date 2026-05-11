@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+  @page { size: A4; margin: 15mm; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 12px; color: #1a1a1a; }
+  .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 30px; border-bottom: 3px solid #7c3aed; padding-bottom: 16px; }
+  .logo { font-size: 24px; font-weight: 700; color: #7c3aed; }
+  .company-info { text-align: right; font-size: 11px; color: #555; line-height: 1.5; }
+  .doc-title { font-size: 22px; font-weight: 700; color: #7c3aed; margin-bottom: 4px; }
+  .doc-meta { display: flex; justify-content: space-between; margin-bottom: 24px; }
+  .meta-box { flex: 1; }
+  .meta-label { font-size: 10px; text-transform: uppercase; color: #888; letter-spacing: 1px; margin-bottom: 2px; }
+  .meta-value { font-size: 13px; font-weight: 500; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
+  thead th { background: #f1f5f9; padding: 10px 12px; text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: #555; border-bottom: 2px solid #e2e8f0; }
+  tbody td { padding: 10px 12px; border-bottom: 1px solid #e2e8f0; font-size: 12px; }
+  .text-right { text-align: right; }
+  .footer { margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 16px; font-size: 10px; color: #888; line-height: 1.6; }
+  .signature { display: flex; justify-content: space-between; margin-top: 50px; }
+  .sig-block { text-align: center; }
+  .sig-line { border-bottom: 1px solid #1a1a1a; width: 200px; margin-bottom: 6px; }
+  .sig-label { font-size: 11px; color: #555; }
+  .warehouse-box { display: flex; gap: 24px; margin-bottom: 24px; }
+  .wh-from, .wh-to { flex: 1; border: 1px solid #e2e8f0; border-radius: 6px; padding: 12px; }
+  .wh-label { font-size: 10px; text-transform: uppercase; color: #7c3aed; letter-spacing: 1px; margin-bottom: 4px; }
+</style>
+</head>
+<body>
+<div class="header">
+  <div>
+    <div class="logo">{{company.name}}</div>
+    <div style="font-size:11px;color:#555;">{{company.address}}</div>
+    <div style="font-size:11px;color:#555;">TIN: {{company.tin}}</div>
+  </div>
+  <div class="company-info">
+    <div>{{company.phone}}</div>
+    <div>{{company.email}}</div>
+  </div>
+</div>
+<div class="doc-title">STOCK TRANSFER</div>
+<div class="doc-meta">
+  <div class="meta-box"><div class="meta-label">Transfer #</div><div class="meta-value">{{document.number}}</div></div>
+  <div class="meta-box"><div class="meta-label">Date</div><div class="meta-value">{{document.date}}</div></div>
+  <div class="meta-box"><div class="meta-label">Status</div><div class="meta-value">{{document.status}}</div></div>
+</div>
+<div class="warehouse-box">
+  <div class="wh-from"><div class="wh-label">From Warehouse</div><div style="font-size:13px;font-weight:500;">{{fromWarehouse.name}}</div><div style="font-size:11px;color:#555;">{{fromWarehouse.address}}</div></div>
+  <div class="wh-to"><div class="wh-label">To Warehouse</div><div style="font-size:13px;font-weight:500;">{{toWarehouse.name}}</div><div style="font-size:11px;color:#555;">{{toWarehouse.address}}</div></div>
+</div>
+<table>
+  <thead><tr><th>#</th><th>Product / SKU</th><th class="text-right">Qty</th><th>Unit</th><th>Batch</th><th class="text-right">Unit Cost</th><th class="text-right">Total Cost</th></tr></thead>
+  <tbody>
+    {{#each items}}<tr><td>{{inc @index}}</td><td><strong>{{name}}</strong><br><span style="font-size:10px;color:#888;">SKU: {{sku}}</span></td><td class="text-right">{{quantity}}</td><td>{{unit}}</td><td>{{batch}}</td><td class="text-right">{{unitCost}}</td><td class="text-right"><strong>{{totalCost}}</strong></td></tr>{{/each}}
+  </tbody>
+</table>
+<div style="margin-left:auto;width:280px;">
+  <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:12px;"><span>Total Items</span><span>{{totals.itemCount}}</span></div>
+  <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:12px;"><span>Total Quantity</span><span>{{totals.totalQty}}</span></div>
+  <div style="display:flex;justify-content:space-between;padding:6px 0;border-top:2px solid #7c3aed;font-size:16px;font-weight:700;color:#7c3aed;padding-top:10px;margin-top:4px;"><span>Total Cost</span><span>{{totals.totalCost}}</span></div>
+</div>
+<div class="signature">
+  <div class="sig-block"><div class="sig-line"></div><div class="sig-label">Prepared By</div></div>
+  <div class="sig-block"><div class="sig-line"></div><div class="sig-label">Approved By</div></div>
+  <div class="sig-block"><div class="sig-line"></div><div class="sig-label">Received By</div></div>
+</div>
+<div class="footer">
+  <div>{{company.name}} | {{company.address}} | TIN: {{company.tin}}</div>
+  <div>Phone: {{company.phone}} | Email: {{company.email}}</div>
+  <div>Page 1 of 1 | Generated on {{document.date}}</div>
+</div>
+</body>
+</html>

@@ -106,6 +106,12 @@ const SmartPosLoyalty = Loadable(
 const SmartPosNotifications = Loadable(
   lazy(() => import('../views/smartpos/settings/NotificationsSettingsPage')),
 );
+const SmartPosTemplateEditor = Loadable(
+  lazy(() => import('../views/smartpos/settings/TemplateEditorPage')),
+);
+const SmartPosPrinterSettings = Loadable(
+  lazy(() => import('../views/smartpos/settings/PrinterSettingsPage')),
+);
 const SmartPosCustomers = Loadable(
   lazy(() => import('../views/smartpos/customers/CustomersListPage')),
 );
@@ -187,6 +193,9 @@ const SmartPosOnboarding = Loadable(
       default: m.OnboardingSettings,
     })),
   ),
+);
+const SmartPosDocumentSearch = Loadable(
+  lazy(() => import('../views/smartpos/documents/DocumentSearchPage')),
 );
 
 /* ****Pages***** */
@@ -439,6 +448,8 @@ const Router = [
       { path: 'settings/pos-behaviour', element: <SmartPosPosBehaviour /> },
       { path: 'settings/loyalty', element: <SmartPosLoyalty /> },
       { path: 'settings/notifications', element: <SmartPosNotifications /> },
+      { path: 'settings/templates', element: <SmartPosTemplateEditor /> },
+      { path: 'settings/printers', element: <SmartPosPrinterSettings /> },
       { path: 'customers', element: <SmartPosCustomers /> },
       { path: 'suppliers', element: <SmartPosSuppliers /> },
       { path: 'suppliers/:id', element: <SmartPosSupplierDetail /> },
@@ -456,6 +467,7 @@ const Router = [
       { path: 'sales/:id/edit', element: <SmartPosSaleBuilder /> },
       { path: 'quotations', element: <SmartPosQuotations /> },
       { path: 'returns', element: <SmartPosReturns /> },
+      { path: 'documents/search', element: <SmartPosDocumentSearch /> },
       // Procurement
       { path: 'purchases', element: <SmartPosPurchases /> },
       { path: 'purchases/new', element: <SmartPosPurchaseBuilder /> },

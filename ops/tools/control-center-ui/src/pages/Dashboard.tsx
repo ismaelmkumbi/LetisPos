@@ -5,11 +5,10 @@ import {
   TableContainer, TableHead, TableRow, TextField, MenuItem, Collapse,
   Dialog, DialogTitle, DialogContent, DialogActions,
 } from '@mui/material';
-import { Refresh, Logout, Storage, Circle, KeyboardArrowDown, KeyboardArrowUp, Article } from '@mui/icons-material';
-import LogViewer from '../components/LogViewer';
+import { Refresh, Logout, Storage, Circle, KeyboardArrowDown, KeyboardArrowUp } from '@mui/icons-material';
 import { LineChart, Line, CartesianGrid, Tooltip as ReTooltip, ResponsiveContainer } from 'recharts';
-import { getServers, getMetrics, getServices, getBackendServices, getProcesses, serviceAction } from '../api/hub';
-import type { Server, MetricPoint, ServiceInfo, BackendService, ProcessInfo } from '../api/hub';
+import { getServers, getMetrics, getServices, getBackendServices, serviceAction } from '../api/hub';
+import type { Server, MetricPoint, ServiceInfo, BackendService } from '../api/hub';
 import { logout } from '../api/client';
 import { brand } from '../theme';
 
@@ -32,7 +31,6 @@ export default function Dashboard() {
   const [metrics, setMetrics] = useState<Record<string, MetricPoint[]>>({});
   const [services, setServices] = useState<Record<string, ServiceInfo[]>>({});
   const [backendSvcs, setBackendSvcs] = useState<Record<string, BackendService[]>>({});
-  const [processes, setProcesses] = useState<Record<string, ProcessInfo[]>>({});
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [svcFilter, setSvcFilter] = useState('All');
@@ -46,7 +44,6 @@ export default function Dashboard() {
         getMetrics(s.hostname, past, now).then(m => setMetrics(prev => ({ ...prev, [s.hostname]: m }))).catch(() => {}),
         getServices(s.hostname).then(svc => setServices(prev => ({ ...prev, [s.hostname]: svc }))).catch(() => {}),
         getBackendServices(s.hostname).then(bs => setBackendSvcs(prev => ({ ...prev, [s.hostname]: bs }))).catch(() => {}),
-        getProcesses(s.hostname).then(ps => setProcesses(prev => ({ ...prev, [s.hostname]: ps }))).catch(() => {}),
       ])));
     } catch { } finally { setLoading(false); setRefreshing(false); }
   }, []);
@@ -82,7 +79,7 @@ export default function Dashboard() {
         <Grid container spacing={1.5}>
           {servers.map(s => (
             <Grid size={{ xs: 12 }} key={s.id}>
-              <ServerPanel server={s} metrics={metrics[s.hostname] || []} backendSvcs={backendSvcs[s.hostname] || []} services={services[s.hostname] || []} processes={processes[s.hostname] || []} svcFilter={svcFilter} onFilterChange={setSvcFilter} />
+              <ServerPanel server={s} metrics={metrics[s.hostname] || []} backendSvcs={backendSvcs[s.hostname] || []} services={services[s.hostname] || []} svcFilter={svcFilter} onFilterChange={setSvcFilter} />
             </Grid>
           ))}
         </Grid>
@@ -91,13 +88,12 @@ export default function Dashboard() {
   );
 }
 
-function ServerPanel({ server, metrics: m, backendSvcs, services, processes, svcFilter, onFilterChange }: { server: Server; metrics: MetricPoint[]; backendSvcs: BackendService[]; services: ServiceInfo[]; processes: ProcessInfo[]; svcFilter: string; onFilterChange: (v: string) => void }) {
+function ServerPanel({ server, metrics: m, backendSvcs, services, svcFilter, onFilterChange }: { server: Server; metrics: MetricPoint[]; backendSvcs: BackendService[]; services: ServiceInfo[]; svcFilter: string; onFilterChange: (v: string) => void }) {
   const latest = m.length ? m[m.length - 1] : null;
   const memPct = latest?.memTotalBytes ? (latest.memUsedBytes! / latest.memTotalBytes * 100).toFixed(1) : null;
   const diskPct = latest?.diskTotalBytes ? (latest.diskUsedBytes! / latest.diskTotalBytes * 100).toFixed(1) : null;
   const [showSystem, setShowSystem] = useState(false);
   const [detailSvc, setDetailSvc] = useState<BackendService | null>(null);
-  const [logSvc, setLogSvc] = useState<{ name: string; grep?: boolean } | null>(null);
 
   const chartData = m.slice(-30).map(p => ({ time: new Date(p.time).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }), cpu: p.cpuPercent?.toFixed(1) }));
 
@@ -156,9 +152,8 @@ function ServerPanel({ server, metrics: m, backendSvcs, services, processes, svc
                 <TableCell>Service</TableCell>
                 <TableCell>Category</TableCell>
                 <TableCell>Port</TableCell>
-                <TableCell>CPU</TableCell>
-                <TableCell>RAM</TableCell>
                 <TableCell>Status</TableCell>
+                <TableCell>Description</TableCell>
                 <TableCell align="right">Actions</TableCell>
               </TableRow>
             </TableHead>
@@ -170,8 +165,6 @@ function ServerPanel({ server, metrics: m, backendSvcs, services, processes, svc
                     <Chip label={svc.category} size="small" sx={{ height: 20, fontWeight: 600, fontSize: '0.6rem', bgcolor: `${CATEGORY_COLORS[svc.category] || brand.primary[500]}20`, color: CATEGORY_COLORS[svc.category] || brand.primary[500], borderRadius: '6px' }} />
                   </TableCell>
                   <TableCell sx={{ fontFamily: "'DM Mono', 'Courier New', monospace", fontSize: '0.75rem', color: muted }}>:{svc.port}</TableCell>
-                  <TableCell sx={{ fontFamily: "'DM Mono', 'Courier New', monospace", fontSize: '0.72rem', color: (() => { const p = processes.find((x: ProcessInfo) => x.port === svc.port); return p ? brand.info.main : muted; })() }}>{(() => { const p = processes.find((x: ProcessInfo) => x.port === svc.port); return p ? p.cpu_pct.toFixed(1) + '%' : '—'; })()}</TableCell>
-                  <TableCell sx={{ fontFamily: "'DM Mono', 'Courier New', monospace", fontSize: '0.72rem', color: (() => { const p = processes.find((x: ProcessInfo) => x.port === svc.port); return p ? brand.purple.main : muted; })() }}>{(() => { const p = processes.find((x: ProcessInfo) => x.port === svc.port); return p ? Math.round(p.mem_mb) + ' MB' : '—'; })()}</TableCell>
                   <TableCell>
                     <Stack direction="row" spacing={0.75} sx={{ alignItems: 'center' }}>
                       <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: svc.status === 'UP' ? brand.success.main : brand.error.main, boxShadow: svc.status === 'UP' ? `0 0 6px ${brand.success.main}80` : 'none' }} />
@@ -179,12 +172,8 @@ function ServerPanel({ server, metrics: m, backendSvcs, services, processes, svc
                     </Stack>
                   </TableCell>
                   <TableCell sx={{ color: muted, fontSize: '0.72rem' }}>{svc.description}</TableCell>
-                  <TableCell align="right" onClick={e => e.stopPropagation()}>
+                  <TableCell align="right">
                     <Stack direction="row" spacing={0.5} sx={{ justifyContent: 'flex-end' }}>
-                      <Button size="small" variant="outlined" onClick={() => setLogSvc({ name: svc.name.toLowerCase().replace(/\s+/g, '-'), grep: true })}
-                        sx={{ minWidth: 28, height: 26, p: 0, fontSize: '0.6rem', fontWeight: 700, color: brand.info.main, borderColor: `${brand.info.main}40`, borderRadius: '6px', '&:hover': { borderColor: brand.info.main, bgcolor: `${brand.info.main}15` } }}>
-                        <Article sx={{ fontSize: 13 }} />
-                      </Button>
                       <Button size="small" variant="outlined" onClick={() => { serviceAction(server.hostname, svc.name.toLowerCase().replace(' ', '-'), 'restart').catch(() => {}); }}
                         sx={{ minWidth: 28, height: 26, p: 0, fontSize: '0.6rem', fontWeight: 700, color: brand.warning.main, borderColor: `${brand.warning.main}40`, borderRadius: '6px', '&:hover': { borderColor: brand.warning.main, bgcolor: `${brand.warning.main}15` } }}>↻</Button>
                     </Stack>
@@ -226,15 +215,11 @@ function ServerPanel({ server, metrics: m, backendSvcs, services, processes, svc
               </DialogContent>
               <DialogActions sx={{ px: 3, pb: 2 }}>
                 <Button onClick={() => setDetailSvc(null)} sx={{ fontWeight: 600, borderRadius: '10px', textTransform: 'none', color: muted }}>Close</Button>
-                <Button variant="outlined" onClick={() => { setDetailSvc(null); setLogSvc({ name: detailSvc.name.toLowerCase().replace(/\s+/g, '-'), grep: true }); }} startIcon={<Article fontSize="small" />} sx={{ fontWeight: 700, borderRadius: '10px', textTransform: 'none', color: brand.info.main, borderColor: `${brand.info.main}40`, '&:hover': { borderColor: brand.info.main, bgcolor: `${brand.info.main}15` } }}>View Logs</Button>
                 <Button variant="outlined" color="warning" onClick={() => { serviceAction(server.hostname, detailSvc.name.toLowerCase().replace(/\s+/g, '-'), 'restart').catch(() => {}); }} sx={{ fontWeight: 700, borderRadius: '10px', textTransform: 'none', ml: 1 }}>Restart Service</Button>
               </DialogActions>
             </>
           )}
         </Dialog>
-
-        {/* Log Viewer */}
-        {logSvc && <LogViewer open={!!logSvc} server={server.hostname} service={logSvc.name} grep={logSvc.grep} onClose={() => setLogSvc(null)} />}
 
         {/* Systemd Services — collapsed by default */}
         <Box sx={{ mt: 2 }}>
@@ -250,7 +235,6 @@ function ServerPanel({ server, metrics: m, backendSvcs, services, processes, svc
                   <Box key={svc.name} sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.4, px: 1, borderRadius: '6px', '&:hover': { bgcolor: `${brand.neutral[700]}30` } }}>
                     <Box sx={{ width: 5, height: 5, borderRadius: '50%', bgcolor: up ? brand.success.main : brand.error.main, flexShrink: 0 }} />
                     <Typography variant="caption" noWrap sx={{ flex: 1, fontSize: '0.68rem', color: brand.neutral[300] }}>{name}</Typography>
-                    <Button size="small" onClick={() => setLogSvc({ name: svc.name })} sx={{ minWidth: 20, height: 18, p: 0, fontSize: '0.55rem', fontWeight: 700, color: brand.info.main, borderColor: `${brand.info.main}30`, borderRadius: '4px', mr: 0.25 }} variant="outlined">📋</Button>
                     <Button size="small" onClick={() => { serviceAction(server.hostname, svc.name, 'restart').catch(() => {}); }} sx={{ minWidth: 20, height: 18, p: 0, fontSize: '0.55rem', fontWeight: 700, color: brand.warning.main, borderColor: `${brand.warning.main}30`, borderRadius: '4px' }} variant="outlined">↻</Button>
                   </Box>
                 );

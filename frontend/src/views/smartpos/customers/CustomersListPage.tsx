@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import {
-  Alert, Avatar, Box, Chip, InputAdornment, Stack, TextField, Typography,
+  Alert, Avatar, Box, Button, Chip, InputAdornment, Stack, TextField, Typography,
 } from '@mui/material';
-import { IconPlus, IconSearch, IconMail, IconPhone } from '@tabler/icons-react';
+import { IconPlus, IconSearch, IconMail, IconPhone, IconFileStack } from '@tabler/icons-react';
 
 import { useTranslation } from 'react-i18next';
 
@@ -11,6 +11,9 @@ import type { Customer } from 'src/api/smartpos/types';
 import PageHeader from 'src/components/smartpos/PageHeader';
 import DataTable, { type Column } from 'src/components/smartpos/DataTable';
 import DocumentActionsBar from 'src/components/smartpos/documents/DocumentActionsBar';
+import BulkGenerateDialog from 'src/components/smartpos/documents/BulkGenerateDialog';
+import BulkActionBar from 'src/components/smartpos/BulkActionBar';
+import { useSelection } from 'src/components/smartpos/useSelection';
 import CustomerEditDrawer from './CustomerEditDrawer';
 import { useAuth } from 'src/context/smartpos/AuthContext';
 import { brand } from 'src/theme/smartpos/brand';
@@ -31,6 +34,9 @@ export default function CustomersListPage() {
   const [editing, setEditing] = useState<Customer | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
+  const sel = useSelection(rows);
+  const [bulkOpen, setBulkOpen] = useState(false);
+
   useEffect(() => {
     let cancelled = false;
     const t = setTimeout(() => {
@@ -44,6 +50,7 @@ export default function CustomersListPage() {
   }, [search, page, refreshToken, user?.tenantId]);
 
   const columns: Column<Customer>[] = [
+    sel.selectionColumn(),
     {
       key: 'name', label: 'Customer',
       render: (c) => (
@@ -153,6 +160,21 @@ export default function CustomersListPage() {
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
+      {/* Bulk action bar */}
+      {sel.selectedIds.size > 0 && (
+        <BulkActionBar selectedCount={sel.selectedIds.size} onClear={sel.clearSelection} itemLabel="customer">
+          <Button
+            size="small"
+            variant="outlined"
+            startIcon={<IconFileStack size={14} />}
+            onClick={() => setBulkOpen(true)}
+            sx={{ borderRadius: '8px', fontWeight: 700 }}
+          >
+            Bulk Generate
+          </Button>
+        </BulkActionBar>
+      )}
+
       <DataTable
         columns={columns}
         rows={rows}
@@ -176,6 +198,13 @@ export default function CustomersListPage() {
         initial={editing}
         onClose={() => setDrawerOpen(false)}
         onSaved={() => setRefreshToken((n) => n + 1)}
+      />
+
+      <BulkGenerateDialog
+        open={bulkOpen}
+        onClose={() => setBulkOpen(false)}
+        referenceType="customer"
+        referenceIds={Array.from(sel.selectedIds)}
       />
     </Box>
   );

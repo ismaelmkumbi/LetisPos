@@ -58,11 +58,6 @@ public class ServerController {
         return ResponseEntity.ok(proxyService.proxyGet("127.0.0.1", 9100, "/services"));
     }
 
-    @GetMapping("/{name}/processes")
-    public ResponseEntity<String> getProcesses(@PathVariable String name) {
-        return ResponseEntity.ok(proxyService.proxyGet("127.0.0.1", 9100, "/processes"));
-    }
-
     @GetMapping("/{name}/backend-services")
     public List<Map<String, Object>> listBackendServices(@PathVariable String name) {
         List<Map<String, Object>> result = new ArrayList<>();
