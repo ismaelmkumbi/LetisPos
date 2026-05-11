@@ -40,20 +40,20 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class PurchaseReturnService {
 
-    private final PurchaseReturnRepository returnRepo;
+    private final PurchaseReturnRepository repo;
     private final PurchaseRepository purchaseRepo;
     private final InventoryClient inventory;
     private final OutboxPublisher outbox;
 
     @Transactional(readOnly = true)
     public PurchaseReturnDto get(UUID id) {
-        return returnRepo.findByIdWithLines(id).map(PurchaseReturnDto::from)
+        return repo.findByIdWithLines(id).map(PurchaseReturnDto::from)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Purchase return not found"));
     }
 
     @Transactional(readOnly = true)
     public Page<PurchaseReturnDto> listForPurchase(UUID purchaseId, Pageable pageable) {
-        return returnRepo.findByPurchaseIdOrderByDateDesc(
+        return repo.findByPurchaseIdOrderByDateDesc(
                 purchaseId, TenantContext.require(), pageable
         ).map(PurchaseReturnDto::from);
     }
@@ -97,7 +97,7 @@ public class PurchaseReturnService {
         }
         ret.setGrandTotal(total);
 
-        PurchaseReturn saved = returnRepo.save(ret);
+        PurchaseReturn saved = repo.save(ret);
 
         // Pull stock OUT via a negative adjustment — the goods are leaving the
         // warehouse on their way back to the supplier.
@@ -126,9 +126,29 @@ public class PurchaseReturnService {
         return PurchaseReturnDto.from(saved);
     }
 
+    @Transactional(readOnly = true)
+    public Page<PurchaseReturnDto> search(String search, ReturnStatus status, UUID supplierId,
+                                           LocalDate dateFrom, LocalDate dateTo, Pageable pageable) {
+        return repo.search(TenantContext.require(), search, status, supplierId, dateFrom, dateTo, pageable)
+                .map(PurchaseReturnDto::from);
+    }
+
+    @Transactional
+    public PurchaseReturnDto complete(UUID id) {
+        PurchaseReturn r = repo.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Return not found"));
+        if (r.getStatus() == ReturnStatus.CONFIRMED) return PurchaseReturnDto.from(r);
+        if (r.getStatus() != ReturnStatus.DRAFT) {
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
+                    "Cannot complete a " + r.getStatus() + " return");
+        }
+        r.setStatus(ReturnStatus.CONFIRMED);
+        return PurchaseReturnDto.from(repo.save(r));
+    }
+
     private String nextRef() {
         String prefix = "PRT-" + Year.now().getValue() + "-";
-        long n = returnRepo.countByRefStartingWith(prefix, TenantContext.require()) + 1;
+        long n = repo.countByRefStartingWith(prefix, TenantContext.require()) + 1;
         return prefix + String.format("%06d", n);
     }
 }
