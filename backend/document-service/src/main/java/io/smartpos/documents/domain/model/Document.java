@@ -79,4 +79,7 @@ public class Document {
 
     @Column(name = "vfd_response", columnDefinition = "jsonb")
     private String vfdResponse;
+
+    @Column(columnDefinition = "TEXT")
+    private String notes;
 }

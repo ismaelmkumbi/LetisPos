@@ -20,6 +20,11 @@ public class DocumentDto {
     private Long sizeBytes;
     private String presignedUrl;
     private Instant createdAt;
+    private String fiscalCode;
+    private String zNumber;
+    private String vfdStatus;
+    private String buyerTin;
+    private String notes;
 
     public static DocumentDto from(Document doc, String presignedUrl) {
         return DocumentDto.builder()
@@ -34,6 +39,11 @@ public class DocumentDto {
                 .sizeBytes(doc.getSizeBytes())
                 .presignedUrl(presignedUrl)
                 .createdAt(doc.getCreatedAt())
+                .fiscalCode(doc.getFiscalCode())
+                .zNumber(doc.getZNumber())
+                .vfdStatus(doc.getVfdStatus())
+                .buyerTin(doc.getBuyerTin())
+                .notes(doc.getNotes())
                 .build();
     }
 }
