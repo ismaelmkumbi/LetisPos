@@ -18,7 +18,7 @@ public class PriceListLine {
     @Column(name = "id", nullable = false, updatable = false)
     private UUID id;
 
-    @Column(name = "price_list_id", insertable = false, updatable = false)
+    @Column(name = "price_list_id", nullable = false)
     private UUID priceListId;
 
     @Column(name = "product_id", nullable = false)
