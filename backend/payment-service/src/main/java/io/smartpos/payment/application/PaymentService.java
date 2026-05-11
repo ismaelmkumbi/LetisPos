@@ -153,6 +153,27 @@ public class PaymentService {
                 p.getTenantId());
     }
 
+    @Transactional(readOnly = true)
+    public Page<io.smartpos.payment.api.dto.SupplierPaymentDto> searchSupplierPayments(
+            UUID supplierId, String method, LocalDate dateFrom, LocalDate dateTo,
+            String search, Pageable pageable) {
+        return paymentRepo.findSupplierPaymentsRaw(
+                TenantContext.require(), supplierId, method, dateFrom, dateTo, search, pageable)
+                .map(row -> new io.smartpos.payment.api.dto.SupplierPaymentDto(
+                    (UUID) row[0],
+                    (UUID) row[2],
+                    (String) row[3],
+                    (UUID) row[1],
+                    (String) row[4],
+                    (BigDecimal) row[5],
+                    (String) row[6],
+                    (String) row[7],
+                    ((java.sql.Date) row[8]).toLocalDate(),
+                    (UUID) row[9],
+                    (String) row[10]
+                ));
+    }
+
     // ---- helpers ----
 
     private void reconcileWithSales(Payment p) {
