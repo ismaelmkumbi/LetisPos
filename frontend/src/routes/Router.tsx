@@ -100,6 +100,9 @@ const SmartPosNotifications = Loadable(
 const SmartPosTemplateEditor = Loadable(
   lazy(() => import('../views/smartpos/settings/TemplateEditorPage')),
 );
+const SmartPosPrinterSettings = Loadable(
+  lazy(() => import('../views/smartpos/settings/PrinterSettingsPage')),
+);
 const SmartPosCustomers = Loadable(
   lazy(() => import('../views/smartpos/customers/CustomersListPage')),
 );
@@ -434,6 +437,7 @@ const Router = [
       { path: 'settings/loyalty', element: <SmartPosLoyalty /> },
       { path: 'settings/notifications', element: <SmartPosNotifications /> },
       { path: 'settings/templates', element: <SmartPosTemplateEditor /> },
+      { path: 'settings/printers', element: <SmartPosPrinterSettings /> },
       { path: 'customers', element: <SmartPosCustomers /> },
       { path: 'suppliers', element: <SmartPosSuppliers /> },
       { path: 'suppliers/:id', element: <SmartPosSupplierDetail /> },

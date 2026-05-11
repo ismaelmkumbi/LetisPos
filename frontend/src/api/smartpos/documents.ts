@@ -259,6 +259,31 @@ export async function retryVfdSubmission(id: UUID): Promise<{ status: string }> 
   return data;
 }
 
+// ---- Printer Endpoints ----
+
+export interface PrinterInfo {
+  id: string;
+  name: string;
+  paperWidth: number;
+  autoCut: boolean;
+  cashDrawer: boolean;
+}
+
+export async function listPrinters(): Promise<PrinterInfo[]> {
+  const { data } = await api.get<PrinterInfo[]>('/api/v1/print/printers');
+  return data;
+}
+
+export async function printThermal(printerId: string, saleData: Record<string, unknown>): Promise<{ status: string }> {
+  const { data } = await api.post<{ status: string }>('/api/v1/print/thermal', { printerId, saleData });
+  return data;
+}
+
+export async function testPrint(printerId: string): Promise<{ status: string }> {
+  const { data } = await api.post<{ status: string }>('/api/v1/print/thermal/test', { printerId });
+  return data;
+}
+
 // ---- AI Endpoints ----
 
 export async function summarizeDocument(id: UUID): Promise<{ summary: string }> {

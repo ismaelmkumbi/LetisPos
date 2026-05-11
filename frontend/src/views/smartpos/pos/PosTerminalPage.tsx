@@ -22,6 +22,7 @@ import {
   Stack,
   Typography,
 } from '@mui/material';
+import { IconPrinter } from '@tabler/icons-react';
 import { listProducts, getProduct, getProductByBarcode, type Product, type ProductSearchParams } from 'src/api/smartpos/products';
 import { listCustomers, createCustomer } from 'src/api/smartpos/customers';
 import type { Customer } from 'src/api/smartpos/types';
@@ -32,6 +33,11 @@ import {
   publishDisplayEvent,
   type PosTerminal,
 } from 'src/api/smartpos/posTerminals';
+import {
+  listPrinters,
+  printThermal,
+  type PrinterInfo,
+} from 'src/api/smartpos/documents';
 import { useOfflineSyncQueue } from 'src/hooks/useOfflineSyncQueue';
 import { useOnlineStatus } from 'src/components/smartpos/OfflineBanner';
 import { parseApiError } from 'src/utils/smartpos/apiErrors';
@@ -122,6 +128,7 @@ export default function PosTerminalPage() {
   const [todaySalesOpen, setTodaySalesOpen] = useState(false);
   const [posSettings, setPosSettings] = useState<PosSettings | null>(null);
   const [receiptPreview, setReceiptPreview] = useState<{ sale: Sale; paymentMethod: string } | null>(null);
+  const [printers, setPrinters] = useState<PrinterInfo[]>([]);
 
   // draftsOpen / holdsTick are intentional cache-bust triggers — they force a
   // re-read from sessionStorage whenever the drafts panel or hold-tick changes.
@@ -168,6 +175,11 @@ export default function PosTerminalPage() {
     if (linkedTerminalId) localStorage.setItem(LINKED_TERMINAL_KEY, linkedTerminalId);
     else localStorage.removeItem(LINKED_TERMINAL_KEY);
   }, [linkedTerminalId]);
+
+  // Load configured thermal printers for direct printing
+  useEffect(() => {
+    listPrinters().then(setPrinters).catch(() => {});
+  }, []);
 
   // Refresh cash register session when warehouse changes or after checkout
   useEffect(() => {
@@ -716,6 +728,19 @@ export default function PosTerminalPage() {
       {lastSale && (
         <Box sx={{ position: 'fixed', bottom: 16, right: 16, zIndex: 1300 }}>
           <DocumentActionsBar documentType="payment-receipt" referenceType="payment" referenceId={lastSale.id} />
+        </Box>
+      )}
+
+      {lastSale && printers.length > 0 && (
+        <Box sx={{ position: 'fixed', bottom: 80, right: 16, zIndex: 1300 }}>
+          <Stack spacing={0.5}>
+            {printers.map(p => (
+              <Button key={p.id} size="small" variant="outlined" startIcon={<IconPrinter size={14} />}
+                onClick={() => printThermal(p.id, { ...lastSale, paymentMethod: 'Cash' })}>
+                Print ({p.name})
+              </Button>
+            ))}
+          </Stack>
         </Box>
       )}
 
