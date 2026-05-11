@@ -136,11 +136,18 @@ export default function OpeningStockImportPage() {
                 </Typography>
               </Box>
 
-              <Button size="small" variant="outlined" startIcon={<IconDownload size={14} />}
-                      href="/import/examples/opening_stock_single.csv" target="_blank"
-                      sx={{ alignSelf: 'flex-start', borderRadius: '8px', fontWeight: 600 }}>
-                Download example
-              </Button>
+              <Stack direction="row" spacing={1}>
+                <Button size="small" variant="outlined" startIcon={<IconDownload size={14} />}
+                        href="/import/examples/opening_stock_single.csv" target="_blank"
+                        sx={{ borderRadius: '8px', fontWeight: 600 }}>
+                  Download (Simple)
+                </Button>
+                <Button size="small" variant="outlined" startIcon={<IconDownload size={14} />}
+                        href="/import/examples/opening_stock_variants.csv" target="_blank"
+                        sx={{ borderRadius: '8px', fontWeight: 600 }}>
+                  Download (With Variants)
+                </Button>
+              </Stack>
             </Stack>
           </CardContent>
         </Card>
