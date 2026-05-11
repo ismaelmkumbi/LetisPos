@@ -16,6 +16,7 @@ import type { UUID } from 'src/api/smartpos/types';
 import DataTable, { type Column, StatusBadge } from 'src/components/smartpos/DataTable';
 import { PageHeader } from 'src/components/smartpos/PageHeader';
 import FilterBar, { type ActiveFilter } from 'src/components/smartpos/FilterBar';
+import DocumentActionsBar from 'src/components/smartpos/documents/DocumentActionsBar';
 
 import { brand } from 'src/theme/smartpos/brand';
 
@@ -163,6 +164,15 @@ export default function StockCountPage() {
         <Typography variant="body2" sx={{ fontVariantNumeric: 'tabular-nums' }}>
           {c.date}
         </Typography>
+      ),
+    },
+    {
+      key: 'actions', label: '', align: 'right' as const, width: 120, enableHiding: false,
+      exportValue: () => '',
+      render: (c) => (
+        <Box onClick={(e) => e.stopPropagation()}>
+          <DocumentActionsBar documentType="stock-count" referenceType="stock-count" referenceId={c.id} />
+        </Box>
       ),
     },
   ], []);

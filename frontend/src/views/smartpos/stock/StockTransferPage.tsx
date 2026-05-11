@@ -18,6 +18,7 @@ import type { UUID } from 'src/api/smartpos/types';
 import DataTable, { type Column, StatusBadge } from 'src/components/smartpos/DataTable';
 import { PageHeader } from 'src/components/smartpos/PageHeader';
 import FilterBar, { type ActiveFilter } from 'src/components/smartpos/FilterBar';
+import DocumentActionsBar from 'src/components/smartpos/documents/DocumentActionsBar';
 
 import { brand } from 'src/theme/smartpos/brand';
 
@@ -208,7 +209,7 @@ export default function StockTransferPage() {
       ),
     },
     {
-      key: 'actions', label: '', width: 210, enableHiding: false,
+      key: 'actions', label: '', width: 350, enableHiding: false,
       render: (t) => (
         <Stack direction="row" spacing={0.5} alignItems="center" justifyContent="flex-end" onClick={(e) => e.stopPropagation()}>
 
@@ -229,6 +230,7 @@ export default function StockTransferPage() {
               </Button>
             </Tooltip>
           )}
+          <DocumentActionsBar documentType="stock-transfer" referenceType="transfer" referenceId={t.id} />
         </Stack>
       ),
     },
