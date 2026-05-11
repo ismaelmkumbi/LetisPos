@@ -136,6 +136,23 @@ spring:
             - name: Retry
               args: { retries: 2 }
 
+        # ── Audit service ─────────────────────────────────────────────
+        - id: audit-service-internal
+          uri: ${AUDIT_URI:http://localhost:8095}
+          predicates:
+            - Path=/api/v1/audit/**
+          filters:
+            - name: Retry
+              args: { retries: 2 }
+
+        - id: audit-service-admin
+          uri: ${AUDIT_URI:http://localhost:8095}
+          predicates:
+            - Path=/api/v1/admin/**
+          filters:
+            - name: Retry
+              args: { retries: 2 }
+
         # ── Branch routes (inventory-service) ───────────────────────────
         - id: inventory-service-branches
           uri: ${INVENTORY_URI:http://localhost:8084}
