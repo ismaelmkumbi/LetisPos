@@ -33,6 +33,9 @@ public class Warehouse {
     @Column(name = "tenant_id")
     private UUID tenantId;
 
+    @Column(name = "branch_id")
+    private UUID branchId;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
