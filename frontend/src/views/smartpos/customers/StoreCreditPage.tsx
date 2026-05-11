@@ -98,7 +98,7 @@ export default function StoreCreditPage() {
     setAdding(true);
     setAddError(null);
     try {
-      await addStoreCredit({ ...addForm, customerId: customerId as any });
+      await addStoreCredit({ ...addForm, customerId });
       setAddOpen(false);
       // Refresh
       const [txPage, bal] = await Promise.all([
@@ -127,7 +127,7 @@ export default function StoreCreditPage() {
     setRedeeming(true);
     setRedeemError(null);
     try {
-      await redeemStoreCredit({ ...redeemForm, customerId: customerId as any });
+      await redeemStoreCredit({ ...redeemForm, customerId });
       setRedeemOpen(false);
       // Refresh
       const [txPage, bal] = await Promise.all([
@@ -145,13 +145,13 @@ export default function StoreCreditPage() {
   };
 
   const openAdd = () => {
-    setAddForm({ customerId: customerId as any, amount: 0 });
+    setAddForm({ customerId, amount: 0 });
     setAddError(null);
     setAddOpen(true);
   };
 
   const openRedeem = () => {
-    setRedeemForm({ customerId: customerId as any, amount: 0 });
+    setRedeemForm({ customerId, amount: 0 });
     setRedeemError(null);
     setRedeemOpen(true);
   };

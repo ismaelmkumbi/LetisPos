@@ -58,7 +58,7 @@ export default function CustomerEditDrawer({ open, initial, onClose, onSaved }: 
         creditLimit: initial.creditLimit,
         notes: initial.notes ?? '',
         active: initial.active,
-        groupId: (initial as any).groupId ?? '',
+        groupId: initial.groupId ?? '',
       });
     } else {
       setForm(emptyForm);
@@ -187,8 +187,8 @@ export default function CustomerEditDrawer({ open, initial, onClose, onSaved }: 
         <Select
           labelId="customer-group-label"
           label="Customer Group"
-          value={(form as any).groupId ?? ''}
-          onChange={(e) => patch('groupId' as any, e.target.value || null)}
+          value={form.groupId ?? ''}
+          onChange={(e) => patch('groupId', e.target.value || null)}
         >
           <MenuItem value="">
             <em>None</em>

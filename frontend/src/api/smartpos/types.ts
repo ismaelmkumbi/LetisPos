@@ -160,6 +160,7 @@ export interface Customer {
   creditLimit: number;
   notes?: string | null;
   active: boolean;
+  groupId?: string | null;
 }
 
 export interface Supplier {
