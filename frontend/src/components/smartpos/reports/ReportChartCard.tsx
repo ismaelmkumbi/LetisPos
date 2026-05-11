@@ -7,7 +7,7 @@ interface Props {
   title: string;
   options: ApexOptions;
   series: ApexAxisChartSeries | ApexNonAxisChartSeries;
-  type: 'line' | 'bar' | 'area' | 'donut' | 'pie';
+  type: 'line' | 'bar' | 'area' | 'donut' | 'pie' | 'radialBar';
   height?: number;
 }
 

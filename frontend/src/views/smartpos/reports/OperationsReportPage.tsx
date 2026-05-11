@@ -7,6 +7,7 @@ import { brand } from 'src/theme/smartpos/brand';
 import { formatMoney, formatNumber } from 'src/utils/smartpos/currency';
 
 interface ShiftRow {
+  shiftId?: string;
   registerName?: string;
   registerId?: string;
   openedBy?: string;
@@ -53,7 +54,7 @@ export default function OperationsReportPage() {
     <ReportPageShell title="Operations Report" subtitle="Register summaries, shifts, and daily close">
       <ReportFilterBar filters={filters} onChange={setFilters} showPeriod />
       <ReportKpiRow cards={kpis} />
-      <ReportDataTable title="Shifts & Registers" columns={shiftColumns} rows={data?.shifts ?? []} getRowKey={(r, i) => r.shiftId ?? `shift-${i}`} />
+      <ReportDataTable title="Shifts & Registers" columns={shiftColumns} rows={(data?.shifts ?? []) as ShiftRow[]} getRowKey={(r, i) => r.shiftId ?? `shift-${i}`} />
       <ReportExportBar reportKey="operations-summary" dateFrom={filters.dateFrom} dateTo={filters.dateTo} />
       <AiReportChat contextPrompt={`You are analyzing operations data for ${filters.dateTo}. Data: ${factsJson}`} />
     </ReportPageShell>
