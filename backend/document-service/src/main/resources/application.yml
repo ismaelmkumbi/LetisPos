@@ -48,6 +48,15 @@ smartpos:
   gotenberg:
     url: ${GOTENBERG_URL:http://localhost:3000}
     request-timeout-seconds: 30
+  printers:
+    - id: main
+      name: Main Receipt Printer
+      ip: ${PRINTER_MAIN_IP:192.168.1.100}
+      port: ${PRINTER_MAIN_PORT:9100}
+      paper-width: 80
+      auto-cut: true
+      cash-drawer: false
+      enabled: ${PRINTER_MAIN_ENABLED:false}
   tra:
     vfd-url: ${TRA_VFD_URL:http://localhost:9999/vfd}
     vfd-api-key: ${TRA_VFD_API_KEY:stub-key}
