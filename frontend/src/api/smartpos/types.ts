@@ -218,3 +218,61 @@ export interface ProductBatch {
   available: number;
   status: 'ACTIVE' | 'EXPIRED' | 'DEPLETED';
 }
+
+export interface SuspendedSale {
+  id: UUID;
+  ref: string;
+  tenantId: UUID;
+  terminalId?: UUID | null;
+  userId?: UUID | null;
+  customerId?: UUID | null;
+  warehouseId?: UUID | null;
+  lines: string; // JSON string of cart lines
+  discountType?: 'FIXED' | 'PERCENT' | null;
+  discountValue?: number | null;
+  taxMethod?: 'INCLUSIVE' | 'EXCLUSIVE' | null;
+  notes?: string | null;
+  status: 'OPEN' | 'RESUMED' | 'EXPIRED';
+  grandTotal: number;
+  totalItems: number;
+  expiresAt: string;
+  createdAt: string;
+}
+
+export interface GoodsReceived {
+  id: UUID;
+  ref: string;
+  date: string;
+  supplierId?: UUID | null;
+  warehouseId: UUID;
+  status: string;
+  grandTotal: number;
+  totalOrderedQty: number;
+  totalReceivedQty: number;
+  lines: GoodsReceivedLine[];
+  receivedAt?: string | null;
+}
+
+export interface GoodsReceivedLine {
+  id: UUID;
+  productId: UUID;
+  productName: string;
+  productCode?: string | null;
+  orderedQty: number;
+  receivedQty: number;
+  remainingQty: number;
+}
+
+export interface SupplierPayment {
+  paymentId: UUID;
+  supplierId: UUID;
+  supplierName: string;
+  purchaseId: UUID;
+  purchaseRef: string;
+  amount: number;
+  method: string;
+  reference?: string | null;
+  date: string;
+  accountId: UUID;
+  accountName: string;
+}

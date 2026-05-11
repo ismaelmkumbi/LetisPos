@@ -3,7 +3,7 @@
  * Mirrors io.smartpos.sales.api.dto.*
  */
 import { api } from './client';
-import type { Page, UUID } from './types';
+import type { GoodsReceived, Page, SuspendedSale, UUID } from './types';
 
 // ---------- shared ----------
 
@@ -609,6 +609,105 @@ export async function addPaymentToPurchase(
 
 export async function getPurchasePayments(purchaseId: UUID): Promise<PurchasePayment[]> {
   const { data } = await api.get<PurchasePayment[]>(`/api/v1/purchases/${purchaseId}/payments`);
+  return data;
+}
+
+// ─── Suspended Sales ───
+
+export interface SuspendedSaleSearchParams {
+  search?: string;
+  status?: 'OPEN' | 'RESUMED' | 'EXPIRED';
+  page?: number;
+  size?: number;
+}
+
+export async function listSuspendedSales(params: SuspendedSaleSearchParams = {}): Promise<Page<SuspendedSale>> {
+  const { data } = await api.get<Page<SuspendedSale>>('/api/v1/suspended-sales', { params });
+  return data;
+}
+
+export async function getSuspendedSale(id: UUID): Promise<SuspendedSale> {
+  const { data } = await api.get<SuspendedSale>(`/api/v1/suspended-sales/${id}`);
+  return data;
+}
+
+export interface SuspendCartBody {
+  tenantId: UUID;
+  terminalId?: UUID;
+  customerId?: UUID;
+  warehouseId: UUID;
+  lines: string;
+  discountType?: string;
+  discountValue?: number;
+  taxMethod?: string;
+  notes?: string;
+  grandTotal: number;
+  totalItems: number;
+}
+
+export async function suspendCart(body: SuspendCartBody): Promise<SuspendedSale> {
+  const { data } = await api.post<SuspendedSale>('/api/v1/suspended-sales', body);
+  return data;
+}
+
+export async function resumeSuspendedSale(id: UUID): Promise<SuspendedSale> {
+  const { data } = await api.post<SuspendedSale>(`/api/v1/suspended-sales/${id}/resume`);
+  return data;
+}
+
+export async function deleteSuspendedSale(id: UUID): Promise<void> {
+  await api.delete(`/api/v1/suspended-sales/${id}`);
+}
+
+export async function purgeExpiredSuspendedSales(): Promise<string> {
+  const { data } = await api.delete<string>('/api/v1/suspended-sales/expired');
+  return data;
+}
+
+// ─── Goods Received ───
+
+export interface GoodsReceivedSearchParams {
+  supplierId?: UUID;
+  dateFrom?: string;
+  dateTo?: string;
+  page?: number;
+  size?: number;
+}
+
+export async function listGoodsReceived(params: GoodsReceivedSearchParams = {}): Promise<Page<GoodsReceived>> {
+  const { data } = await api.get<Page<GoodsReceived>>('/api/v1/purchases/receiving', { params });
+  return data;
+}
+
+export interface ReceiveLineBody {
+  lineId: UUID;
+  receivedQty: number;
+}
+
+export async function receivePurchaseLine(purchaseId: UUID, body: ReceiveLineBody): Promise<GoodsReceived> {
+  const { data } = await api.post<GoodsReceived>(`/api/v1/purchases/${purchaseId}/receive-line`, body);
+  return data;
+}
+
+// ─── Supplier Returns (list/search) ───
+
+export interface PurchaseReturnSearchParams {
+  search?: string;
+  status?: string;
+  supplierId?: UUID;
+  dateFrom?: string;
+  dateTo?: string;
+  page?: number;
+  size?: number;
+}
+
+export async function searchPurchaseReturns(params: PurchaseReturnSearchParams = {}): Promise<Page<PurchaseReturn>> {
+  const { data } = await api.get<Page<PurchaseReturn>>('/api/v1/purchase-returns', { params });
+  return data;
+}
+
+export async function completePurchaseReturn(id: UUID): Promise<PurchaseReturn> {
+  const { data } = await api.post<PurchaseReturn>(`/api/v1/purchase-returns/${id}/complete`);
   return data;
 }
 

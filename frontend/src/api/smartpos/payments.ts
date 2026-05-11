@@ -3,7 +3,7 @@
  * Mirrors io.smartpos.payment.api.dto.*
  */
 import { api } from './client';
-import type { Page, UUID } from './types';
+import type { Page, SupplierPayment, UUID } from './types';
 
 // ---------- shared ----------
 
@@ -328,5 +328,22 @@ export async function createStripeIntent(body: {
   accountId: UUID;
 }): Promise<{ clientSecret: string; intentId: string; status: string }> {
   const { data } = await api.post('/api/v1/payments/stripe/intent', body);
+  return data;
+}
+
+// ─── Supplier Payments ───
+
+export interface SupplierPaymentSearchParams {
+  supplierId?: UUID;
+  method?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  search?: string;
+  page?: number;
+  size?: number;
+}
+
+export async function listSupplierPayments(params: SupplierPaymentSearchParams = {}): Promise<Page<SupplierPayment>> {
+  const { data } = await api.get<Page<SupplierPayment>>('/api/v1/payments/supplier', { params });
   return data;
 }
