@@ -77,13 +77,6 @@ export default function TransfersListPage() {
     };
   }, [page, refreshToken, user?.tenantId]);
 
-  // Stats
-  const stats = useMemo(() => {
-    const total = rows.reduce((s, t) => s + t.amount, 0);
-    const count = rows.length;
-    return { total, count };
-  }, [rows]);
-
   const accName = useMemo(() => {
     const m = new Map<string, string>();
     accounts.forEach((a) => m.set(a.id, a.name));

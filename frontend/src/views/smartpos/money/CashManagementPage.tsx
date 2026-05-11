@@ -48,7 +48,7 @@ interface DenomCount {
 
 export default function CashManagementPage() {
   const { user } = useAuth();
-  const warehouseId = user?.warehouseId ?? '';
+  const warehouseId = user?.warehouseIds?.[0] ?? '';
 
   // Current register
   const [current, setCurrent] = useState<CashRegisterSession | null>(null);
@@ -154,7 +154,7 @@ export default function CashManagementPage() {
     setClosing(true);
     setCloseError(null);
     try {
-      const session = await closeRegister(warehouseId, {
+      await closeRegister(warehouseId, {
         countedCash: totalCounted,
         notes: closeNotes || undefined,
       });
