@@ -19,7 +19,7 @@ import {
   DialogTitle,
   Divider,
   FormControlLabel,
-  Grid2 as Grid,
+  Grid,
   IconButton,
   LinearProgress,
   Stack,
