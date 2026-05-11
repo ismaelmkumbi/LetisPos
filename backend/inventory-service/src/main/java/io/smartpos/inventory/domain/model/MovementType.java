@@ -8,5 +8,7 @@ public enum MovementType {
     TRANSFER_OUT,
     TRANSFER_IN,
     ADJUSTMENT,
-    COUNT
+    COUNT,
+    DAMAGE,
+    WASTE
 }

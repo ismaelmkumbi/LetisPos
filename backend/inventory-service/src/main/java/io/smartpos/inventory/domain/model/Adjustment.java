@@ -33,6 +33,22 @@ public class Adjustment {
     @Column(name = "notes")        private String notes;
     @Column(name = "tenant_id")    private UUID tenantId;
 
+    @Column(name = "status", nullable = false)
+    @Builder.Default
+    private String status = "APPROVED";
+
+    @Column(name = "reason_code")
+    private String reasonCode;
+
+    @Column(name = "approved_by")
+    private UUID approvedBy;
+
+    @Column(name = "approved_at")
+    private Instant approvedAt;
+
+    @Column(name = "rejected_reason")
+    private String rejectedReason;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 

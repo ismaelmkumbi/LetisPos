@@ -1,6 +1,8 @@
 package io.smartpos.inventory.api;
 
 import io.smartpos.inventory.api.dto.AdjustmentDto;
+import io.smartpos.inventory.api.dto.CreateDamageRequest;
+import io.smartpos.inventory.api.dto.DamageRejectRequest;
 import io.smartpos.inventory.application.AdjustmentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -42,5 +44,29 @@ public class AdjustmentController {
                                                 @AuthenticationPrincipal Jwt jwt) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(service.create(req, jwt == null ? null : UUID.fromString(jwt.getSubject())));
+    }
+
+    // ---- Damage & Waste ----
+
+    @PostMapping("/damage")
+    @PreAuthorize("hasAuthority('stock.adjust')")
+    public ResponseEntity<AdjustmentDto> recordDamage(@Valid @RequestBody CreateDamageRequest req,
+                                                      @AuthenticationPrincipal Jwt jwt) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(service.recordDamage(req, jwt == null ? null : UUID.fromString(jwt.getSubject())));
+    }
+
+    @PostMapping("/damage/{id}/approve")
+    @PreAuthorize("hasAuthority('stock.count')")
+    public AdjustmentDto approveDamage(@PathVariable UUID id,
+                                       @AuthenticationPrincipal Jwt jwt) {
+        return service.approveDamage(id, jwt == null ? null : UUID.fromString(jwt.getSubject()));
+    }
+
+    @PostMapping("/damage/{id}/reject")
+    @PreAuthorize("hasAuthority('stock.count')")
+    public AdjustmentDto rejectDamage(@PathVariable UUID id,
+                                      @Valid @RequestBody DamageRejectRequest req) {
+        return service.rejectDamage(id, req.reason());
     }
 }

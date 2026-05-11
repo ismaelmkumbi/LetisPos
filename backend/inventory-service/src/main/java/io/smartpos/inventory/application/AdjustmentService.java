@@ -2,6 +2,7 @@ package io.smartpos.inventory.application;
 
 import io.smartpos.common.context.TenantContext;
 import io.smartpos.inventory.api.dto.AdjustmentDto;
+import io.smartpos.inventory.api.dto.CreateDamageRequest;
 import io.smartpos.inventory.domain.model.*;
 import io.smartpos.inventory.domain.repository.AdjustmentRepository;
 import io.smartpos.inventory.domain.repository.StockLevelRepository;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.Year;
 import java.util.UUID;
@@ -93,6 +95,120 @@ public class AdjustmentService {
         outbox.publish("Adjustment", a.getId(), "AdjustmentPosted",
                 java.util.Map.of("adjustmentId", a.getId(), "ref", a.getRef(),
                                  "warehouseId", a.getWarehouseId(), "lineCount", a.getLines().size()));
+        return AdjustmentDto.from(saved);
+    }
+
+    // ---- Damage & Waste ----
+
+    /**
+     * Record a damage or waste event. Creates a PENDING_REVIEW adjustment that
+     * must be explicitly approved before stock is deducted — two-step workflow
+     * that gives a reviewer the chance to verify or reject.
+     */
+    @Transactional
+    public AdjustmentDto recordDamage(CreateDamageRequest req, UUID userId) {
+        warehouseRepo.findById(req.warehouseId()).orElseThrow(() ->
+                new ResponseStatusException(HttpStatus.BAD_REQUEST, "warehouseId not found"));
+
+        UUID tenantId = TenantContext.require();
+        Adjustment a = Adjustment.builder()
+                .ref(nextRef())
+                .date(LocalDate.now())
+                .warehouseId(req.warehouseId())
+                .userId(userId)
+                .reason(req.movementType())          // "DAMAGE" or "WASTE" — used in approve to pick MovementType
+                .reasonCode(req.reasonCode())
+                .notes(req.notes())
+                .status("PENDING_REVIEW")
+                .tenantId(tenantId)
+                .build();
+
+        AdjustmentLine line = AdjustmentLine.builder()
+                .adjustment(a)
+                .productId(req.productId())
+                .variantId(req.variantId())
+                .qtyDelta(req.qty().negate())
+                .build();
+        a.getLines().add(line);
+
+        Adjustment saved = adjRepo.save(a);
+
+        outbox.publish("Adjustment", a.getId(), "DamageRecorded",
+                java.util.Map.of("adjustmentId", a.getId(), "ref", a.getRef(),
+                                 "warehouseId", a.getWarehouseId(), "movementType", req.movementType()));
+        return AdjustmentDto.from(saved);
+    }
+
+    /**
+     * Approve a pending damage/waste adjustment. Deducts stock for each line and
+     * records the corresponding DAMAGE or WASTE stock movement.
+     */
+    @Transactional
+    public AdjustmentDto approveDamage(UUID id, UUID userId) {
+        Adjustment a = adjRepo.findByIdWithLines(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Adjustment not found"));
+        if (!"PENDING_REVIEW".equals(a.getStatus())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Only PENDING_REVIEW adjustments can be approved");
+        }
+
+        UUID tenantId = TenantContext.require();
+
+        // Movement type is derived from the reason field populated in recordDamage
+        MovementType mType = "WASTE".equals(a.getReason()) ? MovementType.WASTE : MovementType.DAMAGE;
+
+        for (AdjustmentLine line : a.getLines()) {
+            StockLevel s = stockService.upsert(line.getProductId(), line.getVariantId(), a.getWarehouseId());
+            try {
+                s.applyDelta(line.getQtyDelta());
+            } catch (IllegalStateException e) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, e.getMessage());
+            }
+            stockRepo.save(s);
+
+            movementRepo.save(StockMovement.builder()
+                    .productId(line.getProductId()).variantId(line.getVariantId())
+                    .warehouseId(a.getWarehouseId())
+                    .movementType(mType)
+                    .qtyDelta(line.getQtyDelta())
+                    .referenceType(ReferenceType.ADJUSTMENT).referenceId(a.getId())
+                    .userId(userId)
+                    .notes("Damage/Waste approved: " + (a.getReasonCode() != null ? a.getReasonCode() : "N/A"))
+                    .tenantId(tenantId)
+                    .build());
+        }
+
+        a.setStatus("APPROVED");
+        a.setApprovedBy(userId);
+        a.setApprovedAt(Instant.now());
+
+        Adjustment saved = adjRepo.save(a);
+
+        outbox.publish("Adjustment", a.getId(), "DamageApproved",
+                java.util.Map.of("adjustmentId", a.getId(), "ref", a.getRef(),
+                                 "warehouseId", a.getWarehouseId(), "movementType", mType.name()));
+        return AdjustmentDto.from(saved);
+    }
+
+    /**
+     * Reject a pending damage/waste adjustment with a reason. No stock is
+     * affected — the adjustment is simply marked as REJECTED for audit trail.
+     */
+    @Transactional
+    public AdjustmentDto rejectDamage(UUID id, String reason) {
+        Adjustment a = adjRepo.findByIdWithLines(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Adjustment not found"));
+        if (!"PENDING_REVIEW".equals(a.getStatus())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Only PENDING_REVIEW adjustments can be rejected");
+        }
+        a.setStatus("REJECTED");
+        a.setRejectedReason(reason);
+
+        Adjustment saved = adjRepo.save(a);
+
+        outbox.publish("Adjustment", a.getId(), "DamageRejected",
+                java.util.Map.of("adjustmentId", a.getId(), "ref", a.getRef(), "reason", reason));
         return AdjustmentDto.from(saved);
     }
 
