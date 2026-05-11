@@ -125,7 +125,7 @@ export function buildSmartPosMenu(t: TFunction): MenuItem[] {
     { id: uid(), title: 'Stock Adjustments', icon: IconAdjustmentsAlt, href: '/smartpos/stock/adjustments' },
     { id: uid(), title: 'Stock Transfers', icon: IconArrowsTransferDown, href: '/smartpos/stock/transfers' },
     { id: uid(), title: 'Stock Counts', icon: IconClipboardCheck, href: '/smartpos/stock/counts' },
-    { id: uid(), title: 'Reorder Rules', icon: IconAlertTriangle, ...soon },
+    { id: uid(), title: 'Reorder Rules', icon: IconAlertTriangle, href: '/smartpos/stock/reorder-rules' },
     { id: uid(), title: 'Expiry Tracking', icon: IconClock, ...soon },
     { id: uid(), title: 'Batch / Lot Tracking', icon: IconBookmarks, ...soon },
     { id: uid(), title: 'Damage & Waste', icon: IconAlertTriangle, ...soon },
