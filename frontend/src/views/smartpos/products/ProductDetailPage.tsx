@@ -31,11 +31,13 @@ import {
   IconFileDescription,
   IconInfoCircle,
   IconPackage,
+  IconPlus,
   IconPhoto,
   IconReceipt,
   IconShield,
   IconSparkles,
   IconTag,
+  IconTrash,
   IconX,
 } from '@tabler/icons-react';
 import {
@@ -48,6 +50,7 @@ import {
   updateProduct,
   type CreateProductBody,
   type Product,
+  type VariantInput,
 } from 'src/api/smartpos/products';
 import { aiSuggestProduct } from 'src/api/smartpos/aiProducts';
 import type { Brand, Category, Unit, UUID } from 'src/api/smartpos/types';
@@ -965,6 +968,17 @@ export default function ProductDetailPage() {
             </Card>
           </Stack>
 
+          {isEdit && form.type !== 'COMBO' && (
+            <Card sx={{ ...cardSx, mb: 2 }}>
+              <CardContent sx={{ p: 2.5 }}>
+                <VariantMatrixBuilder
+                  variants={form.variants ?? []}
+                  onChange={(variants) => setField('variants', variants)}
+                />
+              </CardContent>
+            </Card>
+          )}
+
           <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
             <Card ref={(el) => { sectionRefs.current[3] = el; }} sx={{ ...cardSx, flex: 1.3, ...(flashedSection === 3 ? flashAnimation : {}) }}>
               <CardContent sx={{ p: 2.5 }}>
@@ -1381,5 +1395,282 @@ function ValueOrInput({
     <Typography sx={{ color: accent ? brand.primary[700] : brand.neutral[800], fontWeight: accent ? 800 : 700, fontSize: 15 }}>
       {[prefix, value || '—', suffix].filter(Boolean).join(' ')}
     </Typography>
+  );
+}
+
+// ── Variant Matrix Builder ──────────────────────────────────────────────
+
+interface VariantAxis {
+  name: string;   // e.g. "Size", "Color"
+  values: string; // comma-separated: "S,M,L"
+}
+
+function VariantMatrixBuilder({
+  variants,
+  onChange,
+}: {
+  variants: VariantInput[];
+  onChange: (variants: VariantInput[]) => void;
+}) {
+  const [axes, setAxes] = useState<VariantAxis[]>([]);
+  const [expanded, setExpanded] = useState(variants.length > 0);
+
+  const generateCombinations = () => {
+    const lists = axes
+      .filter((a) => a.name.trim() && a.values.trim())
+      .map((a) => a.values.split(',').map((v) => v.trim()).filter(Boolean));
+    if (lists.length === 0) return;
+
+    const combos: string[][] = lists.reduce(
+      (acc, list) => acc.flatMap((prefix) => list.map((v) => [...prefix, v])),
+      [[]] as string[][],
+    );
+
+    const axisNames = axes.map((a) => a.name.trim());
+
+    const newVariants: VariantInput[] = combos.map((combo) => {
+      const name = combo.map((v, i) => `${axisNames[i]}:${v}`).join(' / ');
+      const existing = variants.find((v) => v.name === name);
+      return (
+        existing ?? {
+          name,
+          code: undefined,
+          cost: undefined,
+          price: undefined,
+          wholesalePrice: undefined,
+          minPrice: undefined,
+          imageUrl: undefined,
+        }
+      );
+    });
+
+    onChange(newVariants);
+  };
+
+  const updateVariant = (idx: number, patch: Partial<VariantInput>) => {
+    const next = [...variants];
+    next[idx] = { ...next[idx], ...patch };
+    onChange(next);
+  };
+
+  const removeVariant = (idx: number) => {
+    onChange(variants.filter((_, i) => i !== idx));
+  };
+
+  const applyBulk = (field: 'cost' | 'price' | 'wholesalePrice' | 'minPrice', value: number) => {
+    onChange(variants.map((v) => ({ ...v, [field]: value || undefined })));
+  };
+
+  return (
+    <Box>
+      <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1.5 }}>
+        <Typography sx={{ fontWeight: 800, fontSize: 18, color: brand.neutral[800], flex: 1 }}>
+          Variants
+        </Typography>
+        <Button
+          size="small"
+          variant="outlined"
+          onClick={() => setExpanded((v) => !v)}
+          sx={{
+            borderRadius: '8px',
+            textTransform: 'none',
+            fontWeight: 600,
+            borderColor: brand.neutral[200],
+            color: brand.neutral[600],
+          }}
+        >
+          {expanded ? 'Collapse' : 'Expand'}
+        </Button>
+      </Stack>
+
+      {expanded && (
+        <Stack spacing={2}>
+          {/* Axes builder */}
+          <Box
+            sx={{
+              p: 2,
+              borderRadius: '12px',
+              border: `1px solid ${brand.neutral[200]}`,
+              bgcolor: brand.neutral[50],
+            }}
+          >
+            <Typography sx={{ fontWeight: 700, fontSize: 13, color: brand.neutral[700], mb: 1 }}>
+              Variant Attributes
+            </Typography>
+            <Stack spacing={1}>
+              {axes.map((axis, idx) => (
+                <Stack key={idx} direction="row" spacing={1} alignItems="center">
+                  <TextField
+                    size="small"
+                    placeholder="Name (e.g. Size)"
+                    value={axis.name}
+                    onChange={(e) => {
+                      const next = [...axes];
+                      next[idx] = { ...next[idx], name: e.target.value };
+                      setAxes(next);
+                    }}
+                    sx={{ width: 160 }}
+                  />
+                  <TextField
+                    size="small"
+                    placeholder="Values (e.g. S,M,L)"
+                    value={axis.values}
+                    onChange={(e) => {
+                      const next = [...axes];
+                      next[idx] = { ...next[idx], values: e.target.value };
+                      setAxes(next);
+                    }}
+                    fullWidth
+                  />
+                  <IconButton
+                    size="small"
+                    onClick={() => setAxes(axes.filter((_, i) => i !== idx))}
+                  >
+                    <IconX size={16} />
+                  </IconButton>
+                </Stack>
+              ))}
+              <Button
+                size="small"
+                startIcon={<IconPlus size={14} />}
+                onClick={() => setAxes([...axes, { name: '', values: '' }])}
+                sx={{ textTransform: 'none', fontWeight: 600, alignSelf: 'flex-start' }}
+              >
+                Add attribute
+              </Button>
+            </Stack>
+            <Button
+              variant="contained"
+              size="small"
+              onClick={generateCombinations}
+              disabled={axes.length === 0}
+              sx={{
+                mt: 1.5,
+                borderRadius: '10px',
+                textTransform: 'none',
+                fontWeight: 700,
+              }}
+            >
+              Generate Combinations
+            </Button>
+          </Box>
+
+          {/* Variant grid */}
+          {variants.length > 0 && (
+            <Box>
+              {/* Bulk apply toolbar */}
+              <Stack direction="row" spacing={1} sx={{ mb: 1 }} flexWrap="wrap" useFlexGap>
+                {(['cost', 'price', 'wholesalePrice', 'minPrice'] as const).map((field) => (
+                  <TextField
+                    key={field}
+                    size="small"
+                    type="number"
+                    label={`Bulk ${field.replace(/([A-Z])/g, ' $1').toLowerCase()}`}
+                    placeholder="Apply to all"
+                    onBlur={(e) => {
+                      const v = Number(e.target.value);
+                      if (v > 0) applyBulk(field, v);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        const v = Number((e.target as HTMLInputElement).value);
+                        if (v > 0) applyBulk(field, v);
+                      }
+                    }}
+                    sx={{ width: 150 }}
+                    InputProps={{ sx: { borderRadius: '10px' } }}
+                  />
+                ))}
+              </Stack>
+
+              {/* Variant rows */}
+              <Stack spacing={1}>
+                {variants.map((v, idx) => (
+                  <Stack
+                    key={`${v.name}-${idx}`}
+                    direction="row"
+                    spacing={1}
+                    alignItems="center"
+                    sx={{
+                      p: 1.5,
+                      borderRadius: '10px',
+                      border: `1px solid ${brand.neutral[200]}`,
+                      bgcolor: '#fff',
+                      flexWrap: 'wrap',
+                    }}
+                    useFlexGap
+                  >
+                    <Typography
+                      sx={{
+                        fontWeight: 700,
+                        fontSize: 13,
+                        minWidth: 140,
+                        flex: { xs: '1 1 100%', sm: '0 0 auto' },
+                      }}
+                    >
+                      {v.name}
+                    </Typography>
+                    <TextField
+                      size="small"
+                      label="Code"
+                      value={v.code ?? ''}
+                      onChange={(e) => updateVariant(idx, { code: e.target.value || undefined })}
+                      sx={{ width: 100 }}
+                      InputProps={{ sx: { borderRadius: '10px' } }}
+                    />
+                    <TextField
+                      size="small"
+                      label="Cost"
+                      type="number"
+                      value={v.cost ?? ''}
+                      onChange={(e) =>
+                        updateVariant(idx, { cost: Number(e.target.value) || undefined })
+                      }
+                      sx={{ width: 100 }}
+                      InputProps={{ sx: { borderRadius: '10px' } }}
+                    />
+                    <TextField
+                      size="small"
+                      label="Price"
+                      type="number"
+                      value={v.price ?? ''}
+                      onChange={(e) =>
+                        updateVariant(idx, { price: Number(e.target.value) || undefined })
+                      }
+                      sx={{ width: 100 }}
+                      InputProps={{ sx: { borderRadius: '10px' } }}
+                    />
+                    <TextField
+                      size="small"
+                      label="Wholesale"
+                      type="number"
+                      value={v.wholesalePrice ?? ''}
+                      onChange={(e) =>
+                        updateVariant(idx, { wholesalePrice: Number(e.target.value) || undefined })
+                      }
+                      sx={{ width: 100 }}
+                      InputProps={{ sx: { borderRadius: '10px' } }}
+                    />
+                    <TextField
+                      size="small"
+                      label="Image URL"
+                      value={v.imageUrl ?? ''}
+                      onChange={(e) =>
+                        updateVariant(idx, { imageUrl: e.target.value || undefined })
+                      }
+                      sx={{ minWidth: 180, flex: 1 }}
+                      InputProps={{ sx: { borderRadius: '10px' } }}
+                    />
+                    <IconButton size="small" onClick={() => removeVariant(idx)}>
+                      <IconTrash size={16} />
+                    </IconButton>
+                  </Stack>
+                ))}
+              </Stack>
+            </Box>
+          )}
+        </Stack>
+      )}
+    </Box>
   );
 }
