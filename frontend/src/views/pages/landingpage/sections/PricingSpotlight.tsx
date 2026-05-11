@@ -39,14 +39,11 @@ const PricingSpotlight: React.FC<PricingSpotlightProps> = ({ billing }) => {
     return tier.monthlyPrice;
   };
 
-  const getPeriod = (tier: PricingTier): string => {
-    if (isAnnual && tier.annualPrice && tier.annualPrice !== 'Custom') {
+  const getPeriod = (tier: PricingTier) => {
+    if (isAnnual && tier.annualPrice !== 'Custom') {
       return '/year';
     }
-    if (tier.annualPrice === 'Custom') {
-      return '/month';
-    }
-    return tier.period;
+    return '/month';
   };
 
   const getCtaProps = (tier: PricingTier) => {
