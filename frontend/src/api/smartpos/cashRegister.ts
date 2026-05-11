@@ -49,3 +49,10 @@ export async function closeRegister(warehouseId: string, body: CloseRegisterRequ
   );
   return data;
 }
+
+export async function getRegisterHistory(warehouseId: string): Promise<CashRegisterSession[]> {
+  const { data } = await api.get<CashRegisterSession[]>('/api/v1/cash-registers/history', {
+    params: { warehouseId },
+  });
+  return data;
+}
