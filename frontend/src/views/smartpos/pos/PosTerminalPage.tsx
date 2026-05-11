@@ -181,7 +181,7 @@ export default function PosTerminalPage() {
         localStorage.removeItem('smartpos.pos.resumeCart');
       } catch { /* ignore malformed data */ }
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (linkedTerminalId) localStorage.setItem(LINKED_TERMINAL_KEY, linkedTerminalId);

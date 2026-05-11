@@ -46,7 +46,7 @@ export default function SuspendedSalesPage() {
     return () => { cancelled = true; };
   }, [search, page, refreshToken]);
 
-  const handleResume = async (s: SuspendedSale) => {
+  const handleResume = useCallback(async (s: SuspendedSale) => {
     try {
       const resumed = await resumeSuspendedSale(s.id);
       localStorage.setItem(RESUME_CART_KEY, resumed.lines);
@@ -54,9 +54,9 @@ export default function SuspendedSalesPage() {
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Resume failed');
     }
-  };
+  }, [nav]);
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = useCallback(async (id: string) => {
     try {
       await deleteSuspendedSale(id);
       setRefreshToken((n) => n + 1);
@@ -64,7 +64,7 @@ export default function SuspendedSalesPage() {
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Delete failed');
     }
-  };
+  }, [sel]);
 
   const handleBatchDelete = async () => {
     try {
