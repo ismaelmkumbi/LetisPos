@@ -41,6 +41,11 @@ public class SecurityConfig {
                                 "/api/v1/ai/capture-sessions/*/photos",
                                 "/api/v1/ai/capture-sessions/*/complete"
                         ).permitAll()
+                        .requestMatchers(org.springframework.http.HttpMethod.GET,
+                                "/api/v1/ai/capture-sessions/*/photos",
+                                "/api/v1/ai/capture-sessions/*/photos/*/full",
+                                "/api/v1/ai/capture-sessions/*/photos/*/thumb"
+                        ).permitAll()
                         .requestMatchers("/actuator/**", "/v3/api-docs/**", "/swagger-ui/**").permitAll()
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(o -> o.jwt(j -> j.jwtAuthenticationConverter(jwtAuthConverter())))

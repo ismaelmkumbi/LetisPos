@@ -30,6 +30,11 @@ public class SecurityConfig {
                                 "/api/v1/ai/capture-sessions/*/photos",
                                 "/api/v1/ai/capture-sessions/*/complete"
                         ).permitAll()
+                        .pathMatchers(HttpMethod.GET,
+                                "/api/v1/ai/capture-sessions/*/photos",
+                                "/api/v1/ai/capture-sessions/*/photos/*/full",
+                                "/api/v1/ai/capture-sessions/*/photos/*/thumb"
+                        ).permitAll()
                         .pathMatchers(
                                 "/api/v1/auth/login",
                                 "/api/v1/auth/refresh",
