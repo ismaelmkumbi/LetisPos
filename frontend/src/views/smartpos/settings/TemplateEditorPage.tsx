@@ -1,11 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Box, Typography, Select, MenuItem, FormControl, InputLabel, Button } from '@mui/material';
+import { IconSparkles } from '@tabler/icons-react';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable';
 import { listTemplates, getTemplate, saveTemplateOverride } from '../../../api/smartpos/documents';
 import BlockPalette from '../../../components/smartpos/documents/editor/BlockPalette';
 import BlockConfigPanel from '../../../components/smartpos/documents/editor/BlockConfigPanel';
 import TemplatePreviewPanel from '../../../components/smartpos/documents/editor/TemplatePreviewPanel';
+import TemplateAssistantChat from '../../../components/smartpos/documents/editor/TemplateAssistantChat';
 
 const BLOCK_LABELS: Record<string, string> = {
   header: 'Header',
@@ -26,6 +28,7 @@ export default function TemplateEditorPage() {
   const [blockConfigs, setBlockConfigs] = useState<Record<string, Record<string, unknown>>>({});
   const [selectedBlock, setSelectedBlock] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [showAssistant, setShowAssistant] = useState(false);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
@@ -104,6 +107,10 @@ export default function TemplateEditorPage() {
           sx={{ bgcolor: '#4f46e5', '&:hover': { bgcolor: '#4338ca' }, textTransform: 'none' }}>
           {saving ? 'Saving...' : 'Save Template'}
         </Button>
+        <Button onClick={() => setShowAssistant(!showAssistant)} startIcon={<IconSparkles size={16} />}
+          variant={showAssistant ? 'contained' : 'outlined'} size="small">
+          AI Assistant
+        </Button>
       </Box>
 
       {/* Three-panel layout */}
@@ -143,6 +150,27 @@ export default function TemplateEditorPage() {
             <Typography sx={{ p: 2, fontSize: '0.8rem', color: '#aaa' }}>Select a block to configure its options</Typography>
           )}
         </Box>
+
+        {/* Assistant panel */}
+        {showAssistant && (
+          <Box sx={{ width: 300, minWidth: 300, overflow: 'auto', borderRight: '1px solid #e2e8f0', p: 2 }}>
+            <TemplateAssistantChat
+              documentType={docType}
+              currentConfig={JSON.stringify({ blocks: blocks.map((id) => ({ type: id, ...blockConfigs[id] })) })}
+              onApplyConfig={(newConfig) => {
+                setBlockConfigs((prev) => {
+                  const merged = { ...prev };
+                  for (const [key, val] of Object.entries(newConfig)) {
+                    if (val && typeof val === 'object' && !Array.isArray(val)) {
+                      merged[key] = val as Record<string, unknown>;
+                    }
+                  }
+                  return merged;
+                });
+              }}
+            />
+          </Box>
+        )}
 
         {/* Right panel: Live Preview */}
         <Box sx={{ flex: 1, overflow: 'auto' }}>
