@@ -72,3 +72,43 @@ export async function updateSubscription(id: string, body: Partial<Subscription>
   const { data } = await api.patch<Subscription>(`/api/v1/billing/subscriptions/admin/${id}`, body);
   return data;
 }
+
+// ── Payment Methods ──
+
+export interface PaymentMethod {
+  id: string;
+  tenantId: string;
+  type: string;
+  provider?: string;
+  label: string;
+  providerCustomerId?: string;
+  isDefault: boolean;
+  createdAt: string;
+}
+
+export async function listPaymentMethods(tenantId: string): Promise<PaymentMethod[]> {
+  const { data } = await api.get<PaymentMethod[]>(`/api/v1/billing/payment-methods/tenant/${tenantId}`);
+  return data;
+}
+
+export async function createPaymentMethod(body: {
+  tenantId: string;
+  type: string;
+  provider?: string;
+  label: string;
+  isDefault?: boolean;
+}): Promise<PaymentMethod> {
+  const { data } = await api.post<PaymentMethod>('/api/v1/billing/payment-methods', body);
+  return data;
+}
+
+export async function deletePaymentMethod(id: string): Promise<void> {
+  await api.delete(`/api/v1/billing/payment-methods/${id}`);
+}
+
+// ── Invoices ──
+
+export async function listInvoices(tenantId: string): Promise<Invoice[]> {
+  const { data } = await api.get<Invoice[]>(`/api/v1/billing/invoices/tenant/${tenantId}`);
+  return data;
+}
