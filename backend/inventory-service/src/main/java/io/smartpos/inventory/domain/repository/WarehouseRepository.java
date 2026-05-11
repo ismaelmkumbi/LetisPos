@@ -11,4 +11,5 @@ public interface WarehouseRepository extends JpaRepository<Warehouse, UUID> {
     Optional<Warehouse> findByCodeIgnoreCase(String code);
     List<Warehouse> findByTenantId(UUID tenantId);
     long count();
+    long countByTenantIdAndActiveTrue(UUID tenantId);
 }
