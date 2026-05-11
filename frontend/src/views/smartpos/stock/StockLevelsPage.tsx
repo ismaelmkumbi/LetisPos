@@ -405,12 +405,16 @@ export default function StockLevelsPage() {
     );
   }
 
-  const renderExpanded = useCallback(
-    (stock: StockLevel) => <BatchBreakdown stock={stock} />,
-    [],
-  );
+  const renderExpanded = (stock: StockLevel) => <BatchBreakdown stock={stock} />;
 
   // ── Receive-batch handler ───────────────────────────────────────────────
+  const resetReceiveForm = useCallback(() => {
+    setReceiveProduct(null);
+    setReceiveProductSearch('');
+    setReceiveForm({ batchNumber: '', manufacturingDate: '', expiryDate: '', qty: '' });
+    setReceiveError(null);
+  }, []);
+
   const handleReceiveBatch = useCallback(async () => {
     if (!receiveProduct || !warehouseId || !receiveForm.batchNumber.trim() || !receiveForm.qty) return;
     setReceiveSubmitting(true);
@@ -433,14 +437,7 @@ export default function StockLevelsPage() {
     } finally {
       setReceiveSubmitting(false);
     }
-  }, [receiveProduct, warehouseId, receiveForm, fetchData]);
-
-  const resetReceiveForm = useCallback(() => {
-    setReceiveProduct(null);
-    setReceiveProductSearch('');
-    setReceiveForm({ batchNumber: '', manufacturingDate: '', expiryDate: '', qty: '' });
-    setReceiveError(null);
-  }, []);
+  }, [receiveProduct, warehouseId, receiveForm, fetchData, resetReceiveForm]);
 
   // ── Columns ──────────────────────────────────────────────────────────────
   const columns: Column<StockLevel>[] = useMemo(() => [

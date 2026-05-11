@@ -196,8 +196,9 @@ export default function DamageWastePage() {
     try {
       await api.post(`/api/v1/adjustments/damage/${id}/approve`);
       fetchPending(pendingPage);
-    } catch (e: any) {
-      setError(e?.response?.data?.message ?? e?.message ?? 'Approval failed');
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } }; message?: string };
+      setError(err?.response?.data?.message ?? err?.message ?? 'Approval failed');
     } finally {
       setApproving(null);
     }
@@ -221,8 +222,9 @@ export default function DamageWastePage() {
       setRejectTarget(null);
       setRejectReason('');
       fetchPending(pendingPage);
-    } catch (e: any) {
-      setError(e?.response?.data?.message ?? e?.message ?? 'Rejection failed');
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } }; message?: string };
+      setError(err?.response?.data?.message ?? err?.message ?? 'Rejection failed');
     } finally {
       setRejecting(false);
     }

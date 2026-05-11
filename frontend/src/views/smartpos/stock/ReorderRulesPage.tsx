@@ -372,7 +372,7 @@ export default function ReorderRulesPage() {
         </Stack>
       ),
     },
-  ], [warehouses, suppliers, warehouseName, supplierName]);
+  ], [warehouseName, supplierName]);
 
   return (
     <Box>
