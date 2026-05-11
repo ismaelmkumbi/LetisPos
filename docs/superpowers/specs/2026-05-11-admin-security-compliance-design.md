@@ -1,14 +1,14 @@
-# Administration — Security & Compliance Design
+# Administration Design
 
 **Date:** 2026-05-11
 **Status:** Approved
-**Scope:** Audit Logs, Session Management, API Keys, Data Retention, Error Logs, Optional Branches
+**Scope:** Branches, Audit Logs, Session Management, API Keys, Data Retention, Error Logs, Subscription & Billing
 
 ---
 
 ## Architecture
 
-**New backend service: `audit-service`** (port 8093)
+**New backend services: `audit-service`** (port 8093), **`billing-service`** (port 8094)
 
 ```
 GATEWAY  (API Key filter, IP allowlist filter)
@@ -48,6 +48,8 @@ Administration
 ├── Localization             (existing)
 ├── Notifications            (existing)
 ├── ─────────────────
+├── Subscription & Billing   (NEW)
+├── ─────────────────
 ├── Audit Logs               (NEW)
 ├── Sessions                 (NEW)
 ├── API Keys                 (NEW)
@@ -55,7 +57,7 @@ Administration
 ├── Error Logs               (NEW)
 ```
 
-"Subscription & Billing" and "Backups" are deferred to the System Health sub-project.
+"Backups" is deferred to the System Health sub-project.
 
 ---
 
@@ -303,13 +305,147 @@ Warehouse gets an optional `branchId` FK. Null = unassigned (current behaviour).
 
 ---
 
+## 7. Subscription & Billing
+
+**Pages:** `/smartpos/admin/billing`, `/smartpos/admin/billing/plans`, `/smartpos/admin/billing/invoices`, `/smartpos/admin/billing/payment-methods`
+
+### New backend service: `billing-service` (port 8094)
+
+### Plan Alignment
+
+Landing page promises must match backend reality:
+
+| Landing Page | Backend Enum | Users | Stores | Products | Key Differentiator |
+|---|---|---|---|---|---|
+| Starter (TZS 15K/mo) | `STARTER` | 5 | 1 | 1,000 | Basic POS + stock |
+| Business (TZS 35K/mo) | `BUSINESS` | 20 | 5 | 10,000 | + Accounting + Purchases + Reports |
+| Professional (TZS 79K/mo) | `PROFESSIONAL` | 100 | 25 | 50,000 | + HRM + API + Multi-currency |
+| Enterprise (TZS 250K/mo) | `ENTERPRISE` | Unlimited | Unlimited | Unlimited | + Multi-company + SLA + Custom |
+
+A **FREE** plan exists for tenants whose trial expires without subscribing — tightly limited (1 user, 1 store, 100 products, no reports/API/HRM).
+
+### Tenant Lifecycle State Machine
+
+```
+register ──→ TRIAL (30 days, full features, no payment required)
+                 │
+     ┌───────────┼───────────┐
+     ▼           ▼           ▼
+  ACTIVE      TRIAL        CLOSED
+  (paid)      EXPIRED      → data retained 90 days then purged
+     │           │
+     │      downgrade         ▲
+     │      to FREE       reactivate
+     │           │         + pay
+     ▼           ▼         │
+  PAST_DUE ─→ FREE     ────┘
+  (7 days) (limited)
+     │
+     ▼ (after 7 days)
+  SUSPENDED
+  (locked, data preserved)
+```
+
+**Rules:**
+- **TRIAL**: 30 days, full features of the plan they signed up for. No payment method required. A countdown banner appears in the dashboard.
+- **TRIAL EXPIRED**: Auto-downgrades to FREE plan. Dashboard shows upgrade prompt.
+- **ACTIVE**: Paid and current. Subscription auto-renews.
+- **FREE**: Tight limits. Can upgrade to any paid plan at any time.
+- **PAST DUE**: 7-day grace period. Services still work. Dashboard banner: "Update payment — X days remaining." Payment retried daily for 3 days.
+- **SUSPENDED**: All access blocked. Login returns "Account suspended." Data fully preserved. Admin can reactivate after payment. Manual admin suspend also possible.
+- **CLOSED**: Irreversible without admin. Data retained 90 days then purged per retention policy. Tenant can request closure; admin can also close.
+
+### Feature Gating
+
+Plan controls feature availability. Gateway enforces via a `FeatureGateFilter`:
+
+| Capability | Free | Starter | Business | Professional | Enterprise |
+|---|---|---|---|---|---|
+| POS & Sales | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Inventory | 100 products | 1K | 10K | 50K | Unlimited |
+| Customers | 50 | 500 | 5K | 25K | Unlimited |
+| Accounting | ❌ | ❌ | ✅ | ✅ | ✅ |
+| Purchases | ❌ | ❌ | ✅ | ✅ | ✅ |
+| Reports | ❌ | Basic | Full | Full + Export | Full + Custom |
+| HRM & Payroll | ❌ | ❌ | ❌ | ✅ | ✅ |
+| API Keys | ❌ | ❌ | ❌ | ✅ | ✅ |
+| Multi-currency | ❌ | ❌ | ❌ | ✅ | ✅ |
+| Multi-company | ❌ | ❌ | ❌ | ❌ | ✅ |
+| White-label | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Support | Community | Email | Priority Email | Chat + Phone | Dedicated AM |
+
+### Payment Methods
+
+Tanzania-first, with global fallback:
+
+| Method | Provider | Settlement | Recurring |
+|---|---|---|---|
+| M-Pesa | Vodacom API | Real-time callback | Manual (pay per invoice) |
+| Tigo Pesa | Tigo API | Real-time callback | Manual (pay per invoice) |
+| Airtel Money | Airtel API | Real-time callback | Manual (pay per invoice) |
+| Card | Stripe | Instant | Auto (Stripe Billing) |
+| Bank Transfer | Manual | Admin confirms | Manual |
+| Cash | Manual (agent network) | Admin confirms | Manual |
+
+Stripe handles card subscriptions with auto-renewal. Mobile money payments are pay-per-invoice (user receives invoice, pays via mobile money, system verifies via callback). Manual methods require admin confirmation.
+
+### Billing Flow
+
+1. Invoice generated 7 days before renewal date
+2. Email sent with invoice PDF + payment link (Stripe) or mobile money instructions
+3. On payment received (Stripe webhook / mobile money callback / admin manual confirm) → invoice marked PAID → subscription extended
+4. On payment failure: retry daily for 3 days → PAST_DUE state → 7 day grace → SUSPENDED
+5. Annual plan: single invoice, 10x monthly price (2 months free)
+
+### Tenant-level UI (not admin)
+
+Every tenant user sees a **Billing** entry in the user dropdown menu (avatar menu). This opens a stripped-down self-service view:
+
+| Feature | Detail |
+|---|---|
+| Current plan card | Plan name, price, next billing date, status |
+| Usage bar | Products: 847/1000, Users: 3/5, Stores: 1/1 |
+| Upgrade button | Opens plan comparison → "Upgrade to Business" |
+| Invoice history | Last 12 invoices with download |
+| Payment method | Current method + "Update" link |
+
+### Admin UI
+
+| Page | Route | Purpose |
+|---|---|---|
+| **Billing Dashboard** | `/smartpos/admin/billing` | MRR, active subscriptions count, trial count, churn rate, recent payments table |
+| **Plans** | `/smartpos/admin/billing/plans` | View/edit plan definitions, feature matrix, pricing |
+| **Tenant Subscriptions** | `/smartpos/admin/billing/subscriptions` | Per-tenant: plan, status, payment history, usage vs limits |
+| **Invoices** | `/smartpos/admin/billing/invoices` | All invoices across tenants: status filter, mark manual payments as paid |
+| **Payment Methods** | Part of tenant detail | View tenant's payment methods, payment history |
+
+### Tenant Lifecycle Actions (integrated into Tenants page)
+
+| Action | Dialog | Effect |
+|---|---|---|
+| **Suspend** | Reason + confirm | Sets status to SUSPENDED, revokes all sessions, audit event logged |
+| **Reactivate** | Confirm | Sets status to ACTIVE (or most recent paid plan), sessions re-enabled |
+| **Close** | Reason + "data will be deleted in 90 days" warning | Sets status to CLOSED, schedules purge |
+
+### Backend Summary
+
+| Service | New Responsibilities |
+|---|---|
+| **billing-service** (new) | Subscription CRUD, invoice generation, payment processing, plan definitions, feature gating rules |
+| **auth-service** | Tenant lifecycle (status transitions, trial tracking), plan alignment (rename enums), `createdAt` → trial expiry calculation |
+| **gateway** | New `FeatureGateFilter` — reads plan from tenant context, rejects requests to gated endpoints with 402 Payment Required |
+| **user-service** | User count enforcement on plan limits |
+| **product-service** | Product count enforcement on plan limits |
+
+---
+
 ## Security Permissions
 
 New authorities added to the existing set:
 
 | Authority | Purpose |
 |---|---|
-| `admin` | Gate for all admin pages (audit, sessions, API keys, retention, error logs) |
+| `admin` | Gate for all admin pages |
 | `branch.view` | Read branches |
 | `branch.manage` | Create/edit/delete branches |
 | `api_key.manage` | Create/rotate/revoke API keys |
@@ -317,15 +453,24 @@ New authorities added to the existing set:
 | `session.manage` | View and revoke sessions |
 | `retention.manage` | Configure data retention rules |
 | `error_log.view` | View error logs |
+| `billing.view` | View billing dashboard, invoices, subscriptions |
+| `billing.manage` | Change plans, mark payments, manage payment methods |
+| `tenant.suspend` | Suspend/reactivate/close tenants |
 
 ---
 
 ## Implementation Order
 
-1. **Branches** — simplest, standalone, no dependencies on audit-service
-2. **audit-service scaffolding** — new service, database, JPA auditing across existing services
-3. **Audit Logs page** — verify end-to-end event flow
-4. **Error Logs page** — piggybacks on audit-service
-5. **Session Management** — backend endpoints + UI
-6. **API Keys** — backend + gateway filter + UI
-7. **Data Retention** — scheduled job + UI, last because it depends on audit events existing
+1. **Branches** — simplest, standalone, no dependencies
+2. **Billing Plan Alignment** — rename enums, add FREE plan, trial tracking in auth-service
+3. **billing-service scaffolding** — new service, plan definitions, subscription model
+4. **Tenant Lifecycle** — status transitions, trial expiry, suspend/reactivate/close
+5. **Feature Gating** — gateway filter, plan-based endpoint blocking
+6. **Subscription & Billing UI** — admin pages + tenant self-service
+7. **Payment Integration** — Stripe for cards, mobile money callbacks, manual payment flow
+8. **audit-service scaffolding** — new service, database, JPA auditing
+9. **Audit Logs page** — verify end-to-end event flow
+10. **Error Logs page** — piggybacks on audit-service
+11. **Session Management** — backend endpoints + UI
+12. **API Keys** — backend + gateway filter + UI (requires feature gating: Professional+)
+13. **Data Retention** — scheduled job + UI
