@@ -436,6 +436,53 @@ export default function PurchaseBuilderPage() {
             sx={{ mt: 2 }}
             disabled={!isEditable}
           />
+
+          {/* Attachments */}
+          <Card
+            elevation={0}
+            sx={{
+              mt: 2,
+              border: `1px solid ${brand.neutral[200]}`,
+              borderRadius: 3,
+            }}
+          >
+            <CardContent>
+              <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
+                Attachments
+              </Typography>
+              <Stack direction="row" spacing={1} alignItems="center">
+                <Button
+                  variant="outlined"
+                  component="label"
+                  size="small"
+                  startIcon={uploading ? <CircularProgress size={14} /> : <IconUpload size={14} />}
+                  disabled={uploading}
+                  sx={{ textTransform: 'none', fontWeight: 600, borderRadius: '8px' }}
+                >
+                  {uploading ? 'Uploading…' : 'Upload'}
+                  <input
+                    type="file"
+                    hidden
+                    accept="image/*,.pdf"
+                    onChange={handleUploadAttachment}
+                  />
+                </Button>
+              </Stack>
+              {attachments.length > 0 && (
+                <Stack spacing={0.5} sx={{ mt: 1 }}>
+                  {attachments.map((url, i) => (
+                    <Chip
+                      key={i}
+                      label={url.split('/').pop() || url}
+                      size="small"
+                      onDelete={() => setAttachments((prev) => prev.filter((_, j) => j !== i))}
+                      sx={{ maxWidth: '100%', '& .MuiChip-label': { overflow: 'hidden', textOverflow: 'ellipsis' } }}
+                    />
+                  ))}
+                </Stack>
+              )}
+            </CardContent>
+          </Card>
         </Grid>
 
         <Grid size={{ xs: 12, md: 4 }}>
@@ -685,53 +732,6 @@ export default function PurchaseBuilderPage() {
                 <Alert severity="error" sx={{ mt: 2, borderRadius: '8px' }}>
                   This purchase was cancelled.
                 </Alert>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Attachments */}
-          <Card
-            elevation={0}
-            sx={{
-              mt: 2,
-              border: `1px solid ${brand.neutral[200]}`,
-              borderRadius: 3,
-            }}
-          >
-            <CardContent>
-              <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
-                Attachments
-              </Typography>
-              <Stack direction="row" spacing={1} alignItems="center">
-                <Button
-                  variant="outlined"
-                  component="label"
-                  size="small"
-                  startIcon={uploading ? <CircularProgress size={14} /> : <IconUpload size={14} />}
-                  disabled={uploading}
-                  sx={{ textTransform: 'none', fontWeight: 600, borderRadius: '8px' }}
-                >
-                  {uploading ? 'Uploading…' : 'Upload'}
-                  <input
-                    type="file"
-                    hidden
-                    accept="image/*,.pdf"
-                    onChange={handleUploadAttachment}
-                  />
-                </Button>
-              </Stack>
-              {attachments.length > 0 && (
-                <Stack spacing={0.5} sx={{ mt: 1 }}>
-                  {attachments.map((url, i) => (
-                    <Chip
-                      key={i}
-                      label={url.split('/').pop() || url}
-                      size="small"
-                      onDelete={() => setAttachments((prev) => prev.filter((_, j) => j !== i))}
-                      sx={{ maxWidth: '100%', '& .MuiChip-label': { overflow: 'hidden', textOverflow: 'ellipsis' } }}
-                    />
-                  ))}
-                </Stack>
               )}
             </CardContent>
           </Card>
