@@ -162,7 +162,7 @@ export function buildSmartPosMenu(t: TFunction): MenuItem[] {
     { id: uid(), title: t('smartpos:nav.payments'), icon: IconCoin, href: '/smartpos/payments' },
     { id: uid(), title: t('smartpos:nav.expenses'), icon: IconReceipt2, href: '/smartpos/expenses' },
     { id: uid(), title: 'Deposits', icon: IconCashBanknote, href: '/smartpos/deposits' },
-    { id: uid(), title: 'Cash Management', icon: IconCashRegister, ...soon },
+    { id: uid(), title: 'Cash Management', icon: IconCashRegister, href: '/smartpos/cash-management' },
     { id: uid(), title: t('smartpos:nav.transfers'), icon: IconArrowsTransferDown, href: '/smartpos/transfers' },
     {
       id: uid(), title: t('smartpos:nav.accounting'), icon: IconCalculator,
@@ -171,10 +171,9 @@ export function buildSmartPosMenu(t: TFunction): MenuItem[] {
         { id: uid(), title: t('smartpos:nav.journal_entries'), icon: IconReceipt2, href: '/smartpos/accounting/journal-entries' },
         { id: uid(), title: 'General Ledger', icon: IconBook, href: '/smartpos/accounting/ledger' },
         { id: uid(), title: 'Financial Statements', icon: IconChartInfographic, href: '/smartpos/accounting/financials' },
+        { id: uid(), title: 'Taxes', icon: IconPercentage, href: '/smartpos/taxes' },
       ],
     },
-    { id: uid(), title: 'Taxes', icon: IconPercentage, ...soon },
-
     // ── Reports ─────────────────────────────────────────────────────────
     { subheader: 'Reports' },
     { id: uid(), title: 'Reports Hub', icon: IconChartBar, href: '/smartpos/reports' },

@@ -204,6 +204,12 @@ const SmartPosOnboarding = Loadable(
 const SmartPosDocumentSearch = Loadable(
   lazy(() => import('../views/smartpos/documents/DocumentSearchPage')),
 );
+const SmartPosCashManagement = Loadable(
+  lazy(() => import('../views/smartpos/money/CashManagementPage')),
+);
+const SmartPosTaxes = Loadable(
+  lazy(() => import('../views/smartpos/accounting/TaxesPage')),
+);
 
 /* ****Pages***** */
 const ModernDash = Loadable(lazy(() => import('../views/dashboard/Modern')));
@@ -434,6 +440,7 @@ const Router = [
       { path: 'accounting/journal-entries', element: <SmartPosJournals /> },
       { path: 'accounting/ledger', element: <SmartPosAccountLedger /> },
       { path: 'accounting/financials', element: <SmartPosFinancials /> },
+      { path: 'taxes', element: <SmartPosTaxes /> },
       // HRM
       { path: 'hrm/employees', element: <SmartPosEmployees /> },
       { path: 'hrm/attendance', element: <SmartPosAttendance /> },
@@ -487,6 +494,7 @@ const Router = [
       { path: 'expenses', element: <SmartPosExpenses /> },
       { path: 'transfers', element: <SmartPosTransfers /> },
       { path: 'deposits', element: <SmartPosDeposits /> },
+      { path: 'cash-management', element: <SmartPosCashManagement /> },
       // Reports hub + individual report pages
       { path: 'reports', element: <SmartPosReportsHub /> },
       { path: 'reports/sales', element: <SmartPosSalesReport /> },
