@@ -97,6 +97,7 @@ public class ServerController {
         new BackendService("HRM Service", "People", 8090, "Employees, Attendance, Payroll"),
         new BackendService("AI Service", "Intelligence", 8091, "AI Insights & Automation"),
         new BackendService("Integration Service", "Platform", 8092, "Third-party Integrations"),
+        new BackendService("Document Service", "Documents", 8093, "PDF Generation & Templates"),
         new BackendService("Control Hub", "Platform", 8100, "Letis Control Center Hub"),
         new BackendService("LSA Agent", "Platform", 9100, "Server Monitoring Agent")
     );
