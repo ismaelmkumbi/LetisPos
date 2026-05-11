@@ -11,10 +11,14 @@ import io.smartpos.documents.infrastructure.template.TemplateRenderer;
 import io.smartpos.documents.infrastructure.template.TemplateResolver;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Map;
 import java.util.UUID;
 
@@ -175,6 +179,38 @@ public class DocumentService {
 
     public String getTemplateFile(String documentType) {
         return TEMPLATE_FILES.get(documentType);
+    }
+
+    @Scheduled(cron = "0 0 2 * * *") // 2am daily
+    @Transactional
+    public void expireQuotations() {
+        Instant expiryThreshold = Instant.now().minus(30, ChronoUnit.DAYS);
+        int expired = 0;
+
+        // Find draft/sent quotations older than threshold
+        Page<Document> page = documentRepo.findByDocumentTypeAndStatusAndCreatedAtBefore(
+            "quotation", "draft", expiryThreshold, Pageable.ofSize(100));
+
+        for (Document doc : page) {
+            doc.setStatus("expired");
+            doc.setWatermark("EXPIRED");
+            documentRepo.save(doc);
+            createVersion(doc, "status_change", "Quotation expired automatically");
+            expired++;
+        }
+
+        // Also expire "sent" quotations
+        page = documentRepo.findByDocumentTypeAndStatusAndCreatedAtBefore(
+            "quotation", "sent", expiryThreshold, Pageable.ofSize(100));
+        for (Document doc : page) {
+            doc.setStatus("expired");
+            doc.setWatermark("EXPIRED");
+            documentRepo.save(doc);
+            createVersion(doc, "status_change", "Quotation expired automatically");
+            expired++;
+        }
+
+        if (expired > 0) log.info("Expired {} quotations", expired);
     }
 
     @SuppressWarnings("unchecked")
