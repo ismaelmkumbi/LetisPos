@@ -18,6 +18,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Seeds an initial admin user and default tenant on first startup.
@@ -25,11 +26,35 @@ import java.util.Map;
  *
  * Also publishes a {@code UserRegistered} outbox event so user-service's
  * profile projection stays in sync.
+ *
+ * <p>The admin user is seeded with the full set of administrative
+ * authorities (see {@link #ADMIN_AUTHORITIES}). These are persisted in
+ * the user-service permissions table via {@code V5__admin_authorities.sql}
+ * and assigned to the ADMIN role, which the admin profile receives
+ * through {@code AdminProfileBootstrap}.</p>
  */
 @Slf4j
 @Configuration
 @RequiredArgsConstructor
 public class AdminBootstrap {
+
+    /**
+     * Administrative authorities granted to the bootstrap admin user.
+     * Mirrored in user-service migration V5__admin_authorities.sql.
+     */
+    public static final Set<String> ADMIN_AUTHORITIES = Set.of(
+            "admin",
+            "branch.view",
+            "branch.manage",
+            "billing.view",
+            "billing.manage",
+            "tenant.suspend",
+            "audit.view",
+            "session.manage",
+            "retention.manage",
+            "error_log.view",
+            "api_key.manage"
+    );
 
     private final TenantRepository tenantRepository;
 
@@ -93,12 +118,13 @@ public class AdminBootstrap {
                                        ObjectMapper objectMapper) {
         try {
             String payload = objectMapper.writeValueAsString(Map.of(
-                    "userId",    admin.getId(),
-                    "email",     admin.getEmail(),
-                    "username",  "",
-                    "firstName", "System",
-                    "lastName",  "Admin",
-                    "tenantId",  admin.getTenantId() == null ? "" : admin.getTenantId().toString()
+                    "userId",      admin.getId(),
+                    "email",       admin.getEmail(),
+                    "username",    "",
+                    "firstName",   "System",
+                    "lastName",    "Admin",
+                    "tenantId",    admin.getTenantId() == null ? "" : admin.getTenantId().toString(),
+                    "authorities", ADMIN_AUTHORITIES
             ));
             OutboxEvent event = OutboxEvent.builder()
                     .aggregateType("User")
