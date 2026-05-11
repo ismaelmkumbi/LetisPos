@@ -34,6 +34,22 @@ public interface PurchaseRepository extends JpaRepository<Purchase, UUID> {
                           Pageable pageable);
 
     @EntityGraph(attributePaths = "lines")
+    @Query("""
+           SELECT DISTINCT p FROM Purchase p JOIN FETCH p.lines
+           WHERE p.tenantId = :tenantId
+             AND p.status IN ('ORDERED', 'RECEIVED')
+             AND (:supplierId IS NULL OR p.supplierId = :supplierId)
+             AND (:dateFrom IS NULL OR p.date >= :dateFrom)
+             AND (:dateTo IS NULL OR p.date <= :dateTo)
+           ORDER BY p.date DESC
+           """)
+    Page<Purchase> findReceived(@Param("tenantId") UUID tenantId,
+                                @Param("supplierId") UUID supplierId,
+                                @Param("dateFrom") LocalDate dateFrom,
+                                @Param("dateTo") LocalDate dateTo,
+                                Pageable pageable);
+
+    @EntityGraph(attributePaths = "lines")
     @Query("SELECT p FROM Purchase p WHERE p.id = :id")
     Optional<Purchase> findByIdWithLines(@Param("id") UUID id);
 

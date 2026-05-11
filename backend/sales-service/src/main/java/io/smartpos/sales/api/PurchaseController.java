@@ -1,5 +1,6 @@
 package io.smartpos.sales.api;
 
+import io.smartpos.sales.api.dto.GoodsReceivedDto;
 import io.smartpos.sales.api.dto.PurchaseDto;
 import io.smartpos.sales.application.PurchaseService;
 import io.smartpos.sales.domain.model.PurchaseStatus;
@@ -72,6 +73,27 @@ public class PurchaseController {
     public void applyPayment(@PathVariable UUID id, @RequestBody ApplyPaymentRequest req) {
         service.applyPayment(id, req.paymentId(), req.amount(),
                 io.smartpos.sales.domain.model.PurchasePaymentApplied.Source.FEIGN);
+    }
+
+    @GetMapping("/receiving")
+    @PreAuthorize("hasAuthority('purchase.view')")
+    public Page<GoodsReceivedDto> listReceived(
+            @RequestParam(required = false) UUID supplierId,
+            @RequestParam(required = false) LocalDate dateFrom,
+            @RequestParam(required = false) LocalDate dateTo,
+            Pageable pageable) {
+        return service.listReceived(supplierId, dateFrom, dateTo, pageable);
+    }
+
+    public record ReceiveLineRequest(@jakarta.validation.constraints.NotNull UUID lineId,
+                                     @jakarta.validation.constraints.NotNull java.math.BigDecimal receivedQty) {}
+
+    @PostMapping("/{id}/receive-line")
+    @PreAuthorize("hasAuthority('purchase.update')")
+    public GoodsReceivedDto receiveLine(
+            @PathVariable UUID id,
+            @jakarta.validation.Valid @RequestBody ReceiveLineRequest req) {
+        return service.receiveLine(id, req.lineId(), req.receivedQty());
     }
 
     private static UUID userIdFrom(Jwt jwt) { return jwt == null ? null : UUID.fromString(jwt.getSubject()); }

@@ -1,5 +1,6 @@
 package io.smartpos.sales.application;
 
+import io.smartpos.sales.api.dto.GoodsReceivedDto;
 import io.smartpos.sales.api.dto.PurchaseDto;
 import io.smartpos.sales.api.dto.SaleLineInput;
 import io.smartpos.sales.domain.model.*;
@@ -18,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.Year;
 import java.util.List;
@@ -132,6 +134,47 @@ public class PurchaseService {
         outbox.publish("Purchase", p.getId(), "PurchaseReceived",
                 Map.of("purchaseId", p.getId(), "ref", p.getRef()));
         return PurchaseDto.from(p);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<GoodsReceivedDto> listReceived(
+            UUID supplierId, LocalDate dateFrom, LocalDate dateTo, Pageable pageable) {
+        return repo.findReceived(TenantContext.require(), supplierId, dateFrom, dateTo, pageable)
+                .map(GoodsReceivedDto::from);
+    }
+
+    @Transactional
+    public GoodsReceivedDto receiveLine(
+            UUID purchaseId, UUID lineId, BigDecimal receivedQty) {
+        Purchase p = repo.findByIdWithLines(purchaseId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Purchase not found"));
+        if (p.getStatus() == PurchaseStatus.CANCELLED) {
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
+                    "Cannot receive against a cancelled purchase");
+        }
+        PurchaseLine line = p.getLines().stream()
+                .filter(l -> l.getId().equals(lineId))
+                .findFirst()
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Line not found"));
+        BigDecimal remaining = line.getQty().subtract(line.getReceivedQty());
+        if (receivedQty.compareTo(remaining) > 0) {
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
+                    "Cannot receive more than ordered. Remaining: " + remaining);
+        }
+        if (receivedQty.signum() <= 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Received quantity must be positive");
+        }
+        line.setReceivedQty(line.getReceivedQty().add(receivedQty));
+        line.setReceivedAt(Instant.now());
+        boolean allReceived = p.getLines().stream()
+                .allMatch(l -> l.getReceivedQty().compareTo(l.getQty()) >= 0);
+        if (allReceived) {
+            p.receive();
+        }
+        return GoodsReceivedDto.from(repo.save(p));
     }
 
     /**
