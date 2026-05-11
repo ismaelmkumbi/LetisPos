@@ -113,7 +113,7 @@ export default function CustomerGroupsPage() {
     {
       key: 'customerCount', label: 'Customers', align: 'right',
       render: (g) => (
-        <Typography variant="body2">{g.customerCount.toLocaleString()}</Typography>
+        <Typography variant="body2">{(g.customerCount ?? 0).toLocaleString()}</Typography>
       ),
     },
     {

@@ -34,6 +34,7 @@ export interface CustomerInput {
   creditLimit?: number;
   notes?: string;
   active?: boolean;
+  groupId?: string;
 }
 
 export async function createCustomer(body: CustomerInput): Promise<Customer> {

@@ -121,6 +121,15 @@ const SmartPosPrinterSettings = Loadable(
 const SmartPosCustomers = Loadable(
   lazy(() => import('../views/smartpos/customers/CustomersListPage')),
 );
+const SmartPosCustomerGroups = Loadable(
+  lazy(() => import('../views/smartpos/customers/CustomerGroupsPage')),
+);
+const SmartPosGiftCards = Loadable(
+  lazy(() => import('../views/smartpos/customers/GiftCardsPage')),
+);
+const SmartPosStoreCredit = Loadable(
+  lazy(() => import('../views/smartpos/customers/StoreCreditPage')),
+);
 const SmartPosSuppliers = Loadable(
   lazy(() => import('../views/smartpos/suppliers/SuppliersListPage')),
 );
@@ -484,6 +493,9 @@ const Router = [
       { path: 'settings/templates', element: <SmartPosTemplateEditor /> },
       { path: 'settings/printers', element: <SmartPosPrinterSettings /> },
       { path: 'customers', element: <SmartPosCustomers /> },
+      { path: 'customers/groups', element: <SmartPosCustomerGroups /> },
+      { path: 'customers/gift-cards', element: <SmartPosGiftCards /> },
+      { path: 'customers/store-credit', element: <SmartPosStoreCredit /> },
       { path: 'suppliers', element: <SmartPosSuppliers /> },
       { path: 'suppliers/:id', element: <SmartPosSupplierDetail /> },
       { path: 'warehouses', element: <SmartPosWarehouses /> },

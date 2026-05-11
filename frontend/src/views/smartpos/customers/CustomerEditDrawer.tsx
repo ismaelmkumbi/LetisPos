@@ -6,6 +6,7 @@ import {
 import {
   createCustomer, updateCustomer, type CustomerInput,
 } from 'src/api/smartpos/customers';
+import { listAllCustomerGroups, type CustomerGroup } from 'src/api/smartpos/customerGroups';
 import type { Customer } from 'src/api/smartpos/types';
 import EditDrawer from 'src/components/smartpos/EditDrawer';
 
@@ -35,6 +36,13 @@ export default function CustomerEditDrawer({ open, initial, onClose, onSaved }: 
   const [form, setForm] = useState<CustomerInput>(emptyForm);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [groups, setGroups] = useState<CustomerGroup[]>([]);
+
+  useEffect(() => {
+    if (open) {
+      listAllCustomerGroups().then(setGroups).catch(() => {});
+    }
+  }, [open]);
 
   useEffect(() => {
     if (initial) {
@@ -50,6 +58,7 @@ export default function CustomerEditDrawer({ open, initial, onClose, onSaved }: 
         creditLimit: initial.creditLimit,
         notes: initial.notes ?? '',
         active: initial.active,
+        groupId: (initial as any).groupId ?? '',
       });
     } else {
       setForm(emptyForm);
@@ -172,6 +181,23 @@ export default function CustomerEditDrawer({ open, initial, onClose, onSaved }: 
         onChange={(e) => patch('creditLimit', Number(e.target.value))}
         size="small" fullWidth
         InputProps={{ startAdornment: <InputAdornment position="start">TZS</InputAdornment> }} />
+
+      <FormControl size="small" fullWidth>
+        <InputLabel id="customer-group-label">Customer Group</InputLabel>
+        <Select
+          labelId="customer-group-label"
+          label="Customer Group"
+          value={(form as any).groupId ?? ''}
+          onChange={(e) => patch('groupId' as any, e.target.value || null)}
+        >
+          <MenuItem value="">
+            <em>None</em>
+          </MenuItem>
+          {groups.map((g) => (
+            <MenuItem key={g.id} value={g.id}>{g.name}{g.discountPercent > 0 ? ` (${g.discountPercent}%)` : ''}</MenuItem>
+          ))}
+        </Select>
+      </FormControl>
 
       <TextField label="Notes" value={form.notes ?? ''}
         onChange={(e) => patch('notes', e.target.value)}

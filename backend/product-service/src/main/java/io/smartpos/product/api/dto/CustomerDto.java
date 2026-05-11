@@ -10,12 +10,14 @@ import java.util.UUID;
 public record CustomerDto(
         UUID id, String code, String name, String email, String phone,
         String taxNumber, String address, String city, String country,
-        BigDecimal creditLimit, String notes, boolean active
+        BigDecimal creditLimit, String notes, boolean active,
+        UUID groupId
 ) {
     public static CustomerDto from(Customer c) {
         return new CustomerDto(c.getId(), c.getCode(), c.getName(), c.getEmail(), c.getPhone(),
                 c.getTaxNumber(), c.getAddress(), c.getCity(), c.getCountry(),
-                c.getCreditLimit(), c.getNotes(), c.isActive());
+                c.getCreditLimit(), c.getNotes(), c.isActive(),
+                c.getGroupId());
     }
     public record CreateRequest(
             String code,
@@ -27,6 +29,7 @@ public record CustomerDto(
             String city,
             String country,
             BigDecimal creditLimit,
-            String notes
+            String notes,
+            UUID groupId
     ) {}
 }

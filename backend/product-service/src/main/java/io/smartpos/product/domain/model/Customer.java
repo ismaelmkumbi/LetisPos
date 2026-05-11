@@ -35,6 +35,9 @@ public class Customer {
     @Builder.Default
     private BigDecimal creditLimit = BigDecimal.ZERO;
 
+    @Column(name = "group_id")
+    private UUID groupId;
+
     @Column(name = "notes")       private String notes;
 
     @Column(name = "is_active", nullable = false)

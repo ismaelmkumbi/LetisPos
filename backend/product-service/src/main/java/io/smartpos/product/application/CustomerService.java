@@ -46,6 +46,7 @@ public class CustomerService {
                 .country(req.country())
                 .creditLimit(Optional.ofNullable(req.creditLimit()).orElse(BigDecimal.ZERO))
                 .notes(req.notes())
+                .groupId(req.groupId())
                 .tenantId(TenantContext.require())
                 .active(true)
                 .build();
@@ -66,6 +67,7 @@ public class CustomerService {
         c.setCountry(req.country());
         if (req.creditLimit() != null) c.setCreditLimit(req.creditLimit());
         c.setNotes(req.notes());
+        c.setGroupId(req.groupId());
         return CustomerDto.from(repo.save(c));
     }
 

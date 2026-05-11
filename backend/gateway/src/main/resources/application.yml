@@ -48,7 +48,7 @@ spring:
         - id: product-service
           uri: ${PRODUCT_URI:http://localhost:8083}
           predicates:
-            - Path=/api/v1/products/**,/api/v1/categories/**,/api/v1/brands/**,/api/v1/units/**,/api/v1/barcodes/**,/api/v1/customers/**,/api/v1/suppliers/**,/api/v1/serials/**,/api/v1/price-lists/**
+            - Path=/api/v1/products/**,/api/v1/categories/**,/api/v1/brands/**,/api/v1/units/**,/api/v1/barcodes/**,/api/v1/customers/**,/api/v1/suppliers/**,/api/v1/serials/**,/api/v1/price-lists/**,/api/v1/customer-groups/**,/api/v1/gift-cards/**,/api/v1/store-credit/**
 
         # ---- Inventory Service ----
         - id: inventory-service

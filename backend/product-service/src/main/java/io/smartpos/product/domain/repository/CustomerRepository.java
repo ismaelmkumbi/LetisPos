@@ -7,6 +7,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import jakarta.transaction.Transactional;
+import org.springframework.data.jpa.repository.Modifying;
+
 import java.util.UUID;
 
 public interface CustomerRepository extends JpaRepository<Customer, UUID> {
@@ -24,4 +27,12 @@ public interface CustomerRepository extends JpaRepository<Customer, UUID> {
                           @Param("active")   Boolean active,
                           @Param("tenantId") UUID tenantId,
                           Pageable pageable);
+
+    @Query("SELECT COUNT(c) FROM Customer c WHERE c.groupId = :groupId AND c.deletedAt IS NULL")
+    long countByGroupId(@Param("groupId") UUID groupId);
+
+    @Modifying
+    @Transactional
+    @Query("UPDATE Customer c SET c.groupId = NULL WHERE c.groupId = :groupId")
+    void clearGroupId(@Param("groupId") UUID groupId);
 }

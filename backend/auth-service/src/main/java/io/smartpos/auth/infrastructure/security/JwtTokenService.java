@@ -19,7 +19,7 @@ import java.util.*;
  *   aud          — smartpos-api
  *   iat, exp     — issued-at / expiry (seconds since epoch)
  *   jti          — unique token id
- *   email, tenantId
+ *   email, tenantId, tenantStatus, billingPlan
  *   roles[]      — role names (populated later from User Service)
  *   permissions[]— flat permission strings (populated later)
  *
@@ -37,12 +37,15 @@ public class JwtTokenService {
     }
 
     public String issueAccessToken(UUID userId, String email, UUID tenantId,
+                                   String tenantStatus, String billingPlan,
                                    List<String> roles, List<String> permissions) {
         Instant now = Instant.now();
         Instant exp = now.plus(Duration.ofMinutes(props.accessTokenTtlMinutes()));
         Map<String, Object> claims = new HashMap<>();
         claims.put("email", email);
         if (tenantId != null) claims.put("tenantId", tenantId.toString());
+        if (tenantStatus != null) claims.put("tenantStatus", tenantStatus);
+        if (billingPlan != null) claims.put("billingPlan", billingPlan);
         if (roles != null) claims.put("roles", roles);
         if (permissions != null) claims.put("permissions", permissions);
 

@@ -3,8 +3,10 @@ package io.smartpos.auth.application;
 import io.smartpos.auth.api.dto.AuthResponse;
 import io.smartpos.auth.api.dto.LoginRequest;
 import io.smartpos.auth.domain.model.RefreshToken;
+import io.smartpos.auth.domain.model.Tenant;
 import io.smartpos.auth.domain.model.User;
 import io.smartpos.auth.domain.repository.RefreshTokenRepository;
+import io.smartpos.auth.domain.repository.TenantRepository;
 import io.smartpos.auth.domain.repository.UserRepository;
 import io.smartpos.auth.infrastructure.config.JwtProperties;
 import io.smartpos.auth.infrastructure.feign.UserServiceClient;
@@ -34,6 +36,7 @@ public class LoginUseCase {
 
     private final UserRepository userRepository;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final TenantRepository tenantRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenService jwtTokenService;
     private final JwtProperties jwtProperties;
@@ -67,7 +70,9 @@ public class LoginUseCase {
 
         HydratedClaims claims = hydrateClaims(user);
         String accessToken = jwtTokenService.issueAccessToken(
-                user.getId(), user.getEmail(), claims.tenantId(), claims.roles(), claims.permissions());
+                user.getId(), user.getEmail(), claims.tenantId(),
+                claims.tenantStatus(), claims.billingPlan(),
+                claims.roles(), claims.permissions());
 
         String refreshTokenRaw = generateOpaqueToken();
         RefreshToken rt = RefreshToken.builder()
@@ -117,7 +122,9 @@ public class LoginUseCase {
 
         HydratedClaims claims = hydrateClaims(user);
         String accessToken = jwtTokenService.issueAccessToken(
-                user.getId(), user.getEmail(), claims.tenantId(), claims.roles(), claims.permissions());
+                user.getId(), user.getEmail(), claims.tenantId(),
+                claims.tenantStatus(), claims.billingPlan(),
+                claims.roles(), claims.permissions());
 
         return new AuthResponse(
                 accessToken,
@@ -135,6 +142,8 @@ public class LoginUseCase {
     /** Immutable bag of the claims we embed in every access token. */
     private record HydratedClaims(
             java.util.UUID tenantId,
+            String tenantStatus,
+            String billingPlan,
             List<String> roles,
             List<String> permissions
     ) {}
@@ -155,20 +164,36 @@ public class LoginUseCase {
      * fall back to auth-service's own tenantId.
      */
     private HydratedClaims hydrateClaims(User user) {
+        // Resolve tenant status and billing plan from auth-service's own tenant table
+        String tenantStatus = null;
+        String billingPlan = null;
+        if (user.getTenantId() != null) {
+            tenantStatus = tenantRepository.findById(user.getTenantId())
+                    .map(t -> t.getStatus().name())
+                    .orElse(null);
+            billingPlan = tenantRepository.findById(user.getTenantId())
+                    .map(t -> t.getBillingPlan().name())
+                    .orElse(null);
+        }
+
         if (userServiceClient == null) {
-            return new HydratedClaims(user.getTenantId(), List.of(), List.of());
+            return new HydratedClaims(user.getTenantId(), tenantStatus, billingPlan,
+                    List.of(), List.of());
         }
         try {
             UserServiceClient.AuthClaims fetched = userServiceClient.authClaims(user.getId());
             return new HydratedClaims(
                     fetched.tenantId() != null ? fetched.tenantId() : user.getTenantId(),
+                    tenantStatus,
+                    billingPlan,
                     fetched.roles() != null ? fetched.roles() : List.of(),
                     fetched.permissions() != null ? fetched.permissions() : List.of()
             );
         } catch (Exception e) {
             log.warn("Could not hydrate JWT claims from user-service for {}: {}",
                     user.getId(), e.getMessage());
-            return new HydratedClaims(user.getTenantId(), List.of(), List.of());
+            return new HydratedClaims(user.getTenantId(), tenantStatus, billingPlan,
+                    List.of(), List.of());
         }
     }
 

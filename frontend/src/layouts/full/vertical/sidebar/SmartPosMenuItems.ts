@@ -146,10 +146,10 @@ export function buildSmartPosMenu(t: TFunction): MenuItem[] {
     // ── Customers ───────────────────────────────────────────────────────
     { subheader: 'Customers' },
     { id: uid(), title: t('smartpos:nav.customers'), icon: IconUsers, href: '/smartpos/customers' },
-    { id: uid(), title: 'Customer Groups', icon: IconUsersGroup, ...soon },
+    { id: uid(), title: 'Customer Groups', icon: IconUsersGroup, href: '/smartpos/customers/groups' },
     { id: uid(), title: 'Loyalty Program', icon: IconGift, href: '/smartpos/settings/loyalty' },
-    { id: uid(), title: 'Gift Cards', icon: IconCreditCard, ...soon },
-    { id: uid(), title: 'Store Credit', icon: IconWallet, ...soon },
+    { id: uid(), title: 'Gift Cards', icon: IconCreditCard, href: '/smartpos/customers/gift-cards' },
+    { id: uid(), title: 'Store Credit', icon: IconWallet, href: '/smartpos/customers/store-credit' },
 
     // ── Suppliers ───────────────────────────────────────────────────────
     { subheader: 'Suppliers' },
