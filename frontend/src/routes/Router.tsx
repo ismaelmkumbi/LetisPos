@@ -44,6 +44,9 @@ const SmartPosImportUpdate = Loadable(
 const SmartPosPrintLabels = Loadable(
   lazy(() => import('../views/smartpos/products/PrintLabelsPage')),
 );
+const SmartPosBundles = Loadable(
+  lazy(() => import('../views/smartpos/products/BundlesListPage')),
+);
 const SmartPosProductsLayout = Loadable(
   lazy(() => import('../views/smartpos/products/ProductsLayout')),
 );
@@ -394,6 +397,7 @@ const Router = [
           { path: 'opening-stock', element: <SmartPosOpeningStock /> },
           { path: 'import-update', element: <SmartPosImportUpdate /> },
           { path: 'print-labels', element: <SmartPosPrintLabels /> },
+          { path: 'bundles', element: <SmartPosBundles /> },
           { path: ':id', element: <SmartPosProductDetail /> },
           { path: ':id/edit', element: <SmartPosProductDetail /> },
         ],
