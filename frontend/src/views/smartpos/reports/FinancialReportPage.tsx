@@ -20,7 +20,7 @@ export default function FinancialReportPage() {
     if (tab === 0 && !balanceSheet) getBalanceSheet({ asOf: filters.dateTo }).then(setBalanceSheet);
     if (tab === 1 && !trialBalance) getTrialBalance({ dateFrom: filters.dateFrom, dateTo: filters.dateTo }).then(setTrialBalance);
     if (tab === 2 && !cashFlow) getCashFlow({ dateFrom: filters.dateFrom, dateTo: filters.dateTo }).then(setCashFlow);
-  }, [tab, filters]);
+  }, [tab, filters, balanceSheet, trialBalance, cashFlow]);
 
   return (
     <ReportPageShell title="Financial Reports" subtitle="Balance Sheet, Trial Balance, and Cash Flow Statement">

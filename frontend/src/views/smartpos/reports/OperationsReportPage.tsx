@@ -6,6 +6,17 @@ import { getOperationsSummary, type OperationsReport } from 'src/api/smartpos/re
 import { brand } from 'src/theme/smartpos/brand';
 import { formatMoney, formatNumber } from 'src/utils/smartpos/currency';
 
+interface ShiftRow {
+  registerName?: string;
+  registerId?: string;
+  openedBy?: string;
+  openedAt?: string;
+  closedAt?: string;
+  totalSales?: number;
+  cash?: number;
+  status?: string;
+}
+
 const todayIso = () => new Date().toISOString().slice(0, 10);
 
 export default function OperationsReportPage() {
@@ -26,7 +37,7 @@ export default function OperationsReportPage() {
     { label: 'Cash to Bank', value: formatMoney(data?.dailyClose?.cashToBank ?? 0), color: brand.success.main },
   ], [data]);
 
-  const shiftColumns: Column<any>[] = [
+  const shiftColumns: Column<ShiftRow>[] = [
     { id: 'register', label: 'Register', render: (r) => r.registerName ?? r.registerId?.slice(0, 8) },
     { id: 'openedBy', label: 'Opened By', render: (r) => r.openedBy },
     { id: 'openedAt', label: 'Opened', render: (r) => r.openedAt },

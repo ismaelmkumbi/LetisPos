@@ -572,9 +572,9 @@ export async function getSupplierSummary(params: { dateFrom?: string; dateTo?: s
 export interface BalanceSheetData {
   totalAssets: number;
   totalLiabilitiesEquity: number;
-  assets: any[];
-  liabilities: any[];
-  equity: any[];
+  assets: unknown[];
+  liabilities: unknown[];
+  equity: unknown[];
 }
 
 export async function getBalanceSheet(params: { asOf?: string } = {}): Promise<BalanceSheetData> {
@@ -585,7 +585,7 @@ export async function getBalanceSheet(params: { asOf?: string } = {}): Promise<B
 export interface TrialBalanceData {
   totalDebits: number;
   totalCredits: number;
-  rows: any[];
+  rows: unknown[];
 }
 
 export async function getTrialBalance(params: { dateFrom?: string; dateTo?: string } = {}): Promise<TrialBalanceData> {
@@ -610,8 +610,8 @@ export async function getCashFlow(params: { dateFrom?: string; dateTo?: string }
 // ─── Operations Report ───
 
 export interface OperationsReport {
-  registers: any[];
-  shifts: any[];
+  registers: unknown[];
+  shifts: unknown[];
   dailyClose: {
     date: string;
     totalSales: number;
