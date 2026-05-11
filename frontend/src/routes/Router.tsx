@@ -213,6 +213,18 @@ const SmartPosCashManagement = Loadable(
 const SmartPosTaxes = Loadable(
   lazy(() => import('../views/smartpos/accounting/TaxesPage')),
 );
+const SmartPosSuspendedSales = Loadable(
+  lazy(() => import('../views/smartpos/sales/SuspendedSalesPage')),
+);
+const SmartPosGoodsReceived = Loadable(
+  lazy(() => import('../views/smartpos/purchases/GoodsReceivedPage')),
+);
+const SmartPosSupplierReturns = Loadable(
+  lazy(() => import('../views/smartpos/purchases/SupplierReturnsPage')),
+);
+const SmartPosSupplierPayments = Loadable(
+  lazy(() => import('../views/smartpos/money/SupplierPaymentsPage')),
+);
 
 /* ****Pages***** */
 const ModernDash = Loadable(lazy(() => import('../views/dashboard/Modern')));
@@ -484,6 +496,7 @@ const Router = [
       { path: 'sales', element: <SmartPosSales /> },
       { path: 'sales/pos', element: <SmartPosPosLaunch /> },
       { path: 'sales/new', element: <SmartPosSaleBuilder /> },
+      { path: 'sales/suspended', element: <SmartPosSuspendedSales /> },
       { path: 'sales/:id/edit', element: <SmartPosSaleBuilder /> },
       { path: 'quotations', element: <SmartPosQuotations /> },
       { path: 'returns', element: <SmartPosReturns /> },
@@ -492,6 +505,8 @@ const Router = [
       { path: 'purchases', element: <SmartPosPurchases /> },
       { path: 'purchases/new', element: <SmartPosPurchaseBuilder /> },
       { path: 'purchases/:id/edit', element: <SmartPosPurchaseBuilder /> },
+      { path: 'purchases/received', element: <SmartPosGoodsReceived /> },
+      { path: 'purchases/returns', element: <SmartPosSupplierReturns /> },
       // Money
       { path: 'accounts', element: <SmartPosAccounts /> },
       { path: 'payments', element: <SmartPosPayments /> },
@@ -499,6 +514,7 @@ const Router = [
       { path: 'transfers', element: <SmartPosTransfers /> },
       { path: 'deposits', element: <SmartPosDeposits /> },
       { path: 'cash-management', element: <SmartPosCashManagement /> },
+      { path: 'supplier-payments', element: <SmartPosSupplierPayments /> },
       // Reports hub + individual report pages
       { path: 'reports', element: <SmartPosReportsHub /> },
       { path: 'reports/sales', element: <SmartPosSalesReport /> },

@@ -102,7 +102,7 @@ export function buildSmartPosMenu(t: TFunction): MenuItem[] {
     { id: uid(), title: t('smartpos:nav.sales'), icon: IconReceipt, href: '/smartpos/sales' },
     { id: uid(), title: t('smartpos:nav.quotations'), icon: IconFileInvoice, href: '/smartpos/quotations' },
     { id: uid(), title: t('smartpos:nav.returns'), icon: IconArrowBackUp, href: '/smartpos/returns' },
-    { id: uid(), title: 'Suspended Sales', icon: IconClock, ...soon },
+    { id: uid(), title: 'Suspended Sales', icon: IconClock, href: '/smartpos/sales/suspended' },
     { id: uid(), title: t('smartpos:nav.recurring_invoices'), icon: IconRepeat, href: '/smartpos/recurring-invoices' },
 
     // ── Products ────────────────────────────────────────────────────────
@@ -135,9 +135,9 @@ export function buildSmartPosMenu(t: TFunction): MenuItem[] {
     // ── Purchases ───────────────────────────────────────────────────────
     { subheader: 'Purchases' },
     { id: uid(), title: t('smartpos:nav.purchases'), icon: IconShoppingCart, href: '/smartpos/purchases' },
-    { id: uid(), title: 'Goods Received', icon: IconPackage, ...soon },
-    { id: uid(), title: 'Supplier Returns', icon: IconArrowBackUp, ...soon },
-    { id: uid(), title: 'Supplier Payments', icon: IconCoin, ...soon },
+    { id: uid(), title: 'Goods Received', icon: IconPackage, href: '/smartpos/purchases/received' },
+    { id: uid(), title: 'Supplier Returns', icon: IconArrowBackUp, href: '/smartpos/purchases/returns' },
+    { id: uid(), title: 'Supplier Payments', icon: IconCoin, href: '/smartpos/supplier-payments' },
 
     // ── Documents ────────────────────────────────────────────────────────
     { subheader: 'Documents' },
