@@ -85,6 +85,9 @@ export default function StockLevelsPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [totalElements, setTotalElements] = useState(0);
 
+  // ── Product name lookup cache ────────────────────────────────────────────
+  const [productNames, setProductNames] = useState<Record<string, string>>({});
+
   // ── Expiry filter state ─────────────────────────────────────────────────
   const [expiringProductIds, setExpiringProductIds] = useState<Set<string>>(new Set());
   const [expiringLoading, setExpiringLoading] = useState(false);
@@ -182,6 +185,35 @@ export default function StockLevelsPage() {
     fetchData();
   }, [fetchData]);
 
+  // Fetch product names for any unseen product IDs in the current page
+  useEffect(() => {
+    const unseen = allRows
+      .map((s) => s.productId)
+      .filter((id) => !productNames[id]);
+    if (unseen.length === 0) return;
+    let cancelled = false;
+    // Fetch in bulk — request a large page and filter to the IDs we need
+    listProducts({ size: 200 })
+      .then((p) => {
+        if (cancelled) return;
+        setProductNames((prev) => {
+          const next = { ...prev };
+          for (const product of p.content) {
+            next[product.id] = product.name;
+          }
+          // Also mark unseen IDs with their truncated form so we don't re-fetch
+          for (const id of unseen) {
+            if (!next[id]) next[id] = id.slice(0, 8) + '…';
+          }
+          return next;
+        });
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+    // Only re-fetch when allRows changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allRows]);
+
   // ── Client-side search filter ────────────────────────────────────────────
   const filtered = useMemo(() => {
     let result = allRows;
@@ -189,6 +221,7 @@ export default function StockLevelsPage() {
       const q = search.toLowerCase();
       result = result.filter((s) =>
         s.productId.toLowerCase().includes(q)
+        || (productNames[s.productId]?.toLowerCase().includes(q))
         || (s.variantId?.toLowerCase().includes(q)),
       );
     }
@@ -196,7 +229,7 @@ export default function StockLevelsPage() {
       result = result.filter((s) => expiringProductIds.has(s.productId));
     }
     return result;
-  }, [allRows, search, expiringDays, expiringProductIds]);
+  }, [allRows, search, expiringDays, expiringProductIds, productNames]);
 
   // ── Filter chips ─────────────────────────────────────────────────────────
   const activeFilters: ActiveFilter[] = useMemo(() => {
@@ -445,8 +478,8 @@ export default function StockLevelsPage() {
       key: 'productId', label: 'Product', width: 260, sortable: true,
       render: (s) => (
         <Stack>
-          <Typography variant="body2" sx={{ fontWeight: 600, fontFamily: 'monospace', fontSize: '0.75rem' }}>
-            {s.productId.slice(0, 8)}…
+          <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.8125rem' }}>
+            {productNames[s.productId] || s.productId.slice(0, 8) + '…'}
           </Typography>
           {s.variantId && (
             <Typography variant="caption" sx={{ color: brand.neutral[500], fontFamily: 'monospace' }}>
@@ -511,7 +544,7 @@ export default function StockLevelsPage() {
         );
       },
     },
-  ], []);
+  ], [productNames]);
 
   return (
     <Box>

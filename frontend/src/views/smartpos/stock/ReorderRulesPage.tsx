@@ -51,6 +51,7 @@ export default function ReorderRulesPage() {
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [allRows, setAllRows] = useState<ReorderRule[]>([]);
+  const [productNames, setProductNames] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [totalPages, setTotalPages] = useState(1);
@@ -135,16 +136,39 @@ export default function ReorderRulesPage() {
     fetchData();
   }, [fetchData]);
 
+  // Fetch product names for unseen product IDs
+  useEffect(() => {
+    const unseen = allRows.map((r) => r.productId).filter((id) => !productNames[id]);
+    if (unseen.length === 0) return;
+    let cancelled = false;
+    listProducts({ size: 200 })
+      .then((p) => {
+        if (cancelled) return;
+        setProductNames((prev) => {
+          const next = { ...prev };
+          for (const product of p.content) next[product.id] = product.name;
+          for (const id of unseen) {
+            if (!next[id]) next[id] = id.slice(0, 8) + '…';
+          }
+          return next;
+        });
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allRows]);
+
   // ── Client-side search filter ───────────────────────────────────────────
   const filtered = useMemo(() => {
     if (!search) return allRows;
     const q = search.toLowerCase();
     return allRows.filter((r) =>
       r.productId.toLowerCase().includes(q)
+      || (productNames[r.productId]?.toLowerCase().includes(q))
       || (r.variantId?.toLowerCase().includes(q))
       || (r.supplierId?.toLowerCase().includes(q)),
     );
-  }, [allRows, search]);
+  }, [allRows, search, productNames]);
 
   // Also filter by warehouse on client side
   const displayed = useMemo(() => {
@@ -216,9 +240,9 @@ export default function ReorderRulesPage() {
     setDialogOpen(true);
   };
 
-  const openEdit = (rule: ReorderRule) => {
+  const openEdit = useCallback((rule: ReorderRule) => {
     setEditingRule(rule);
-    setFormProduct(null); // product lookup by ID is complex — keep blank for edits
+    setFormProduct(null);
     setFormVariantId(rule.variantId ?? '');
     setFormWarehouseId(rule.warehouseId);
     setFormMinQty(String(rule.minQty));
@@ -226,12 +250,11 @@ export default function ReorderRulesPage() {
     setFormSupplierId(rule.supplierId ?? '');
     setFormActive(rule.active);
     setDialogError(null);
-    // try to load product for display
     if (rule.productId) {
-      setProductSearch(rule.productId.slice(0, 8));
+      setProductSearch(productNames[rule.productId] || rule.productId.slice(0, 8));
     }
     setDialogOpen(true);
-  };
+  }, [productNames]);
 
   const handleSave = async () => {
     if (!formProduct && !editingRule) {
@@ -298,8 +321,8 @@ export default function ReorderRulesPage() {
       key: 'productId', label: 'Product', width: 260, sortable: true,
       render: (r) => (
         <Stack>
-          <Typography variant="body2" sx={{ fontWeight: 600, fontFamily: 'monospace', fontSize: '0.75rem' }}>
-            {r.productId.slice(0, 8)}…
+          <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.8125rem' }}>
+            {productNames[r.productId] || r.productId.slice(0, 8) + '…'}
           </Typography>
           {r.variantId && (
             <Typography variant="caption" sx={{ color: brand.neutral[500], fontFamily: 'monospace' }}>
@@ -372,7 +395,7 @@ export default function ReorderRulesPage() {
         </Stack>
       ),
     },
-  ], [warehouseName, supplierName]);
+  ], [warehouseName, supplierName, productNames, openEdit]);
 
   return (
     <Box>
