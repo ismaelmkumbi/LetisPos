@@ -27,7 +27,7 @@ export default function SupplierPaymentsPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [search, setSearch] = useState('');
+  // search unused — placeholder for FilterBar with text search
   const [supplierId, setSupplierId] = useState<string>('');
   const [method, setMethod] = useState<string>('');
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -47,7 +47,7 @@ export default function SupplierPaymentsPage() {
       .catch((e) => { if (!cancelled) setError(e instanceof Error ? e.message : 'Failed to load'); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [supplierId, method, search, page]);
+  }, [supplierId, method, page]);
 
   const columns: Column<SupplierPayment>[] = useMemo(() => [
     {

@@ -387,7 +387,7 @@ export default function PosTerminalPage() {
         discountValue: discount || undefined,
         taxMethod: posSettings?.defaultTaxMethod || undefined,
         grandTotal: totals.grand,
-        totalItems: lines.reduce((sum: number, l: any) => sum + (l.qty || 0), 0),
+        totalItems: lines.reduce((sum: number, l: { qty: number }) => sum + (l.qty || 0), 0),
       });
       setLines([]);
       setCustomerId(null);

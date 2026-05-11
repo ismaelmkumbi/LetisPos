@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Alert, Box, Button, Chip, Stack, Typography } from '@mui/material';
-import { IconClock, IconTrash, IconPlayerPlay, IconEye } from '@tabler/icons-react';
+import { IconTrash, IconPlayerPlay, IconEye } from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
 
 import {
@@ -164,7 +164,7 @@ export default function SuspendedSalesPage() {
         </Stack>
       ),
     },
-  ], [page, sel]);
+  ], [page, sel, handleResume, handleDelete]);
 
   return (
     <Box>
