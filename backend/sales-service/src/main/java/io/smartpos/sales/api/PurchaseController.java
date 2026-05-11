@@ -36,6 +36,16 @@ public class PurchaseController {
         return service.search(dateFrom, dateTo, supplierId, warehouseId, status, pageable);
     }
 
+    @GetMapping("/receiving")
+    @PreAuthorize("hasAuthority('purchase.view')")
+    public Page<GoodsReceivedDto> listReceived(
+            @RequestParam(required = false) UUID supplierId,
+            @RequestParam(required = false) LocalDate dateFrom,
+            @RequestParam(required = false) LocalDate dateTo,
+            Pageable pageable) {
+        return service.listReceived(supplierId, dateFrom, dateTo, pageable);
+    }
+
     @GetMapping("/{id}")
     @PreAuthorize("hasAuthority('purchase.view')")
     public PurchaseDto get(@PathVariable UUID id) { return service.get(id); }
@@ -73,16 +83,6 @@ public class PurchaseController {
     public void applyPayment(@PathVariable UUID id, @RequestBody ApplyPaymentRequest req) {
         service.applyPayment(id, req.paymentId(), req.amount(),
                 io.smartpos.sales.domain.model.PurchasePaymentApplied.Source.FEIGN);
-    }
-
-    @GetMapping("/receiving")
-    @PreAuthorize("hasAuthority('purchase.view')")
-    public Page<GoodsReceivedDto> listReceived(
-            @RequestParam(required = false) UUID supplierId,
-            @RequestParam(required = false) LocalDate dateFrom,
-            @RequestParam(required = false) LocalDate dateTo,
-            Pageable pageable) {
-        return service.listReceived(supplierId, dateFrom, dateTo, pageable);
     }
 
     public record ReceiveLineRequest(@jakarta.validation.constraints.NotNull UUID lineId,
