@@ -204,3 +204,17 @@ export interface PriceListLine {
   minQty: number;
   maxQty?: number | null;
 }
+
+export interface ProductBatch {
+  id: UUID;
+  batchNumber: string;
+  productId: UUID;
+  variantId?: UUID | null;
+  warehouseId: UUID;
+  manufacturingDate?: string | null;
+  expiryDate?: string | null;
+  onHand: number;
+  reserved: number;
+  available: number;
+  status: 'ACTIVE' | 'EXPIRED' | 'DEPLETED';
+}
