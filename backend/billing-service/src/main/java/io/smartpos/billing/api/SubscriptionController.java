@@ -1,12 +1,16 @@
 package io.smartpos.billing.api;
 
+import io.smartpos.billing.application.StripeBillingService;
+import io.smartpos.billing.domain.model.PlanDefinition;
 import io.smartpos.billing.domain.model.Subscription;
+import io.smartpos.billing.domain.repository.PlanDefinitionRepository;
 import io.smartpos.billing.domain.repository.SubscriptionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -15,6 +19,8 @@ import java.util.UUID;
 public class SubscriptionController {
 
     private final SubscriptionRepository subscriptionRepo;
+    private final PlanDefinitionRepository planRepo;
+    private final StripeBillingService stripeBillingService;
 
     @GetMapping("/tenant/{tenantId}")
     @PreAuthorize("hasAuthority('billing.view') or @tenantOwnershipCheck.isCurrentTenant(#tenantId)")
@@ -39,5 +45,27 @@ public class SubscriptionController {
         if (update.getStatus() != null) sub.setStatus(update.getStatus());
         if (update.getBillingCycle() != null) sub.setBillingCycle(update.getBillingCycle());
         return ResponseEntity.ok(subscriptionRepo.save(sub));
+    }
+
+    @PostMapping("/{id}/checkout")
+    @PreAuthorize("hasAuthority('billing.manage') or @tenantOwnershipCheck.isCurrentTenant(#tenantId)")
+    public ResponseEntity<Map<String, String>> createCheckout(
+            @PathVariable UUID id,
+            @RequestParam String successUrl,
+            @RequestParam String cancelUrl) {
+        Subscription sub = subscriptionRepo.findById(id)
+            .orElseThrow(() -> new IllegalArgumentException("Subscription not found"));
+        PlanDefinition plan = planRepo.findByCode(sub.getPlanCode())
+            .orElseThrow(() -> new IllegalArgumentException("Plan not found"));
+
+        long amount = "ANNUAL".equals(sub.getBillingCycle()) && plan.getAnnualPriceTzs() != null
+            ? plan.getAnnualPriceTzs()
+            : plan.getMonthlyPriceTzs();
+
+        String checkoutUrl = stripeBillingService.createCheckoutSession(
+            sub.getTenantId(), sub.getId(), sub.getPlanCode(),
+            sub.getBillingCycle(), amount, successUrl, cancelUrl);
+
+        return ResponseEntity.ok(Map.of("checkoutUrl", checkoutUrl));
     }
 }
