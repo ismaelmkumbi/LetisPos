@@ -130,7 +130,7 @@ export function buildSmartPosMenu(t: TFunction): MenuItem[] {
     { id: uid(), title: 'Reorder Rules', icon: IconAlertTriangle, href: '/smartpos/stock/reorder-rules' },
     { id: uid(), title: 'Expiry Tracking', icon: IconClock, href: '/smartpos/stock?expiring=30' },
     { id: uid(), title: 'Batch / Lot Tracking', icon: IconBookmarks, href: '/smartpos/stock?batched=true' },
-    { id: uid(), title: 'Damage & Waste', icon: IconAlertTriangle, ...soon },
+    { id: uid(), title: 'Damage & Waste', icon: IconAlertTriangle, href: '/smartpos/stock/damage' },
 
     // ── Purchases ───────────────────────────────────────────────────────
     { subheader: 'Purchases' },
