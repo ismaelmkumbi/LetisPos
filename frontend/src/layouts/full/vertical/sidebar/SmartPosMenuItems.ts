@@ -180,11 +180,12 @@ export function buildSmartPosMenu(t: TFunction): MenuItem[] {
     { id: uid(), title: 'Sales Reports', icon: IconChartBar, href: '/smartpos/reports/sales' },
     { id: uid(), title: 'Purchase Reports', icon: IconShoppingCart, href: '/smartpos/reports/purchases' },
     { id: uid(), title: 'Inventory Reports', icon: IconPackage, href: '/smartpos/reports/inventory' },
-    { id: uid(), title: 'Financial Reports', icon: IconChartInfographic, ...soon },
+    { id: uid(), title: 'Financial Reports', icon: IconChartInfographic, href: '/smartpos/reports/financial' },
     { id: uid(), title: 'Tax Reports', icon: IconPercentage, href: '/smartpos/reports/tax' },
     { id: uid(), title: 'Customer Reports', icon: IconUsers, href: '/smartpos/reports/customers' },
-    { id: uid(), title: 'Supplier Reports', icon: IconTruck, ...soon },
-    { id: uid(), title: 'Employee Reports', icon: IconUsersGroup, ...soon },
+    { id: uid(), title: 'Supplier Reports', icon: IconTruck, href: '/smartpos/reports/suppliers' },
+    { id: uid(), title: 'Employee Reports', icon: IconUsersGroup, href: '/smartpos/reports/employees' },
+    { id: uid(), title: 'Operations Report', icon: IconClipboardCheck, href: '/smartpos/reports/operations' },
     { id: uid(), title: 'Export Center', icon: IconDownload, href: '/smartpos/reports/exports' },
 
     // ── People ──────────────────────────────────────────────────────────

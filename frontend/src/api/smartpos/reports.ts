@@ -354,7 +354,11 @@ export type ExportReportKey =
   | 'tax-summary'
   | 'purchases-summary'
   | 'payments-summary'
-  | 'customers-summary';
+  | 'customers-summary'
+  | 'suppliers-summary'
+  | 'financial-statements'
+  | 'employee-sales'
+  | 'operations-summary';
 
 /**
  * Triggers a synchronous export and returns the file as a Blob (ready for
@@ -546,5 +550,79 @@ export interface MoverRow { productId: UUID; productName: string; qtySold: numbe
 export interface MoversReport { top: MoverRow[]; bottom: MoverRow[]; }
 export async function getInventoryMovers(params: { warehouseId?: UUID; limit?: number } = {}): Promise<MoversReport> {
   const { data } = await api.get<MoversReport>('/api/v1/reports/inventory/movers', { params });
+  return data;
+}
+
+// ─── Supplier Report ───
+
+export interface SupplierReport {
+  totalSuppliers: number;
+  totalSpend: number;
+  topSuppliers: { supplierId: UUID; supplierName: string; totalSpend: number; orderCount: number }[];
+  performance: { supplierId: UUID; supplierName: string; onTimeDeliveryPct: number; returnCount: number; totalSpend: number }[];
+}
+
+export async function getSupplierSummary(params: { dateFrom?: string; dateTo?: string } = {}): Promise<SupplierReport> {
+  const { data } = await api.get<SupplierReport>('/api/v1/reports/suppliers/summary', { params });
+  return data;
+}
+
+// ─── Financial Reports ───
+
+export interface BalanceSheetData {
+  totalAssets: number;
+  totalLiabilitiesEquity: number;
+  assets: any[];
+  liabilities: any[];
+  equity: any[];
+}
+
+export async function getBalanceSheet(params: { asOf?: string } = {}): Promise<BalanceSheetData> {
+  const { data } = await api.get<BalanceSheetData>('/api/v1/reports/financial/balance-sheet', { params });
+  return data;
+}
+
+export interface TrialBalanceData {
+  totalDebits: number;
+  totalCredits: number;
+  rows: any[];
+}
+
+export async function getTrialBalance(params: { dateFrom?: string; dateTo?: string } = {}): Promise<TrialBalanceData> {
+  const { data } = await api.get<TrialBalanceData>('/api/v1/reports/financial/trial-balance', { params });
+  return data;
+}
+
+export interface CashFlowData {
+  operating: number;
+  investing: number;
+  financing: number;
+  netChange: number;
+  openingBalance: number;
+  closingBalance: number;
+}
+
+export async function getCashFlow(params: { dateFrom?: string; dateTo?: string } = {}): Promise<CashFlowData> {
+  const { data } = await api.get<CashFlowData>('/api/v1/reports/financial/cash-flow', { params });
+  return data;
+}
+
+// ─── Operations Report ───
+
+export interface OperationsReport {
+  registers: any[];
+  shifts: any[];
+  dailyClose: {
+    date: string;
+    totalSales: number;
+    totalTransactions: number;
+    totalVoids: number;
+    cashToBank: number;
+    status: string;
+  };
+}
+
+export async function getOperationsSummary(params: { date?: string } = {}): Promise<OperationsReport> {
+  const { data } = await api.get<OperationsReport>('/api/v1/reports/operations/summary', { params });
   return data;
 }

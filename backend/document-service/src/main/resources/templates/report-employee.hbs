@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body { font-family: Arial, sans-serif; color: #333; margin: 20px; }
+    .header { border-bottom: 2px solid #2563eb; padding-bottom: 10px; margin-bottom: 20px; }
+    .header h2 { margin: 0; color: #2563eb; }
+    .header p { margin: 4px 0 0; color: #666; font-size: 14px; }
+    .kpi { display: flex; gap: 20px; margin-bottom: 20px; }
+    .kpi-card { flex: 1; padding: 12px; background: #f8fafc; border-radius: 8px; text-align: center; }
+    .kpi-label { font-size: 12px; color: #666; text-transform: uppercase; margin-bottom: 4px; }
+    .kpi-value { font-size: 24px; font-weight: bold; color: #2563eb; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid #e5e7eb; }
+    th { background: #f8fafc; font-weight: 600; }
+    .text-right { text-align: right; }
+    .leaderboard-rank { display: inline-block; width: 28px; height: 28px; line-height: 28px; text-align: center; background: #2563eb; color: #fff; border-radius: 50%; font-weight: bold; font-size: 13px; margin-right: 8px; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h2>{{title}}</h2>
+    <p>{{dateFrom}} — {{dateTo}}</p>
+  </div>
+  <div class="kpi">
+    {{#each kpis}}
+    <div class="kpi-card">
+      <div class="kpi-label">{{label}}</div>
+      <div class="kpi-value">{{value}}</div>
+    </div>
+    {{/each}}
+  </div>
+  <table>
+    <thead>
+      <tr>{{#each columns}}<th>{{this}}</th>{{/each}}</tr>
+    </thead>
+    <tbody>
+      {{#each rows}}
+      <tr>{{#each this}}<td class="{{#if @last}}text-right{{/if}}">{{this}}</td>{{/each}}</tr>
+      {{/each}}
+    </tbody>
+  </table>
+</body>
+</html>

@@ -185,6 +185,10 @@ const SmartPosTaxReport = Loadable(lazy(() => import('../views/smartpos/reports/
 const SmartPosPurchaseReport = Loadable(lazy(() => import('../views/smartpos/reports/PurchaseReportPage')));
 const SmartPosPaymentReport = Loadable(lazy(() => import('../views/smartpos/reports/PaymentReportPage')));
 const SmartPosCustomerReport = Loadable(lazy(() => import('../views/smartpos/reports/CustomerReportPage')));
+const SmartPosSupplierReport = Loadable(lazy(() => import('../views/smartpos/reports/SupplierReportPage')));
+const SmartPosFinancialReport = Loadable(lazy(() => import('../views/smartpos/reports/FinancialReportPage')));
+const SmartPosEmployeeReport = Loadable(lazy(() => import('../views/smartpos/reports/EmployeeReportPage')));
+const SmartPosOperationsReport = Loadable(lazy(() => import('../views/smartpos/reports/OperationsReportPage')));
 const SmartPosSettings = Loadable(
   lazy(() => import('../views/smartpos/settings/SettingsPlaceholder')),
 );
@@ -539,6 +543,10 @@ const Router = [
       { path: 'reports/purchases', element: <SmartPosPurchaseReport /> },
       { path: 'reports/payments', element: <SmartPosPaymentReport /> },
       { path: 'reports/customers', element: <SmartPosCustomerReport /> },
+      { path: 'reports/suppliers', element: <SmartPosSupplierReport /> },
+      { path: 'reports/financial', element: <SmartPosFinancialReport /> },
+      { path: 'reports/employees', element: <SmartPosEmployeeReport /> },
+      { path: 'reports/operations', element: <SmartPosOperationsReport /> },
       { path: 'reports/exports', element: <SmartPosReports /> },
       // Settings
       { path: 'settings', element: <SmartPosSettings /> },
