@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.UUID;
 
 @Entity
@@ -47,6 +48,13 @@ public class PurchaseLine {
     @Column(name = "line_subtotal", nullable = false) private BigDecimal lineSubtotal;
     @Column(name = "line_tax",      nullable = false) @Builder.Default private BigDecimal lineTax = BigDecimal.ZERO;
     @Column(name = "line_total",    nullable = false) private BigDecimal lineTotal;
+
+    @Column(name = "received_qty", nullable = false)
+    @Builder.Default
+    private BigDecimal receivedQty = BigDecimal.ZERO;
+
+    @Column(name = "received_at")
+    private Instant receivedAt;
 
     @PrePersist
     void onCreate() { if (id == null) id = UUID.randomUUID(); }
