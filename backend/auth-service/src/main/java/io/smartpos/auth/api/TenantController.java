@@ -1,12 +1,17 @@
 package io.smartpos.auth.api;
 
+import io.smartpos.auth.api.dto.CloseRequest;
+import io.smartpos.auth.api.dto.SuspendRequest;
 import io.smartpos.auth.application.TenantService;
 import io.smartpos.auth.domain.model.Tenant;
 import io.smartpos.auth.domain.model.User;
 import io.smartpos.auth.domain.repository.UserRepository;
 import io.smartpos.auth.infrastructure.security.JwtTokenService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -71,6 +76,34 @@ public class TenantController {
             plan = java.util.Optional.of(io.smartpos.auth.domain.model.BillingPlan.valueOf(planStr.toUpperCase()));
         }
         return tenantService.update(id, name, slug, plan);
+    }
+
+    @GetMapping("/admin/all")
+    @PreAuthorize("hasAuthority('admin')")
+    public ResponseEntity<List<Tenant>> listAll() {
+        return ResponseEntity.ok(tenantService.listAll());
+    }
+
+    @PostMapping("/{id}/suspend")
+    @PreAuthorize("hasAuthority('tenant.suspend')")
+    public ResponseEntity<Tenant> suspend(
+            @PathVariable UUID id,
+            @RequestBody @Valid SuspendRequest request) {
+        return ResponseEntity.ok(tenantService.suspend(id, request.reason()));
+    }
+
+    @PostMapping("/{id}/reactivate")
+    @PreAuthorize("hasAuthority('tenant.suspend')")
+    public ResponseEntity<Tenant> reactivate(@PathVariable UUID id) {
+        return ResponseEntity.ok(tenantService.reactivate(id));
+    }
+
+    @PostMapping("/{id}/close")
+    @PreAuthorize("hasAuthority('tenant.suspend')")
+    public ResponseEntity<Tenant> close(
+            @PathVariable UUID id,
+            @RequestBody @Valid CloseRequest request) {
+        return ResponseEntity.ok(tenantService.close(id, request.reason()));
     }
 
     private User currentUser(String authHeader) {
