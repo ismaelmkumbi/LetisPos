@@ -12,6 +12,7 @@ import type { TFunction } from 'i18next';
 import {
   IconDashboard,
   IconSearch,
+  IconCashBanknote,
   IconCashRegister,
   IconReceipt,
   IconFileInvoice,
@@ -37,6 +38,7 @@ import {
   IconChartInfographic,
   IconSparkles,
   IconBell,
+  IconBook,
   IconBookmarks,
   IconCalculator,
   IconClipboardCheck,
@@ -159,6 +161,7 @@ export function buildSmartPosMenu(t: TFunction): MenuItem[] {
     { id: uid(), title: t('smartpos:nav.accounts'), icon: IconWallet, href: '/smartpos/accounts' },
     { id: uid(), title: t('smartpos:nav.payments'), icon: IconCoin, href: '/smartpos/payments' },
     { id: uid(), title: t('smartpos:nav.expenses'), icon: IconReceipt2, href: '/smartpos/expenses' },
+    { id: uid(), title: 'Deposits', icon: IconCashBanknote, href: '/smartpos/deposits' },
     { id: uid(), title: 'Cash Management', icon: IconCashRegister, ...soon },
     { id: uid(), title: t('smartpos:nav.transfers'), icon: IconArrowsTransferDown, href: '/smartpos/transfers' },
     {
@@ -166,10 +169,8 @@ export function buildSmartPosMenu(t: TFunction): MenuItem[] {
       children: [
         { id: uid(), title: t('smartpos:nav.chart_of_accounts'), icon: IconCalculator, href: '/smartpos/accounting/chart-of-accounts' },
         { id: uid(), title: t('smartpos:nav.journal_entries'), icon: IconReceipt2, href: '/smartpos/accounting/journal-entries' },
-        { id: uid(), title: 'General Ledger', icon: IconBookmarks, ...soon },
-        { id: uid(), title: 'Trial Balance', icon: IconCalculator, ...soon },
-        { id: uid(), title: 'Balance Sheet', icon: IconChartBar, ...soon },
-        { id: uid(), title: 'Profit & Loss', icon: IconChartInfographic, ...soon },
+        { id: uid(), title: 'General Ledger', icon: IconBook, href: '/smartpos/accounting/ledger' },
+        { id: uid(), title: 'Financial Statements', icon: IconChartInfographic, href: '/smartpos/accounting/financials' },
       ],
     },
     { id: uid(), title: 'Taxes', icon: IconPercentage, ...soon },

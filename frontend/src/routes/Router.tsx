@@ -71,6 +71,9 @@ const SmartPosJournals = Loadable(
 const SmartPosFinancials = Loadable(
   lazy(() => import('../views/smartpos/accounting/FinancialStatementsPage')),
 );
+const SmartPosAccountLedger = Loadable(
+  lazy(() => import('../views/smartpos/accounting/AccountLedgerPage')),
+);
 const SmartPosEmployees = Loadable(lazy(() => import('../views/smartpos/hrm/EmployeesListPage')));
 const SmartPosAttendance = Loadable(lazy(() => import('../views/smartpos/hrm/AttendancePage')));
 const SmartPosLeave = Loadable(lazy(() => import('../views/smartpos/hrm/LeaveRequestsPage')));
@@ -156,6 +159,7 @@ const SmartPosReturns = Loadable(lazy(() => import('../views/smartpos/returns/Re
 const SmartPosAccounts = Loadable(lazy(() => import('../views/smartpos/money/AccountsListPage')));
 const SmartPosPayments = Loadable(lazy(() => import('../views/smartpos/money/PaymentsListPage')));
 const SmartPosExpenses = Loadable(lazy(() => import('../views/smartpos/money/ExpensesListPage')));
+const SmartPosDeposits = Loadable(lazy(() => import('../views/smartpos/money/DepositsListPage')));
 const SmartPosTransfers = Loadable(lazy(() => import('../views/smartpos/money/TransfersListPage')));
 const SmartPosReports = Loadable(lazy(() => import('../views/smartpos/reports/ReportsPage')));
 const SmartPosReportsHub = Loadable(lazy(() => import('../views/smartpos/reports/ReportsHubPage')));
@@ -428,6 +432,7 @@ const Router = [
       // Accounting
       { path: 'accounting/chart-of-accounts', element: <SmartPosCoa /> },
       { path: 'accounting/journal-entries', element: <SmartPosJournals /> },
+      { path: 'accounting/ledger', element: <SmartPosAccountLedger /> },
       { path: 'accounting/financials', element: <SmartPosFinancials /> },
       // HRM
       { path: 'hrm/employees', element: <SmartPosEmployees /> },
@@ -481,6 +486,7 @@ const Router = [
       { path: 'payments', element: <SmartPosPayments /> },
       { path: 'expenses', element: <SmartPosExpenses /> },
       { path: 'transfers', element: <SmartPosTransfers /> },
+      { path: 'deposits', element: <SmartPosDeposits /> },
       // Reports hub + individual report pages
       { path: 'reports', element: <SmartPosReportsHub /> },
       { path: 'reports/sales', element: <SmartPosSalesReport /> },
