@@ -183,3 +183,24 @@ export interface Supplier {
   createdAt?: string | null;
   updatedAt?: string | null;
 }
+
+export interface PriceList {
+  id: UUID;
+  name: string;
+  description?: string | null;
+  customerGroup?: string | null;
+  currency: string;
+  active: boolean;
+  startDate?: string | null;
+  endDate?: string | null;
+  lines?: PriceListLine[];
+}
+
+export interface PriceListLine {
+  id: UUID;
+  productId: UUID;
+  variantId?: UUID | null;
+  price: number;
+  minQty: number;
+  maxQty?: number | null;
+}
