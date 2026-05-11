@@ -96,11 +96,14 @@ export interface Tenant {
   id: string;
   name: string;
   slug: string;
-  status: 'ACTIVE' | 'SUSPENDED' | 'CLOSED';
-  billingPlan: 'FREE' | 'STARTER' | 'PRO' | 'ENTERPRISE';
+  status: 'TRIAL' | 'TRIAL_EXPIRED' | 'ACTIVE' | 'PAST_DUE' | 'SUSPENDED' | 'CLOSED';
+  billingPlan: 'FREE' | 'STARTER' | 'BUSINESS' | 'PROFESSIONAL' | 'ENTERPRISE';
   maxUsers: number;
   maxStores: number;
   settings: string; // JSONB — parsed by caller
+  trialEndsAt?: string;
+  statusChangedAt?: string;
+  statusReason?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -129,5 +132,25 @@ export async function updateTenant(
   body: { name?: string; slug?: string; billingPlan?: string }
 ): Promise<Tenant> {
   const { data } = await api.patch<Tenant>(`/api/v1/tenants/${id}`, body);
+  return data;
+}
+
+export async function suspendTenant(id: string, reason: string): Promise<Tenant> {
+  const { data } = await api.post<Tenant>(`/api/v1/tenants/${id}/suspend`, { reason });
+  return data;
+}
+
+export async function reactivateTenant(id: string): Promise<Tenant> {
+  const { data } = await api.post<Tenant>(`/api/v1/tenants/${id}/reactivate`);
+  return data;
+}
+
+export async function closeTenant(id: string, reason: string): Promise<Tenant> {
+  const { data } = await api.post<Tenant>(`/api/v1/tenants/${id}/close`, { reason });
+  return data;
+}
+
+export async function listAllTenants(): Promise<Tenant[]> {
+  const { data } = await api.get<Tenant[]>('/api/v1/tenants/admin/all');
   return data;
 }
