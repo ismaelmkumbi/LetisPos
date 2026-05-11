@@ -5,6 +5,7 @@ import {
   type OnboardingState,
   type OnboardingStep,
 } from 'src/api/smartpos/onboarding';
+import { tokenStore } from 'src/api/smartpos/client';
 
 interface OnboardingContextValue {
   state: OnboardingState;
@@ -43,6 +44,10 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
   });
 
   useEffect(() => {
+    if (!tokenStore.get()) {
+      setLoading(false);
+      return;
+    }
     fetchOnboardingState()
       .then((s) => setState(s))
       .catch(() => setState(DEFAULT_STATE))
