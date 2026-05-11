@@ -105,6 +105,18 @@ export interface AccountTransfer {
   notes: string | null;
 }
 
+export async function getAccountTransfers(params: {
+  fromAccountId?: UUID;
+  toAccountId?: UUID;
+  dateFrom?: string;
+  dateTo?: string;
+  page?: number;
+  size?: number;
+} = {}): Promise<Page<AccountTransfer>> {
+  const { data } = await api.get<Page<AccountTransfer>>('/api/v1/accounts/transfers', { params });
+  return data;
+}
+
 export async function transferBetweenAccounts(body: {
   date?: string;
   fromAccountId: UUID;
