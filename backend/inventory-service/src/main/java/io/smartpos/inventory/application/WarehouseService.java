@@ -42,6 +42,7 @@ public class WarehouseService {
                 .city(req.city()).country(req.country())
                 .phone(req.phone()).email(req.email())
                 .zip(req.zip()).notes(req.notes())
+                .branchId(req.branchId())
                 .active(true)
                 .tenantId(TenantContext.require())
                 .build();
@@ -60,6 +61,7 @@ public class WarehouseService {
         w.setEmail(req.email());
         w.setZip(req.zip());
         w.setNotes(req.notes());
+        if (req.branchId() != null) w.setBranchId(req.branchId());
         return WarehouseDto.from(repo.save(w));
     }
 

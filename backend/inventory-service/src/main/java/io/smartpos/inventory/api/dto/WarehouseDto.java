@@ -16,7 +16,8 @@ public record WarehouseDto(
     public record CreateRequest(
             String code,
             @NotBlank String name,
-            String city, String country, String phone, String email, String zip, String notes
+            String city, String country, String phone, String email, String zip, String notes,
+            UUID branchId
     ) {}
     public record StatusRequest(boolean active) {}
 }
