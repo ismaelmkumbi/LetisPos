@@ -77,7 +77,7 @@ public class Document {
     @Column(name = "vfd_submitted_at")
     private Instant vfdSubmittedAt;
 
-    @Column(name = "vfd_response", columnDefinition = "jsonb")
+    @Column(name = "vfd_response", columnDefinition = "TEXT")
     private String vfdResponse;
 
     @Column(columnDefinition = "TEXT")
