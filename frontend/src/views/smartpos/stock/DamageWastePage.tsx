@@ -112,7 +112,7 @@ export default function DamageWastePage() {
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   // Debounced product search
-  const searchTimer = useRef<ReturnType<typeof setTimeout>>();
+  const searchTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   useEffect(() => {
     if (form.productSearch.length < 2) {
       setProductOptions([]);
