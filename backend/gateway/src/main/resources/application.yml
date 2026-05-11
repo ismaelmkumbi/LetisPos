@@ -119,6 +119,32 @@ spring:
           predicates:
             - Path=/api/v1/documents/**,/api/v1/templates/**,/api/v1/print/**
 
+        # ── Billing service ─────────────────────────────────────────────
+        - id: billing-service-public
+          uri: ${BILLING_URI:http://localhost:8094}
+          predicates:
+            - Path=/api/v1/billing/plans
+          filters:
+            - name: Retry
+              args: { retries: 2 }
+
+        - id: billing-service
+          uri: ${BILLING_URI:http://localhost:8094}
+          predicates:
+            - Path=/api/v1/billing/**
+          filters:
+            - name: Retry
+              args: { retries: 2 }
+
+        # ── Branch routes (inventory-service) ───────────────────────────
+        - id: inventory-service-branches
+          uri: ${INVENTORY_URI:http://localhost:8084}
+          predicates:
+            - Path=/api/v1/branches/**
+          filters:
+            - name: Retry
+              args: { retries: 2 }
+
       globalcors:
         cors-configurations:
           '[/**]':
