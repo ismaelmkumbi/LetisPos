@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Box, Typography, CircularProgress, Chip } from '@mui/material';
 import { IconSparkles, IconCheck } from '@tabler/icons-react';
 import { fieldMap } from '../../../api/smartpos/documents';
@@ -13,14 +13,16 @@ export default function FieldMappingPreview({ documentType, headers, onMappingRe
   const [mappings, setMappings] = useState<Record<string, string>>({});
   const [confidence, setConfidence] = useState(0);
   const [loading, setLoading] = useState(true);
+  const onMappingReadyRef = useRef(onMappingReady);
+  onMappingReadyRef.current = onMappingReady;
 
   useEffect(() => {
     fieldMap({ documentType, headers }).then(r => {
       setMappings(r.mappings ?? {});
       setConfidence(r.confidence ?? 0);
-      onMappingReady(r.mappings ?? {});
+      onMappingReadyRef.current(r.mappings ?? {});
     }).finally(() => setLoading(false));
-  }, [documentType, headers.length]);
+  }, [documentType, headers]);
 
   if (loading) return <Box sx={{ p: 2, textAlign: 'center' }}><CircularProgress size={16} /><Typography variant="caption" display="block">AI mapping fields...</Typography></Box>;
 

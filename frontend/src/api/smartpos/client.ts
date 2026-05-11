@@ -61,7 +61,7 @@ export const tokenStore = {
   set: setAccessToken,
   /** @deprecated Refresh is HttpOnly cookie — always null/ no-op. */
   getRefresh: () => null,
-  setRefresh: (_t: string) => { /* cookie managed by browser */ },
+  setRefresh: () => { /* cookie managed by browser */ },
   getTenantId: () => (typeof localStorage !== 'undefined' ? localStorage.getItem(TENANT_ID_KEY) : null),
   setTenantId: (t: string | null) => {
     if (typeof localStorage === 'undefined') return;
