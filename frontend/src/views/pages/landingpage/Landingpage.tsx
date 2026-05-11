@@ -51,7 +51,7 @@ const Landingpage: React.FC = () => {
             <HowItWorks />
             <AiHighlight />
             <Testimonials />
-            <Pricing />
+            <Pricing variant="default" />
             <Faq />
             <FinalCta />
           </main>
