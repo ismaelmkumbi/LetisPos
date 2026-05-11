@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Grid } from '@mui/material';
+import { Grid, Chip } from '@mui/material';
 import { ReportPageShell, ReportFilterBar, ReportKpiRow, ReportChartCard, ReportDataTable, ReportExportBar } from 'src/components/smartpos/reports';
 import type { ReportFilters, KpiCard, Column } from 'src/components/smartpos/reports';
 import AiReportSummary from 'src/components/smartpos/reports/AiReportSummary';
 import AiRecommendations from 'src/components/smartpos/reports/AiRecommendations';
 import AiReportChat from 'src/components/smartpos/reports/AiReportChat';
-import { getInventorySummary, getInventoryValuation, getDeadStock, type InventorySummary, type InventoryValuationReport, type DeadStockReport } from 'src/api/smartpos/reports';
+import { getInventorySummary, getInventoryValuation, getDeadStock, getInventoryTurnover, getInventoryMovers, type InventorySummary, type InventoryValuationReport, type DeadStockReport, type TurnoverRow, type MoversReport, type MoverRow } from 'src/api/smartpos/reports';
 import { listWarehouses, type Warehouse } from 'src/api/smartpos/inventory';
 import type { UUID } from 'src/api/smartpos/types';
 import { brand } from 'src/theme/smartpos/brand';
@@ -21,6 +21,8 @@ export default function InventoryReportPage() {
   const [summary, setSummary] = useState<InventorySummary | null>(null);
   const [valuation, setValuation] = useState<InventoryValuationReport | null>(null);
   const [deadStock, setDeadStock] = useState<DeadStockReport | null>(null);
+  const [turnover, setTurnover] = useState<TurnoverRow[]>([]);
+  const [movers, setMovers] = useState<MoversReport | null>(null);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
 
   useEffect(() => {
@@ -33,8 +35,10 @@ export default function InventoryReportPage() {
       getInventorySummary(filters.warehouseId as UUID || undefined),
       getInventoryValuation({ method: 'AVG', warehouseId: filters.warehouseId as UUID || undefined }),
       getDeadStock({ warehouseId: filters.warehouseId as UUID || undefined }),
+      getInventoryTurnover({ warehouseId: filters.warehouseId as UUID || undefined }),
+      getInventoryMovers({ warehouseId: filters.warehouseId as UUID || undefined }),
     ])
-      .then(([s, v, d]) => { if (!cancelled) { setSummary(s); setValuation(v); setDeadStock(d); } });
+      .then(([s, v, d, t, m]) => { if (!cancelled) { setSummary(s); setValuation(v); setDeadStock(d); setTurnover(t); setMovers(m); } });
     return () => { cancelled = true; };
   }, [filters.warehouseId]);
 
@@ -91,6 +95,49 @@ export default function InventoryReportPage() {
         </Grid>
       </Grid>
       <ReportDataTable title="Inventory Valuation" columns={valColumns} rows={valuation?.rows ?? []} getRowKey={(r, i) => `${r.productId}-${r.warehouseId}-${i}`} />
+      <ReportDataTable
+        title="Inventory Turnover"
+        columns={[
+          { id: 'product', label: 'Product', render: (r: TurnoverRow) => r.productName ?? r.productId.slice(0, 8) },
+          { id: 'avgInv', label: 'Avg Inventory', align: 'right', render: (r: TurnoverRow) => formatNumber(r.avgInventory) },
+          { id: 'cogs', label: 'COGS', align: 'right', render: (r: TurnoverRow) => formatMoney(r.costOfGoodsSold) },
+          { id: 'ratio', label: 'Turnover Ratio', align: 'right', render: (r: TurnoverRow) => r.turnoverRatio.toFixed(1) },
+        ]}
+        rows={turnover}
+        getRowKey={(r) => r.productId}
+      />
+      <Grid container spacing={2} sx={{ mb: 2 }}>
+        <Grid size={{ xs: 12, md: 6 }}>
+          <ReportDataTable
+            title="Top Movers"
+            columns={[
+              { id: 'product', label: 'Product', render: (r: MoverRow) => r.productName },
+              { id: 'qty', label: 'Qty Sold', align: 'right', render: (r: MoverRow) => formatNumber(r.qtySold) },
+              { id: 'revenue', label: 'Revenue', align: 'right', render: (r: MoverRow) => formatMoney(r.revenue) },
+              { id: 'dir', label: 'Direction', render: (r: MoverRow) => (
+                <Chip label={r.direction} size="small" sx={{ bgcolor: brand.success.light, color: brand.success.dark, fontWeight: 700 }} />
+              )},
+            ]}
+            rows={movers?.top ?? []}
+            getRowKey={(r) => r.productId}
+          />
+        </Grid>
+        <Grid size={{ xs: 12, md: 6 }}>
+          <ReportDataTable
+            title="Bottom Movers"
+            columns={[
+              { id: 'product', label: 'Product', render: (r: MoverRow) => r.productName },
+              { id: 'qty', label: 'Qty Sold', align: 'right', render: (r: MoverRow) => formatNumber(r.qtySold) },
+              { id: 'revenue', label: 'Revenue', align: 'right', render: (r: MoverRow) => formatMoney(r.revenue) },
+              { id: 'dir', label: 'Direction', render: (r: MoverRow) => (
+                <Chip label={r.direction} size="small" sx={{ bgcolor: brand.error.light, color: brand.error.dark, fontWeight: 700 }} />
+              )},
+            ]}
+            rows={movers?.bottom ?? []}
+            getRowKey={(r) => r.productId}
+          />
+        </Grid>
+      </Grid>
       <ReportExportBar reportKey="sales-summary-series" />
       <AiReportChat contextPrompt={`You are analyzing inventory data. Data: ${factsJson}`} />
     </ReportPageShell>

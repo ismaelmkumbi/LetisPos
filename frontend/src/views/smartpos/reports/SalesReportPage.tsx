@@ -5,7 +5,7 @@ import type { ReportFilters, KpiCard, Column } from 'src/components/smartpos/rep
 import ExecutiveSummary from 'src/components/smartpos/reports/ExecutiveSummary';
 import SmartInsights from 'src/components/smartpos/reports/SmartInsights';
 import AiReportChat from 'src/components/smartpos/reports/AiReportChat';
-import { getSalesSummary, getTopProducts, getTopCustomers, getSalesByDimension, type SalesSummary, type TopProduct, type TopCustomer, type SalesByDimensionReport } from 'src/api/smartpos/reports';
+import { getSalesSummary, getTopProducts, getTopCustomers, getSalesByDimension, getSalesByHour, getDiscountsVoids, type SalesSummary, type TopProduct, type TopCustomer, type SalesByDimensionReport, type HourlyBucket, type DiscountVoidAnalysis } from 'src/api/smartpos/reports';
 import { listWarehouses, type Warehouse } from 'src/api/smartpos/inventory';
 import type { UUID } from 'src/api/smartpos/types';
 import { brand } from 'src/theme/smartpos/brand';
@@ -23,6 +23,8 @@ export default function SalesReportPage() {
   const [topProducts, setTopProducts] = useState<TopProduct[]>([]);
   const [topCustomers, setTopCustomers] = useState<TopCustomer[]>([]);
   const [byDimension, setByDimension] = useState<SalesByDimensionReport | null>(null);
+  const [hourly, setHourly] = useState<HourlyBucket[]>([]);
+  const [dv, setDv] = useState<DiscountVoidAnalysis | null>(null);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
 
   useEffect(() => {
@@ -36,10 +38,13 @@ export default function SalesReportPage() {
       getTopProducts({ dateFrom: filters.dateFrom, dateTo: filters.dateTo, warehouseId: filters.warehouseId as UUID || undefined, limit: 20 }),
       getTopCustomers({ dateFrom: filters.dateFrom, dateTo: filters.dateTo, limit: 20 }),
       getSalesByDimension({ dateFrom: filters.dateFrom, dateTo: filters.dateTo, dimension: 'CATEGORY' }),
+      getSalesByHour({ dateFrom: filters.dateFrom, dateTo: filters.dateTo, warehouseId: filters.warehouseId as UUID || undefined }),
+      getDiscountsVoids({ dateFrom: filters.dateFrom, dateTo: filters.dateTo, warehouseId: filters.warehouseId as UUID || undefined }),
     ])
-      .then(([s, tp, tc, dim]) => {
+      .then(([s, tp, tc, dim, h, dvData]) => {
         if (cancelled) return;
         setSales(s); setTopProducts(tp); setTopCustomers(tc); setByDimension(dim);
+        setHourly(h); setDv(dvData);
       });
     return () => { cancelled = true; };
   }, [filters.dateFrom, filters.dateTo, filters.warehouseId]);
@@ -53,7 +58,9 @@ export default function SalesReportPage() {
     { label: 'Avg Sale', value: formatMoney(sales?.avgSale ?? 0), color: brand.success.main },
     { label: 'Paid', value: formatMoney(sales?.paid ?? 0), color: brand.primary[600] },
     { label: 'Due', value: formatMoney(sales?.due ?? 0), color: brand.error.main },
-  ], [sales]);
+    { label: 'Discount Rate', value: dv ? `${(dv.discountRate * 100).toFixed(1)}%` : '—', color: brand.warning.main },
+    { label: 'Void Rate', value: dv ? `${(dv.voidRate * 100).toFixed(2)}%` : '—', color: brand.error.main },
+  ], [sales, dv]);
 
   const revenueOptions: ApexOptions = useMemo(() => ({
     chart: { type: 'line', toolbar: { show: false }, fontFamily: chartFont, zoom: { enabled: false } },
@@ -107,6 +114,20 @@ export default function SalesReportPage() {
         </Grid>
       </Grid>
       <SmartInsights reportKind="SALES" factsJson={factsJson} />
+
+      <ReportChartCard
+        title="Sales by Hour"
+        options={{
+          chart: { type: 'bar', toolbar: { show: false }, fontFamily: 'Inter, DM Sans, sans-serif' },
+          colors: [brand.primary[600]],
+          xaxis: { categories: hourly.map(h => `${h.hour}:00`) },
+          dataLabels: { enabled: false },
+          grid: { borderColor: brand.neutral[200] },
+        }}
+        series={[{ name: 'Revenue', data: hourly.map(h => h.net) }]}
+        type="bar"
+        height={250}
+      />
 
       <Grid container spacing={2} sx={{ mb: 2 }}>
         <Grid size={{ xs: 12, md: 6 }}>

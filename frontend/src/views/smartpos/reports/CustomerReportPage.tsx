@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ReportPageShell, ReportFilterBar, ReportKpiRow, ReportDataTable, ReportExportBar } from 'src/components/smartpos/reports';
+import { Stack, Chip } from '@mui/material';
+import { ReportPageShell, ReportFilterBar, ReportKpiRow, ReportDataTable, ReportExportBar, ReportChartCard } from 'src/components/smartpos/reports';
 import type { ReportFilters, KpiCard, Column } from 'src/components/smartpos/reports';
 import AiReportSummary from 'src/components/smartpos/reports/AiReportSummary';
 import AiRecommendations from 'src/components/smartpos/reports/AiRecommendations';
 import AiReportChat from 'src/components/smartpos/reports/AiReportChat';
-import { getCustomerSummary, type CustomerSummary, type TopCustomerDetail } from 'src/api/smartpos/reports';
+import { getCustomerSummary, getCustomerRfm, getCustomerRetention, type CustomerSummary, type TopCustomerDetail, type RfmSegments, type RetentionRate, type RfmCustomer } from 'src/api/smartpos/reports';
 import { brand } from 'src/theme/smartpos/brand';
 import { formatMoney, formatNumber } from 'src/utils/smartpos/currency';
 
@@ -14,11 +15,19 @@ const startOfMonth = () => new Date(new Date().getFullYear(), new Date().getMont
 export default function CustomerReportPage() {
   const [filters, setFilters] = useState<ReportFilters>({ dateFrom: startOfMonth(), dateTo: todayIso(), warehouseId: '', period: 'MONTH' });
   const [data, setData] = useState<CustomerSummary | null>(null);
+  const [rfm, setRfm] = useState<RfmSegments | null>(null);
+  const [retention, setRetention] = useState<RetentionRate | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    getCustomerSummary({ dateFrom: filters.dateFrom, dateTo: filters.dateTo })
-      .then((d) => { if (!cancelled) setData(d); });
+    Promise.all([
+      getCustomerSummary({ dateFrom: filters.dateFrom, dateTo: filters.dateTo }),
+      getCustomerRfm({ dateFrom: filters.dateFrom, dateTo: filters.dateTo }),
+      getCustomerRetention({ dateFrom: filters.dateFrom, dateTo: filters.dateTo }),
+    ])
+      .then(([d, rfmData, retData]) => {
+        if (!cancelled) { setData(d); setRfm(rfmData); setRetention(retData); }
+      });
     return () => { cancelled = true; };
   }, [filters.dateFrom, filters.dateTo]);
 
@@ -27,7 +36,8 @@ export default function CustomerReportPage() {
     { label: 'Active This Period', value: formatNumber(data?.activeCustomers ?? 0), color: brand.success.main },
     { label: 'Total Revenue', value: formatMoney(data?.totalRevenue ?? 0), color: brand.info.main },
     { label: 'Avg Revenue/Customer', value: formatMoney(data?.avgRevenuePerCustomer ?? 0), color: brand.warning.main },
-  ], [data]);
+    { label: 'Retention Rate', value: retention ? `${(retention.rate * 100).toFixed(1)}%` : '—', color: retention && retention.change >= 0 ? brand.success.main : brand.error.main, change: retention ? { positive: retention.change >= 0, label: `${(retention.change * 100).toFixed(1)}%` } : null },
+  ], [data, retention]);
 
   const customerColumns: Column<TopCustomerDetail>[] = [
     { id: 'name', label: 'Customer', render: (r) => r.customerName ?? r.customerId.slice(0, 8) },
@@ -44,7 +54,47 @@ export default function CustomerReportPage() {
       <AiReportSummary reportKind="customers" factsJson={factsJson} />
       <AiRecommendations reportKind="customers" factsJson={factsJson} />
       <ReportKpiRow cards={kpis} />
+      {rfm && (
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 2 }}>
+          {([
+            { label: 'Champions', value: rfm.champions, color: brand.success.main },
+            { label: 'Loyal', value: rfm.loyal, color: brand.primary[600] },
+            { label: 'At Risk', value: rfm.atRisk, color: brand.warning.main },
+            { label: 'Lost', value: rfm.lost, color: brand.error.main },
+          ]).map((seg) => (
+            <ReportChartCard key={seg.label} title={seg.label}
+              options={{
+                chart: { type: 'radialBar', fontFamily: 'Inter, DM Sans, sans-serif' },
+                plotOptions: { radialBar: {
+                  hollow: { size: '55%' },
+                  dataLabels: { name: { show: false }, value: { fontSize: '22px', fontWeight: 700, color: seg.color } },
+                }},
+                colors: [seg.color],
+                grid: { show: false },
+              }}
+              series={[rfm.customers.length > 0 ? Math.round((seg.value / rfm.customers.length) * 100) : 0]}
+              type="radialBar"
+              height={160}
+            />
+          ))}
+        </Stack>
+      )}
       <ReportDataTable title="Top Customers" columns={customerColumns} rows={data?.topCustomers ?? []} getRowKey={(r) => r.customerId} />
+      <ReportDataTable
+        title="Customer Segmentation (RFM)"
+        columns={[
+          { id: 'name', label: 'Customer', render: (r: RfmCustomer) => r.customerName },
+          { id: 'recency', label: 'Recency (days)', align: 'right', render: (r: RfmCustomer) => r.recency },
+          { id: 'frequency', label: 'Orders', align: 'right', render: (r: RfmCustomer) => r.frequency },
+          { id: 'monetary', label: 'Total Spend', align: 'right', render: (r: RfmCustomer) => formatMoney(r.monetary) },
+          { id: 'segment', label: 'Segment', render: (r: RfmCustomer) => {
+            const colors: Record<string, string> = { Champions: brand.success.main, Loyal: brand.primary[600], 'At Risk': brand.warning.main, Lost: brand.error.main };
+            return <Chip label={r.segment} size="small" sx={{ bgcolor: brand.neutral[100], color: colors[r.segment] ?? brand.neutral[600], fontWeight: 700 }} />;
+          }},
+        ]}
+        rows={rfm?.customers ?? []}
+        getRowKey={(r) => r.customerId}
+      />
       <ReportExportBar reportKey="customers-summary" dateFrom={filters.dateFrom} dateTo={filters.dateTo} />
       <AiReportChat contextPrompt={`You are analyzing customer data from ${filters.dateFrom} to ${filters.dateTo}. Data: ${factsJson}`} />
     </ReportPageShell>

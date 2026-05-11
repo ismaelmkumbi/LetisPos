@@ -4,7 +4,7 @@ import { ReportPageShell, ReportFilterBar, ReportKpiRow, ReportChartCard, Report
 import type { ReportFilters, KpiCard, Column } from 'src/components/smartpos/reports';
 import AiReportSummary from 'src/components/smartpos/reports/AiReportSummary';
 import AiReportChat from 'src/components/smartpos/reports/AiReportChat';
-import { getTaxSummary, type TaxSummary, type TaxByRate, type TaxByCategory } from 'src/api/smartpos/reports';
+import { getTaxSummary, getMonthlyTaxSchedule, type TaxSummary, type TaxByRate, type TaxByCategory, type MonthlyTaxBucket } from 'src/api/smartpos/reports';
 import { brand } from 'src/theme/smartpos/brand';
 import { formatMoney, formatNumber } from 'src/utils/smartpos/currency';
 import type { ApexOptions } from 'apexcharts';
@@ -16,11 +16,15 @@ const chartFont = 'Inter, DM Sans, sans-serif';
 export default function TaxReportPage() {
   const [filters, setFilters] = useState<ReportFilters>({ dateFrom: startOfMonth(), dateTo: todayIso(), warehouseId: '', period: 'MONTH' });
   const [data, setData] = useState<TaxSummary | null>(null);
+  const [monthlySchedule, setMonthlySchedule] = useState<MonthlyTaxBucket[]>([]);
 
   useEffect(() => {
     let cancelled = false;
-    getTaxSummary({ dateFrom: filters.dateFrom, dateTo: filters.dateTo })
-      .then((d) => { if (!cancelled) setData(d); });
+    Promise.all([
+      getTaxSummary({ dateFrom: filters.dateFrom, dateTo: filters.dateTo }),
+      getMonthlyTaxSchedule({ year: new Date().getFullYear() }),
+    ])
+      .then(([d, ms]) => { if (!cancelled) { setData(d); setMonthlySchedule(ms); } });
     return () => { cancelled = true; };
   }, [filters.dateFrom, filters.dateTo]);
 
@@ -70,6 +74,19 @@ export default function TaxReportPage() {
         </Grid>
       </Grid>
       <ReportDataTable title="Tax by Rate" columns={rateColumns} rows={data?.byRate ?? []} getRowKey={(r) => String(r.rate)} />
+      <ReportDataTable
+        title="Monthly Tax Schedule"
+        columns={[
+          { id: 'month', label: 'Month', render: (m: MonthlyTaxBucket) => new Date(2024, m.month - 1).toLocaleString('en', { month: 'short' }) },
+          { id: 'taxable', label: 'Taxable Sales', align: 'right', render: (m: MonthlyTaxBucket) => formatMoney(m.taxableSales) },
+          { id: 'collected', label: 'Tax Collected', align: 'right', render: (m: MonthlyTaxBucket) => formatMoney(m.taxCollected) },
+          { id: 'output', label: 'Output Tax', align: 'right', render: (m: MonthlyTaxBucket) => formatMoney(m.outputTax) },
+          { id: 'input', label: 'Input Tax', align: 'right', render: (m: MonthlyTaxBucket) => formatMoney(m.inputTax) },
+          { id: 'net', label: 'Net Payable', align: 'right', render: (m: MonthlyTaxBucket) => formatMoney(m.netPayable) },
+        ]}
+        rows={monthlySchedule}
+        getRowKey={(r) => String(r.month)}
+      />
       <ReportExportBar reportKey="tax-summary" dateFrom={filters.dateFrom} dateTo={filters.dateTo} />
       <AiReportChat contextPrompt={`You are analyzing tax data from ${filters.dateFrom} to ${filters.dateTo}. Data: ${factsJson}`} />
     </ReportPageShell>

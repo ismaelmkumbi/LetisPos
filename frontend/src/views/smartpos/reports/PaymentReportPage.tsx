@@ -4,7 +4,7 @@ import { ReportPageShell, ReportFilterBar, ReportKpiRow, ReportChartCard, Report
 import type { ReportFilters, KpiCard, Column } from 'src/components/smartpos/reports';
 import AiReportSummary from 'src/components/smartpos/reports/AiReportSummary';
 import AiReportChat from 'src/components/smartpos/reports/AiReportChat';
-import { getPaymentSummary, type PaymentSummary, type PaymentMethodRow } from 'src/api/smartpos/reports';
+import { getPaymentSummary, getArAging, type PaymentSummary, type PaymentMethodRow, type ArAging, type AgingBucket } from 'src/api/smartpos/reports';
 import { brand } from 'src/theme/smartpos/brand';
 import { formatMoney, formatNumber } from 'src/utils/smartpos/currency';
 import type { ApexOptions } from 'apexcharts';
@@ -16,11 +16,15 @@ const chartFont = 'Inter, DM Sans, sans-serif';
 export default function PaymentReportPage() {
   const [filters, setFilters] = useState<ReportFilters>({ dateFrom: startOfMonth(), dateTo: todayIso(), warehouseId: '', period: 'MONTH' });
   const [data, setData] = useState<PaymentSummary | null>(null);
+  const [aging, setAging] = useState<ArAging | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    getPaymentSummary({ dateFrom: filters.dateFrom, dateTo: filters.dateTo })
-      .then((d) => { if (!cancelled) setData(d); });
+    Promise.all([
+      getPaymentSummary({ dateFrom: filters.dateFrom, dateTo: filters.dateTo }),
+      getArAging({}),
+    ])
+      .then(([d, a]) => { if (!cancelled) { setData(d); setAging(a); } });
     return () => { cancelled = true; };
   }, [filters.dateFrom, filters.dateTo]);
 
@@ -29,7 +33,8 @@ export default function PaymentReportPage() {
     { label: 'Total Outflow', value: formatMoney(data?.totalOut ?? 0), color: brand.error.main },
     { label: 'Net Flow', value: formatMoney(data?.netFlow ?? 0), color: (data?.netFlow ?? 0) >= 0 ? brand.primary[600] : brand.error.main },
     { label: 'Transactions', value: formatNumber(data?.totalCount ?? 0), color: brand.info.main },
-  ], [data]);
+    { label: 'Outstanding AR', value: formatMoney(aging?.totalOutstanding ?? 0), color: brand.warning.main },
+  ], [data, aging]);
 
   const methodColumns: Column<PaymentMethodRow>[] = [
     { id: 'method', label: 'Method', render: (r) => r.method },
@@ -61,6 +66,16 @@ export default function PaymentReportPage() {
           <ReportDataTable title="By Method" columns={methodColumns} rows={data?.byMethod ?? []} getRowKey={(r) => r.method} />
         </Grid>
       </Grid>
+      <ReportDataTable
+        title="Accounts Receivable Aging"
+        columns={[
+          { id: 'label', label: 'Aging Bucket', render: (r: AgingBucket) => r.label },
+          { id: 'invoices', label: 'Invoices', align: 'right', render: (r: AgingBucket) => formatNumber(r.invoiceCount) },
+          { id: 'amount', label: 'Outstanding', align: 'right', render: (r: AgingBucket) => formatMoney(r.amount) },
+        ]}
+        rows={aging?.buckets ?? []}
+        getRowKey={(r) => r.label}
+      />
       <ReportExportBar reportKey="payments-summary" dateFrom={filters.dateFrom} dateTo={filters.dateTo} />
       <AiReportChat contextPrompt={`You are analyzing payment data from ${filters.dateFrom} to ${filters.dateTo}. Data: ${factsJson}`} />
     </ReportPageShell>
