@@ -88,6 +88,8 @@ smartpos:
     shared-secret: ${SMARTPOS_INTERNAL_SHARED_SECRET:dev-internal-token-change-me}
   user-service:
     base-url: ${USER_SERVICE_URL:http://localhost:8082}
+  audit-service:
+    base-url: ${AUDIT_SERVICE_URL:http://localhost:8095}
 
 logging:
   level:

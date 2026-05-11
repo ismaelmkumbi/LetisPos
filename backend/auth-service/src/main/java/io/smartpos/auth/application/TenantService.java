@@ -4,6 +4,7 @@ import io.smartpos.auth.domain.model.BillingPlan;
 import io.smartpos.auth.domain.model.Tenant;
 import io.smartpos.auth.domain.model.TenantStatus;
 import io.smartpos.auth.domain.repository.TenantRepository;
+import io.smartpos.auth.infrastructure.audit.AuditClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -25,6 +26,7 @@ import java.util.UUID;
 public class TenantService {
 
     private final TenantRepository tenantRepository;
+    private final AuditClient auditClient;
 
     @Transactional
     public Tenant create(String name, String slug, BillingPlan plan) {
@@ -103,6 +105,9 @@ public class TenantService {
         tenant.setStatusChangedAt(Instant.now());
         tenant.setStatusReason(reason);
         log.warn("Tenant suspended: id={}, reason={}", id, reason);
+        auditClient.send("auth-service", null, "admin", "ADMIN",
+                "tenant.suspended", "tenant", id.toString(), tenant.getName(),
+                tenant.getId(), null);
         return tenantRepository.save(tenant);
     }
 
@@ -116,6 +121,9 @@ public class TenantService {
         tenant.setStatusChangedAt(Instant.now());
         tenant.setStatusReason(null);
         log.info("Tenant reactivated: id={}", id);
+        auditClient.send("auth-service", null, "admin", "ADMIN",
+                "tenant.reactivated", "tenant", id.toString(), tenant.getName(),
+                tenant.getId(), null);
         return tenantRepository.save(tenant);
     }
 
@@ -126,6 +134,9 @@ public class TenantService {
         tenant.setStatusChangedAt(Instant.now());
         tenant.setStatusReason(reason);
         log.warn("Tenant closed: id={}, reason={}", id, reason);
+        auditClient.send("auth-service", null, "admin", "ADMIN",
+                "tenant.closed", "tenant", id.toString(), tenant.getName(),
+                tenant.getId(), null);
         return tenantRepository.save(tenant);
     }
 
