@@ -2,9 +2,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { Alert, Box, Chip, MenuItem, Stack, TextField, Typography } from '@mui/material';
 import { useNavigate } from 'react-router';
 
-import { listSupplierPayments, type SupplierPayment } from 'src/api/smartpos/payments';
+import { listSupplierPayments } from 'src/api/smartpos/payments';
 import { listSuppliers } from 'src/api/smartpos/suppliers';
-import type { Supplier } from 'src/api/smartpos/types';
+import type { Supplier, SupplierPayment } from 'src/api/smartpos/types';
 import { PageHeader } from 'src/components/smartpos/PageHeader';
 import DataTable, { type Column } from 'src/components/smartpos/DataTable';
 import { brand } from 'src/theme/smartpos/brand';
@@ -27,7 +27,7 @@ export default function SupplierPaymentsPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  // search unused — placeholder for FilterBar with text search
+  const [search, _setSearch] = useState('');
   const [supplierId, setSupplierId] = useState<string>('');
   const [method, setMethod] = useState<string>('');
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -47,7 +47,7 @@ export default function SupplierPaymentsPage() {
       .catch((e) => { if (!cancelled) setError(e instanceof Error ? e.message : 'Failed to load'); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [supplierId, method, page]);
+  }, [search, supplierId, method, page]);
 
   const columns: Column<SupplierPayment>[] = useMemo(() => [
     {

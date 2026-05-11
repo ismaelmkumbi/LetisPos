@@ -6,8 +6,8 @@ import { useNavigate } from 'react-router';
 import {
   listSuspendedSales, resumeSuspendedSale, deleteSuspendedSale,
   purgeExpiredSuspendedSales,
-  type SuspendedSale,
 } from 'src/api/smartpos/sales';
+import type { SuspendedSale } from 'src/api/smartpos/types';
 import { PageHeader } from 'src/components/smartpos/PageHeader';
 import DataTable, { type Column } from 'src/components/smartpos/DataTable';
 import FilterBar from 'src/components/smartpos/FilterBar';
@@ -34,6 +34,7 @@ export default function SuspendedSalesPage() {
   const sel = useSelection(rows);
 
   const [detailTarget, setDetailTarget] = useState<SuspendedSale | null>(null);
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -171,7 +172,7 @@ export default function SuspendedSalesPage() {
       <PageHeader
         title="Suspended Sales"
         subtitle="Carts on hold from POS terminals. Resume from any terminal."
-        badge={openCount > 0 ? { label: `${openCount} open`, tone: 'info' } : undefined}
+        badge={openCount > 0 ? { label: `${openCount} open`, tone: 'primary' } : undefined}
         actions={[
           { label: 'Purge expired', icon: <IconTrash size={18} />,
             onClick: async () => { await purgeExpiredSuspendedSales(); setRefreshToken((n) => n + 1); }
@@ -182,6 +183,8 @@ export default function SuspendedSalesPage() {
         searchPlaceholder="Search by hold ref…"
         searchValue={search}
         onSearchChange={(v) => { setSearch(v); setPage(0); }}
+        filtersOpen={filtersOpen}
+        onFiltersToggle={() => setFiltersOpen((v) => !v)}
         activeFilters={search ? [{ key: 'search', label: `Search: ${search}`, clear: () => { setSearch(''); setPage(0); } }] : []}
         onClearAll={() => { setSearch(''); setPage(0); }}
       />
@@ -211,6 +214,7 @@ export default function SuspendedSalesPage() {
         title={detailTarget ? `Hold ${detailTarget.ref}` : ''}
         subtitle={detailTarget ? new Date(detailTarget.createdAt).toLocaleString() : ''}
         onClose={() => setDetailTarget(null)}
+        onSubmit={() => {}}
       >
         {detailTarget && (
           <Box>

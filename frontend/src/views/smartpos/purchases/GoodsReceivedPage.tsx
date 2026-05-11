@@ -5,10 +5,9 @@ import { useNavigate } from 'react-router';
 
 import {
   listGoodsReceived, receivePurchaseLine,
-  type GoodsReceived, type GoodsReceivedLine,
 } from 'src/api/smartpos/sales';
 import { listSuppliers } from 'src/api/smartpos/suppliers';
-import type { Supplier } from 'src/api/smartpos/types';
+import type { GoodsReceived, GoodsReceivedLine, Supplier } from 'src/api/smartpos/types';
 import { PageHeader } from 'src/components/smartpos/PageHeader';
 import DataTable, { type Column } from 'src/components/smartpos/DataTable';
 import { brand } from 'src/theme/smartpos/brand';
@@ -51,7 +50,7 @@ export default function GoodsReceivedPage() {
   const openReceive = (g: GoodsReceived) => {
     setReceiveTarget(g);
     const qtys: Record<string, string> = {};
-    g.lines.forEach((l) => { qtys[l.id] = String(l.remainingQty); });
+    g.lines.forEach((l: GoodsReceivedLine) => { qtys[l.id] = String(l.remainingQty); });
     setReceiveQtys(qtys);
   };
 
