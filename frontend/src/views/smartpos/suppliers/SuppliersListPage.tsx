@@ -19,6 +19,7 @@ import PageHeader from 'src/components/smartpos/PageHeader';
 import FilterBar, { type ActiveFilter } from 'src/components/smartpos/FilterBar';
 import DataTable, { type Column } from 'src/components/smartpos/DataTable';
 import SupplierEditDrawer from './SupplierEditDrawer';
+import DocumentActionsBar from 'src/components/smartpos/documents/DocumentActionsBar';
 import { useAuth } from 'src/context/smartpos/AuthContext';
 import { brand } from 'src/theme/smartpos/brand';
 import { formatMoney } from 'src/utils/smartpos/currency';
@@ -226,6 +227,14 @@ export default function SuppliersListPage() {
             borderRadius: '6px',
           }}
         />
+      ),
+    },
+    {
+      key: 'actions',
+      label: '',
+      align: 'center',
+      render: (s) => (
+        <DocumentActionsBar documentType="supplier-rfq" referenceType="supplier" referenceId={s.id} />
       ),
     },
   ];

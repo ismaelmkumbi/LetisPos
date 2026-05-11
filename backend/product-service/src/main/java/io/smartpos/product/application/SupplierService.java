@@ -72,4 +72,12 @@ public class SupplierService {
         s.softDelete();
         repo.save(s);
     }
+
+    @Transactional
+    public SupplierDto toggleActive(UUID id) {
+        Supplier s = repo.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Supplier not found"));
+        s.setActive(!s.isActive());
+        return SupplierDto.from(repo.save(s));
+    }
 }

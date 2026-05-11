@@ -48,4 +48,10 @@ public class SupplierController {
     @PreAuthorize("hasAuthority('supplier.manage')")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable UUID id) { service.delete(id); }
+
+    @PatchMapping("/{id}/toggle-active")
+    @PreAuthorize("hasAuthority('supplier.manage')")
+    public SupplierDto toggleActive(@PathVariable UUID id) {
+        return service.toggleActive(id);
+    }
 }

@@ -16,6 +16,7 @@ import { listPurchases } from 'src/api/smartpos/sales';
 import type { Purchase } from 'src/api/smartpos/sales';
 import type { Supplier } from 'src/api/smartpos/types';
 import PageHeader from 'src/components/smartpos/PageHeader';
+import DocumentActionsBar from 'src/components/smartpos/documents/DocumentActionsBar';
 import DataTable, { type Column } from 'src/components/smartpos/DataTable';
 import { brand } from 'src/theme/smartpos/brand';
 import { formatMoney } from 'src/utils/smartpos/currency';
@@ -191,6 +192,11 @@ export default function SupplierDetailPage() {
                   </Stack>
                 )}
               </Stack>
+
+              <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
+                <DocumentActionsBar documentType="supplier-rfq" referenceType="supplier" referenceId={supplier?.id} disabled={!supplier?.id} />
+                <DocumentActionsBar documentType="supplier-invoice" referenceType="supplier" referenceId={supplier?.id} disabled={!supplier?.id} />
+              </Box>
 
               {supplier.notes && (
                 <Box sx={{ mt: 2, p: 1.5, borderRadius: '8px', bgcolor: brand.neutral[50] }}>
