@@ -25,6 +25,16 @@ export async function listCustomerGroups(
   return data;
 }
 
+export async function listAllCustomerGroups(): Promise<CustomerGroup[]> {
+  const { data } = await api.get<CustomerGroup[]>('/api/v1/customer-groups/all');
+  return data;
+}
+
+export async function getCustomerGroup(id: UUID): Promise<CustomerGroup> {
+  const { data } = await api.get<CustomerGroup>(`/api/v1/customer-groups/${id}`);
+  return data;
+}
+
 export async function createCustomerGroup(
   input: CustomerGroupInput,
 ): Promise<CustomerGroup> {

@@ -188,7 +188,7 @@ export default function CustomerEditDrawer({ open, initial, onClose, onSaved }: 
           labelId="customer-group-label"
           label="Customer Group"
           value={form.groupId ?? ''}
-          onChange={(e) => patch('groupId', e.target.value || null)}
+          onChange={(e) => patch('groupId', e.target.value ?? undefined)}
         >
           <MenuItem value="">
             <em>None</em>
