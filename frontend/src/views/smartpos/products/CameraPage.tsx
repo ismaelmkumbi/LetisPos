@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useParams, useSearchParams } from 'react-router';
+import { useParams } from 'react-router';
+import axios from 'axios';
 import {
   Box,
   Button,
@@ -10,18 +11,17 @@ import {
   Typography,
 } from '@mui/material';
 import { IconCamera, IconCheck, IconChecks, IconX } from '@tabler/icons-react';
-import { api, tokenStore } from 'src/api/smartpos/client';
+import { API_BASE_URL } from 'src/api/smartpos/client';
 
 const MAX_PHOTOS = 20;
+const publicCaptureApi = axios.create({
+  baseURL: API_BASE_URL,
+  timeout: 30_000,
+  withCredentials: false,
+});
 
 export default function CameraPage() {
   const { sessionId } = useParams<{ sessionId: string }>();
-  const [searchParams] = useSearchParams();
-
-  // Optional legacy support: newer capture uploads are public but scoped by the
-  // random session id, so QR links no longer need to carry the POS user's token.
-  const urlToken = searchParams.get('token');
-  if (urlToken) tokenStore.set(urlToken);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -130,7 +130,7 @@ export default function CameraPage() {
         const blob = dataUrlToBlob(captures[i]);
         const form = new FormData();
         form.append('photo', blob, `photo-${i}.jpg`);
-        await api.post(`/api/v1/ai/capture-sessions/${sessionId}/photos`, form);
+        await publicCaptureApi.post(`/api/v1/ai/capture-sessions/${sessionId}/photos`, form);
         setUploaded((prev) => prev + 1);
       } catch (err) {
         setError(uploadErrorMessage(err, i + 1));
@@ -140,7 +140,7 @@ export default function CameraPage() {
     }
 
     try {
-      await api.post(`/api/v1/ai/capture-sessions/${sessionId}/complete`);
+      await publicCaptureApi.post(`/api/v1/ai/capture-sessions/${sessionId}/complete`);
     } catch {
       // complete is best-effort — photos are already uploaded
     }
