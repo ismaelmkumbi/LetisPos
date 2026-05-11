@@ -30,6 +30,9 @@ public class DocumentService {
     private final GotenbergClient gotenbergClient;
     private final MinioObjectStore storage;
     private final VfdService vfdService;
+    private final io.smartpos.documents.infrastructure.feign.SalesClient salesClient;
+    private final io.smartpos.documents.infrastructure.feign.PurchaseClient purchaseClient;
+    private final io.smartpos.documents.infrastructure.feign.PaymentClient paymentClient;
 
     private static final Map<String, String> TEMPLATE_FILES = Map.ofEntries(
         Map.entry("quotation", "quotation.hbs"),
@@ -81,6 +84,17 @@ public class DocumentService {
 
         Map<String, Object> mergedContext = new java.util.HashMap<>(contextData);
         mergedContext.putIfAbsent("company", Map.of("name", "Letis POS"));
+
+        // Fetch real transaction data if reference provided
+        if (referenceType != null && referenceId != null) {
+            try {
+                Map<String, Object> realData = fetchReferenceData(referenceType, referenceId);
+                mergedContext.putAll(realData);
+            } catch (Exception e) {
+                log.warn("Could not fetch {} data for {}: {}", referenceType, referenceId, e.getMessage());
+            }
+        }
+
         mergedContext.put("qrData", buildQrData(documentType, referenceType, referenceId));
         if ("tax-invoice".equals(documentType)) {
             mergedContext.put("sellerTin", vfdService.getSellerTin());
@@ -155,6 +169,58 @@ public class DocumentService {
         String prefix = documentType.substring(0, 3).toUpperCase().replaceAll("[^A-Z]", "X");
         long count = documentRepo.count();
         return prefix + "-" + String.format("%06d", count + 1);
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> fetchReferenceData(String referenceType, UUID referenceId) {
+        try {
+            Map<String, Object> raw = switch (referenceType) {
+                case "sale" -> salesClient.getSale(referenceId);
+                case "purchase" -> purchaseClient.getPurchase(referenceId);
+                case "payment" -> paymentClient.getPayment(referenceId);
+                default -> Map.of();
+            };
+
+            // Map common fields to template placeholders
+            Map<String, Object> mapped = new java.util.HashMap<>();
+            mapped.put("document", Map.of(
+                "number", raw.getOrDefault("ref", raw.getOrDefault("reference", "")),
+                "date", raw.getOrDefault("date", raw.getOrDefault("createdAt", "")),
+                "status", raw.getOrDefault("status", "draft")
+            ));
+
+            if (raw.containsKey("customer") && raw.get("customer") instanceof Map) {
+                mapped.put("customer", raw.get("customer"));
+            } else if (raw.containsKey("customerName")) {
+                mapped.put("customer", Map.of("name", raw.getOrDefault("customerName", "")));
+            }
+
+            if (raw.containsKey("supplier") && raw.get("supplier") instanceof Map) {
+                mapped.put("supplier", raw.get("supplier"));
+            }
+
+            if (raw.containsKey("lines") || raw.containsKey("items")) {
+                mapped.put("items", raw.getOrDefault("lines", raw.get("items")));
+            }
+
+            if (raw.containsKey("grandTotal")) {
+                mapped.put("totals", Map.of(
+                    "subtotal", raw.getOrDefault("subtotal", raw.getOrDefault("total", 0)),
+                    "tax", raw.getOrDefault("taxAmount", raw.getOrDefault("tax", 0)),
+                    "discount", raw.getOrDefault("discountAmount", 0),
+                    "grandTotal", raw.get("grandTotal")
+                ));
+            }
+
+            mapped.put("preparedBy", Map.of("name", raw.getOrDefault("sellerName",
+                raw.getOrDefault("createdBy", "System"))));
+
+            log.debug("Fetched {} data for id={}: {} fields", referenceType, referenceId, mapped.size());
+            return mapped;
+        } catch (Exception e) {
+            log.warn("Failed to fetch {} data for {}: {}", referenceType, referenceId, e.getMessage());
+            return Map.of();
+        }
     }
 
     private String buildQrData(String documentType, String referenceType, UUID referenceId) {
