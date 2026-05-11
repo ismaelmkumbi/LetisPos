@@ -9,6 +9,9 @@ public record PaymentSummaryDto(
         long totalCount,
         BigDecimal totalIn, BigDecimal totalOut, BigDecimal netFlow,
         BigDecimal outstanding,
+        BigDecimal priorNetFlow,
+        BigDecimal netFlowChange,
+        BigDecimal netFlowChangePercent,
         List<DashboardDto.SeriesPoint> inflowSeries,
         List<ByMethod> byMethod
 ) {

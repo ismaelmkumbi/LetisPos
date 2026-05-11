@@ -12,6 +12,9 @@ public record CustomerSummaryDto(
         long newCustomers,
         BigDecimal totalRevenue,
         BigDecimal avgRevenuePerCustomer,
+        BigDecimal priorTotalRevenue,
+        BigDecimal revenueChange,
+        BigDecimal revenueChangePercent,
         List<TopCustomer> topCustomers,
         List<FrequencyBucket> frequencyDistribution
 ) {

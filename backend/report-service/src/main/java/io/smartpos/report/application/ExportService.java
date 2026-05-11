@@ -63,7 +63,9 @@ public class ExportService {
     // ---- report renderers ----
 
     private RenderedExport salesSeriesExport(ExportJob.Format fmt, LocalDate from, LocalDate to, UUID warehouseId) {
-        var summary = salesReports.summary(from, to, warehouseId, null);
+        LocalDate priorFrom = from.minusDays(to.toEpochDay() - from.toEpochDay() + 1);
+        LocalDate priorTo = from.minusDays(1);
+        var summary = salesReports.summary(from, to, priorFrom, priorTo, warehouseId, null);
         List<String> headers = List.of("Date", "Net", "Sale count");
         List<List<Object>> rows = new ArrayList<>();
         for (DashboardDto.SeriesPoint p : summary.series()) {
@@ -107,7 +109,9 @@ public class ExportService {
     }
 
     private RenderedExport purchaseExport(ExportJob.Format fmt, LocalDate from, LocalDate to, UUID warehouseId) {
-        PurchaseSummaryDto dto = purchaseReports.summary(from, to, warehouseId);
+        LocalDate priorFrom = from.minusDays(to.toEpochDay() - from.toEpochDay() + 1);
+        LocalDate priorTo = from.minusDays(1);
+        PurchaseSummaryDto dto = purchaseReports.summary(from, to, priorFrom, priorTo, warehouseId);
         List<String> headers = List.of("Metric", "Value");
         List<List<Object>> rows = new ArrayList<>();
         rows.add(List.of("Count", dto.count()));
@@ -119,7 +123,9 @@ public class ExportService {
     }
 
     private RenderedExport paymentExport(ExportJob.Format fmt, LocalDate from, LocalDate to) {
-        PaymentSummaryDto dto = paymentReports.summary(from, to);
+        LocalDate priorFrom = from.minusDays(to.toEpochDay() - from.toEpochDay() + 1);
+        LocalDate priorTo = from.minusDays(1);
+        PaymentSummaryDto dto = paymentReports.summary(from, to, priorFrom, priorTo);
         List<String> headers = List.of("Method", "Total", "Count");
         List<List<Object>> rows = new ArrayList<>();
         for (PaymentSummaryDto.ByMethod r : dto.byMethod()) {
@@ -129,7 +135,9 @@ public class ExportService {
     }
 
     private RenderedExport customerExport(ExportJob.Format fmt, LocalDate from, LocalDate to) {
-        CustomerSummaryDto dto = customerReports.summary(from, to);
+        LocalDate priorFrom = from.minusDays(to.toEpochDay() - from.toEpochDay() + 1);
+        LocalDate priorTo = from.minusDays(1);
+        CustomerSummaryDto dto = customerReports.summary(from, to, priorFrom, priorTo);
         List<String> headers = List.of("Customer ID", "Name", "Orders", "Total Spent");
         List<List<Object>> rows = new ArrayList<>();
         for (CustomerSummaryDto.TopCustomer r : dto.topCustomers()) {

@@ -10,6 +10,9 @@ public record PurchaseSummaryDto(
         long count,
         BigDecimal gross, BigDecimal paid, BigDecimal due,
         BigDecimal avgPurchase,
+        BigDecimal priorGross,
+        BigDecimal grossChange,
+        BigDecimal grossChangePercent,
         List<DashboardDto.SeriesPoint> series,
         List<TopSupplier> topSuppliers
 ) {

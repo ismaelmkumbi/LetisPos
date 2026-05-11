@@ -10,6 +10,7 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
@@ -24,7 +25,8 @@ public class PaymentReportService {
     @Cacheable(value = RedisCacheConfig.CACHE_PROFIT_LOSS,
                key = "T(io.smartpos.report.infrastructure.config.RedisCacheConfig).tenantKey(#from, #to, 'pay')",
                unless = "#result == null")
-    public PaymentSummaryDto summary(LocalDate from, LocalDate to) {
+    public PaymentSummaryDto summary(LocalDate from, LocalDate to,
+                                      LocalDate priorFrom, LocalDate priorTo) {
         PaymentFeign.PaymentStats stats = safeStats(from, to);
         List<PaymentFeign.ByMethodRow> methods = safeByMethod(from, to);
 
@@ -34,9 +36,18 @@ public class PaymentReportService {
                 .map(m -> new PaymentSummaryDto.ByMethod(m.method(), m.total(), m.count()))
                 .toList();
 
+        // Prior period
+        PaymentFeign.PaymentStats priorStats = safeStats(priorFrom, priorTo);
+        BigDecimal priorNetFlow = nz(priorStats.totalIn()).subtract(nz(priorStats.totalOut()));
+        BigDecimal netFlowChange = netFlow.subtract(priorNetFlow);
+        BigDecimal netFlowChangePercent = priorNetFlow.compareTo(BigDecimal.ZERO) == 0
+                ? BigDecimal.ZERO
+                : netFlowChange.divide(priorNetFlow, 4, RoundingMode.HALF_UP);
+
         return new PaymentSummaryDto(from, to, stats.count(),
                 nz(stats.totalIn()), nz(stats.totalOut()), netFlow,
                 BigDecimal.ZERO,
+                priorNetFlow, netFlowChange, netFlowChangePercent,
                 Collections.emptyList(),
                 byMethod);
     }

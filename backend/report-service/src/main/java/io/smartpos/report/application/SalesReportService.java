@@ -26,14 +26,25 @@ public class SalesReportService {
                key = "T(io.smartpos.report.infrastructure.config.RedisCacheConfig).tenantKey(#from, #to, #warehouseId, #customerId)",
                unless = "#result == null")
     public SalesSummaryDto summary(LocalDate from, LocalDate to,
+                                   LocalDate priorFrom, LocalDate priorTo,
                                    UUID warehouseId, UUID customerId) {
         SalesFeign.SaleStats s = sales.salesStats(from, to, warehouseId, customerId);
         List<SalesFeign.SalesSeriesPoint> series = sales.salesSeries(from, to, warehouseId);
         BigDecimal avg = s.count() == 0 ? BigDecimal.ZERO
                 : nz(s.net()).divide(BigDecimal.valueOf(s.count()), 4, RoundingMode.HALF_UP);
+
+        // Prior period — fetched separately so the primary call can still be cached
+        SalesFeign.SaleStats prior = sales.salesStats(priorFrom, priorTo, warehouseId, customerId);
+        BigDecimal priorNet = nz(prior.net());
+        BigDecimal netChange = nz(s.net()).subtract(priorNet);
+        BigDecimal netChangePercent = priorNet.compareTo(BigDecimal.ZERO) == 0
+                ? BigDecimal.ZERO
+                : netChange.divide(priorNet, 4, RoundingMode.HALF_UP);
+
         return new SalesSummaryDto(from, to, s.count(),
                 nz(s.gross()), nz(s.tax()), nz(s.discount()),
                 nz(s.net()), nz(s.paid()), nz(s.due()), avg,
+                priorNet, netChange, netChangePercent,
                 series.stream().map(p -> new DashboardDto.SeriesPoint(p.date(), nz(p.net()), p.count())).toList());
     }
 

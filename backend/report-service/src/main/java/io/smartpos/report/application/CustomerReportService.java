@@ -26,7 +26,8 @@ public class CustomerReportService {
     @Cacheable(value = RedisCacheConfig.CACHE_TOP_CUSTOMERS,
                key = "T(io.smartpos.report.infrastructure.config.RedisCacheConfig).tenantKey(#from, #to, 'custSummary')",
                unless = "#result == null")
-    public CustomerSummaryDto summary(LocalDate from, LocalDate to) {
+    public CustomerSummaryDto summary(LocalDate from, LocalDate to,
+                                       LocalDate priorFrom, LocalDate priorTo) {
         List<SalesFeign.TopCustomer> top = safeTopCustomers(from, to, 20);
         long totalCustomers = top.size();
         long activeCustomers = top.size();
@@ -44,8 +45,19 @@ public class CustomerReportService {
         List<CustomerSummaryDto.FrequencyBucket> freq = List.of(
                 new CustomerSummaryDto.FrequencyBucket("1 order", activeCustomers, BigDecimal.ONE));
 
+        // Prior period
+        List<SalesFeign.TopCustomer> priorTop = safeTopCustomers(priorFrom, priorTo, 20);
+        BigDecimal priorTotalRevenue = priorTop.stream()
+                .map(SalesFeign.TopCustomer::totalSpent)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal revenueChange = totalRevenue.subtract(priorTotalRevenue);
+        BigDecimal revenueChangePercent = priorTotalRevenue.compareTo(BigDecimal.ZERO) == 0
+                ? BigDecimal.ZERO
+                : revenueChange.divide(priorTotalRevenue, 4, RoundingMode.HALF_UP);
+
         return new CustomerSummaryDto(from, to, totalCustomers, activeCustomers, 0,
-                totalRevenue, avgRevenue, topCustomers, freq);
+                totalRevenue, avgRevenue, priorTotalRevenue, revenueChange, revenueChangePercent,
+                topCustomers, freq);
     }
 
     public RfmSegments rfm(LocalDate from, LocalDate to) {

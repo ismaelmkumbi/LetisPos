@@ -25,15 +25,26 @@ public class PurchaseReportService {
     @Cacheable(value = RedisCacheConfig.CACHE_PROFIT_LOSS,
                key = "T(io.smartpos.report.infrastructure.config.RedisCacheConfig).tenantKey(#from, #to, #warehouseId, 'purch')",
                unless = "#result == null")
-    public PurchaseSummaryDto summary(LocalDate from, LocalDate to, UUID warehouseId) {
+    public PurchaseSummaryDto summary(LocalDate from, LocalDate to,
+                                       LocalDate priorFrom, LocalDate priorTo,
+                                       UUID warehouseId) {
         SalesFeign.PurchaseStats p = safeStats(from, to, warehouseId);
         BigDecimal avg = p.count() == 0 ? BigDecimal.ZERO
                 : nz(p.gross()).divide(BigDecimal.valueOf(p.count()), 4, RoundingMode.HALF_UP);
 
         List<DashboardDto.SeriesPoint> series = Collections.emptyList();
 
+        // Prior period
+        SalesFeign.PurchaseStats prior = safeStats(priorFrom, priorTo, warehouseId);
+        BigDecimal priorGross = nz(prior.gross());
+        BigDecimal grossChange = nz(p.gross()).subtract(priorGross);
+        BigDecimal grossChangePercent = priorGross.compareTo(BigDecimal.ZERO) == 0
+                ? BigDecimal.ZERO
+                : grossChange.divide(priorGross, 4, RoundingMode.HALF_UP);
+
         return new PurchaseSummaryDto(from, to, p.count(),
                 nz(p.gross()), nz(p.paid()), nz(p.due()), avg,
+                priorGross, grossChange, grossChangePercent,
                 series, Collections.emptyList());
     }
 

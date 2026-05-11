@@ -10,5 +10,8 @@ public record SalesSummaryDto(
         BigDecimal gross, BigDecimal tax, BigDecimal discount,
         BigDecimal net, BigDecimal paid, BigDecimal due,
         BigDecimal avgSale,
+        BigDecimal priorNet,
+        BigDecimal netChange,
+        BigDecimal netChangePercent,
         List<DashboardDto.SeriesPoint> series
 ) {}

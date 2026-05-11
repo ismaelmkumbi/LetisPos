@@ -81,9 +81,15 @@ public class ReportController {
     @PreAuthorize("hasAuthority('report.sales')")
     public SalesSummaryDto salesSummary(@RequestParam(required = false) LocalDate dateFrom,
                                         @RequestParam(required = false) LocalDate dateTo,
+                                        @RequestParam(required = false) LocalDate priorFrom,
+                                        @RequestParam(required = false) LocalDate priorTo,
                                         @RequestParam(required = false) UUID warehouseId,
                                         @RequestParam(required = false) UUID customerId) {
-        return salesReports.summary(defaultFrom(dateFrom), defaultTo(dateTo), warehouseId, customerId);
+        LocalDate from = defaultFrom(dateFrom);
+        LocalDate to = defaultTo(dateTo);
+        if (priorFrom == null) priorFrom = from.minusDays(to.toEpochDay() - from.toEpochDay() + 1);
+        if (priorTo == null) priorTo = from.minusDays(1);
+        return salesReports.summary(from, to, priorFrom, priorTo, warehouseId, customerId);
     }
 
     @GetMapping("/sales/top-products")
@@ -170,8 +176,14 @@ public class ReportController {
     @PreAuthorize("hasAuthority('report.financial')")
     public PurchaseSummaryDto purchaseSummary(@RequestParam(required = false) LocalDate dateFrom,
                                                @RequestParam(required = false) LocalDate dateTo,
+                                               @RequestParam(required = false) LocalDate priorFrom,
+                                               @RequestParam(required = false) LocalDate priorTo,
                                                @RequestParam(required = false) UUID warehouseId) {
-        return purchaseReports.summary(defaultFrom(dateFrom), defaultTo(dateTo), warehouseId);
+        LocalDate from = defaultFrom(dateFrom);
+        LocalDate to = defaultTo(dateTo);
+        if (priorFrom == null) priorFrom = from.minusDays(to.toEpochDay() - from.toEpochDay() + 1);
+        if (priorTo == null) priorTo = from.minusDays(1);
+        return purchaseReports.summary(from, to, priorFrom, priorTo, warehouseId);
     }
 
     // ---- Payment report ----
@@ -179,8 +191,14 @@ public class ReportController {
     @GetMapping("/payments/summary")
     @PreAuthorize("hasAuthority('report.financial')")
     public PaymentSummaryDto paymentSummary(@RequestParam(required = false) LocalDate dateFrom,
-                                             @RequestParam(required = false) LocalDate dateTo) {
-        return paymentReports.summary(defaultFrom(dateFrom), defaultTo(dateTo));
+                                             @RequestParam(required = false) LocalDate dateTo,
+                                             @RequestParam(required = false) LocalDate priorFrom,
+                                             @RequestParam(required = false) LocalDate priorTo) {
+        LocalDate from = defaultFrom(dateFrom);
+        LocalDate to = defaultTo(dateTo);
+        if (priorFrom == null) priorFrom = from.minusDays(to.toEpochDay() - from.toEpochDay() + 1);
+        if (priorTo == null) priorTo = from.minusDays(1);
+        return paymentReports.summary(from, to, priorFrom, priorTo);
     }
 
     @GetMapping("/payments/by-method")
@@ -195,8 +213,14 @@ public class ReportController {
     @GetMapping("/customers/summary")
     @PreAuthorize("hasAuthority('report.sales')")
     public CustomerSummaryDto customerSummary(@RequestParam(required = false) LocalDate dateFrom,
-                                               @RequestParam(required = false) LocalDate dateTo) {
-        return customerReports.summary(defaultFrom(dateFrom), defaultTo(dateTo));
+                                               @RequestParam(required = false) LocalDate dateTo,
+                                               @RequestParam(required = false) LocalDate priorFrom,
+                                               @RequestParam(required = false) LocalDate priorTo) {
+        LocalDate from = defaultFrom(dateFrom);
+        LocalDate to = defaultTo(dateTo);
+        if (priorFrom == null) priorFrom = from.minusDays(to.toEpochDay() - from.toEpochDay() + 1);
+        if (priorTo == null) priorTo = from.minusDays(1);
+        return customerReports.summary(from, to, priorFrom, priorTo);
     }
 
     // ---- Sales: hourly breakdown ----
