@@ -18,7 +18,8 @@ export default function CameraPage() {
   const { sessionId } = useParams<{ sessionId: string }>();
   const [searchParams] = useSearchParams();
 
-  // Seed the auth token from the QR-code URL so the phone can authenticate API calls
+  // Optional legacy support: newer capture uploads are public but scoped by the
+  // random session id, so QR links no longer need to carry the POS user's token.
   const urlToken = searchParams.get('token');
   if (urlToken) tokenStore.set(urlToken);
 
@@ -103,6 +104,21 @@ export default function CameraPage() {
     return new Blob([bytes], { type: mime });
   };
 
+  const uploadErrorMessage = (err: unknown, photoNumber: number): string => {
+    if (err && typeof err === 'object' && 'response' in err) {
+      const res = (err as { response?: { status?: number; data?: { error?: string; detail?: string; message?: string } } }).response;
+      const detail = res?.data?.error || res?.data?.detail || res?.data?.message;
+      if (detail) return detail;
+      if (res?.status === 401 || res?.status === 403) {
+        return 'This capture link is not allowed to upload. Refresh the QR code on the POS and scan again.';
+      }
+      if (res?.status === 410) {
+        return 'This capture session expired. Refresh the QR code on the POS and scan again.';
+      }
+    }
+    return `Failed to upload photo ${photoNumber}. Check your connection and try again.`;
+  };
+
   const handleDone = async () => {
     if (captures.length === 0 || !sessionId) return;
     setUploading(true);
@@ -114,12 +130,10 @@ export default function CameraPage() {
         const blob = dataUrlToBlob(captures[i]);
         const form = new FormData();
         form.append('photo', blob, `photo-${i}.jpg`);
-        await api.post(`/api/v1/ai/capture-sessions/${sessionId}/photos`, form, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        });
+        await api.post(`/api/v1/ai/capture-sessions/${sessionId}/photos`, form);
         setUploaded((prev) => prev + 1);
-      } catch {
-        setError(`Failed to upload photo ${i + 1}.`);
+      } catch (err) {
+        setError(uploadErrorMessage(err, i + 1));
         setUploading(false);
         return;
       }
