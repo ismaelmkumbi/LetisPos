@@ -10,6 +10,7 @@ import io.smartpos.documents.domain.model.DocumentVersion;
 import io.smartpos.documents.domain.repository.BulkJobRepository;
 import io.smartpos.documents.domain.repository.DocumentRepository;
 import io.smartpos.documents.domain.repository.DocumentVersionRepository;
+import io.smartpos.documents.infrastructure.feign.AiServiceClient;
 import io.smartpos.common.context.TenantContext;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.validation.Valid;
@@ -40,6 +41,7 @@ public class DocumentController {
     private final DocumentVersionRepository versionRepo;
     private final BulkGenerationService bulkService;
     private final BulkJobRepository bulkJobRepo;
+    private final AiServiceClient aiClient;
 
     @PostMapping("/generate")
     @PreAuthorize("isAuthenticated()")
@@ -210,5 +212,56 @@ public class DocumentController {
                 .contentType(MediaType.APPLICATION_OCTET_STREAM)
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"documents.zip\"")
                 .body(baos.toByteArray());
+    }
+
+    @PostMapping("/{id}/summarize")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Map<String, String>> summarize(@PathVariable UUID id) throws Exception {
+        Document doc = documentRepo.findByIdAndTenantId(id, TenantContext.require())
+            .orElseThrow(() -> new IllegalArgumentException("Document not found: " + id));
+        Map<String, Object> req = Map.of(
+            "facts", Map.of(
+                "documentType", doc.getDocumentType(),
+                "documentNumber", doc.getDocumentNumber(),
+                "referenceType", doc.getReferenceType()
+            ),
+            "instruction", "Summarize this document in 2-3 sentences for a business audience."
+        );
+        Map<String, Object> result = aiClient.narrate(req);
+        String summary = (String) result.getOrDefault("narrative", "");
+        doc.setSummary(summary);
+        documentRepo.save(doc);
+        return ResponseEntity.ok(Map.of("summary", summary));
+    }
+
+    @PostMapping("/field-map")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Map<String, Object>> fieldMap(@RequestBody Map<String, Object> body) throws Exception {
+        @SuppressWarnings("unchecked")
+        List<String> headers = (List<String>) body.get("headers");
+        String documentType = (String) body.getOrDefault("documentType", "generic");
+        Map<String, Object> req = Map.of(
+            "prompt", "Map these CSV headers to document template fields for a " + documentType
+                + ". Headers: " + String.join(", ", headers)
+                + ". Return JSON: {\"mappings\": {\"templateField\": \"headerName\", ...}, \"confidence\": 0.0-1.0}",
+            "responseFormat", "json"
+        );
+        return ResponseEntity.ok(aiClient.chat(req));
+    }
+
+    @PostMapping("/{id}/anomalies")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Map<String, Object>> anomalies(@PathVariable UUID id) throws Exception {
+        Document doc = documentRepo.findByIdAndTenantId(id, TenantContext.require())
+            .orElseThrow(() -> new IllegalArgumentException("Document not found: " + id));
+        Map<String, Object> req = Map.of(
+            "data", Map.of(
+                "documentNumber", doc.getDocumentNumber(),
+                "documentType", doc.getDocumentType(),
+                "status", doc.getStatus(),
+                "createdAt", doc.getCreatedAt().toString()
+            )
+        );
+        return ResponseEntity.ok(aiClient.detectAnomalies(req));
     }
 }

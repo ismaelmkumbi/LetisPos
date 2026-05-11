@@ -33,6 +33,8 @@ spring:
       url: ${PAYMENT_URI:http://localhost:8086}
     notification-service:
       url: ${NOTIFICATION_URI:http://localhost:8089}
+    ai-service:
+      url: ${AI_SERVICE_URI:http://localhost:8091}
 
 smartpos:
   documents:

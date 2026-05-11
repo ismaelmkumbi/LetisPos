@@ -7,6 +7,7 @@ import io.smartpos.documents.domain.model.TemplateOverride;
 import io.smartpos.documents.domain.model.TemplateVersion;
 import io.smartpos.documents.domain.repository.TemplateOverrideRepository;
 import io.smartpos.documents.domain.repository.TemplateVersionRepository;
+import io.smartpos.documents.infrastructure.feign.AiServiceClient;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.*;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -24,6 +25,7 @@ public class TemplateController {
     private final TemplateService templateService;
     private final TemplateOverrideRepository templateOverrideRepo;
     private final TemplateVersionRepository templateVersionRepo;
+    private final AiServiceClient aiClient;
 
     @GetMapping
     @PreAuthorize("isAuthenticated()")
@@ -103,5 +105,21 @@ public class TemplateController {
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_PDF)
                 .body(pdf);
+    }
+
+    @PostMapping("/{documentType}/assist")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Map<String, Object>> assist(
+            @PathVariable String documentType,
+            @RequestBody Map<String, String> body) throws Exception {
+        String prompt = body.get("prompt");
+        String currentConfig = body.getOrDefault("currentConfig", "{}");
+        Map<String, Object> req = Map.of(
+            "prompt", "You are a document template designer. The current template config is: "
+                + currentConfig + ". User request: " + prompt
+                + ". Return ONLY the updated JSON block config. Keep the same structure with blocks array.",
+            "responseFormat", "json"
+        );
+        return ResponseEntity.ok(aiClient.chat(req));
     }
 }

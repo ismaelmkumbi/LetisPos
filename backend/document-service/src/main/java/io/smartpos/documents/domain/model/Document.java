@@ -51,6 +51,9 @@ public class Document {
     @Column(name = "created_by")
     private UUID createdBy;
 
+    @Column(length = 500)
+    private String summary;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     @Builder.Default
     private Instant createdAt = Instant.now();
