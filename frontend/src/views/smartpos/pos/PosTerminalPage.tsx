@@ -27,7 +27,7 @@ import { listProducts, getProduct, getProductByBarcode, type Product, type Produ
 import { listCustomers, createCustomer } from 'src/api/smartpos/customers';
 import type { Customer } from 'src/api/smartpos/types';
 import { listWarehouses, lowStockAlerts, batchStockLevels, type StockLevel, type Warehouse } from 'src/api/smartpos/inventory';
-import { posCheckout, getTopProducts, type CreateSaleBody, type Sale } from 'src/api/smartpos/sales';
+import { posCheckout, getTopProducts, suspendCart, type CreateSaleBody, type Sale } from 'src/api/smartpos/sales';
 import {
   listTerminals,
   publishDisplayEvent,
@@ -170,6 +170,18 @@ export default function PosTerminalPage() {
       .catch(() => {})
       .finally(() => setProductsLoading(false));
   }, []);
+
+  // Resume cart from suspended sale
+  useEffect(() => {
+    const resumeJson = localStorage.getItem('smartpos.pos.resumeCart');
+    if (resumeJson) {
+      try {
+        const cartLines = JSON.parse(resumeJson);
+        setLines(cartLines);
+        localStorage.removeItem('smartpos.pos.resumeCart');
+      } catch { /* ignore malformed data */ }
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (linkedTerminalId) localStorage.setItem(LINKED_TERMINAL_KEY, linkedTerminalId);
@@ -360,6 +372,30 @@ export default function PosTerminalPage() {
       }
     })();
     persistHolds(prev.filter((h) => h.id !== id));
+  };
+
+  const handleSuspend = async () => {
+    if (lines.length === 0) return;
+    try {
+      await suspendCart({
+        tenantId: user!.tenantId,
+        terminalId: localStorage.getItem(LINKED_TERMINAL_KEY)?.slice(0, 36) || undefined,
+        customerId: customerId || undefined,
+        warehouseId,
+        lines: JSON.stringify(lines),
+        discountType: discountType || undefined,
+        discountValue: discount || undefined,
+        taxMethod: posSettings?.defaultTaxMethod || undefined,
+        grandTotal: totals.grand,
+        totalItems: lines.reduce((sum: number, l: any) => sum + (l.qty || 0), 0),
+      });
+      setLines([]);
+      setCustomerId(null);
+      setBanner({ kind: 'success', text: 'Cart suspended. You can resume it later from the POS terminal.' });
+    } catch (e: unknown) {
+      const { message } = parseApiError(e);
+      setBanner({ kind: 'error', text: message });
+    }
   };
 
   const inc = (i: number) =>
@@ -602,6 +638,7 @@ export default function PosTerminalPage() {
     queueSize,
 
     onHoldCart: holdCart,
+    onSuspendCart: handleSuspend,
     onOpenHeldCarts: () => setDraftsOpen(true),
 
     onNotify: (text: string) => setBanner({ kind: 'success', text }),

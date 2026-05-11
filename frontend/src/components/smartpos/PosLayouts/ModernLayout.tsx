@@ -398,6 +398,7 @@ export default function ModernLayout(props: PosLayoutProps) {
           queueSize={props.queueSize}
           onClear={props.onClearCart}
           onHoldCart={props.onHoldCart}
+          onSuspendCart={props.onSuspendCart}
           onOpenHeldCarts={props.onOpenHeldCarts}
           canCheckout={props.canCheckout}
           submitting={props.submitting}
@@ -3148,6 +3149,7 @@ interface FooterBarProps {
   queueSize: number;
   onClear: () => void;
   onHoldCart?: () => void;
+  onSuspendCart?: () => void;
   onOpenHeldCarts?: () => void;
 
   canCheckout: boolean;
@@ -3254,6 +3256,12 @@ function FooterBar(p: FooterBarProps) {
           icon={<IconShoppingCart size={14} />}
           label="Hold"
           onClick={p.onHoldCart}
+          isDark={isDark}
+        />
+        <FooterAction
+          icon={<IconClock size={14} />}
+          label="Suspend"
+          onClick={p.onSuspendCart}
           isDark={isDark}
         />
         <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center' }}>

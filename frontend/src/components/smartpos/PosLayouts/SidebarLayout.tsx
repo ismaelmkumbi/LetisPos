@@ -32,6 +32,7 @@ import {
   IconMinus,
   IconPlus,
   IconSearch,
+  IconClock,
   IconShoppingCart,
   IconX,
 } from '@tabler/icons-react';
@@ -157,6 +158,18 @@ export default function SidebarLayout(props: PosLayoutProps) {
           <Stack spacing={0.5} sx={{ mb: 1 }}>
             <TotalRow label="Subtotal" value={fmt(totals.subtotal)} size="small" />
             <TotalRow label="Total" value={fmt(totals.grand)} valueWeight={900} size="small" />
+          </Stack>
+          <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
+            <Button
+              fullWidth
+              variant="outlined"
+              disabled={props.lines.length === 0}
+              onClick={props.onSuspendCart}
+              startIcon={<IconClock size={14} />}
+              sx={{ textTransform: 'none', fontWeight: 600, borderRadius: '8px', py: 0.75, fontSize: '0.8rem' }}
+            >
+              Suspend
+            </Button>
           </Stack>
           <Button
             fullWidth

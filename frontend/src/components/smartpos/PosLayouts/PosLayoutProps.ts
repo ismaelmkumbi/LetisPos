@@ -102,6 +102,7 @@ export interface PosLayoutProps {
 
   // ── Drafts / holds ──
   onHoldCart?: () => void;
+  onSuspendCart?: () => void;
   onOpenHeldCarts?: () => void;
   onTodaySales?: () => void;
   onNotify?: (message: string) => void;

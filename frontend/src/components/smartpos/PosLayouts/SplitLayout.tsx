@@ -90,8 +90,12 @@ export default function SplitLayout(props: PosLayoutProps) {
         </Stack>
         <Stack direction="row" spacing={0.5}>
           {props.lines.length > 0 && (
-            <Button size="small" onClick={props.onClearCart}
-              sx={{ textTransform: 'none', fontSize: '0.75rem', fontWeight: 600, color: brand.error.main }}>Clear</Button>
+            <>
+              <Button size="small" onClick={props.onClearCart}
+                sx={{ textTransform: 'none', fontSize: '0.75rem', fontWeight: 600, color: brand.error.main }}>Clear</Button>
+              <Button size="small" onClick={props.onSuspendCart}
+                sx={{ textTransform: 'none', fontSize: '0.75rem', fontWeight: 600, color: brand.primary[600] }}>Suspend</Button>
+            </>
           )}
           {isMobile && <IconButton onClick={() => setCartOpen(false)} size="small"><IconX size={18} /></IconButton>}
         </Stack>

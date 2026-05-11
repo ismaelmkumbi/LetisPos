@@ -35,6 +35,7 @@ import {
   IconMinus,
   IconPlus,
   IconSearch,
+  IconClock,
   IconShoppingCart,
   IconX,
 } from '@tabler/icons-react';
@@ -303,6 +304,17 @@ export default function ModalLayout(props: PosLayoutProps) {
               </Box>
             </Stack>
 
+            <Button
+              fullWidth
+              variant="outlined"
+              size="small"
+              disabled={props.lines.length === 0}
+              onClick={() => { props.onSuspendCart?.(); }}
+              startIcon={<IconClock size={14} />}
+              sx={{ mb: 1, textTransform: 'none', fontWeight: 600, borderRadius: '10px', py: 0.75 }}
+            >
+              Suspend
+            </Button>
             <Button
               fullWidth
               variant="contained"
