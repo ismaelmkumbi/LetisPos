@@ -16,6 +16,7 @@ import {
   type ComboItemInput, type Product,
 } from 'src/api/smartpos/products';
 import type { UUID } from 'src/api/smartpos/types';
+import { formatMoney } from 'src/utils/smartpos/currency';
 import { brand } from 'src/theme/smartpos/brand';
 
 interface Row extends ComboItemInput {
@@ -171,6 +172,42 @@ export default function ComboItemsEditor({ productId }: ComboItemsEditorProps) {
           Save composition
         </Button>
       </Stack>
+
+      {rows.length > 0 && (
+        <Box
+          sx={{
+            mt: 1.5,
+            p: 1.5,
+            borderRadius: '10px',
+            bgcolor: brand.neutral[50],
+            border: `1px solid ${brand.neutral[200]}`,
+          }}
+        >
+          <Stack direction="row" justifyContent="space-between" flexWrap="wrap" useFlexGap>
+            <Box>
+              <Typography sx={{ fontSize: 11, color: brand.neutral[500], fontWeight: 600 }}>
+                Total Component Cost
+              </Typography>
+              <Typography sx={{ fontWeight: 900, fontSize: 20, color: brand.neutral[800] }}>
+                {formatMoney(
+                  rows.reduce(
+                    (sum, r) => sum + (r.unitCost ?? 0) * (r.qty ?? 0),
+                    0,
+                  ),
+                )}
+              </Typography>
+            </Box>
+            <Box>
+              <Typography sx={{ fontSize: 11, color: brand.neutral[500], fontWeight: 600 }}>
+                Components
+              </Typography>
+              <Typography sx={{ fontWeight: 900, fontSize: 20, color: brand.neutral[800] }}>
+                {rows.length}
+              </Typography>
+            </Box>
+          </Stack>
+        </Box>
+      )}
     </Stack>
   );
 }
