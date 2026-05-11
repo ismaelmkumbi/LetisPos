@@ -72,7 +72,8 @@ public class LoginUseCase {
         String accessToken = jwtTokenService.issueAccessToken(
                 user.getId(), user.getEmail(), claims.tenantId(),
                 claims.tenantStatus(), claims.billingPlan(),
-                claims.roles(), claims.permissions());
+                claims.roles(), claims.permissions(),
+                claims.maxUsers(), claims.maxStores());
 
         String refreshTokenRaw = generateOpaqueToken();
         RefreshToken rt = RefreshToken.builder()
@@ -124,7 +125,8 @@ public class LoginUseCase {
         String accessToken = jwtTokenService.issueAccessToken(
                 user.getId(), user.getEmail(), claims.tenantId(),
                 claims.tenantStatus(), claims.billingPlan(),
-                claims.roles(), claims.permissions());
+                claims.roles(), claims.permissions(),
+                claims.maxUsers(), claims.maxStores());
 
         return new AuthResponse(
                 accessToken,
@@ -145,7 +147,9 @@ public class LoginUseCase {
             String tenantStatus,
             String billingPlan,
             List<String> roles,
-            List<String> permissions
+            List<String> permissions,
+            int maxUsers,
+            int maxStores
     ) {}
 
     /**
@@ -164,21 +168,24 @@ public class LoginUseCase {
      * fall back to auth-service's own tenantId.
      */
     private HydratedClaims hydrateClaims(User user) {
-        // Resolve tenant status and billing plan from auth-service's own tenant table
+        // Resolve tenant-level claims from auth-service's own tenant table
         String tenantStatus = null;
         String billingPlan = null;
+        int maxUsers = 1;
+        int maxStores = 1;
         if (user.getTenantId() != null) {
-            tenantStatus = tenantRepository.findById(user.getTenantId())
-                    .map(t -> t.getStatus().name())
-                    .orElse(null);
-            billingPlan = tenantRepository.findById(user.getTenantId())
-                    .map(t -> t.getBillingPlan().name())
-                    .orElse(null);
+            Tenant tenant = tenantRepository.findById(user.getTenantId()).orElse(null);
+            if (tenant != null) {
+                tenantStatus = tenant.getStatus().name();
+                billingPlan = tenant.getBillingPlan().name();
+                maxUsers = tenant.getMaxUsers();
+                maxStores = tenant.getMaxStores();
+            }
         }
 
         if (userServiceClient == null) {
             return new HydratedClaims(user.getTenantId(), tenantStatus, billingPlan,
-                    List.of(), List.of());
+                    List.of(), List.of(), maxUsers, maxStores);
         }
         try {
             UserServiceClient.AuthClaims fetched = userServiceClient.authClaims(user.getId());
@@ -187,13 +194,15 @@ public class LoginUseCase {
                     tenantStatus,
                     billingPlan,
                     fetched.roles() != null ? fetched.roles() : List.of(),
-                    fetched.permissions() != null ? fetched.permissions() : List.of()
+                    fetched.permissions() != null ? fetched.permissions() : List.of(),
+                    maxUsers,
+                    maxStores
             );
         } catch (Exception e) {
             log.warn("Could not hydrate JWT claims from user-service for {}: {}",
                     user.getId(), e.getMessage());
             return new HydratedClaims(user.getTenantId(), tenantStatus, billingPlan,
-                    List.of(), List.of());
+                    List.of(), List.of(), maxUsers, maxStores);
         }
     }
 

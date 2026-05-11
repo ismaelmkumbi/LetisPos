@@ -38,7 +38,8 @@ public class JwtTokenService {
 
     public String issueAccessToken(UUID userId, String email, UUID tenantId,
                                    String tenantStatus, String billingPlan,
-                                   List<String> roles, List<String> permissions) {
+                                   List<String> roles, List<String> permissions,
+                                   int maxUsers, int maxStores) {
         Instant now = Instant.now();
         Instant exp = now.plus(Duration.ofMinutes(props.accessTokenTtlMinutes()));
         Map<String, Object> claims = new HashMap<>();
@@ -48,6 +49,8 @@ public class JwtTokenService {
         if (billingPlan != null) claims.put("billingPlan", billingPlan);
         if (roles != null) claims.put("roles", roles);
         if (permissions != null) claims.put("permissions", permissions);
+        claims.put("tenantMaxUsers", maxUsers);
+        claims.put("tenantMaxStores", maxStores);
 
         return Jwts.builder()
                 .header().keyId(props.keyId()).and()
