@@ -1,0 +1,102 @@
+<h2>Design — Section 1: Architecture</h2>
+<p class="subtitle">Where each feature lives and how components connect</p>
+
+<div class="section">
+  <h3>Backend (sales-service)</h3>
+  <p>All 4 features live in <code>backend/sales-service</code>, following the existing DDD-lite layering: <strong>Controller → Service → Repository → Entity</strong>.</p>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px">
+
+<div class="mockup" style="border-left:4px solid #2563eb">
+  <div class="mockup-header">Suspended Sales — NEW</div>
+  <div class="mockup-body" style="font-size:0.8125rem;line-height:1.7">
+    <code style="background:#e5e7eb;padding:1px 6px;border-radius:4px">api/SuspendedSaleController.java</code><br>
+    <code style="background:#e5e7eb;padding:1px 6px;border-radius:4px">application/SuspendedSaleService.java</code><br>
+    <code style="background:#e5e7eb;padding:1px 6px;border-radius:4px">domain/model/SuspendedSale.java</code><br>
+    <code style="background:#e5e7eb;padding:1px 6px;border-radius:4px">domain/repository/SuspendedSaleRepository.java</code><br>
+    <code style="background:#e5e7eb;padding:1px 6px;border-radius:4px">api/dto/SuspendedSaleDto.java</code><br>
+    <br>
+    <strong>Entity fields:</strong> id, tenantId, terminalId, userId, lines (JSON), customerId, warehouseId, discountType, discountValue, taxMethod, notes, createdAt, expiresAt
+  </div>
+</div>
+
+<div class="mockup" style="border-left:4px solid #9333ea">
+  <div class="mockup-header">Goods Received — EXTEND Purchase</div>
+  <div class="mockup-body" style="font-size:0.8125rem;line-height:1.7">
+    <span style="background:#fef3c7;padding:2px 6px;border-radius:4px;font-weight:600">Existing:</span> PurchaseController, PurchaseService, Purchase entity<br><br>
+    <strong>Add receiving-focused endpoints:</strong><br>
+    <code style="background:#e5e7eb;padding:1px 6px;border-radius:4px">GET /purchases/receiving — list received items</code><br>
+    <code style="background:#e5e7eb;padding:1px 6px;border-radius:4px">POST /purchases/{id}/receive-line — partial receive</code><br><br>
+    <strong>Add to PurchaseLine:</strong> receivedQty, receivedAt
+  </div>
+</div>
+
+<div class="mockup" style="border-left:4px solid #dc2626">
+  <div class="mockup-header">Supplier Returns — EXTEND PurchaseReturn</div>
+  <div class="mockup-body" style="font-size:0.8125rem;line-height:1.7">
+    <span style="background:#fef3c7;padding:2px 6px;border-radius:4px;font-weight:600">Existing:</span> PurchaseReturnController, PurchaseReturnService, PurchaseReturn entity<br><br>
+    <strong>Add list/search endpoints:</strong><br>
+    <code style="background:#e5e7eb;padding:1px 6px;border-radius:4px">GET /purchase-returns — paginated list</code><br>
+    <code style="background:#e5e7eb;padding:1px 6px;border-radius:4px">GET /purchase-returns/search — search</code><br>
+    <code style="background:#e5e7eb;padding:1px 6px;border-radius:4px">POST /purchase-returns/{id}/complete</code>
+  </div>
+</div>
+
+<div class="mockup" style="border-left:4px solid #059669">
+  <div class="mockup-header">Supplier Payments — NEW in payment-service</div>
+  <div class="mockup-body" style="font-size:0.8125rem;line-height:1.7">
+    <code style="background:#e5e7eb;padding:1px 6px;border-radius:4px">api/SupplierPaymentController.java</code><br>
+    <code style="background:#e5e7eb;padding:1px 6px;border-radius:4px">application/SupplierPaymentService.java</code><br>
+    <code style="background:#e5e7eb;padding:1px 6px;border-radius:4px">api/dto/SupplierPaymentDto.java</code><br><br>
+    <strong>Endpoint:</strong><br>
+    <code style="background:#e5e7eb;padding:1px 6px;border-radius:4px">GET /api/v1/payments/supplier — list supplier payments</code><br>
+    <code style="background:#e5e7eb;padding:1px 6px;border-radius:4px">GET /api/v1/payments/supplier/{supplierId}/ledger</code>
+  </div>
+</div>
+
+</div>
+
+<div class="section" style="margin-top:24px">
+  <h3>Frontend (all in views/smartpos/)</h3>
+  <table style="width:100%;font-size:0.8125rem;border-collapse:collapse">
+    <tr style="border-bottom:1px solid #e5e7eb">
+      <th style="text-align:left;padding:8px">Feature</th>
+      <th style="text-align:left;padding:8px">Page</th>
+      <th style="text-align:left;padding:8px">Shared Components</th>
+    </tr>
+    <tr style="border-bottom:1px solid #e5e7eb">
+      <td style="padding:8px">Suspended Sales</td>
+      <td style="padding:8px"><code>sales/SuspendedSalesPage.tsx</code></td>
+      <td style="padding:8px">DataTable, PageHeader, FilterBar, BulkActionBar</td>
+    </tr>
+    <tr style="border-bottom:1px solid #e5e7eb">
+      <td style="padding:8px">Goods Received</td>
+      <td style="padding:8px"><code>purchases/GoodsReceivedPage.tsx</code></td>
+      <td style="padding:8px">DataTable, PageHeader, FilterBar</td>
+    </tr>
+    <tr style="border-bottom:1px solid #e5e7eb">
+      <td style="padding:8px">Supplier Returns</td>
+      <td style="padding:8px"><code>purchases/SupplierReturnsPage.tsx</code></td>
+      <td style="padding:8px">DataTable, PageHeader, FilterBar, BulkActionBar</td>
+    </tr>
+    <tr>
+      <td style="padding:8px">Supplier Payments</td>
+      <td style="padding:8px"><code>money/SupplierPaymentsPage.tsx</code></td>
+      <td style="padding:8px">DataTable, PageHeader, FilterBar</td>
+    </tr>
+  </table>
+</div>
+
+<div class="section" style="margin-top:16px">
+  <h3>Menu Integration</h3>
+  <p>Replace "soon" chips with real routes in <code>SmartPosMenuItems.ts</code> and add routes to <code>Router.tsx</code>.</p>
+  <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:12px;margin-top:8px">
+    <strong>Operate:</strong> Suspended Sales → <code>/smartpos/sales/suspended</code><br>
+    <strong>Purchases:</strong> Goods Received → <code>/smartpos/purchases/received</code><br>
+    <strong>Purchases:</strong> Supplier Returns → <code>/smartpos/purchases/returns</code><br>
+    <strong>Finance:</strong> Supplier Payments → <code>/smartpos/supplier-payments</code>
+  </div>
+</div>
+
+<p style="margin-top:24px;color:#6b7280">Does this architecture look right so far? Any concerns about where things are placed?</p>

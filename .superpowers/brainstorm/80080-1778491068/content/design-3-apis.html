@@ -1,0 +1,136 @@
+<h2>Design — Section 3: API Endpoints</h2>
+<p class="subtitle">REST endpoints following existing patterns in the codebase</p>
+
+<div class="section">
+  <h3>1. Suspended Sales — <code>/api/v1/suspended-sales</code></h3>
+</div>
+
+<div class="mockup" style="border-left:4px solid #2563eb;margin-bottom:16px">
+  <div class="mockup-header">SuspendedSaleController (sales-service)</div>
+  <div class="mockup-body">
+    <table style="width:100%;font-size:0.75rem;border-collapse:collapse">
+      <tr style="border-bottom:1px solid #e5e7eb;background:#f9fafb">
+        <th style="text-align:left;padding:6px 8px">Method</th><th style="text-align:left;padding:6px 8px">Path</th><th style="text-align:left;padding:6px 8px">Auth</th><th style="text-align:left;padding:6px 8px">Description</th>
+      </tr>
+      <tr style="border-bottom:1px solid #e5e7eb">
+        <td style="padding:6px 8px;font-weight:600;color:#059669">POST</td>
+        <td style="padding:6px 8px"><code>/</code></td>
+        <td style="padding:6px 8px">pos.checkout</td>
+        <td style="padding:6px 8px">Suspend current cart. Body: lines[], customerId?, warehouseId?, discount*, taxMethod, notes?</td>
+      </tr>
+      <tr style="border-bottom:1px solid #e5e7eb">
+        <td style="padding:6px 8px;font-weight:600;color:#2563eb">GET</td>
+        <td style="padding:6px 8px"><code>/?page&size&sort&search</code></td>
+        <td style="padding:6px 8px">sales.view</td>
+        <td style="padding:6px 8px">Paginated list with search on ref, terminal, user, customer</td>
+      </tr>
+      <tr style="border-bottom:1px solid #e5e7eb">
+        <td style="padding:6px 8px;font-weight:600;color:#2563eb">GET</td>
+        <td style="padding:6px 8px"><code>/{id}</code></td>
+        <td style="padding:6px 8px">sales.view</td>
+        <td style="padding:6px 8px">Single suspended sale detail with full lines</td>
+      </tr>
+      <tr style="border-bottom:1px solid #e5e7eb">
+        <td style="padding:6px 8px;font-weight:600;color:#d97706">POST</td>
+        <td style="padding:6px 8px"><code>/{id}/resume</code></td>
+        <td style="padding:6px 8px">pos.checkout</td>
+        <td style="padding:6px 8px">Resume into POS cart. Returns full cart payload. Sets status=RESUMED.</td>
+      </tr>
+      <tr style="border-bottom:1px solid #e5e7eb">
+        <td style="padding:6px 8px;font-weight:600;color:#dc2626">DELETE</td>
+        <td style="padding:6px 8px"><code>/{id}</code></td>
+        <td style="padding:6px 8px">sales.manage</td>
+        <td style="padding:6px 8px">Discard a suspended sale (single)</td>
+      </tr>
+      <tr>
+        <td style="padding:6px 8px;font-weight:600;color:#dc2626">DELETE</td>
+        <td style="padding:6px 8px"><code>/expired</code></td>
+        <td style="padding:6px 8px">sales.manage</td>
+        <td style="padding:6px 8px">Purge all expired holds (called by scheduler or admin)</td>
+      </tr>
+    </table>
+  </div>
+</div>
+
+<div class="section" style="margin-top:20px">
+  <h3>2. Goods Received — <code>/api/v1/purchases</code> (extend)</h3>
+</div>
+
+<div class="mockup" style="border-left:4px solid #9333ea;margin-bottom:16px">
+  <div class="mockup-header">New endpoints on PurchaseController</div>
+  <div class="mockup-body">
+    <table style="width:100%;font-size:0.75rem;border-collapse:collapse">
+      <tr style="border-bottom:1px solid #e5e7eb;background:#f9fafb">
+        <th style="text-align:left;padding:6px 8px">Method</th><th style="text-align:left;padding:6px 8px">Path</th><th style="text-align:left;padding:6px 8px">Auth</th><th style="text-align:left;padding:6px 8px">Description</th>
+      </tr>
+      <tr style="border-bottom:1px solid #e5e7eb">
+        <td style="padding:6px 8px;font-weight:600;color:#2563eb">GET</td>
+        <td style="padding:6px 8px"><code>/receiving?page&size&supplierId&from&to</code></td>
+        <td style="padding:6px 8px">purchase.view</td>
+        <td style="padding:6px 8px">List received/partially-received purchases with receivedQty per line</td>
+      </tr>
+      <tr>
+        <td style="padding:6px 8px;font-weight:600;color:#059669">POST</td>
+        <td style="padding:6px 8px"><code>/{id}/receive-line</code></td>
+        <td style="padding:6px 8px">purchase.manage</td>
+        <td style="padding:6px 8px">Record received quantity for a line. Body: {lineId, receivedQty}. Auto-sets status=RECEIVED when all lines fulfilled.</td>
+      </tr>
+    </table>
+  </div>
+</div>
+
+<div class="section" style="margin-top:20px">
+  <h3>3. Supplier Returns — <code>/api/v1/purchase-returns</code> (extend)</h3>
+</div>
+
+<div class="mockup" style="border-left:4px solid #dc2626;margin-bottom:16px">
+  <div class="mockup-header">New endpoints on PurchaseReturnController</div>
+  <div class="mockup-body">
+    <table style="width:100%;font-size:0.75rem;border-collapse:collapse">
+      <tr style="border-bottom:1px solid #e5e7eb;background:#f9fafb">
+        <th style="text-align:left;padding:6px 8px">Method</th><th style="text-align:left;padding:6px 8px">Path</th><th style="text-align:left;padding:6px 8px">Auth</th><th style="text-align:left;padding:6px 8px">Description</th>
+      </tr>
+      <tr style="border-bottom:1px solid #e5e7eb">
+        <td style="padding:6px 8px;font-weight:600;color:#2563eb">GET</td>
+        <td style="padding:6px 8px"><code>/?page&size&status&supplierId&from&to&search</code></td>
+        <td style="padding:6px 8px">purchase.view</td>
+        <td style="padding:6px 8px">Paginated list with filters (was only create before)</td>
+      </tr>
+      <tr>
+        <td style="padding:6px 8px;font-weight:600;color:#d97706">POST</td>
+        <td style="padding:6px 8px"><code>/{id}/complete</code></td>
+        <td style="padding:6px 8px">purchase.manage</td>
+        <td style="padding:6px 8px">Mark return as COMPLETED (status transition from PENDING)</td>
+      </tr>
+    </table>
+  </div>
+</div>
+
+<div class="section" style="margin-top:20px">
+  <h3>4. Supplier Payments — <code>/api/v1/payments/supplier</code> (new)</h3>
+</div>
+
+<div class="mockup" style="border-left:4px solid #059669">
+  <div class="mockup-header">SupplierPaymentController (payment-service)</div>
+  <div class="mockup-body">
+    <table style="width:100%;font-size:0.75rem;border-collapse:collapse">
+      <tr style="border-bottom:1px solid #e5e7eb;background:#f9fafb">
+        <th style="text-align:left;padding:6px 8px">Method</th><th style="text-align:left;padding:6px 8px">Path</th><th style="text-align:left;padding:6px 8px">Auth</th><th style="text-align:left;padding:6px 8px">Description</th>
+      </tr>
+      <tr style="border-bottom:1px solid #e5e7eb">
+        <td style="padding:6px 8px;font-weight:600;color:#2563eb">GET</td>
+        <td style="padding:6px 8px"><code>/?page&size&supplierId&from&to&method&search</code></td>
+        <td style="padding:6px 8px">payment.view</td>
+        <td style="padding:6px 8px">Paginated list of all supplier payments across purchases</td>
+      </tr>
+      <tr>
+        <td style="padding:6px 8px;font-weight:600;color:#2563eb">GET</td>
+        <td style="padding:6px 8px"><code>/{supplierId}/ledger?from&to</code></td>
+        <td style="padding:6px 8px">payment.view</td>
+        <td style="padding:6px 8px">Supplier ledger: purchases (debits) + payments (credits) + outstanding balance</td>
+      </tr>
+    </table>
+  </div>
+</div>
+
+<p style="margin-top:24px;color:#6b7280">All endpoints follow the same conventions as existing controllers (pagination, tenant scoping, Cacheable annotations, PreAuthorize guards). Does this API surface cover what's needed?</p>

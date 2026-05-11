@@ -1,0 +1,102 @@
+<h2>Subsystem 3: Visual Template Editor (Block-Based)</h2>
+<p class="subtitle">Admins customize document layouts by toggling and reordering predefined blocks</p>
+
+<div class="mockup">
+  <div class="mockup-header">Block Types (7 predefined blocks)</div>
+  <div class="mockup-body">
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; font-size:13px; line-height:1.6; padding:12px;">
+      <div style="border:1px solid var(--border);border-radius:6px;padding:10px;">
+        <strong>&#x1F4CB; Header Block</strong><br>
+        <span style="color:var(--muted);">Logo (upload/URL), company name, TIN, address, phone, email. Toggle each field on/off.</span>
+      </div>
+      <div style="border:1px solid var(--border);border-radius:6px;padding:10px;">
+        <strong>&#x1F4C4; Meta Block</strong><br>
+        <span style="color:var(--muted);">Document number, date, due date, reference, customer/supplier info. Field visibility toggles.</span>
+      </div>
+      <div style="border:1px solid var(--border);border-radius:6px;padding:10px;">
+        <strong>&#x1F4CA; Items Table Block</strong><br>
+        <span style="color:var(--muted);">Column toggles: #, description, qty, unit price, tax%, discount, total. Column order via drag.</span>
+      </div>
+      <div style="border:1px solid var(--border);border-radius:6px;padding:10px;">
+        <strong>&#x1F4B0; Totals Block</strong><br>
+        <span style="color:var(--muted);">Subtotal, discount, tax lines, grand total. Toggle each line. Currency formatting options.</span>
+      </div>
+      <div style="border:1px solid var(--border);border-radius:6px;padding:10px;">
+        <strong>&#x270D;&#xFE0F; Signature Block</strong><br>
+        <span style="color:var(--muted);">Prepared by, approved by, customer acceptance, date. Configurable label text, 1-3 signature slots.</span>
+      </div>
+      <div style="border:1px solid var(--border);border-radius:6px;padding:10px;">
+        <strong>&#x1F4DD; Terms Block</strong><br>
+        <span style="color:var(--muted);">Terms & conditions text area, validity period notice. Rich text or plain text option.</span>
+      </div>
+      <div style="border:1px solid var(--border);border-radius:6px;padding:10px;grid-column:1/-1;">
+        <strong>&#x1F4E6; Footer Block</strong><br>
+        <span style="color:var(--muted);">Company info repeat, bank details, page numbers, generation timestamp. Toggle each element.</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="mockup" style="margin-top:20px;">
+  <div class="mockup-header">Editor UI Layout</div>
+  <div class="mockup-body" style="font-size:13px;line-height:1.8;padding:14px;">
+    <div style="display:flex;gap:16px;">
+      <div style="flex:1;border:1px solid var(--border);border-radius:8px;padding:12px;background:var(--surface);">
+        <strong style="color:var(--muted);font-size:11px;">BLOCK PALETTE</strong>
+        <div style="margin-top:8px;">
+          <div class="placeholder" style="margin:4px 0;">&#x2630; Header Block</div>
+          <div class="placeholder" style="margin:4px 0;">&#x2630; Meta Block</div>
+          <div class="placeholder" style="margin:4px 0;">&#x2630; Items Table Block</div>
+          <div class="placeholder" style="margin:4px 0;">&#x2630; Totals Block</div>
+          <div class="placeholder" style="margin:4px 0;">&#x2630; Signature Block</div>
+          <div class="placeholder" style="margin:4px 0;">&#x2630; Terms Block</div>
+          <div class="placeholder" style="margin:4px 0;">&#x2630; Footer Block</div>
+        </div>
+        <div style="margin-top:12px;font-size:11px;color:var(--muted);">Drag blocks to reorder. Click to configure.</div>
+      </div>
+      <div style="flex:2;border:2px solid #4f46e5;border-radius:8px;padding:12px;background:#fff;">
+        <strong style="color:#4f46e5;font-size:11px;">LIVE PREVIEW (A4)</strong>
+        <div style="margin-top:8px;">
+          <div style="border-bottom:3px solid #2563eb;padding-bottom:8px;margin-bottom:8px;">
+            <div class="mock-nav" style="font-size:20px;font-weight:700;color:#2563eb;">{{company.name}}</div>
+            <div style="font-size:10px;color:var(--muted);">{{company.address}} | TIN: {{company.tin}}</div>
+          </div>
+          <div style="font-size:18px;font-weight:700;color:#2563eb;margin-bottom:8px;">QUOTATION</div>
+          <div style="display:flex;gap:16px;margin-bottom:8px;">
+            <div><span style="font-size:9px;color:var(--muted);">QUOTATION #</span><br><span style="font-size:12px;">{{document.number}}</span></div>
+            <div><span style="font-size:9px;color:var(--muted);">DATE</span><br><span style="font-size:12px;">{{document.date}}</span></div>
+          </div>
+          <div class="placeholder" style="height:120px;">Items table preview...</div>
+          <div style="text-align:right;padding:8px;font-size:14px;font-weight:700;color:#2563eb;">Grand Total: {{totals.grandTotal}}</div>
+          <div style="display:flex;justify-content:space-between;margin-top:30px;">
+            <div style="text-align:center;"><div style="border-bottom:1px solid #1a1a1a;width:150px;margin-bottom:4px;"></div><span style="font-size:9px;">Prepared By</span></div>
+            <div style="text-align:center;"><div style="border-bottom:1px solid #1a1a1a;width:150px;margin-bottom:4px;"></div><span style="font-size:9px;">Customer Acceptance</span></div>
+          </div>
+        </div>
+        <div style="margin-top:8px;text-align:center;">
+          <button class="mock-button" style="font-size:11px;">&#x21BB; Refresh Preview</button>
+          <button class="mock-button" style="font-size:11px;background:#22c55e;">&#x1F4BE; Save Template</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="mockup" style="margin-top:20px;">
+  <div class="mockup-header">Technical Approach</div>
+  <div class="mockup-body" style="font-size:13px;line-height:1.8;padding:14px;">
+    <strong>Storage:</strong> Block config saved as JSON in <code>template_overrides.body_html</code> (already TEXT). The JSON describes which blocks are active, their order, and their settings. The backend compiles this JSON into actual Handlebars HTML at render time.<br><br>
+    <strong>Example JSON config for quotation:</strong>
+    <pre style="background:#f8f9fa;padding:10px;border-radius:6px;font-size:11px;">{
+  "blocks": ["header", "meta", "items", "totals", "validity", "signature", "footer"],
+  "header": { "showLogo": true, "showTin": true, "showPhone": true },
+  "meta": { "showDate": true, "showValidUntil": true, "showPreparedBy": true },
+  "items": { "columns": ["#", "name", "qty", "unitPrice", "taxRate", "total"] },
+  "totals": { "showSubtotal": true, "showDiscount": true, "showTax": true },
+  "signature": { "slots": ["Prepared By", "Customer Acceptance", "Date"] }
+}</pre>
+    <strong>Frontend:</strong> New page at <code>/smartpos/settings/templates</code> — block palette + live preview + JSON config save. Reuses <code>TemplatePreviewRenderer.tsx</code> for preview.<br>
+    <strong>New files:</strong> <code>TemplateEditorPage.tsx</code>, <code>BlockPalette.tsx</code>, <code>BlockConfigPanel.tsx</code>, <code>TemplatePreviewPanel.tsx</code><br>
+    <strong>Total effort:</strong> ~5 days
+  </div>
+</div>

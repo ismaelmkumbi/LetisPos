@@ -1,0 +1,75 @@
+<h2>Subsystem 1: Remaining 20+ Document Types</h2>
+<p class="subtitle">Pure template work — no new architecture needed. Each is a .hbs file + 2-line registration.</p>
+
+<div class="split">
+  <div class="mockup">
+    <div class="mockup-header">Stock & Inventory (5 templates)</div>
+    <div class="mockup-body" style="font-size:13px;line-height:2;padding:12px;">
+      &#x25A1; <strong>stock-transfer.hbs</strong> — Transfer form with from/to warehouse<br>
+      &#x25A1; <strong>stock-count.hbs</strong> — Count sheet with expected vs actual<br>
+      &#x25A1; <strong>stock-adjustment.hbs</strong> — Adjustment authorization<br>
+      &#x25A1; <strong>batch-traceability.hbs</strong> — Batch/lot tracking report<br>
+      &#x25A1; <strong>expiry-report.hbs</strong> — Expiring stock report
+    </div>
+  </div>
+  <div class="mockup">
+    <div class="mockup-header">Accounting & Finance (5 templates)</div>
+    <div class="mockup-body" style="font-size:13px;line-height:2;padding:12px;">
+      &#x25A1; <strong>journal-voucher.hbs</strong> — Journal entry document<br>
+      &#x25A1; <strong>payment-voucher.hbs</strong> — Payment authorization<br>
+      &#x25A1; <strong>receipt-voucher.hbs</strong> — Cash receipt<br>
+      &#x25A1; <strong>expense-voucher.hbs</strong> — Expense claim with receipts<br>
+      &#x25A1; <strong>debit-note.hbs</strong> — Supplier debit note
+    </div>
+  </div>
+</div>
+
+<div class="split" style="margin-top:16px;">
+  <div class="mockup">
+    <div class="mockup-header">Purchasing (3 templates)</div>
+    <div class="mockup-body" style="font-size:13px;line-height:2;padding:12px;">
+      &#x25A1; <strong>supplier-rfq.hbs</strong> — Request for quotation<br>
+      &#x25A1; <strong>supplier-invoice.hbs</strong> — Supplier invoice matching<br>
+      &#x25A1; <strong>purchase-return.hbs</strong> — Return to supplier
+    </div>
+  </div>
+  <div class="mockup">
+    <div class="mockup-header">Service, HR & Logistics (5 templates)</div>
+    <div class="mockup-body" style="font-size:13px;line-height:2;padding:12px;">
+      &#x25A1; <strong>work-order.hbs</strong> — Service work order<br>
+      &#x25A1; <strong>service-report.hbs</strong> — Technician report<br>
+      &#x25A1; <strong>payslip.hbs</strong> — Employee payslip<br>
+      &#x25A1; <strong>delivery-manifest.hbs</strong> — Multi-order manifest<br>
+      &#x25A1; <strong>packing-slip.hbs</strong> — Warehouse packing list
+    </div>
+  </div>
+</div>
+
+<div class="split" style="margin-top:16px;">
+  <div class="mockup">
+    <div class="mockup-header">CRM & Contracts (4 templates)</div>
+    <div class="mockup-body" style="font-size:13px;line-height:2;padding:12px;">
+      &#x25A1; <strong>contract.hbs</strong> — Service agreement<br>
+      &#x25A1; <strong>warranty-certificate.hbs</strong> — Product warranty<br>
+      &#x25A1; <strong>sales-return.hbs</strong> — Customer return form<br>
+      &#x25A1; <strong>refund-receipt.hbs</strong> — Refund acknowledgment
+    </div>
+  </div>
+  <div class="mockup">
+    <div class="mockup-header">Admin (3 templates)</div>
+    <div class="mockup-body" style="font-size:13px;line-height:2;padding:12px;">
+      &#x25A1; <strong>price-tag.hbs</strong> — Shelf price tags (A4 sheet)<br>
+      &#x25A1; <strong>audit-report.hbs</strong> — System audit trail<br>
+      &#x25A1; <strong>account-confirmation.hbs</strong> — Balance confirmation letter
+    </div>
+  </div>
+</div>
+
+<div class="mockup" style="margin-top:20px;">
+  <div class="mockup-header">What it takes</div>
+  <div class="mockup-body" style="font-size:13px;line-height:1.8;padding:14px;">
+    <strong>Per template:</strong> 1 .hbs file (~150 lines HTML/CSS) + 2 lines in DocumentService.TEMPLATE_FILES + 1 line in TemplateService.BUILT_IN_TYPES<br>
+    <strong>Frontend:</strong> Add DocumentActionsBar to the corresponding pages (same pattern as Phase 1)<br>
+    <strong>Total effort:</strong> ~3 days for all 25 templates
+  </div>
+</div>

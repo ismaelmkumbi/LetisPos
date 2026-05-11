@@ -142,7 +142,6 @@ export default function DamageWastePage() {
       await api.post('/api/v1/adjustments/damage', {
         warehouseId: form.warehouseId,
         productId: form.product.id,
-        variantId: form.product.variantId ?? null,
         qty: Number(form.qty),
         reasonCode: form.reasonCode,
         type: form.type,
@@ -172,7 +171,7 @@ export default function DamageWastePage() {
     setPendingLoading(true);
     try {
       const { data } = await api.get<Page<DamageRecord>>('/api/v1/adjustments', {
-        params: { page, size: 20 },
+        params: { status: 'PENDING_REVIEW', page, size: 20 },
       });
       setPendingRows(data.content);
       setPendingTotalPages(data.totalPages || 1);
