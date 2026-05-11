@@ -1,3 +1,5 @@
+export type BillingPeriod = 'monthly' | 'annual';
+
 export interface PricingTier {
   name: string;
   monthlyPrice: string;

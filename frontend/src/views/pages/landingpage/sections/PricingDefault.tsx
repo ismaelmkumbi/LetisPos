@@ -3,25 +3,29 @@ import { Box, Typography, Grid, Stack, Chip } from '@mui/material';
 import { IconCheck } from '@tabler/icons-react';
 import CtaButton from '../components/CtaButton';
 import { useDemoDialog } from '../components/DemoDialog';
-import { pricingTiers, PricingTier } from './pricingData';
+import { pricingTiers, PricingTier, BillingPeriod } from './pricingData';
 
 interface PricingDefaultProps {
-  billing: 'monthly' | 'annual';
+  billing: BillingPeriod;
 }
 
 const PricingDefault: React.FC<PricingDefaultProps> = ({ billing }) => {
   const { openDemo } = useDemoDialog();
+  const isAnnual = billing === 'annual';
 
   const getPrice = (tier: PricingTier): string => {
-    if (billing === 'annual' && tier.name !== 'Enterprise') {
+    if (isAnnual && tier.annualPrice && tier.annualPrice !== 'Custom') {
       return tier.annualPrice;
     }
     return tier.monthlyPrice;
   };
 
   const getPeriod = (tier: PricingTier): string => {
-    if (billing === 'annual' && tier.name !== 'Enterprise') {
+    if (isAnnual && tier.annualPrice && tier.annualPrice !== 'Custom') {
       return '/year';
+    }
+    if (tier.annualPrice === 'Custom') {
+      return '/month';
     }
     return tier.period;
   };
