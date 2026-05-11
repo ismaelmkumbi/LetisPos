@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router';
+import { useBlocker, useNavigate, useParams } from 'react-router';
 import {
   Alert,
   Autocomplete,
@@ -9,6 +9,10 @@ import {
   CardContent,
   Chip,
   CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   Divider,
   Grid,
   MenuItem,
@@ -16,7 +20,7 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import { IconDeviceFloppy, IconTruckDelivery, IconX } from '@tabler/icons-react';
+import { IconDeviceFloppy, IconTruckDelivery, IconUpload, IconX } from '@tabler/icons-react';
 
 import {
   createPurchase,
@@ -27,7 +31,7 @@ import {
   type CreatePurchaseBody,
   type PurchaseStatus,
 } from 'src/api/smartpos/sales';
-import { listProducts, getProduct } from 'src/api/smartpos/products';
+import { listProducts, getProduct, uploadProductImage } from 'src/api/smartpos/products';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 import { listSuppliers } from 'src/api/smartpos/suppliers';
@@ -83,10 +87,25 @@ export default function PurchaseBuilderPage() {
   const [payNotes, setPayNotes] = useState('');
   const [accounts, setAccounts] = useState<{ id: string; name: string }[]>([]);
   const [paying, setPaying] = useState(false);
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
+  const [formDirty, setFormDirty] = useState(false);
+  const [attachments, setAttachments] = useState<string[]>([]);
+  const [uploading, setUploading] = useState(false);
 
   const paidTotal = payments.reduce((s, p) => s + p.amount, 0);
 
   const isEditable = !existingStatus || existingStatus === 'DRAFT' || existingStatus === 'ORDERED';
+
+  // Unsaved-changes guard
+  const blocker = useBlocker(formDirty);
+  useEffect(() => {
+    if (blocker.state === 'blocked') {
+      if (!window.confirm('You have unsaved changes. Leave?')) {
+        blocker.reset();
+      }
+    }
+  }, [blocker]);
 
   useEffect(() => {
     listWarehouses()
@@ -163,7 +182,10 @@ export default function PurchaseBuilderPage() {
         }
       })
       .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load purchase'))
-      .finally(() => setLoading(false));
+      .finally(() => {
+        setLoading(false);
+        setFormDirty(false);
+      });
     listAccounts()
       .then((a) => setAccounts(a.map((x) => ({ id: x.id, name: x.name }))))
       .catch(() => {});
@@ -214,6 +236,7 @@ export default function PurchaseBuilderPage() {
       } else {
         setBanner(`Purchase ${saved.ref} ${id ? 'updated' : 'created'}`);
       }
+      setFormDirty(false);
       setTimeout(() => nav('/smartpos/purchases'), 900);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Save failed');
@@ -238,7 +261,6 @@ export default function PurchaseBuilderPage() {
       setBanner(`Payment of ${fmt(payAmount)} recorded successfully`);
       setPayAmount(0);
       setPayNotes('');
-      setTimeout(() => setBanner(null), 4000);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Payment failed');
     } finally {
@@ -246,19 +268,40 @@ export default function PurchaseBuilderPage() {
     }
   };
 
-  const handleCancel = async () => {
+  const handleCancel = () => {
     if (!id) return;
-    const reason = window.prompt('Reason for cancellation (optional):');
-    if (reason === null) return; // user clicked Cancel on prompt
+    setCancelReason('');
+    setCancelOpen(true);
+  };
+
+  const handleConfirmCancel = async () => {
+    if (!id) return;
+    setCancelOpen(false);
     setSubmitting(true);
     try {
-      await cancelPurchase(id, reason || undefined);
+      await cancelPurchase(id, cancelReason || undefined);
       setBanner('Purchase cancelled.');
       setTimeout(() => nav('/smartpos/purchases'), 900);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Cancel failed');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleUploadAttachment = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const { url } = await uploadProductImage(file);
+      setAttachments((prev) => [...prev, url]);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Upload failed');
+    } finally {
+      setUploading(false);
+      // Reset so the same file can be re-selected
+      e.target.value = '';
     }
   };
 
@@ -320,7 +363,7 @@ export default function PurchaseBuilderPage() {
                     size="small"
                     label="Warehouse"
                     value={warehouseId}
-                    onChange={(e) => setWarehouseId(e.target.value)}
+                    onChange={(e) => { setWarehouseId(e.target.value); setFormDirty(true); }}
                     disabled={!isEditable}
                     sx={{ minWidth: 200 }}
                   >
@@ -336,7 +379,7 @@ export default function PurchaseBuilderPage() {
                     openOnFocus
                     options={suppliers}
                     value={suppliers.find((s) => s.id === supplierId) || null}
-                    onChange={(_, v) => setSupplierId(v?.id ?? null)}
+                    onChange={(_, v) => { setSupplierId(v?.id ?? null); setFormDirty(true); }}
                     getOptionLabel={(s) => s.name}
                     disabled={!isEditable}
                     noOptionsText="No suppliers found — add one in Suppliers or skip"
@@ -350,7 +393,7 @@ export default function PurchaseBuilderPage() {
                     type="date"
                     label="Purchase date"
                     value={purchaseDate}
-                    onChange={(e) => setPurchaseDate(e.target.value)}
+                    onChange={(e) => { setPurchaseDate(e.target.value); setFormDirty(true); }}
                     InputLabelProps={{ shrink: true }}
                     disabled={!isEditable}
                     sx={{ minWidth: 170 }}
@@ -360,7 +403,7 @@ export default function PurchaseBuilderPage() {
                     type="date"
                     label="Due date"
                     value={dueDate}
-                    onChange={(e) => setDueDate(e.target.value)}
+                    onChange={(e) => { setDueDate(e.target.value); setFormDirty(true); }}
                     InputLabelProps={{ shrink: true }}
                     disabled={!isEditable}
                     sx={{ minWidth: 170 }}
@@ -377,7 +420,7 @@ export default function PurchaseBuilderPage() {
 
           <LineEditor
             lines={lines}
-            onChange={setLines}
+            onChange={(l) => { setLines(l); setFormDirty(true); }}
             searchProducts={searchProducts}
             priceLabel="Unit cost"
           />
@@ -385,7 +428,7 @@ export default function PurchaseBuilderPage() {
           <TextField
             label="Notes"
             value={notes}
-            onChange={(e) => setNotes(e.target.value)}
+            onChange={(e) => { setNotes(e.target.value); setFormDirty(true); }}
             size="small"
             fullWidth
             multiline
@@ -430,7 +473,7 @@ export default function PurchaseBuilderPage() {
                     size="small"
                     type="number"
                     value={shipping}
-                    onChange={(e) => setShipping(Number(e.target.value) || 0)}
+                    onChange={(e) => { setShipping(Number(e.target.value) || 0); setFormDirty(true); }}
                     disabled={!isEditable}
                     inputProps={{ style: { textAlign: 'right' } }}
                     sx={{ width: 110 }}
@@ -444,7 +487,7 @@ export default function PurchaseBuilderPage() {
                     size="small"
                     type="number"
                     value={discount}
-                    onChange={(e) => setDiscount(Number(e.target.value) || 0)}
+                    onChange={(e) => { setDiscount(Number(e.target.value) || 0); setFormDirty(true); }}
                     disabled={!isEditable}
                     inputProps={{ style: { textAlign: 'right' } }}
                     sx={{ width: 110 }}
@@ -645,8 +688,91 @@ export default function PurchaseBuilderPage() {
               )}
             </CardContent>
           </Card>
+
+          {/* Attachments */}
+          <Card
+            elevation={0}
+            sx={{
+              mt: 2,
+              border: `1px solid ${brand.neutral[200]}`,
+              borderRadius: 3,
+            }}
+          >
+            <CardContent>
+              <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
+                Attachments
+              </Typography>
+              <Stack direction="row" spacing={1} alignItems="center">
+                <Button
+                  variant="outlined"
+                  component="label"
+                  size="small"
+                  startIcon={uploading ? <CircularProgress size={14} /> : <IconUpload size={14} />}
+                  disabled={uploading}
+                  sx={{ textTransform: 'none', fontWeight: 600, borderRadius: '8px' }}
+                >
+                  {uploading ? 'Uploading…' : 'Upload'}
+                  <input
+                    type="file"
+                    hidden
+                    accept="image/*,.pdf"
+                    onChange={handleUploadAttachment}
+                  />
+                </Button>
+              </Stack>
+              {attachments.length > 0 && (
+                <Stack spacing={0.5} sx={{ mt: 1 }}>
+                  {attachments.map((url, i) => (
+                    <Chip
+                      key={i}
+                      label={url.split('/').pop() || url}
+                      size="small"
+                      onDelete={() => setAttachments((prev) => prev.filter((_, j) => j !== i))}
+                      sx={{ maxWidth: '100%', '& .MuiChip-label': { overflow: 'hidden', textOverflow: 'ellipsis' } }}
+                    />
+                  ))}
+                </Stack>
+              )}
+            </CardContent>
+          </Card>
         </Grid>
       </Grid>
+
+      {/* Cancel Purchase Dialog */}
+      <Dialog open={cancelOpen} onClose={() => setCancelOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700 }}>Cancel Purchase</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            fullWidth
+            label="Reason (optional)"
+            value={cancelReason}
+            onChange={(e) => setCancelReason(e.target.value)}
+            size="small"
+            sx={{ mt: 1 }}
+            multiline
+            minRows={2}
+          />
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button
+            onClick={() => setCancelOpen(false)}
+            variant="outlined"
+            sx={{ textTransform: 'none', fontWeight: 600 }}
+          >
+            Keep Editing
+          </Button>
+          <Button
+            onClick={handleConfirmCancel}
+            variant="contained"
+            color="error"
+            disabled={submitting}
+            sx={{ textTransform: 'none', fontWeight: 700 }}
+          >
+            Cancel Purchase
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }
