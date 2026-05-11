@@ -77,7 +77,7 @@ spring:
         - id: payment-service
           uri: ${PAYMENT_URI:http://localhost:8086}
           predicates:
-            - Path=/api/v1/payments/**,/api/v1/accounts/**,/api/v1/expenses/**,/api/v1/deposits/**,/api/v1/chart-of-accounts/**,/api/v1/journal-entries/**,/api/v1/financials/**
+            - Path=/api/v1/payments/**,/api/v1/accounts/**,/api/v1/expenses/**,/api/v1/deposits/**,/api/v1/chart-of-accounts/**,/api/v1/journal-entries/**,/api/v1/financials/**,/api/v1/taxes/**
 
         # ---- Report Service ----
         - id: report-service
