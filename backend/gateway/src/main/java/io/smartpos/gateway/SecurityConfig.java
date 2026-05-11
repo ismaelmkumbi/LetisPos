@@ -26,15 +26,13 @@ public class SecurityConfig {
                         // CORS preflights must never require auth — browsers send them
                         // before the real request and without the Authorization header.
                         .pathMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .pathMatchers(HttpMethod.POST,
-                                "/api/v1/ai/capture-sessions/*/photos",
-                                "/api/v1/ai/capture-sessions/*/complete"
-                        ).permitAll()
-                        .pathMatchers(HttpMethod.GET,
-                                "/api/v1/ai/capture-sessions/*/photos",
-                                "/api/v1/ai/capture-sessions/*/photos/*/full",
-                                "/api/v1/ai/capture-sessions/*/photos/*/thumb"
-                        ).permitAll()
+                        // Phone-side capture endpoints are session-token authenticated
+                        // by the ai-service itself; the gateway must let them through
+                        // without a JWT. Use the broadest matcher we can to avoid any
+                        // path-pattern subtlety where one of the more specific patterns
+                        // gets swallowed by the matcher set.
+                        .pathMatchers(HttpMethod.POST, "/api/v1/ai/capture-sessions/**").permitAll()
+                        .pathMatchers(HttpMethod.GET,  "/api/v1/ai/capture-sessions/**").permitAll()
                         .pathMatchers(
                                 "/api/v1/auth/login",
                                 "/api/v1/auth/refresh",
