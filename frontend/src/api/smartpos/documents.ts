@@ -26,6 +26,7 @@ export interface DocumentDto {
   zNumber?: string;
   vfdStatus?: string;
   buyerTin?: string;
+  notes?: string;
 }
 
 export interface TemplateInfo {
@@ -212,6 +213,8 @@ export interface BulkGenerateRequest {
   documentType: string;
   referenceType: string;
   referenceIds: UUID[];
+  deliveryChannel?: string; // null, "email", "whatsapp"
+  deliveryRecipient?: string; // email address or phone number
 }
 
 export interface BulkJobDto {
@@ -219,6 +222,8 @@ export interface BulkJobDto {
   status: string;
   progress: number;
   total: number;
+  deliveryChannel?: string;
+  deliveryRecipient?: string;
   results?: Array<{ referenceId: UUID; documentId: UUID; documentNumber: string; status: string }>;
   createdAt: string;
 }
@@ -254,6 +259,13 @@ export interface DocumentSearchParams {
 
 export async function searchDocuments(params: DocumentSearchParams = {}): Promise<Page<DocumentDto>> {
   const { data } = await api.get<Page<DocumentDto>>('/api/v1/documents/search', { params });
+  return data;
+}
+
+// ---- Notes Endpoints ----
+
+export async function updateDocumentNotes(id: UUID, notes: string): Promise<{ status: string }> {
+  const { data } = await api.put<{ status: string }>(`/api/v1/documents/${id}/notes`, { notes });
   return data;
 }
 

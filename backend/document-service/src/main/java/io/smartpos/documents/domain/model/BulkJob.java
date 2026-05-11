@@ -42,6 +42,12 @@ public class BulkJob {
     @Column(name = "results_json", columnDefinition = "TEXT")
     private String resultsJson;
 
+    @Column(name = "delivery_channel", length = 20)
+    private String deliveryChannel;
+
+    @Column(name = "delivery_recipient", length = 255)
+    private String deliveryRecipient;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     @Builder.Default
     private Instant createdAt = Instant.now();

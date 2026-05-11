@@ -175,6 +175,8 @@ public class DocumentController {
                 .tenantId(tenantId)
                 .documentType(req.getDocumentType())
                 .referenceType(req.getReferenceType())
+                .deliveryChannel(req.getDeliveryChannel())
+                .deliveryRecipient(req.getDeliveryRecipient())
                 .status("pending")
                 .total(req.getReferenceIds().size())
                 .build();
@@ -305,5 +307,15 @@ public class DocumentController {
             .orElseThrow(() -> new IllegalArgumentException("Document not found: " + id));
         vfdService.submitToVfd(doc, Map.of());
         return ResponseEntity.ok(Map.of("status", doc.getVfdStatus()));
+    }
+
+    @PutMapping("/{id}/notes")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Map<String, String>> updateNotes(@PathVariable UUID id, @RequestBody Map<String, String> body) {
+        Document doc = documentRepo.findByIdAndTenantId(id, TenantContext.require())
+            .orElseThrow(() -> new IllegalArgumentException("Document not found: " + id));
+        doc.setNotes(body.get("notes"));
+        documentRepo.save(doc);
+        return ResponseEntity.ok(Map.of("status", "saved"));
     }
 }

@@ -13,6 +13,8 @@ public class BulkJobDto {
     private String status;
     private int progress;
     private int total;
+    private String deliveryChannel;
+    private String deliveryRecipient;
     private Instant createdAt;
 
     public static BulkJobDto from(BulkJob job) {
@@ -21,6 +23,8 @@ public class BulkJobDto {
                 .status(job.getStatus())
                 .progress(job.getProgress())
                 .total(job.getTotal())
+                .deliveryChannel(job.getDeliveryChannel())
+                .deliveryRecipient(job.getDeliveryRecipient())
                 .createdAt(job.getCreatedAt())
                 .build();
     }

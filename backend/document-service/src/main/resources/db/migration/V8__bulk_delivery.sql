@@ -1,0 +1,2 @@
+ALTER TABLE bulk_jobs ADD COLUMN IF NOT EXISTS delivery_channel VARCHAR(20);
+ALTER TABLE bulk_jobs ADD COLUMN IF NOT EXISTS delivery_recipient VARCHAR(255);

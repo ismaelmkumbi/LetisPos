@@ -16,4 +16,7 @@ public class BulkGenerateRequest {
 
     @NotEmpty
     private List<UUID> referenceIds;
+
+    private String deliveryChannel; // null, "email", "whatsapp"
+    private String deliveryRecipient; // email address or phone number
 }
