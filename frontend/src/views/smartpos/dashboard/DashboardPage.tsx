@@ -27,6 +27,7 @@ import {
   IconCalendar,
   IconChevronRight,
   IconCircleCheck,
+  IconClock,
   IconDotsVertical,
   IconInfoCircle,
   IconShoppingCart,
@@ -45,6 +46,7 @@ import {
 } from 'src/api/smartpos/reports';
 import { listSales, type Sale } from 'src/api/smartpos/sales';
 import { listWarehouses, type Warehouse } from 'src/api/smartpos/inventory';
+import { getExpiringBatches } from 'src/api/smartpos/batches';
 import { brand } from 'src/theme/smartpos/brand';
 import { formatMoney, formatNumber } from 'src/utils/smartpos/currency';
 import { useAuth } from 'src/context/smartpos/AuthContext';
@@ -372,6 +374,8 @@ export default function DashboardPage() {
   const [paymentMix, setPaymentMix] = useState<PaymentMethodMixRow[]>([]);
   const [paymentMixUnavailable, setPaymentMixUnavailable] = useState(false);
   const [recentSales, setRecentSales] = useState<Sale[]>([]);
+  const [expiringBatchesCount, setExpiringBatchesCount] = useState(0);
+  const [expiringUnitsAtRisk, setExpiringUnitsAtRisk] = useState(0);
   const loadedRef = useRef(false);
 
   useEffect(() => {
@@ -427,8 +431,9 @@ export default function DashboardPage() {
         size: 5,
         sort: 'date,desc',
       }),
+      getExpiringBatches({ withinDays: 30 }),
     ])
-      .then(([dashboardResult, paymentMixResult, salesResult]) => {
+      .then(([dashboardResult, paymentMixResult, salesResult, expiringResult]) => {
         if (cancelled) return;
         if (dashboardResult.status === 'rejected') {
           throw dashboardResult.reason;
@@ -439,6 +444,14 @@ export default function DashboardPage() {
         setPaymentMix(paymentMixResult.status === 'fulfilled' ? paymentMixResult.value : []);
         setPaymentMixUnavailable(paymentMixResult.status === 'rejected');
         setRecentSales(salesResult.status === 'fulfilled' ? salesResult.value.content : []);
+
+        if (expiringResult.status === 'fulfilled') {
+          setExpiringBatchesCount(expiringResult.value.length);
+          setExpiringUnitsAtRisk(expiringResult.value.reduce((sum, b) => sum + b.onHand, 0));
+        } else {
+          setExpiringBatchesCount(0);
+          setExpiringUnitsAtRisk(0);
+        }
 
         const failedSections = [salesResult.status === 'rejected' ? 'recent sales' : null].filter(
           Boolean,
@@ -853,6 +866,8 @@ export default function DashboardPage() {
                 revenueTrend={revenueTrend}
                 isDark={isDark}
                 paymentTotal={paymentTotal}
+                expiringBatchesCount={expiringBatchesCount}
+                expiringUnitsAtRisk={expiringUnitsAtRisk}
               />
             </Grid>
           </Grid>
@@ -1103,11 +1118,15 @@ function DashboardSideRail({
   revenueTrend,
   isDark,
   paymentTotal,
+  expiringBatchesCount,
+  expiringUnitsAtRisk,
 }: {
   data: Dashboard | null;
   revenueTrend: Trend | null;
   isDark: boolean;
   paymentTotal: number;
+  expiringBatchesCount: number;
+  expiringUnitsAtRisk: number;
 }) {
   return (
     <Stack
@@ -1129,6 +1148,15 @@ function DashboardSideRail({
             subtitle="Review stock levels and restock decisions"
             to="/smartpos/stock"
           />
+          {expiringBatchesCount > 0 && (
+            <AlertStrip
+              tone="warning"
+              icon={<IconClock size={22} />}
+              title={`${expiringBatchesCount} batch${expiringBatchesCount !== 1 ? 'es' : ''} expiring within 30 days`}
+              subtitle={`${expiringUnitsAtRisk} unit${expiringUnitsAtRisk !== 1 ? 's' : ''} at risk — review expiry dates`}
+              to="/smartpos/stock?expiring=30"
+            />
+          )}
           <AlertStrip
             tone="error"
             icon={<IconInfoCircle size={22} />}

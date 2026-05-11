@@ -26,6 +26,7 @@ import {
 import {
   IconAlertTriangle,
   IconBoxMultiple,
+  IconClock,
   IconPackage,
   IconPlus,
 } from '@tabler/icons-react';
@@ -35,7 +36,7 @@ import {
   type StockLevel, type Warehouse,
 } from 'src/api/smartpos/inventory';
 import {
-  listBatches, createBatch,
+  listBatches, createBatch, getExpiringBatches,
   type ProductBatch, type CreateBatchInput,
 } from 'src/api/smartpos/batches';
 import { listProducts } from 'src/api/smartpos/products';
@@ -54,6 +55,10 @@ export default function StockLevelsPage() {
   const [search, setSearch] = useState(searchParams.get('search') ?? '');
   const [warehouseId, setWarehouseId] = useState<string>(searchParams.get('warehouse') ?? '');
   const [onlyLow, setOnlyLow] = useState(searchParams.get('low') === '1');
+  const [expiringDays, setExpiringDays] = useState<number | null>(() => {
+    const v = searchParams.get('expiring');
+    return v ? Number(v) : null;
+  });
   const [page, setPage] = useState(Number(searchParams.get('page')) || 0);
   const [filtersOpen, setFiltersOpen] = useState(false);
 
@@ -64,12 +69,13 @@ export default function StockLevelsPage() {
         if (search && search !== '') next.set('search', search); else next.delete('search');
         if (warehouseId && warehouseId !== '') next.set('warehouse', warehouseId); else next.delete('warehouse');
         if (onlyLow) next.set('low', '1'); else next.delete('low');
+        if (expiringDays !== null) next.set('expiring', String(expiringDays)); else next.delete('expiring');
         if (page > 0) next.set('page', String(page)); else next.delete('page');
         return next;
       }, { replace: true });
     }, 400);
     return () => clearTimeout(timer);
-  }, [search, warehouseId, onlyLow, page, setSearchParams]);
+  }, [search, warehouseId, onlyLow, expiringDays, page, setSearchParams]);
 
   // ── Local state ──────────────────────────────────────────────────────────
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
@@ -78,6 +84,32 @@ export default function StockLevelsPage() {
   const [error, setError] = useState<string | null>(null);
   const [totalPages, setTotalPages] = useState(1);
   const [totalElements, setTotalElements] = useState(0);
+
+  // ── Expiry filter state ─────────────────────────────────────────────────
+  const [expiringProductIds, setExpiringProductIds] = useState<Set<string>>(new Set());
+  const [expiringLoading, setExpiringLoading] = useState(false);
+
+  useEffect(() => {
+    if (expiringDays === null) {
+      setExpiringProductIds(new Set());
+      return;
+    }
+    let cancelled = false;
+    setExpiringLoading(true);
+    getExpiringBatches({ warehouseId: warehouseId || undefined, withinDays: expiringDays })
+      .then((batches) => {
+        if (cancelled) return;
+        setExpiringProductIds(new Set(batches.map((b) => b.productId)));
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setExpiringProductIds(new Set());
+      })
+      .finally(() => {
+        if (!cancelled) setExpiringLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [expiringDays, warehouseId]);
 
   // ── Batch receive dialog state ──────────────────────────────────────────
   const [receiveOpen, setReceiveOpen] = useState(false);
@@ -152,13 +184,19 @@ export default function StockLevelsPage() {
 
   // ── Client-side search filter ────────────────────────────────────────────
   const filtered = useMemo(() => {
-    if (!search) return allRows;
-    const q = search.toLowerCase();
-    return allRows.filter((s) =>
-      s.productId.toLowerCase().includes(q)
-      || (s.variantId?.toLowerCase().includes(q)),
-    );
-  }, [allRows, search]);
+    let result = allRows;
+    if (search) {
+      const q = search.toLowerCase();
+      result = result.filter((s) =>
+        s.productId.toLowerCase().includes(q)
+        || (s.variantId?.toLowerCase().includes(q)),
+      );
+    }
+    if (expiringDays !== null && expiringProductIds.size > 0) {
+      result = result.filter((s) => expiringProductIds.has(s.productId));
+    }
+    return result;
+  }, [allRows, search, expiringDays, expiringProductIds]);
 
   // ── Filter chips ─────────────────────────────────────────────────────────
   const activeFilters: ActiveFilter[] = useMemo(() => {
@@ -177,8 +215,15 @@ export default function StockLevelsPage() {
         clear: () => setOnlyLow(false),
       });
     }
+    if (expiringDays !== null) {
+      const label = expiringDays === 0 ? 'Expired batches' : `Expiring within ${expiringDays} days`;
+      chips.push({
+        key: 'expiring', label,
+        clear: () => setExpiringDays(null),
+      });
+    }
     return chips;
-  }, [warehouseId, onlyLow, warehouses]);
+  }, [warehouseId, onlyLow, expiringDays, warehouses]);
 
   // ── Keyboard shortcuts ───────────────────────────────────────────────────
   useEffect(() => {
@@ -493,7 +538,7 @@ export default function StockLevelsPage() {
         filtersOpen={filtersOpen}
         onFiltersToggle={() => setFiltersOpen((o) => !o)}
         activeFilters={activeFilters}
-        onClearAll={() => { setWarehouseId(''); setOnlyLow(false); }}
+        onClearAll={() => { setWarehouseId(''); setOnlyLow(false); setExpiringDays(null); }}
       >
         <Stack direction="row" spacing={2} alignItems="center">
           <TextField
@@ -525,6 +570,36 @@ export default function StockLevelsPage() {
           />
         </Stack>
       </FilterBar>
+
+      {/* ── Expiry filter chips ────────────────────────────────────────────── */}
+      <Stack direction="row" spacing={1} sx={{ mt: 1.5, mb: 0.5 }}>
+        {[
+          { days: 7, label: 'Next 7 days' },
+          { days: 30, label: 'Next 30 days' },
+          { days: 0, label: 'Expired' },
+        ].map(({ days, label }) => {
+          const selected = expiringDays === days;
+          return (
+            <Chip
+              key={days}
+              label={label}
+              variant={selected ? 'filled' : 'outlined'}
+              color={selected ? 'warning' : 'default'}
+              onClick={() => setExpiringDays(selected ? null : days)}
+              icon={selected ? <IconClock size={14} /> : undefined}
+              sx={{
+                fontWeight: 600,
+                fontSize: '0.75rem',
+                borderRadius: '8px',
+                ...(selected
+                  ? { bgcolor: brand.warning.main, color: '#fff' }
+                  : { borderColor: brand.neutral[300], color: brand.neutral[700] }),
+              }}
+            />
+          );
+        })}
+        {expiringLoading && <CircularProgress size={18} sx={{ ml: 1 }} />}
+      </Stack>
 
       <DataTable
         tableKey="stock-levels"
