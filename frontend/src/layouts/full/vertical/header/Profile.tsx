@@ -11,7 +11,7 @@ import {
   Menu, MenuItem, Stack, Typography, keyframes,
 } from '@mui/material';
 import {
-  IconLogout, IconSettings, IconUserCircle,
+  IconCreditCard, IconLogout, IconSettings, IconUserCircle,
 } from '@tabler/icons-react';
 import { useAuth } from 'src/context/smartpos/AuthContext';
 import { brand } from 'src/theme/smartpos/brand';
@@ -217,6 +217,20 @@ const Profile = () => {
             </ListItemIcon>
             <Typography sx={{ fontSize: '0.85rem', fontWeight: 600, color: brand.neutral[800] }}>
               Settings
+            </Typography>
+          </MenuItem>
+
+          <MenuItem
+            component={Link}
+            to="/smartpos/billing"
+            onClick={handleClose}
+            sx={menuItemSx}
+          >
+            <ListItemIcon sx={{ minWidth: 36 }}>
+              <IconCreditCard size={18} color={brand.neutral[600]} />
+            </ListItemIcon>
+            <Typography sx={{ fontSize: '0.85rem', fontWeight: 600, color: brand.neutral[800] }}>
+              Billing
             </Typography>
           </MenuItem>
 
