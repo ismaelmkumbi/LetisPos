@@ -21,3 +21,15 @@ smartpos:
     shared-secret: ${INTERNAL_SHARED_SECRET:dev-internal-token-change-me}
   auth-service:
     base-url: http://localhost:8081
+  billing:
+    stripe:
+      enabled: false
+      secret-key: ${STRIPE_SECRET_KEY:}
+      webhook-secret: ${STRIPE_WEBHOOK_SECRET:}
+      price-starter-monthly: ${STRIPE_PRICE_STARTER_MONTHLY:}
+      price-starter-annual: ${STRIPE_PRICE_STARTER_ANNUAL:}
+      price-business-monthly: ${STRIPE_PRICE_BUSINESS_MONTHLY:}
+      price-business-annual: ${STRIPE_PRICE_BUSINESS_ANNUAL:}
+      price-professional-monthly: ${STRIPE_PRICE_PROFESSIONAL_MONTHLY:}
+      price-professional-annual: ${STRIPE_PRICE_PROFESSIONAL_ANNUAL:}
+      price-enterprise-monthly: ${STRIPE_PRICE_ENTERPRISE_MONTHLY:}
