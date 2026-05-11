@@ -1,76 +1,35 @@
-import React from 'react';
-import { Box, Container, Typography, Grid, Stack, Chip } from '@mui/material';
-import { IconCheck } from '@tabler/icons-react';
-import CtaButton from '../components/CtaButton';
+import React, { useState } from 'react';
+import {
+  Box,
+  Container,
+  Typography,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+} from '@mui/material';
+import { IconCheck, IconPlus } from '@tabler/icons-react';
 import SectionWrapper from '../components/SectionWrapper';
-import { useDemoDialog } from '../components/DemoDialog';
+import PricingDefault from './PricingDefault';
+import PricingSpotlight from './PricingSpotlight';
+import { pricingFaqs, trustItems, BillingPeriod } from './pricingData';
 
-const tiers = [
-  {
-    name: 'Starter',
-    price: '$29',
-    period: '/month',
-    description: 'Perfect for a single shop getting started.',
-    features: [
-      '1 POS terminal',
-      'Single store',
-      'Up to 3 users',
-      'Inventory management',
-      'Basic accounting',
-      'Standard reports',
-      'Email support',
-    ],
-    cta: 'Start free trial',
-    ctaVariant: 'secondary' as const,
-    highlighted: false,
-  },
-  {
-    name: 'Professional',
-    price: '$79',
-    period: '/month',
-    description: 'For growing businesses with multiple locations.',
-    features: [
-      'Unlimited POS terminals',
-      'Up to 5 stores',
-      'Up to 10 users',
-      'Advanced inventory',
-      'Full accounting suite',
-      'AI insights & predictions',
-      'HRM & payroll',
-      'Priority support',
-    ],
-    cta: 'Start free trial',
-    ctaVariant: 'primary' as const,
-    highlighted: true,
-  },
-  {
-    name: 'Enterprise',
-    price: 'Custom',
-    period: '',
-    description: 'For large retailers with complex needs.',
-    features: [
-      'Unlimited everything',
-      'Unlimited stores',
-      'Unlimited users',
-      'Custom integrations',
-      'Dedicated account manager',
-      'SLA guarantee',
-      'On-premise option',
-      '24/7 phone support',
-    ],
-    cta: 'Book a demo',
-    ctaVariant: 'secondary' as const,
-    highlighted: false,
-  },
-];
+export type PricingVariant = 'default' | 'spotlight';
 
-const Pricing: React.FC = () => {
-  const { openDemo } = useDemoDialog();
+export interface PricingProps {
+  variant?: PricingVariant;
+}
+
+const Pricing: React.FC<PricingProps> = ({ variant = 'default' }) => {
+  const [billing, setBilling] = useState<BillingPeriod>('monthly');
+  const isAnnual = billing === 'annual';
+
+  const PricingCards = variant === 'spotlight' ? PricingSpotlight : PricingDefault;
 
   return (
     <SectionWrapper id="pricing">
       <Container maxWidth="lg">
-        <Box sx={{ textAlign: 'center', mb: 8 }}>
+        {/* Section Header */}
+        <Box sx={{ textAlign: 'center', mb: 4 }}>
           <Typography
             sx={{
               fontFamily: 'var(--lp-font-display)',
@@ -91,120 +50,214 @@ const Pricing: React.FC = () => {
               mx: 'auto',
             }}
           >
-            All core features included at every tier. Scale as you grow.
+            All core features included. Scale as you grow — no surprises.
           </Typography>
         </Box>
 
-        <Grid container spacing={3} alignItems="stretch">
-          {tiers.map((tier) => (
-            <Grid key={tier.name} size={{ xs: 12, md: 4 }}>
+        {/* Launch Offer Badge */}
+        <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
+          <Box
+            sx={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 1,
+              bgcolor: 'var(--lp-surface)',
+              border: '1px solid var(--lp-border)',
+              borderRadius: 2,
+              px: 2.5,
+              py: 1,
+            }}
+          >
+            <IconCheck
+              size={14}
+              strokeWidth={2.5}
+              style={{ color: 'var(--lp-accent)', flexShrink: 0 }}
+            />
+            <Typography
+              sx={{
+                fontFamily: 'var(--lp-font-body)',
+                fontSize: '0.813rem',
+                color: 'var(--lp-text-muted)',
+              }}
+            >
+              Launch offer —{' '}
+              <Box component="span" sx={{ color: 'var(--lp-text)', fontWeight: 600 }}>
+                30 days free + 50% off your first 3 months
+              </Box>{' '}
+              · No credit card
+            </Typography>
+          </Box>
+        </Box>
+
+        {/* Billing Toggle */}
+        <Box sx={{ display: 'flex', justifyContent: 'center', mb: 5 }}>
+          <Box
+            sx={{
+              display: 'flex',
+              bgcolor: 'var(--lp-surface)',
+              borderRadius: 2,
+              p: '3px',
+              gap: '2px',
+              border: '1px solid var(--lp-border)',
+            }}
+          >
+            <Box
+              onClick={() => setBilling('monthly')}
+              sx={{
+                px: 3,
+                py: 1,
+                borderRadius: '6px',
+                fontFamily: 'var(--lp-font-body)',
+                fontSize: '0.813rem',
+                fontWeight: 600,
+                color: !isAnnual ? 'var(--lp-cta-text)' : 'var(--lp-text-muted)',
+                bgcolor: !isAnnual ? 'var(--lp-accent)' : 'transparent',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+              }}
+            >
+              Monthly
+            </Box>
+            <Box
+              onClick={() => setBilling('annual')}
+              sx={{
+                px: 3,
+                py: 1,
+                borderRadius: '6px',
+                fontFamily: 'var(--lp-font-body)',
+                fontSize: '0.813rem',
+                fontWeight: 600,
+                color: isAnnual ? 'var(--lp-cta-text)' : 'var(--lp-text-muted)',
+                bgcolor: isAnnual ? 'var(--lp-accent)' : 'transparent',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1,
+              }}
+            >
+              Annual
               <Box
+                component="span"
                 sx={{
-                  p: 4,
-                  height: '100%',
-                  borderRadius: 2,
-                  bgcolor: 'var(--lp-surface)',
-                  border: tier.highlighted
-                    ? '2px solid var(--lp-accent)'
-                    : '1px solid var(--lp-border)',
-                  position: 'relative',
-                  display: 'flex',
-                  flexDirection: 'column',
+                  bgcolor: 'var(--lp-accent-soft)',
+                  color: 'var(--lp-accent)',
+                  fontSize: '0.625rem',
+                  fontWeight: 600,
+                  px: 1,
+                  py: '2px',
+                  borderRadius: '4px',
                 }}
               >
-                {tier.highlighted && (
-                  <Chip
-                    label="Most popular"
-                    size="small"
-                    sx={{
-                      position: 'absolute',
-                      top: -12,
-                      left: '50%',
-                      transform: 'translateX(-50%)',
-                      bgcolor: 'var(--lp-accent)',
-                      color: '#fff',
-                      fontFamily: 'var(--lp-font-body)',
-                      fontSize: '0.75rem',
-                      fontWeight: 600,
-                    }}
-                  />
-                )}
+                Save 2 months
+              </Box>
+            </Box>
+          </Box>
+        </Box>
 
+        {/* Pricing Cards — variant-specific */}
+        <Box sx={{ mb: 6 }}>
+          <PricingCards billing={billing} />
+        </Box>
+
+        {/* Trust Bar */}
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'center',
+            flexWrap: 'wrap',
+            gap: { xs: 1.5, md: 3.5 },
+            py: 2,
+            borderTop: '1px solid var(--lp-border)',
+            mb: 6,
+          }}
+        >
+          {trustItems.map((item) => (
+            <Box
+              key={item}
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 0.75,
+                color: 'var(--lp-text-muted)',
+                fontFamily: 'var(--lp-font-body)',
+                fontSize: '0.75rem',
+              }}
+            >
+              <IconCheck
+                size={14}
+                strokeWidth={2.5}
+                style={{ color: 'var(--lp-accent)', flexShrink: 0 }}
+              />
+              {item}
+            </Box>
+          ))}
+        </Box>
+
+        {/* FAQ Accordion */}
+        <Box sx={{ maxWidth: 640, mx: 'auto' }}>
+          <Typography
+            sx={{
+              fontFamily: 'var(--lp-font-display)',
+              fontSize: { xs: '1.25rem', md: '1.5rem' },
+              fontWeight: 700,
+              textAlign: 'center',
+              mb: 3,
+            }}
+          >
+            Frequently asked questions
+          </Typography>
+
+          {pricingFaqs.map((faq, idx) => (
+            <Accordion
+              key={idx}
+              elevation={0}
+              sx={{
+                bgcolor: 'transparent',
+                borderBottom: '1px solid var(--lp-border)',
+                '&:before': { display: 'none' },
+                '&:first-of-type': { borderTop: '1px solid var(--lp-border)' },
+              }}
+            >
+              <AccordionSummary
+                expandIcon={
+                  <IconPlus
+                    size={14}
+                    strokeWidth={2}
+                    style={{ color: 'var(--lp-text-muted)' }}
+                  />
+                }
+                sx={{
+                  py: 0.5,
+                  '& .MuiAccordionSummary-content': { my: 1.5 },
+                }}
+              >
                 <Typography
                   sx={{
-                    fontFamily: 'var(--lp-font-display)',
-                    fontSize: '1.25rem',
-                    fontWeight: 600,
-                    mb: 0.5,
+                    fontFamily: 'var(--lp-font-body)',
+                    fontSize: '0.875rem',
+                    fontWeight: 500,
                   }}
                 >
-                  {tier.name}
+                  {faq.question}
                 </Typography>
+              </AccordionSummary>
+              <AccordionDetails>
                 <Typography
                   sx={{
                     fontFamily: 'var(--lp-font-body)',
                     fontSize: '0.875rem',
                     color: 'var(--lp-text-muted)',
-                    mb: 3,
+                    lineHeight: 1.7,
+                    pb: 1.5,
                   }}
                 >
-                  {tier.description}
+                  {faq.answer}
                 </Typography>
-
-                <Box sx={{ mb: 3 }}>
-                  <Typography
-                    component="span"
-                    sx={{
-                      fontFamily: 'var(--lp-font-display)',
-                      fontSize: '2.5rem',
-                      fontWeight: 700,
-                    }}
-                  >
-                    {tier.price}
-                  </Typography>
-                  {tier.period && (
-                    <Typography
-                      component="span"
-                      sx={{
-                        fontFamily: 'var(--lp-font-body)',
-                        fontSize: '0.938rem',
-                        color: 'var(--lp-text-muted)',
-                      }}
-                    >
-                      {tier.period}
-                    </Typography>
-                  )}
-                </Box>
-
-                <Stack spacing={2} sx={{ mb: 4, flex: 1 }}>
-                  {tier.features.map((f) => (
-                    <Box key={f} sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                      <IconCheck size={18} strokeWidth={2} style={{ color: 'var(--lp-accent)', flexShrink: 0 }} />
-                      <Typography
-                        sx={{
-                          fontFamily: 'var(--lp-font-body)',
-                          fontSize: '0.875rem',
-                          color: 'var(--lp-text)',
-                        }}
-                      >
-                        {f}
-                      </Typography>
-                    </Box>
-                  ))}
-                </Stack>
-
-                <CtaButton
-                  variant={tier.ctaVariant}
-                  fullWidth
-                  onClick={tier.cta === 'Book a demo' ? openDemo : undefined}
-                  href={tier.cta === 'Start free trial' ? '/auth/register' : undefined}
-                >
-                  {tier.cta}
-                </CtaButton>
-              </Box>
-            </Grid>
+              </AccordionDetails>
+            </Accordion>
           ))}
-        </Grid>
+        </Box>
       </Container>
     </SectionWrapper>
   );
