@@ -13,6 +13,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.text.Normalizer;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -34,11 +36,10 @@ public class TenantService {
         Tenant tenant = Tenant.builder()
                 .name(name)
                 .slug(resolvedSlug)
-                .status(TenantStatus.ACTIVE)
-                .billingPlan(plan != null ? plan : BillingPlan.FREE)
-                .maxUsers(planToMaxUsers(plan))
-                .maxStores(planToMaxStores(plan))
+                .status(TenantStatus.TRIAL)
+                .billingPlan(plan != null ? plan : BillingPlan.STARTER)
                 .build();
+        tenant.deriveLimits();
         try {
             tenant = tenantRepository.save(tenant);
         } catch (DataIntegrityViolationException e) {
@@ -74,8 +75,7 @@ public class TenantService {
         });
         plan.ifPresent(p -> {
             tenant.setBillingPlan(p);
-            tenant.setMaxUsers(planToMaxUsers(p));
-            tenant.setMaxStores(planToMaxStores(p));
+            tenant.deriveLimits();
         });
         return tenantRepository.save(tenant);
     }
@@ -93,23 +93,104 @@ public class TenantService {
                 .replaceAll("-{2,}", "-");
     }
 
-    private static int planToMaxUsers(BillingPlan plan) {
-        if (plan == null) return 5;
-        return switch (plan) {
-            case FREE -> 5;
-            case STARTER -> 20;
-            case PRO -> 100;
-            case ENTERPRISE -> Integer.MAX_VALUE;
-        };
+    @Transactional
+    public Tenant suspend(UUID id, String reason) {
+        Tenant tenant = getById(id);
+        if (tenant.getStatus() == TenantStatus.SUSPENDED) {
+            throw new IllegalStateException("Tenant is already suspended");
+        }
+        tenant.setStatus(TenantStatus.SUSPENDED);
+        tenant.setStatusChangedAt(Instant.now());
+        tenant.setStatusReason(reason);
+        log.warn("Tenant suspended: id={}, reason={}", id, reason);
+        return tenantRepository.save(tenant);
     }
 
-    private static int planToMaxStores(BillingPlan plan) {
-        if (plan == null) return 1;
-        return switch (plan) {
-            case FREE -> 1;
-            case STARTER -> 5;
-            case PRO -> 25;
-            case ENTERPRISE -> Integer.MAX_VALUE;
-        };
+    @Transactional
+    public Tenant reactivate(UUID id) {
+        Tenant tenant = getById(id);
+        if (tenant.getStatus() != TenantStatus.SUSPENDED && tenant.getStatus() != TenantStatus.TRIAL_EXPIRED) {
+            throw new IllegalStateException("Tenant is not suspended or trial-expired");
+        }
+        tenant.setStatus(TenantStatus.ACTIVE);
+        tenant.setStatusChangedAt(Instant.now());
+        tenant.setStatusReason(null);
+        log.info("Tenant reactivated: id={}", id);
+        return tenantRepository.save(tenant);
+    }
+
+    @Transactional
+    public Tenant close(UUID id, String reason) {
+        Tenant tenant = getById(id);
+        tenant.setStatus(TenantStatus.CLOSED);
+        tenant.setStatusChangedAt(Instant.now());
+        tenant.setStatusReason(reason);
+        log.warn("Tenant closed: id={}, reason={}", id, reason);
+        return tenantRepository.save(tenant);
+    }
+
+    @Transactional
+    public Tenant handleTrialExpiry(UUID id) {
+        Tenant tenant = getById(id);
+        if (tenant.getStatus() == TenantStatus.TRIAL && tenant.isTrialExpired()) {
+            tenant.setStatus(TenantStatus.TRIAL_EXPIRED);
+            tenant.setBillingPlan(BillingPlan.FREE);
+            tenant.deriveLimits();
+            tenant.setStatusChangedAt(Instant.now());
+            tenant.setStatusReason("Trial period ended");
+            log.info("Trial expired for tenant: id={}", id);
+            return tenantRepository.save(tenant);
+        }
+        return tenant;
+    }
+
+    @Transactional
+    public Tenant markPastDue(UUID id) {
+        Tenant tenant = getById(id);
+        if (tenant.getStatus() != TenantStatus.ACTIVE) {
+            throw new IllegalStateException("Only active tenants can become past due");
+        }
+        tenant.setStatus(TenantStatus.PAST_DUE);
+        tenant.setStatusChangedAt(Instant.now());
+        tenant.setStatusReason("Payment failed");
+        log.warn("Tenant marked past due: id={}", id);
+        return tenantRepository.save(tenant);
+    }
+
+    @Transactional
+    public Tenant restoreFromPastDue(UUID id) {
+        Tenant tenant = getById(id);
+        if (tenant.getStatus() != TenantStatus.PAST_DUE) {
+            throw new IllegalStateException("Tenant is not past due");
+        }
+        tenant.setStatus(TenantStatus.ACTIVE);
+        tenant.setStatusChangedAt(Instant.now());
+        tenant.setStatusReason(null);
+        log.info("Tenant restored from past due: id={}", id);
+        return tenantRepository.save(tenant);
+    }
+
+    @Transactional
+    public int expireTrials() {
+        List<Tenant> expiredTrials = tenantRepository
+                .findByStatusAndTrialEndsAtBefore(TenantStatus.TRIAL, Instant.now());
+        for (Tenant t : expiredTrials) {
+            handleTrialExpiry(t.getId());
+        }
+        return expiredTrials.size();
+    }
+
+    @Transactional
+    public int suspendPastDueAccounts() {
+        Instant cutoff = Instant.now().minus(7, ChronoUnit.DAYS);
+        List<Tenant> pastDue = tenantRepository
+                .findByStatusAndStatusChangedAtBefore(TenantStatus.PAST_DUE, cutoff);
+        for (Tenant t : pastDue) {
+            t.setStatus(TenantStatus.SUSPENDED);
+            t.setStatusChangedAt(Instant.now());
+            t.setStatusReason("Payment grace period expired");
+            tenantRepository.save(t);
+        }
+        return pastDue.size();
     }
 }
