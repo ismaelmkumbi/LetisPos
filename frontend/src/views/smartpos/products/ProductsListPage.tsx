@@ -98,6 +98,7 @@ export default function ProductsListPage() {
     const [id, dir] = s.split(',');
     return { id, desc: dir === 'desc' };
   });
+  const variantFilter = searchParams.get('variant') === 'true';
 
   // ── Sync state → URL (single effect, debounced) ────────────────────────────
   useEffect(() => {
@@ -310,9 +311,10 @@ export default function ProductsListPage() {
       })
         .then((p) => {
           if (!cancelled) {
-            setRows(p.content);
-            setTotalPages(p.totalPages || 1);
-            setTotalElements(p.totalElements || 0);
+            const filtered = variantFilter ? p.content.filter((product) => product.variant) : p.content;
+            setRows(filtered);
+            setTotalPages(variantFilter ? Math.ceil(filtered.length / 20) || 1 : (p.totalPages || 1));
+            setTotalElements(variantFilter ? filtered.length : (p.totalElements || 0));
           }
         })
         .catch((e) => {
@@ -326,7 +328,7 @@ export default function ProductsListPage() {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [search, page, refreshToken, statusFilter, categoryFilter, brandFilter, sort]);
+  }, [search, page, refreshToken, statusFilter, categoryFilter, brandFilter, sort, variantFilter]);
 
   // ── Lookup helpers ─────────────────────────────────────────────────────────
   const catName = useCallback((id: string | null | undefined) =>
@@ -917,8 +919,8 @@ export default function ProductsListPage() {
   return (
     <Box sx={{ minWidth: 0, maxWidth: '100%' }}>
       <PageHeader
-        title={t('nav.products')}
-        subtitle="Manage your inventory, pricing and stock in one place."
+        title={variantFilter ? 'Variants' : t('nav.products')}
+        subtitle={variantFilter ? 'Products with size, colour, or other variations.' : 'Manage your inventory, pricing and stock in one place.'}
         actions={[
           {
             label: 'Smart import',

@@ -11,6 +11,7 @@ export interface ProductSearchParams {
   brandId?: UUID;
   status?: boolean;
   featured?: boolean;
+  variant?: boolean;
   page?: number;
   size?: number;
   sort?: string;        // "name,asc" or "createdAt,desc"

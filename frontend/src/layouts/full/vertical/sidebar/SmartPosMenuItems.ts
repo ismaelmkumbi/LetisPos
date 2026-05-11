@@ -108,7 +108,7 @@ export function buildSmartPosMenu(t: TFunction): MenuItem[] {
     { id: uid(), title: t('smartpos:nav.categories'), icon: IconTag, href: '/smartpos/products/categories' },
     { id: uid(), title: t('smartpos:nav.brands'), icon: IconBuildingStore, href: '/smartpos/products/brands' },
     { id: uid(), title: t('smartpos:nav.units'), icon: IconRuler, href: '/smartpos/products/units' },
-    { id: uid(), title: 'Variants', icon: IconBox, ...soon },
+    { id: uid(), title: 'Variants', icon: IconBox, href: '/smartpos/products?variant=true' },
     { id: uid(), title: t('smartpos:nav.barcodes'), icon: IconBarcode, href: '/smartpos/products/barcodes' },
     { id: uid(), title: t('smartpos:nav.serials'), icon: IconBookmarks, href: '/smartpos/products/serials' },
     { id: uid(), title: 'Bundles / Kits', icon: IconPackage, ...soon },
