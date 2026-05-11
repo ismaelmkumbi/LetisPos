@@ -193,8 +193,6 @@ export function buildSmartPosMenu(t: TFunction): MenuItem[] {
     { id: uid(), title: t('smartpos:nav.attendance'), icon: IconClock, href: '/smartpos/hrm/attendance' },
     { id: uid(), title: t('smartpos:nav.leave_requests'), icon: IconBeach, href: '/smartpos/hrm/leave' },
     { id: uid(), title: t('smartpos:nav.payroll'), icon: IconWallet, href: '/smartpos/hrm/payroll' },
-    { id: uid(), title: t('smartpos:nav.users_roles'), icon: IconUserShield, href: '/smartpos/settings/users' },
-
     // ── Marketing ───────────────────────────────────────────────────────
     { subheader: 'Marketing' },
     { id: uid(), title: 'Promotions', icon: IconGift, ...soon },
@@ -241,7 +239,8 @@ export function buildSmartPosMenu(t: TFunction): MenuItem[] {
     // ── Administration ──────────────────────────────────────────────────
     { subheader: 'Administration' },
     { id: uid(), title: t('smartpos:nav.preferences'), icon: IconSettings, href: '/smartpos/settings' },
-    { id: uid(), title: 'Branches', icon: IconBuilding, ...soon },
+    { id: uid(), title: t('smartpos:nav.users_roles'), icon: IconUserShield, href: '/smartpos/settings/users' },
+    { id: uid(), title: 'Branches', icon: IconBuilding, href: '/smartpos/admin/branches' },
     { id: uid(), title: t('smartpos:nav.pos_terminals'), icon: IconDeviceDesktop, href: '/smartpos/pos/terminals' },
     { id: uid(), title: t('smartpos:nav.receipt_settings'), icon: IconReceipt, href: '/smartpos/settings/receipt' },
     { id: uid(), title: 'Printer Settings', icon: IconPrinter, href: '/smartpos/settings/printers' },
@@ -250,7 +249,7 @@ export function buildSmartPosMenu(t: TFunction): MenuItem[] {
     { id: uid(), title: t('smartpos:nav.localization'), icon: IconWorld, href: '/smartpos/settings/locale' },
     { id: uid(), title: 'Audit Logs', icon: IconHistory, ...soon },
     { id: uid(), title: 'Backups', icon: IconDownload, ...soon },
-    { id: uid(), title: 'Subscription & Billing', icon: IconCreditCard, ...soon },
+    { id: uid(), title: 'Subscription & Billing', icon: IconCreditCard, href: '/smartpos/admin/billing' },
     { id: uid(), title: t('smartpos:nav.tenants'), icon: IconBuilding, href: '/smartpos/settings/tenants' },
     { id: uid(), title: 'Notifications', icon: IconBellRinging, href: '/smartpos/settings/notifications' },
 
