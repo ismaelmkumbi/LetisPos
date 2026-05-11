@@ -176,7 +176,7 @@ public class StatsService {
     public record PurchaseStats(long count, BigDecimal gross, BigDecimal paid, BigDecimal due) {}
 
     @Transactional(readOnly = true)
-    public PurchaseStats purchaseStats(LocalDate from, LocalDate to, UUID warehouseId) {
+    public PurchaseStats purchaseStats(LocalDate from, LocalDate to, UUID warehouseId, UUID supplierId) {
         String jpql = """
             SELECT COUNT(p),
                    COALESCE(SUM(p.grandTotal), 0),
@@ -186,12 +186,14 @@ public class StatsService {
               AND (CAST(:dateFrom    AS java.time.LocalDate) IS NULL OR p.date >= :dateFrom)
               AND (CAST(:dateTo      AS java.time.LocalDate) IS NULL OR p.date <= :dateTo)
               AND (CAST(:warehouseId AS java.util.UUID)      IS NULL OR p.warehouseId = :warehouseId)
+              AND (CAST(:supplierId  AS java.util.UUID)      IS NULL OR p.supplierId  = :supplierId)
             """;
         Object[] row = (Object[]) em.createQuery(jpql)
                 .setParameter("tenantId", TenantContext.require())
                 .setParameter("dateFrom", from)
                 .setParameter("dateTo", to)
                 .setParameter("warehouseId", warehouseId)
+                .setParameter("supplierId", supplierId)
                 .getSingleResult();
         long count = ((Number) row[0]).longValue();
         BigDecimal gross = (BigDecimal) row[1];

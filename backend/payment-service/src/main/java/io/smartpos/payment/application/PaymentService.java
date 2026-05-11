@@ -174,6 +174,67 @@ public class PaymentService {
                 ));
     }
 
+    @Transactional
+    public io.smartpos.payment.api.dto.SupplierPaymentDto recordSupplierPayment(
+            io.smartpos.payment.api.dto.SupplierPaymentDto.CreateSupplierPaymentRequest req, UUID userId) {
+
+        UUID tenantId = TenantContext.require();
+        UUID referenceId = req.purchaseId() != null ? req.purchaseId() : req.supplierId();
+
+        PaymentDto.CreateRequest paymentReq = new PaymentDto.CreateRequest(
+                req.date() != null ? req.date() : LocalDate.now(),
+                ReferenceType.PURCHASE,
+                referenceId,
+                req.accountId(),
+                req.amount(),
+                null, // currency — use default
+                req.method(),
+                req.reference(),
+                req.notes()
+        );
+        PaymentDto payment = recordInternal(paymentReq, userId, tenantId);
+
+        // Look up supplier name and purchase ref for the response DTO
+        String supplierName = null;
+        String purchaseRef = null;
+        try {
+            if (req.purchaseId() != null) {
+                var pur = salesClient.getPurchase(req.purchaseId());
+                if (pur != null) {
+                    purchaseRef = pur.ref() != null ? pur.ref() : null;
+                    supplierName = pur.supplierName() != null ? pur.supplierName() : null;
+                    if (supplierName == null) {
+                        supplierName = pur.supplierId() != null ? pur.supplierId().toString() : null;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Failed to look up purchase/supplier details for supplier payment: {}", e.getMessage());
+        }
+
+        // Try to get account name
+        String accountName = null;
+        try {
+            accountName = accountRepo.findById(req.accountId()).map(a -> a.getName()).orElse(null);
+        } catch (Exception e) {
+            log.warn("Failed to look up account name: {}", e.getMessage());
+        }
+
+        return new io.smartpos.payment.api.dto.SupplierPaymentDto(
+                payment.id(),
+                req.supplierId(),
+                supplierName != null ? supplierName : req.supplierId().toString(),
+                referenceId,
+                purchaseRef != null ? purchaseRef : (req.purchaseId() != null ? req.purchaseId().toString() : "—"),
+                payment.amount(),
+                payment.method().name(),
+                payment.externalRef(),
+                payment.date(),
+                req.accountId(),
+                accountName != null ? accountName : req.accountId().toString()
+        );
+    }
+
     // ---- helpers ----
 
     private void reconcileWithSales(Payment p) {

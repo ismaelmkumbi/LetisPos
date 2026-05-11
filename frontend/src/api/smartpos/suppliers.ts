@@ -65,6 +65,21 @@ export async function toggleSupplierActive(id: UUID): Promise<Supplier> {
   return data;
 }
 
+// ---------- Balance ----------
+
+export interface SupplierBalance {
+  supplierId: UUID;
+  supplierName: string;
+  totalPurchases: number;
+  totalPaid: number;
+  balance: number;
+}
+
+export async function getSupplierBalance(id: UUID): Promise<SupplierBalance> {
+  const { data } = await api.get<SupplierBalance>(`/api/v1/suppliers/${id}/balance`);
+  return data;
+}
+
 // ---------- Summary / stats ----------
 
 export interface SupplierSummary {

@@ -343,7 +343,23 @@ export interface SupplierPaymentSearchParams {
   size?: number;
 }
 
+export interface CreateSupplierPaymentRequest {
+  supplierId: UUID;
+  amount: number;
+  method: string;
+  accountId: UUID;
+  reference?: string;
+  purchaseId?: UUID;
+  date?: string;
+  notes?: string;
+}
+
 export async function listSupplierPayments(params: SupplierPaymentSearchParams = {}): Promise<Page<SupplierPayment>> {
   const { data } = await api.get<Page<SupplierPayment>>('/api/v1/payments/supplier', { params });
+  return data;
+}
+
+export async function createSupplierPayment(body: CreateSupplierPaymentRequest): Promise<SupplierPayment> {
+  const { data } = await api.post<SupplierPayment>('/api/v1/payments/supplier', body);
   return data;
 }

@@ -58,7 +58,8 @@ public class StatsController {
     @PreAuthorize("hasAuthority('report.sales') or hasAuthority('purchase.view')")
     public StatsService.PurchaseStats purchaseStats(@RequestParam(required = false) LocalDate dateFrom,
                                                     @RequestParam(required = false) LocalDate dateTo,
-                                                    @RequestParam(required = false) UUID warehouseId) {
-        return stats.purchaseStats(dateFrom, dateTo, warehouseId);
+                                                    @RequestParam(required = false) UUID warehouseId,
+                                                    @RequestParam(required = false) UUID supplierId) {
+        return stats.purchaseStats(dateFrom, dateTo, warehouseId, supplierId);
     }
 }

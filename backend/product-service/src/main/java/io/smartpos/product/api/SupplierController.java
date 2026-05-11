@@ -1,5 +1,6 @@
 package io.smartpos.product.api;
 
+import io.smartpos.product.api.dto.SupplierBalanceDto;
 import io.smartpos.product.api.dto.SupplierDto;
 import io.smartpos.product.application.SupplierService;
 import jakarta.validation.Valid;
@@ -31,6 +32,12 @@ public class SupplierController {
     @GetMapping("/{id}")
     @PreAuthorize("hasAuthority('supplier.manage')")
     public SupplierDto get(@PathVariable UUID id) { return service.get(id); }
+
+    @GetMapping("/{id}/balance")
+    @PreAuthorize("hasAuthority('supplier.manage')")
+    public SupplierBalanceDto getBalance(@PathVariable UUID id) {
+        return service.getBalance(id);
+    }
 
     @PostMapping
     @PreAuthorize("hasAuthority('supplier.manage')")

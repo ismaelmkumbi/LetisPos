@@ -300,6 +300,134 @@ export async function postStockCount(id: UUID): Promise<StockCount> {
   return data;
 }
 
+// ---------- Goods Receipts ----------
+
+export interface GoodsReceiptLine {
+  id: UUID;
+  productId: UUID;
+  variantId?: UUID | null;
+  orderedQty: number;
+  receivedQty: number;
+  unitCost?: number | null;
+}
+
+export interface GoodsReceipt {
+  id: UUID;
+  ref: string;
+  purchaseId?: UUID | null;
+  supplierId?: UUID | null;
+  warehouseId: UUID;
+  date: string;
+  status: 'DRAFT' | 'POSTED';
+  notes?: string | null;
+  lines: GoodsReceiptLine[];
+}
+
+export interface CreateGoodsReceiptLine {
+  productId: UUID;
+  variantId?: UUID | null;
+  orderedQty: number;
+  receivedQty: number;
+  unitCost?: number | null;
+}
+
+export interface CreateGoodsReceiptRequest {
+  purchaseId?: UUID;
+  supplierId?: UUID;
+  warehouseId: UUID;
+  date?: string;
+  notes?: string;
+  lines: CreateGoodsReceiptLine[];
+}
+
+export async function listGoodsReceipts(params: {
+  page?: number; size?: number; sort?: string;
+} = {}): Promise<Page<GoodsReceipt>> {
+  const { data } = await api.get<Page<GoodsReceipt>>('/api/v1/goods-receipts', { params });
+  return data;
+}
+
+export async function getGoodsReceipt(id: UUID): Promise<GoodsReceipt> {
+  const { data } = await api.get<GoodsReceipt>(`/api/v1/goods-receipts/${id}`);
+  return data;
+}
+
+export async function createGoodsReceipt(body: CreateGoodsReceiptRequest): Promise<GoodsReceipt> {
+  const { data } = await api.post<GoodsReceipt>('/api/v1/goods-receipts', body);
+  return data;
+}
+
+export async function postGoodsReceipt(id: UUID): Promise<GoodsReceipt> {
+  const { data } = await api.post<GoodsReceipt>(`/api/v1/goods-receipts/${id}/post`);
+  return data;
+}
+
+// ---------- Supplier Returns ----------
+
+export interface SupplierReturnLine {
+  id: UUID;
+  productId: UUID;
+  variantId?: UUID | null;
+  qty: number;
+  unitCost?: number | null;
+  reasonCode?: string | null;
+}
+
+export interface SupplierReturn {
+  id: UUID;
+  ref: string;
+  purchaseId?: UUID | null;
+  supplierId?: UUID | null;
+  warehouseId: UUID;
+  date: string;
+  status: 'DRAFT' | 'POSTED';
+  reason?: string | null;
+  reasonCode?: string | null;
+  notes?: string | null;
+  lines: SupplierReturnLine[];
+}
+
+export interface CreateSupplierReturnLine {
+  productId: UUID;
+  variantId?: UUID | null;
+  qty: number;
+  unitCost?: number | null;
+  reasonCode?: string;
+}
+
+export interface CreateSupplierReturnRequest {
+  purchaseId?: UUID;
+  supplierId?: UUID;
+  warehouseId: UUID;
+  date?: string;
+  reason?: string;
+  reasonCode?: string;
+  notes?: string;
+  lines: CreateSupplierReturnLine[];
+}
+
+export async function listSupplierReturns(params: {
+  page?: number; size?: number; sort?: string;
+} = {}): Promise<Page<SupplierReturn>> {
+  const { data } = await api.get<Page<SupplierReturn>>('/api/v1/supplier-returns', { params });
+  return data;
+}
+
+export async function getSupplierReturn(id: UUID): Promise<SupplierReturn> {
+  const { data } = await api.get<SupplierReturn>(`/api/v1/supplier-returns/${id}`);
+  return data;
+}
+
+export async function createSupplierReturn(body: CreateSupplierReturnRequest): Promise<SupplierReturn> {
+  const { data } = await api.post<SupplierReturn>('/api/v1/supplier-returns', body);
+  return data;
+}
+
+export async function postSupplierReturn(id: UUID): Promise<SupplierReturn> {
+  const { data } = await api.post<SupplierReturn>(`/api/v1/supplier-returns/${id}/post`);
+  return data;
+}
+
 // ---------- Stock summary (dashboard) ----------
 
 export interface WarehouseSummary {

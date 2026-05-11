@@ -2,6 +2,7 @@ package io.smartpos.payment.infrastructure.feign;
 
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -28,6 +29,9 @@ public interface SalesClient {
      */
     record ApplyPaymentRequest(UUID paymentId, BigDecimal amount) {}
 
+    /** Lightweight purchase projection used only by Payment Service + SupplierPayment flow. */
+    record PurchaseSummary(UUID id, String ref, UUID supplierId, String supplierName) {}
+
     @PostMapping("/api/v1/sales/{id}/apply-payment")
     ResponseEntity<Void> applySalePayment(@PathVariable("id") UUID saleId,
                                           @RequestBody ApplyPaymentRequest body);
@@ -35,4 +39,7 @@ public interface SalesClient {
     @PostMapping("/api/v1/purchases/{id}/apply-payment")
     ResponseEntity<Void> applyPurchasePayment(@PathVariable("id") UUID purchaseId,
                                               @RequestBody ApplyPaymentRequest body);
+
+    @GetMapping("/api/v1/purchases/{id}")
+    PurchaseSummary getPurchase(@PathVariable("id") UUID purchaseId);
 }
