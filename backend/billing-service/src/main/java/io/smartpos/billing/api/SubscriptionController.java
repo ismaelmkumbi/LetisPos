@@ -1,8 +1,10 @@
 package io.smartpos.billing.api;
 
 import io.smartpos.billing.application.StripeBillingService;
+import io.smartpos.billing.domain.model.Invoice;
 import io.smartpos.billing.domain.model.PlanDefinition;
 import io.smartpos.billing.domain.model.Subscription;
+import io.smartpos.billing.domain.repository.InvoiceRepository;
 import io.smartpos.billing.domain.repository.PlanDefinitionRepository;
 import io.smartpos.billing.domain.repository.SubscriptionRepository;
 import lombok.RequiredArgsConstructor;
@@ -10,6 +12,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Map;
 import java.util.UUID;
 
@@ -20,6 +24,7 @@ public class SubscriptionController {
 
     private final SubscriptionRepository subscriptionRepo;
     private final PlanDefinitionRepository planRepo;
+    private final InvoiceRepository invoiceRepo;
     private final StripeBillingService stripeBillingService;
 
     @GetMapping("/tenant/{tenantId}")
@@ -33,7 +38,28 @@ public class SubscriptionController {
     @PostMapping("/admin")
     @PreAuthorize("hasAuthority('billing.manage')")
     public ResponseEntity<Subscription> create(@RequestBody Subscription subscription) {
-        return ResponseEntity.ok(subscriptionRepo.save(subscription));
+        Subscription saved = subscriptionRepo.save(subscription);
+
+        // Auto-generate invoice on subscription creation
+        long amount = "ANNUAL".equals(saved.getBillingCycle())
+            ? planRepo.findByCode(saved.getPlanCode())
+                .map(PlanDefinition::getAnnualPriceTzs)
+                .orElse(0L)
+            : planRepo.findByCode(saved.getPlanCode())
+                .map(PlanDefinition::getMonthlyPriceTzs)
+                .orElse(0L);
+
+        Invoice invoice = Invoice.builder()
+            .tenantId(saved.getTenantId())
+            .subscriptionId(saved.getId())
+            .invoiceNumber("INV-" + System.currentTimeMillis())
+            .amountTzs(amount)
+            .status("PENDING")
+            .dueDate(Instant.now().plus(7, ChronoUnit.DAYS))
+            .build();
+        invoiceRepo.save(invoice);
+
+        return ResponseEntity.ok(saved);
     }
 
     @PatchMapping("/admin/{id}")
