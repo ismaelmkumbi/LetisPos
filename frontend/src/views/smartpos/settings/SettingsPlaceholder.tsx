@@ -67,6 +67,9 @@ import { useOnboarding } from 'src/context/smartpos/OnboardingContext';
 import {
   fetchTenant as apiFetchTenant,
   updateTenant as apiUpdateTenant,
+  suspendTenant,
+  reactivateTenant,
+  closeTenant,
 } from 'src/api/smartpos/auth';
 import {
   getPosSettings,
@@ -1584,6 +1587,47 @@ export function TenantsSettings() {
   const [tenantSettings, setTenantSettings] = useState<Record<string, boolean>>({});
   const [dirty, setDirty] = useState(false);
 
+  const [lifecycleConfirm, setLifecycleConfirm] = useState<{
+    action: 'suspend' | 'reactivate' | 'close';
+    reason?: string;
+  } | null>(null);
+  const [lifecycleLoading, setLifecycleLoading] = useState(false);
+
+  const handleLifecycle = async () => {
+    if (!lifecycleConfirm || !tenant) return;
+    setLifecycleLoading(true);
+    try {
+      let updated: {
+        id: string;
+        name: string;
+        slug: string;
+        status: string;
+        billingPlan: string;
+        maxUsers: number;
+        maxStores: number;
+        settings: string;
+      };
+      switch (lifecycleConfirm.action) {
+        case 'suspend':
+          updated = await suspendTenant(tenant.id, lifecycleConfirm.reason || 'Admin action');
+          break;
+        case 'reactivate':
+          updated = await reactivateTenant(tenant.id);
+          break;
+        case 'close':
+          updated = await closeTenant(tenant.id, lifecycleConfirm.reason || 'Admin action');
+          break;
+      }
+      setTenant(updated);
+      setLifecycleConfirm(null);
+      setDirty(false);
+    } catch (e) {
+      // lifecycle error is shown inline
+    } finally {
+      setLifecycleLoading(false);
+    }
+  };
+
   const loadTenant = useCallback(async () => {
     if (!user?.tenantId) {
       setLoading(false);
@@ -1643,9 +1687,10 @@ export function TenantsSettings() {
   };
 
   const planMeta: Record<string, { label: string; users: number; stores: number }> = {
-    FREE: { label: 'Free', users: 5, stores: 1 },
-    STARTER: { label: 'Starter', users: 20, stores: 5 },
-    PRO: { label: 'Pro', users: 100, stores: 25 },
+    FREE: { label: 'Free', users: 1, stores: 1 },
+    STARTER: { label: 'Starter', users: 5, stores: 1 },
+    BUSINESS: { label: 'Business', users: 20, stores: 5 },
+    PROFESSIONAL: { label: 'Professional', users: 100, stores: 25 },
     ENTERPRISE: { label: 'Enterprise', users: -1, stores: -1 },
   };
 
@@ -1673,9 +1718,9 @@ export function TenantsSettings() {
         badge={{
           label: planMeta[plan]?.label || plan,
           tone:
-            plan === 'ENTERPRISE'
+            plan === 'ENTERPRISE' || plan === 'PROFESSIONAL'
               ? 'primary'
-              : plan === 'PRO'
+              : plan === 'BUSINESS'
                 ? 'primary'
                 : plan === 'STARTER'
                   ? 'success'
@@ -1762,6 +1807,38 @@ export function TenantsSettings() {
                   }
                 />
               </Box>
+            </Stack>
+            <Stack direction="row" spacing={1} sx={{ mt: 1.5 }}>
+              {(tenant.status === 'ACTIVE' || tenant.status === 'TRIAL' || tenant.status === 'PAST_DUE') && (
+                <Button
+                  size="small"
+                  color="warning"
+                  variant="outlined"
+                  onClick={() => setLifecycleConfirm({ action: 'suspend' })}
+                >
+                  Suspend
+                </Button>
+              )}
+              {(tenant.status === 'SUSPENDED' || tenant.status === 'TRIAL_EXPIRED') && (
+                <Button
+                  size="small"
+                  color="success"
+                  variant="outlined"
+                  onClick={() => setLifecycleConfirm({ action: 'reactivate' })}
+                >
+                  Reactivate
+                </Button>
+              )}
+              {tenant.status !== 'CLOSED' && (
+                <Button
+                  size="small"
+                  color="error"
+                  variant="outlined"
+                  onClick={() => setLifecycleConfirm({ action: 'close' })}
+                >
+                  Close
+                </Button>
+              )}
             </Stack>
           </Stack>
         </Box>
@@ -1907,6 +1984,45 @@ export function TenantsSettings() {
           </Stack>
         </Box>
       </Stack>
+
+      {/* ── Lifecycle confirmation dialog ── */}
+      <Dialog open={!!lifecycleConfirm} onClose={() => setLifecycleConfirm(null)} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          {lifecycleConfirm?.action === 'suspend' ? 'Suspend Tenant' :
+           lifecycleConfirm?.action === 'reactivate' ? 'Reactivate Tenant' :
+           'Close Tenant'}
+        </DialogTitle>
+        <DialogContent>
+          <Typography sx={{ mb: 2 }}>
+            {lifecycleConfirm?.action === 'suspend'
+              ? 'This will block all users from accessing the workspace. Data is preserved.'
+              : lifecycleConfirm?.action === 'reactivate'
+              ? 'This will restore access for all users.'
+              : 'This permanently closes the workspace. Data will be deleted after 90 days.'}
+          </Typography>
+          {(lifecycleConfirm?.action === 'suspend' || lifecycleConfirm?.action === 'close') && (
+            <TextField
+              label="Reason"
+              fullWidth
+              multiline
+              rows={2}
+              value={lifecycleConfirm?.reason ?? ''}
+              onChange={(e) => setLifecycleConfirm({ ...lifecycleConfirm!, reason: e.target.value })}
+            />
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setLifecycleConfirm(null)}>Cancel</Button>
+          <Button
+            variant="contained"
+            color={lifecycleConfirm?.action === 'close' ? 'error' : 'primary'}
+            onClick={handleLifecycle}
+            disabled={lifecycleLoading}
+          >
+            {lifecycleLoading ? 'Processing…' : 'Confirm'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {dirty && (
         <FloatingSaveBar
