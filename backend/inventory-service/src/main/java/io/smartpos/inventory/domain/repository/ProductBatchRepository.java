@@ -16,4 +16,7 @@ public interface ProductBatchRepository extends JpaRepository<ProductBatch, UUID
 
     List<ProductBatch> findByWarehouseIdAndExpiryDateBeforeAndStatusAndOnHandGreaterThan(
             UUID warehouseId, LocalDate expiryBefore, String status, BigDecimal minOnHand);
+
+    List<ProductBatch> findByExpiryDateBeforeAndStatusAndOnHandGreaterThan(
+            LocalDate expiryBefore, String status, BigDecimal minOnHand);
 }

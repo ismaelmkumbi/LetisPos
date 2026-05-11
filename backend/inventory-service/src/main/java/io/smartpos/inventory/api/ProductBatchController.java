@@ -52,7 +52,7 @@ public class ProductBatchController {
     @GetMapping("/expiring")
     @PreAuthorize("hasAuthority('product.view')")
     public List<ProductBatchDto> expiring(
-            @RequestParam UUID warehouseId,
+            @RequestParam(required = false) UUID warehouseId,
             @RequestParam(defaultValue = "30") int withinDays) {
         return service.getExpiring(warehouseId, withinDays);
     }

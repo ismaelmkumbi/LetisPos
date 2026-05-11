@@ -143,8 +143,15 @@ public class ProductBatchService {
     @Transactional(readOnly = true)
     public List<ProductBatchDto> getExpiring(UUID warehouseId, int withinDays) {
         LocalDate cutoff = LocalDate.now().plusDays(withinDays);
-        return batchRepo.findByWarehouseIdAndExpiryDateBeforeAndStatusAndOnHandGreaterThan(
-                        warehouseId, cutoff, "ACTIVE", BigDecimal.ZERO)
+        if (warehouseId != null) {
+            return batchRepo.findByWarehouseIdAndExpiryDateBeforeAndStatusAndOnHandGreaterThan(
+                            warehouseId, cutoff, "ACTIVE", BigDecimal.ZERO)
+                    .stream()
+                    .map(ProductBatchDto::from)
+                    .toList();
+        }
+        return batchRepo.findByExpiryDateBeforeAndStatusAndOnHandGreaterThan(
+                        cutoff, "ACTIVE", BigDecimal.ZERO)
                 .stream()
                 .map(ProductBatchDto::from)
                 .toList();
