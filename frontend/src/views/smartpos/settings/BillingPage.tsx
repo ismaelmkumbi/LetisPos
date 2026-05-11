@@ -5,7 +5,7 @@ import {
   Button,
   Chip,
   CircularProgress,
-  Grid2,
+  Grid,
   Stack,
   Typography,
 } from '@mui/material';
@@ -101,7 +101,7 @@ export default function BillingPage() {
           <CircularProgress size={36} sx={{ color: brand.primary[600] }} />
         </Box>
       ) : (
-        <Grid2 container spacing={2.5}>
+        <Grid container spacing={2.5}>
           {plans.map((plan) => {
             const isPopular = plan.code === 'BUSINESS';
             const features = parseFeatures(plan.features);
@@ -110,7 +110,7 @@ export default function BillingPage() {
               .map(([k]) => k);
 
             return (
-              <Grid2 key={plan.id} size={{ xs: 12, sm: 6, lg: 4 }}>
+              <Grid key={plan.id} size={{ xs: 12, sm: 6, lg: 4 }}>
                 <Box
                   sx={{
                     p: 2.5,
@@ -290,10 +290,10 @@ export default function BillingPage() {
                     </Stack>
                   </Box>
                 </Box>
-              </Grid2>
+              </Grid>
             );
           })}
-        </Grid2>
+        </Grid>
       )}
     </Box>
   );

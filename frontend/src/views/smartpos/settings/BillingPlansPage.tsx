@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Alert, Box, Chip, Stack, Typography } from '@mui/material';
 import { IconFileInvoice } from '@tabler/icons-react';
 
@@ -40,7 +40,6 @@ export default function BillingPlansPage() {
   const [rows, setRows] = useState<PlanDefinition[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [refreshToken, setRefreshToken] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -61,7 +60,7 @@ export default function BillingPlansPage() {
     return () => {
       cancelled = true;
     };
-  }, [refreshToken]);
+  }, []);
 
   const columns: Column<PlanDefinition>[] = useMemo(
     () => [
