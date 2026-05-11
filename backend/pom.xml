@@ -35,6 +35,7 @@
         <module>document-service</module>
         <module>integration-service</module>
         <module>billing-service</module>
+        <module>audit-service</module>
         <module>gateway</module>
     </modules>
 
