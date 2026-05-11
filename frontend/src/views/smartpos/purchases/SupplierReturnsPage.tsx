@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { Alert, Box, Button, Chip, MenuItem, Stack, TextField, Typography } from '@mui/material';
 import { IconArrowBackUp, IconCheck } from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
-import { useTranslation } from 'react-i18next';
 
 import {
   searchPurchaseReturns, completePurchaseReturn,
@@ -26,14 +25,12 @@ const STATUS_TONE: Record<string, { bg: string; fg: string }> = {
 };
 
 export default function SupplierReturnsPage() {
-  const { t } = useTranslation('smartpos');
   const nav = useNavigate();
   const [rows, setRows] = useState<PurchaseReturn[]>([]);
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [search, setSearch] = useState('');
   const [status, setStatus] = useState<string>('');
   const [supplierId, setSupplierId] = useState<string>('');
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -45,7 +42,6 @@ export default function SupplierReturnsPage() {
     let cancelled = false;
     setLoading(true);
     searchPurchaseReturns({
-      search: search || undefined,
       status: (status || undefined) as PurchaseReturn['status'] | undefined,
       supplierId: supplierId || undefined,
       page, size: PAGE_SIZE,
@@ -54,7 +50,7 @@ export default function SupplierReturnsPage() {
       .catch((e) => { if (!cancelled) setError(e instanceof Error ? e.message : 'Failed to load'); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [search, status, supplierId, page, refreshToken]);
+  }, [status, supplierId, page, refreshToken]);
 
   const handleComplete = async (id: string) => {
     try { await completePurchaseReturn(id); setRefreshToken((n) => n + 1); }
@@ -87,13 +83,13 @@ export default function SupplierReturnsPage() {
     },
     {
       key: 'supplierId', label: 'Supplier', width: 160,
-      render: (r) => (r as any).supplierName ?? suppliers.find((s) => s.id === (r as any).supplierId)?.name ?? '—',
+      render: (r) => suppliers.find((s) => s.id === r.supplierId)?.name ?? '—',
     },
     {
       key: 'purchaseId', label: 'Purchase', width: 120,
       render: (r) => (
         <Typography sx={{ fontFamily: "'DM Mono', 'Courier New', monospace", fontSize: '0.75rem', color: brand.neutral[500] }}>
-          {(r as any).purchaseId?.slice(0, 8)}…
+          {r.purchaseId?.slice(0, 8)}…
         </Typography>
       ),
     },
@@ -160,7 +156,7 @@ export default function SupplierReturnsPage() {
         columns={columns} rows={rows} loading={loading}
         page={page} totalPages={totalPages} onPageChange={setPage}
         getRowKey={(r) => r.id}
-        onRowClick={(r) => nav(`/smartpos/purchases/${(r as any).purchaseId}/edit`)}
+        onRowClick={(r) => nav(`/smartpos/purchases/${r.purchaseId}/edit`)}
         emptyText="No supplier returns in this view"
         enableExport exportFileName="supplier-returns"
         toolbarTitle="Supplier returns"

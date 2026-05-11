@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { Alert, Box, Button, Chip, Stack, Typography } from '@mui/material';
 import { IconClock, IconTrash, IconPlayerPlay, IconEye } from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
-import { useTranslation } from 'react-i18next';
 
 import {
   listSuspendedSales, resumeSuspendedSale, deleteSuspendedSale,
@@ -24,7 +23,6 @@ const PAGE_SIZE = 20;
 const RESUME_CART_KEY = 'smartpos.pos.resumeCart';
 
 export default function SuspendedSalesPage() {
-  const { t } = useTranslation('smartpos');
   const nav = useNavigate();
   const [rows, setRows] = useState<SuspendedSale[]>([]);
   const [page, setPage] = useState(0);

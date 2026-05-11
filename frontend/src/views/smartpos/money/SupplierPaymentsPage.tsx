@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Alert, Box, Chip, MenuItem, Stack, TextField, Typography } from '@mui/material';
 import { useNavigate } from 'react-router';
-import { useTranslation } from 'react-i18next';
 
 import { listSupplierPayments, type SupplierPayment } from 'src/api/smartpos/payments';
 import { listSuppliers } from 'src/api/smartpos/suppliers';
@@ -22,7 +21,6 @@ const METHOD_COLOURS: Record<string, string> = {
 };
 
 export default function SupplierPaymentsPage() {
-  const { t } = useTranslation('smartpos');
   const nav = useNavigate();
   const [rows, setRows] = useState<SupplierPayment[]>([]);
   const [page, setPage] = useState(0);
@@ -60,7 +58,7 @@ export default function SupplierPaymentsPage() {
         </Typography>
       ),
     },
-    { key: 'supplierName', label: 'Supplier', width: 160, render: (p) => <Typography variant="body2" sx={{ fontWeight: 600 }}>{p.supplierName}</Typography> },
+    { key: 'supplierId', label: 'Supplier', width: 160, render: (p) => <Typography variant="body2" sx={{ fontWeight: 600 }}>{suppliers.find((s) => s.id === p.supplierId)?.name ?? p.supplierName}</Typography> },
     {
       key: 'purchaseRef', label: 'Purchase', width: 150,
       render: (p) => (
@@ -94,7 +92,7 @@ export default function SupplierPaymentsPage() {
       key: 'reference', label: 'Reference', width: 150,
       render: (p) => p.reference ? <Typography variant="body2" sx={{ fontFamily: "'DM Mono', 'Courier New', monospace", fontSize: '0.75rem' }}>{p.reference}</Typography> : <Typography sx={{ color: brand.neutral[400] }}>—</Typography>,
     },
-  ], [page]);
+  ], [page, suppliers]);
 
   return (
     <Box>

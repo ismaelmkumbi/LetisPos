@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Alert, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, Stack, TextField, Typography } from '@mui/material';
-import { IconTruckDelivery, IconPackage } from '@tabler/icons-react';
+import { IconPackage } from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
-import { useTranslation } from 'react-i18next';
 
 import {
   listGoodsReceived, receivePurchaseLine,
@@ -12,7 +11,6 @@ import { listSuppliers } from 'src/api/smartpos/suppliers';
 import type { Supplier } from 'src/api/smartpos/types';
 import { PageHeader } from 'src/components/smartpos/PageHeader';
 import DataTable, { type Column } from 'src/components/smartpos/DataTable';
-import FilterBar from 'src/components/smartpos/FilterBar';
 import { brand } from 'src/theme/smartpos/brand';
 
 const PAGE_SIZE = 20;
@@ -24,14 +22,12 @@ const STATUS_TONE: Record<string, { bg: string; fg: string }> = {
 };
 
 export default function GoodsReceivedPage() {
-  const { t } = useTranslation('smartpos');
   const nav = useNavigate();
   const [rows, setRows] = useState<GoodsReceived[]>([]);
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [search, setSearch] = useState('');
   const [supplierId, setSupplierId] = useState<string>('');
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [refreshToken, setRefreshToken] = useState(0);
