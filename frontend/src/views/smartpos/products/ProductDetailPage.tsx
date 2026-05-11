@@ -1653,6 +1653,17 @@ function VariantMatrixBuilder({
                     />
                     <TextField
                       size="small"
+                      label="Min Price"
+                      type="number"
+                      value={v.minPrice ?? ''}
+                      onChange={(e) =>
+                        updateVariant(idx, { minPrice: Number(e.target.value) || undefined })
+                      }
+                      sx={{ width: 100 }}
+                      InputProps={{ sx: { borderRadius: '10px' } }}
+                    />
+                    <TextField
+                      size="small"
                       label="Image URL"
                       value={v.imageUrl ?? ''}
                       onChange={(e) =>
