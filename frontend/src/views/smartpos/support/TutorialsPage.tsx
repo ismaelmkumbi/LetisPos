@@ -5,7 +5,6 @@ import {
   CardContent,
   Chip,
   Grid,
-  IconButton,
   Stack,
   Typography,
 } from '@mui/material';
@@ -90,7 +89,7 @@ const TUTORIALS: Tutorial[] = [
   },
 ];
 
-const TYPE_CONFIG: Record<Tutorial['type'], { label: string; icon: React.ReactNode }> = {
+const TYPE_CONFIG: Record<Tutorial['type'], { label: string; icon: React.ReactElement }> = {
   read: { label: 'Read', icon: <IconBook size={12} /> },
   video: { label: 'Video', icon: <IconVideo size={12} /> },
   guide: { label: 'Guide', icon: <IconBook size={12} /> },

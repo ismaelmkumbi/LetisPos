@@ -135,7 +135,7 @@ export default function BackupsPage() {
     setRestoreTarget(null);
   };
 
-  const handleDownload = (backup: BackupRecord) => {
+  const handleDownload = (_backup: BackupRecord) => {
     // In a real app, this would trigger a download
     closeRowMenu();
   };

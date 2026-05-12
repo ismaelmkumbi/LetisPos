@@ -14,7 +14,6 @@ import {
   IconSearch,
   IconPackage,
   IconCashRegister,
-  IconChartBar,
   IconSettings,
   IconBuildingWarehouse,
   IconCalculator,
