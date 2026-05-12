@@ -50,6 +50,8 @@ spring:
             logger-level: basic
           inventory-service:
             url: ${INVENTORY_URI:http://localhost:8084}
+          user-service:
+            url: ${USER_URI:http://localhost:8082}
 
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:9094}
