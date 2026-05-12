@@ -56,7 +56,7 @@ const ThemeCustomizer: React.FC = () => {
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <Box sx={{ width: 36, height: 36, borderRadius: 1, bgcolor: value, border: '1px solid #ccc' }} />
                   <TextField fullWidth label={key.charAt(0).toUpperCase() + key.slice(1)} value={value} size="small"
-                    onChange={e => updateColor(key as any, e.target.value)} />
+                    onChange={e => updateColor(key as keyof ThemeSettings['colors'], e.target.value)} />
                 </Box>
               </Grid>
             ))}

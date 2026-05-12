@@ -28,7 +28,7 @@ const CategoryDisplay: React.FC = () => {
   const fetchCategories = () => {
     setLoading(true);
     commerceAdmin.getCategoryDisplay()
-      .then((data: any) => setCategories(Array.isArray(data) ? data : data?.content || []))
+      .then((data: CategoryItem[] | { content?: CategoryItem[] }) => setCategories(Array.isArray(data) ? data : data?.content || []))
       .catch(e => setError(e.message))
       .finally(() => setLoading(false));
   };
@@ -43,13 +43,13 @@ const CategoryDisplay: React.FC = () => {
     newCategories[index].displayOrder = index;
     newCategories[swapIndex].displayOrder = swapIndex;
     setCategories(newCategories);
-    await commerceAdmin.updateCategoryDisplay(newCategories as any);
+    await commerceAdmin.updateCategoryDisplay(newCategories as Record<string, unknown>[]);
     fetchCategories();
   };
 
   const handleToggleVisible = async (cat: CategoryItem) => {
     await commerceAdmin.updateCategoryDisplay(
-      categories.map(c => c.categoryId === cat.categoryId ? { ...c, isVisible: !c.isVisible } : c) as any
+      categories.map(c => c.categoryId === cat.categoryId ? { ...c, isVisible: !c.isVisible } : c) as Record<string, unknown>[]
     );
     fetchCategories();
   };
@@ -62,7 +62,7 @@ const CategoryDisplay: React.FC = () => {
   const handleSaveEdit = async () => {
     if (!editingId) return;
     await commerceAdmin.updateCategoryDisplay(
-      categories.map(c => c.categoryId === editingId ? { ...c, ...editForm } : c) as any
+      categories.map(c => c.categoryId === editingId ? { ...c, ...editForm } : c) as Record<string, unknown>[]
     );
     setEditingId(null);
     fetchCategories();

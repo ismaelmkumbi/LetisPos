@@ -23,7 +23,7 @@ const PageEditor: React.FC = () => {
     if (editingPage.id) {
       await commerceAdmin.updatePage(editingPage.id, editingPage);
     } else {
-      await commerceAdmin.createPage(editingPage as any);
+      await commerceAdmin.createPage(editingPage as Omit<StorePage, 'id'>);
     }
     setDialogOpen(false);
     fetchPages();

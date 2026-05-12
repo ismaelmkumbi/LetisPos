@@ -79,7 +79,7 @@ const NavigationBuilder: React.FC = () => {
             <FormControl size="small" sx={{ minWidth: 120 }}>
               <InputLabel>Type</InputLabel>
               <Select value={newItem.type} label="Type"
-                onChange={e => setNewItem(prev => ({ ...prev, type: e.target.value as any }))}>
+                onChange={e => setNewItem(prev => ({ ...prev, type: e.target.value as NavigationItem['type'] }))}>
                 <MenuItem value="link">Link</MenuItem>
                 <MenuItem value="page">Page</MenuItem>
                 <MenuItem value="category">Category</MenuItem>

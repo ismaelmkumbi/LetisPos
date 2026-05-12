@@ -29,7 +29,7 @@ const BannerManager: React.FC = () => {
     if (form.id) {
       await commerceAdmin.updateBanner(form.id, form);
     } else {
-      await commerceAdmin.createBanner(form as any);
+      await commerceAdmin.createBanner(form as Omit<MarketingBanner, 'id'>);
     }
     setDialogOpen(false);
     fetchBanners();
@@ -78,7 +78,7 @@ const BannerManager: React.FC = () => {
             <Grid size={{ xs: 12, sm: 6 }}>
               <FormControl fullWidth size="small"><InputLabel>Location</InputLabel>
                 <Select value={form.location || 'hero'} label="Location"
-                  onChange={e => setForm(prev => ({ ...prev, location: e.target.value as any }))}>
+                  onChange={e => setForm(prev => ({ ...prev, location: e.target.value as MarketingBanner['location'] }))}>
                   <MenuItem value="hero">Hero</MenuItem>
                   <MenuItem value="announcement_bar">Announcement Bar</MenuItem>
                   <MenuItem value="promo_grid">Promo Grid</MenuItem>
