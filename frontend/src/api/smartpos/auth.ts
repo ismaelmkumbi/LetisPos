@@ -47,6 +47,7 @@ export interface RegisterPayload {
   lastName?: string;
   tenantName?: string;
   tenantSlug?: string;
+  billingPlan?: string;
 }
 
 export async function register(payload: RegisterPayload): Promise<{ userId: string }> {
