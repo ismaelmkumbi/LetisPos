@@ -12,19 +12,19 @@ export default function ReportBuilderPage() {
   const [name, setName] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => { listReportDashboards().then(setDashboards).catch(e => setError(e.message)); }, []);
+  useEffect(() => { listReportDashboards().then(setDashboards).catch((e: unknown) => setError(e instanceof Error ? e.message : 'Failed')); }, []);
 
   const handleCreate = async () => {
     if (!name.trim()) return;
     setSubmitting(true);
     try { const c = await createReportDashboard({ name: name.trim() }); setDashboards(p => [...p, c]); setOpen(false); setName(''); }
-    catch (e: any) { setError(e.message); }
+    catch (e: unknown) { setError(e instanceof Error ? e.message : 'Failed'); }
     finally { setSubmitting(false); }
   };
 
   const handleDelete = async (id: string) => {
     try { await deleteReportDashboard(id); setDashboards(p => p.filter(d => d.id !== id)); }
-    catch (e: any) { setError(e.message); }
+    catch (e: unknown) { setError(e instanceof Error ? e.message : 'Failed'); }
   };
 
   return (

@@ -20,18 +20,18 @@ export default function ReportSchedulesPage() {
   const [form, setForm] = useState<CreateScheduledReport>({ reportKey: 'sales-summary', frequency: 'DAILY', recipients: '', format: 'PDF' });
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => { listScheduledReports().then(setSchedules).catch(e => setError(e.message)); }, []);
+  useEffect(() => { listScheduledReports().then(setSchedules).catch((e: unknown) => setError(e instanceof Error ? e.message : 'Failed')); }, []);
 
   const handleCreate = async () => {
     setSubmitting(true);
     try { const c = await createScheduledReport(form); setSchedules(p => [...p, c]); setOpen(false); }
-    catch (e: any) { setError(e.message); }
+    catch (e: unknown) { setError(e instanceof Error ? e.message : 'Failed'); }
     finally { setSubmitting(false); }
   };
 
   const handleDelete = async (id: string) => {
     try { await deleteScheduledReport(id); setSchedules(p => p.filter(s => s.id !== id)); }
-    catch (e: any) { setError(e.message); }
+    catch (e: unknown) { setError(e instanceof Error ? e.message : 'Failed'); }
   };
 
   return (
