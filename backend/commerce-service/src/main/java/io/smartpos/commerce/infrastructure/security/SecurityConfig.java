@@ -38,15 +38,8 @@ public class SecurityConfig {
                 .cors(c -> c.configurationSource(cors()))
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // Browsers preflight every cross-origin request
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        // Public storefront endpoints
-                        .requestMatchers(HttpMethod.GET, "/api/v1/storefront/**").permitAll()
-                        .requestMatchers("/api/v1/storefront/**/customers/**").permitAll()
-                        .requestMatchers("/api/v1/storefront/resolve").permitAll()
-                        // Health and API docs
-                        .requestMatchers("/actuator/**", "/v3/api-docs/**", "/swagger-ui/**").permitAll()
-                        // Admin endpoints require auth (enforced by @PreAuthorize on controllers)
+                        .requestMatchers("/api/v1/storefront/**").permitAll()
                         .requestMatchers("/api/v1/commerce/**").authenticated()
                         .anyRequest().authenticated()
                 )

@@ -22,6 +22,15 @@ public class InternalAuthFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
+        String path = request.getRequestURI();
+
+        // Only enforce shared-secret on internal audit ingestion paths.
+        // Admin read paths use JWT auth (handled by Spring Security).
+        if (!path.startsWith("/api/v1/audit/")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         String secret = request.getHeader("X-Internal-Secret");
         if (secret == null || !secret.equals(sharedSecret)) {
             response.setStatus(HttpStatus.UNAUTHORIZED.value());
