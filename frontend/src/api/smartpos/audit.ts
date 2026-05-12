@@ -138,3 +138,42 @@ export async function revokeSession(tokenId: string): Promise<void> {
 export async function revokeUserSessions(userId: string): Promise<void> {
   await api.post('/api/v1/admin/sessions/bulk-revoke', { userId });
 }
+
+// ── Data Retention ────────────────────────────────────────────────────────
+
+export interface RetentionConfig {
+  id: string;
+  tenantId: string;
+  config: string; // JSON string of entity->months
+  updatedAt: string;
+}
+
+export interface PurgeHistoryEntry {
+  id: string;
+  tenantId: string;
+  entityType: string;
+  recordsRemoved: number;
+  triggeredBy: 'SCHEDULE' | 'MANUAL';
+  triggeredByActor?: string;
+  executedAt: string;
+}
+
+export async function getRetentionConfig(): Promise<RetentionConfig> {
+  const { data } = await api.get<RetentionConfig>('/api/v1/admin/retention');
+  return data;
+}
+
+export async function updateRetentionConfig(config: Record<string, number>): Promise<RetentionConfig> {
+  const { data } = await api.put<RetentionConfig>('/api/v1/admin/retention', config);
+  return data;
+}
+
+export async function getPurgeHistory(): Promise<PurgeHistoryEntry[]> {
+  const { data } = await api.get<PurgeHistoryEntry[]>('/api/v1/admin/retention/history');
+  return data;
+}
+
+export async function manualPurge(entityType: string): Promise<{ entityType: string; recordsRemoved: number }> {
+  const { data } = await api.post<{ entityType: string; recordsRemoved: number }>(`/api/v1/admin/retention/purge/${entityType}`);
+  return data;
+}
