@@ -93,6 +93,24 @@ const CameraPage = Loadable(lazy(() => import('../views/smartpos/products/Camera
 const SmartPosIntegrations = Loadable(
   lazy(() => import('../views/smartpos/integrations/IntegrationsPage')),
 );
+const PaymentGatewaysPage = Loadable(
+  lazy(() => import('../views/smartpos/integrations/PaymentGatewaysPage')),
+);
+const TraEfdPage = Loadable(
+  lazy(() => import('../views/smartpos/integrations/TraEfdPage')),
+);
+const AccountingPage = Loadable(
+  lazy(() => import('../views/smartpos/integrations/AccountingPage')),
+);
+const SmsProvidersPage = Loadable(
+  lazy(() => import('../views/smartpos/integrations/SmsProvidersPage')),
+);
+const WhatsAppPage = Loadable(
+  lazy(() => import('../views/smartpos/integrations/WhatsAppPage')),
+);
+const WebhooksPage = Loadable(
+  lazy(() => import('../views/smartpos/integrations/WebhooksPage')),
+);
 const SmartPosBranches = Loadable(lazy(() => import('../views/smartpos/settings/BranchesPage')));
 const SmartPosBilling = Loadable(lazy(() => import('../views/smartpos/settings/BillingPage')));
 const SmartPosBillingPlans = Loadable(lazy(() => import('../views/smartpos/settings/BillingPlansPage')));
@@ -493,6 +511,12 @@ const Router = [
       { path: 'pos/terminals', element: <SmartPosTerminals /> },
       // Integrations
       { path: 'integrations', element: <SmartPosIntegrations /> },
+      { path: 'integrations/payment-gateways', element: <PaymentGatewaysPage /> },
+      { path: 'integrations/tra-efd', element: <TraEfdPage /> },
+      { path: 'integrations/accounting', element: <AccountingPage /> },
+      { path: 'integrations/sms', element: <SmsProvidersPage /> },
+      { path: 'integrations/whatsapp', element: <WhatsAppPage /> },
+      { path: 'integrations/webhooks', element: <WebhooksPage /> },
       // Billing (tenant self-service)
       { path: 'billing', element: <TenantBillingPage /> },
       // Settings
