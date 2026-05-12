@@ -1,5 +1,6 @@
 package io.smartpos.sales.application;
 
+import io.smartpos.sales.api.SaleController;
 import io.smartpos.sales.api.dto.CreateSaleRequest;
 import io.smartpos.sales.api.dto.SaleDto;
 import io.smartpos.sales.api.dto.SaleLineInput;
@@ -163,6 +164,11 @@ public class SaleService {
                 .filter(s -> tenantId.equals(s.getTenantId()))
                 .map(SaleDto::from)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Sale not found"));
+    }
+
+    @Transactional(readOnly = true)
+    public List<SaleController.SalesByUser> salesByUser(LocalDate from, LocalDate to) {
+        return saleRepo.findSalesByUser(TenantContext.require(), from, to);
     }
 
     // ---------- Create & confirm (back-office) ----------

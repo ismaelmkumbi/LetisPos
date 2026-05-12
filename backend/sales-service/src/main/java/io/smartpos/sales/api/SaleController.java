@@ -23,7 +23,9 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -86,6 +88,17 @@ public class SaleController {
     public void applyPayment(@PathVariable UUID id, @RequestBody ApplyPaymentRequest req) {
         saleService.applyPayment(id, req.paymentId(), req.amount(),
                 io.smartpos.sales.domain.model.SalePaymentApplied.Source.FEIGN);
+    }
+
+    // ---- Sales by user ----
+    public record SalesByUser(UUID userId, String userName, long saleCount,
+                              BigDecimal totalNet, BigDecimal totalGross, long itemsSold) {}
+
+    @GetMapping("/by-user")
+    @PreAuthorize("hasAuthority('sale.view')")
+    public List<SalesByUser> salesByUser(@RequestParam(required = false) LocalDate dateFrom,
+                                          @RequestParam(required = false) LocalDate dateTo) {
+        return saleService.salesByUser(dateFrom, dateTo);
     }
 
     // ---- Returns ----

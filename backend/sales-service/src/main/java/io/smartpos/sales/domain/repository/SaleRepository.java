@@ -1,5 +1,6 @@
 package io.smartpos.sales.domain.repository;
 
+import io.smartpos.sales.api.SaleController;
 import io.smartpos.sales.domain.model.Sale;
 import io.smartpos.sales.domain.model.SaleStatus;
 import org.springframework.data.domain.Page;
@@ -56,4 +57,19 @@ public interface SaleRepository extends JpaRepository<Sale, UUID> {
         @Param("to") Instant to,
         @Param("tenantId") UUID tenantId,
         Pageable pageable);
+
+    @Query("""
+        SELECT new io.smartpos.sales.api.SaleController.SalesByUser(
+            s.userId, '', COUNT(s), SUM(s.grandTotal), SUM(s.subtotal), 0L)
+        FROM Sale s
+        WHERE s.tenantId = :tenantId
+          AND s.status = 'CONFIRMED'
+          AND (:dateFrom IS NULL OR s.date >= :dateFrom)
+          AND (:dateTo IS NULL OR s.date <= :dateTo)
+        GROUP BY s.userId
+        ORDER BY SUM(s.grandTotal) DESC
+        """)
+    List<SaleController.SalesByUser> findSalesByUser(@Param("tenantId") UUID tenantId,
+                                                      @Param("dateFrom") LocalDate dateFrom,
+                                                      @Param("dateTo") LocalDate dateTo);
 }
