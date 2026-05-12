@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Box,
@@ -25,20 +25,15 @@ import {
 import { PageHeader } from 'src/components/smartpos/PageHeader';
 import DataTable, { type Column } from 'src/components/smartpos/DataTable';
 import { brand } from 'src/theme/smartpos/brand';
+import {
+  listLeads,
+  createLead,
+  updateLeadStatus,
+  type Lead,
+} from 'src/api/smartpos/crm';
+import { tokenStore } from 'src/api/smartpos/client';
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-interface Lead {
-  id: string;
-  name: string;
-  company: string;
-  phone: string;
-  email: string;
-  source: string;
-  status: string;
-  assignedTo: string;
-  created: string;
-}
+// ─── Form types ────────────────────────────────────────────────────────────────
 
 type LeadFormData = {
   name: string;
@@ -49,40 +44,64 @@ type LeadFormData = {
   notes: string;
 };
 
-// ─── Mock data ────────────────────────────────────────────────────────────────
+const SOURCE_OPTIONS = ['referral', 'website', 'walk_in', 'social', 'other'];
+const STATUS_OPTIONS = ['new', 'contacted', 'qualified', 'lost'];
 
-const MOCK_LEADS: Lead[] = [
-  { id: '1', name: 'Jane Mushi', company: 'Dar Express Ltd', phone: '+255 712 345 678', email: 'jane@darexpress.co.tz', source: 'Referral', status: 'New', assignedTo: 'Anna Kimaro', created: '2026-05-10' },
-  { id: '2', name: 'David Msangi', company: 'Arusha General Traders', phone: '+255 752 111 222', email: 'david@arusha.co.tz', source: 'Website', status: 'Qualified', assignedTo: 'John Banda', created: '2026-05-09' },
-  { id: '3', name: 'Moses Mwakibete', company: 'Mwanza Wholesale Ltd', phone: '+255 783 444 555', email: 'moses@mwanzawholesale.co.tz', source: 'Walk-in', status: 'Contacted', assignedTo: 'Anna Kimaro', created: '2026-05-08' },
-  { id: '4', name: 'Rehema Saleh', company: 'Zanzibar Distributors', phone: '+255 773 666 777', email: 'rehema@znzdist.co.tz', source: 'Social', status: 'New', assignedTo: 'John Banda', created: '2026-05-07' },
-  { id: '5', name: 'Hassan Juma', company: 'Mbeya Agro Supply', phone: '+255 762 888 999', email: 'hassan@mbeyaagro.co.tz', source: 'Referral', status: 'Lost', assignedTo: 'Anna Kimaro', created: '2026-05-06' },
-  { id: '6', name: 'Fatma Omari', company: 'Dodoma Retail Hub', phone: '+255 712 223 344', email: 'fatma@dodomaretail.co.tz', source: 'Website', status: 'Qualified', assignedTo: 'John Banda', created: '2026-05-05' },
-];
+const SOURCE_LABELS: Record<string, string> = {
+  referral: 'Referral',
+  website: 'Website',
+  walk_in: 'Walk-in',
+  social: 'Social',
+  other: 'Other',
+};
 
-const SOURCE_OPTIONS = ['Referral', 'Website', 'Walk-in', 'Social'];
-const STATUS_OPTIONS = ['New', 'Contacted', 'Qualified', 'Lost'];
+const STATUS_LABELS: Record<string, string> = {
+  new: 'New',
+  contacted: 'Contacted',
+  qualified: 'Qualified',
+  lost: 'Lost',
+};
 
 const emptyForm = (): LeadFormData => ({
   name: '',
   company: '',
   phone: '',
   email: '',
-  source: 'Website',
+  source: 'website',
   notes: '',
 });
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function LeadsPage() {
-  const [rows, setRows] = useState<Lead[]>(MOCK_LEADS);
-  const loading = false;
-  const error: string | null = null;
+  const [rows, setRows] = useState<Lead[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const [formDialogOpen, setFormDialogOpen] = useState(false);
   const [form, setForm] = useState<LeadFormData>(emptyForm());
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+
+  const tenantId = tokenStore.getTenantId();
+
+  const fetchLeads = useCallback(async () => {
+    if (!tenantId) return;
+    try {
+      setLoading(true);
+      setError(null);
+      const page = await listLeads({ page: 0, size: 100 });
+      setRows(page.content);
+    } catch (e: any) {
+      setError(e?.message || 'Failed to load leads');
+    } finally {
+      setLoading(false);
+    }
+  }, [tenantId]);
+
+  useEffect(() => {
+    fetchLeads();
+  }, [fetchLeads]);
 
   const openCreate = () => {
     setForm(emptyForm());
@@ -104,28 +123,31 @@ export default function LeadsPage() {
     }
     setSubmitting(true);
     setFormError(null);
-    // Simulate API delay
-    await new Promise((r) => setTimeout(r, 400));
-    const newLead: Lead = {
-      id: String(Date.now()),
-      name: form.name,
-      company: form.company,
-      phone: form.phone,
-      email: form.email,
-      source: form.source,
-      status: 'New',
-      assignedTo: 'Anna Kimaro',
-      created: new Date().toISOString().slice(0, 10),
-    };
-    setRows((prev) => [newLead, ...prev]);
-    setSubmitting(false);
-    setFormDialogOpen(false);
+    try {
+      const newLead = await createLead({
+        name: form.name.trim(),
+        company: form.company.trim() || undefined,
+        phone: form.phone.trim(),
+        email: form.email.trim() || undefined,
+        source: form.source,
+        notes: form.notes.trim() || undefined,
+      });
+      setRows((prev) => [newLead, ...prev]);
+      setFormDialogOpen(false);
+    } catch (e: any) {
+      setFormError(e?.response?.data?.message || e?.message || 'Failed to create lead');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  const handleStatusChange = (leadId: string, newStatus: string) => {
-    setRows((prev) =>
-      prev.map((l) => (l.id === leadId ? { ...l, status: newStatus } : l)),
-    );
+  const handleStatusChange = async (leadId: string, newStatus: string) => {
+    try {
+      const updated = await updateLeadStatus(leadId, newStatus);
+      setRows((prev) => prev.map((l) => (l.id === leadId ? updated : l)));
+    } catch (e: any) {
+      // silently ignore — could show a toast
+    }
   };
 
   const columns: Column<Lead>[] = useMemo(
@@ -206,7 +228,7 @@ export default function LeadsPage() {
         exportValue: (l) => l.source,
         render: (l) => (
           <Chip
-            label={l.source}
+            label={SOURCE_LABELS[l.source] || l.source}
             size="small"
             sx={{
               height: 20,
@@ -244,7 +266,7 @@ export default function LeadsPage() {
             >
               {STATUS_OPTIONS.map((s) => (
                 <MenuItem key={s} value={s} sx={{ fontSize: '0.75rem', fontWeight: 600 }}>
-                  {s}
+                  {STATUS_LABELS[s]}
                 </MenuItem>
               ))}
             </Select>
@@ -258,19 +280,19 @@ export default function LeadsPage() {
         exportValue: (l) => l.assignedTo,
         render: (l) => (
           <Typography variant="body2" sx={{ color: brand.neutral[600], fontSize: '0.8125rem' }} noWrap>
-            {l.assignedTo}
+            {l.assignedTo || '—'}
           </Typography>
         ),
       },
       {
-        key: 'created',
+        key: 'createdAt',
         label: 'Created',
         sortable: true,
         width: 110,
-        exportValue: (l) => l.created,
+        exportValue: (l) => l.createdAt?.slice(0, 10),
         render: (l) => (
           <Typography variant="body2" sx={{ color: brand.neutral[500], fontSize: '0.75rem' }} noWrap>
-            {l.created}
+            {l.createdAt ? l.createdAt.slice(0, 10) : '—'}
           </Typography>
         ),
       },
@@ -374,7 +396,7 @@ export default function LeadsPage() {
                 onChange={(e) => patch('source', e.target.value)}
               >
                 {SOURCE_OPTIONS.map((s) => (
-                  <MenuItem key={s} value={s}>{s}</MenuItem>
+                  <MenuItem key={s} value={s}>{SOURCE_LABELS[s]}</MenuItem>
                 ))}
               </Select>
             </FormControl>
