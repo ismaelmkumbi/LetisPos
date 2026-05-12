@@ -35,23 +35,27 @@ export function SmartPosAuthProvider({ children }: { children: React.ReactNode }
 
   const loadMe = useCallback(async () => {
     if (!tokenStore.get()) { setUser(null); return; }
-    let me: CurrentUser;
     try {
-      me = await fetchMe();
+      const me = await fetchMe();
+      tokenStore.setTenantId(me.tenantId || null);
+
+      // Fire profile + tenants in parallel with me (non-blocking enrichment)
+      const [profileResult, tenantsResult] = await Promise.allSettled([
+        fetchMyProfile(me.id),
+        fetchTenants(),
+      ]);
+
+      if (profileResult.status === 'fulfilled') {
+        setUser({ ...me, ...profileResult.value });
+      } else {
+        setUser(me);
+      }
+      if (tenantsResult.status === 'fulfilled') {
+        setTenants(tenantsResult.value);
+      }
     } catch {
       tokenStore.clear();
       setUser(null);
-      return;
-    }
-    // Persist the signed-token tenant for UI state only; requests use the JWT.
-    tokenStore.setTenantId(me.tenantId || null);
-
-    try {
-      const profile = await fetchMyProfile(me.id);
-      setUser({ ...me, ...profile });
-    } catch (e) {
-      console.warn('Profile enrichment failed; continuing with auth-only session.', e);
-      setUser(me);
     }
   }, []);
 
@@ -59,17 +63,6 @@ export function SmartPosAuthProvider({ children }: { children: React.ReactNode }
     (async () => {
       await bootstrapAuthSession();
       await loadMe();
-
-      // Load available tenants for the switcher (only if authenticated)
-      if (tokenStore.get()) {
-        try {
-          const list = await fetchTenants();
-          setTenants(list);
-        } catch {
-          // Tenant list is non-critical
-        }
-      }
-
       setLoading(false);
     })();
     const onLogout = () => setUser(null);
@@ -79,12 +72,7 @@ export function SmartPosAuthProvider({ children }: { children: React.ReactNode }
 
   const login = useCallback(async (email: string, password: string) => {
     await apiLogin(email, password);
-    await loadMe();
-    // Reload tenants after login
-    try {
-      const list = await fetchTenants();
-      setTenants(list);
-    } catch { /* non-critical */ }
+    await loadMe(); // already fetches profile + tenants in parallel
   }, [loadMe]);
 
   const logout = useCallback(async () => {
