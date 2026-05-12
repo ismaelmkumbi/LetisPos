@@ -65,6 +65,29 @@ public class ServerController {
      * "Service :<port>". Deploy a new service on any port 8080-8099 and it shows
      * up automatically — no code changes required.
      */
+    @GetMapping("/{name}/processes")
+    public List<Map<String, Object>> listProcesses(@PathVariable String name) {
+        List<Map<String, Object>> result = new ArrayList<>();
+        try {
+            var proc = new ProcessBuilder("sh", "-c",
+                "ps -eo pid,pcpu,rss,comm --sort=-pcpu --no-headers 2>/dev/null | grep java | head -30").start();
+            String out = new String(proc.getInputStream().readAllBytes());
+            for (String line : out.split("\n")) {
+                line = line.trim();
+                if (line.isEmpty()) continue;
+                String[] parts = line.split("\\s+", 4);
+                if (parts.length < 4) continue;
+                Map<String, Object> p = new LinkedHashMap<>();
+                p.put("pid", Integer.parseInt(parts[0]));
+                p.put("cpuPercent", Double.parseDouble(parts[1]));
+                p.put("memKB", Long.parseLong(parts[2]));
+                p.put("command", parts[3]);
+                result.add(p);
+            }
+        } catch (Exception e) { /* return empty */ }
+        return result;
+    }
+
     @GetMapping("/{name}/backend-services")
     public List<Map<String, Object>> listBackendServices(@PathVariable String name) {
         List<Map<String, Object>> result = new ArrayList<>();
