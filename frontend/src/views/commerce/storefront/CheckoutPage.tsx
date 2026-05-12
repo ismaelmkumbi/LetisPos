@@ -26,7 +26,7 @@ const CheckoutPage: React.FC = () => {
   const [billingSameAsShipping, setBillingSameAsShipping] = useState(true);
   const [billingAddress, setBillingAddress] = useState<AddressInput>(emptyAddress);
   const [shippingMethod, setShippingMethod] = useState('');
-  const [_shippingRates, setShippingRates] = useState<ShippingRate[]>([]);
+  const [, setShippingRates] = useState<ShippingRate[]>([]);
   const [cardNumber, setCardNumber] = useState('');
   const [cardExpiry, setCardExpiry] = useState('');
   const [cardCvc, setCardCvc] = useState('');
@@ -99,8 +99,9 @@ const CheckoutPage: React.FC = () => {
       navigate(`/store/${slug}/order-confirmed/${result.orderId}`, {
         state: { orderNumber: result.orderNumber, total: result.total },
       });
-    } catch (e: any) {
-      setError(e?.response?.data?.detail || 'Checkout failed. Please try again.');
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { detail?: string } } };
+      setError(err?.response?.data?.detail || 'Checkout failed. Please try again.');
     } finally {
       setLoading(false);
     }

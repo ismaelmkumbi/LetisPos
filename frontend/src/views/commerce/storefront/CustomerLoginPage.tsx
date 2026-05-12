@@ -19,8 +19,9 @@ const CustomerLoginPage: React.FC = () => {
     try {
       await login(email, password);
       navigate(`/store/${slug}/account`);
-    } catch (err: any) {
-      setError(err?.response?.data?.detail || 'Login failed. Please check your credentials.');
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { detail?: string } } };
+      setError(e?.response?.data?.detail || 'Login failed. Please check your credentials.');
     } finally {
       setLoading(false);
     }

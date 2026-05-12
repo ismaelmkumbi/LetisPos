@@ -21,8 +21,9 @@ const CustomerRegisterPage: React.FC = () => {
     try {
       await register({ firstName, lastName, email, password });
       navigate(`/store/${slug}/account`);
-    } catch (err: any) {
-      setError(err?.response?.data?.detail || 'Registration failed. Please try again.');
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { detail?: string } } };
+      setError(e?.response?.data?.detail || 'Registration failed. Please try again.');
     } finally {
       setLoading(false);
     }

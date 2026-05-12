@@ -39,8 +39,9 @@ export default function DemandForecastingPage() {
       const data = await getForecasting();
       setForecasts(data);
       setGenerated(true);
-    } catch (e: any) {
-      const msg = e?.response?.data?.message || e?.message || 'Failed to load forecast';
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } }; message?: string };
+      const msg = err?.response?.data?.message || err?.message || 'Failed to load forecast';
       setError(msg);
     } finally {
       setLoading(false);

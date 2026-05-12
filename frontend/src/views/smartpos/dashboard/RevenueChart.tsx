@@ -192,7 +192,7 @@ export default function RevenueChart({
     }
 
     return opts;
-  }, [data, isDark, previousSalesSeries, forecast, hasForecast, categories, handleDataPointSelection]);
+  }, [data, isDark, previousSalesSeries, hasForecast, categories, handleDataPointSelection]);
 
   const series = useMemo(() => {
     const result: ApexAxisChartSeries = [];

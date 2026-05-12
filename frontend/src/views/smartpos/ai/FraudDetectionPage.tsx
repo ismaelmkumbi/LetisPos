@@ -124,8 +124,9 @@ export default function FraudDetectionPage() {
       const data = await getFraudAlerts();
       setAlerts(data);
       setLoaded(true);
-    } catch (e: any) {
-      const msg = e?.response?.data?.message || e?.message || 'Failed to load fraud alerts';
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } }; message?: string };
+      const msg = err?.response?.data?.message || err?.message || 'Failed to load fraud alerts';
       setError(msg);
     } finally {
       setLoading(false);
