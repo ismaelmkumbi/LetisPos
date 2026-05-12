@@ -8,7 +8,7 @@ import {
 import { Refresh, Logout, Storage, Circle, KeyboardArrowDown, KeyboardArrowUp } from '@mui/icons-material';
 import { LineChart, Line, CartesianGrid, Tooltip as ReTooltip, ResponsiveContainer } from 'recharts';
 import { getServers, getMetrics, getServices, getBackendServices, getProcesses, serviceAction } from '../api/hub';
-import type { Server, MetricPoint, ServiceInfo, BackendService, ProcessInfo } from '../api/hub';
+import type { Server, MetricPoint, ServiceInfo, BackendService } from '../api/hub';
 import { logout } from '../api/client';
 import { brand } from '../theme';
 
@@ -31,7 +31,6 @@ export default function Dashboard() {
   const [metrics, setMetrics] = useState<Record<string, MetricPoint[]>>({});
   const [services, setServices] = useState<Record<string, ServiceInfo[]>>({});
   const [backendSvcs, setBackendSvcs] = useState<Record<string, BackendService[]>>({});
-  const [processes, setProcesses] = useState<Record<string, ProcessInfo[]>>({});
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [svcFilter, setSvcFilter] = useState('All');
@@ -45,7 +44,6 @@ export default function Dashboard() {
         getMetrics(s.hostname, past, now).then(m => setMetrics(prev => ({ ...prev, [s.hostname]: m }))).catch(() => {}),
         getServices(s.hostname).then(svc => setServices(prev => ({ ...prev, [s.hostname]: svc }))).catch(() => {}),
         getBackendServices(s.hostname).then(bs => setBackendSvcs(prev => ({ ...prev, [s.hostname]: bs }))).catch(() => {}),
-        getProcesses(s.hostname).then(ps => setProcesses(prev => ({ ...prev, [s.hostname]: ps }))).catch(() => {}),
       ])));
     } catch { } finally { setLoading(false); setRefreshing(false); }
   }, []);
@@ -81,7 +79,7 @@ export default function Dashboard() {
         <Grid container spacing={1.5}>
           {servers.map(s => (
             <Grid size={{ xs: 12 }} key={s.id}>
-              <ServerPanel server={s} metrics={metrics[s.hostname] || []} backendSvcs={backendSvcs[s.hostname] || []} services={services[s.hostname] || []} processes={processes[s.hostname] || []} svcFilter={svcFilter} onFilterChange={setSvcFilter} />
+              <ServerPanel server={s} metrics={metrics[s.hostname] || []} backendSvcs={backendSvcs[s.hostname] || []} services={services[s.hostname] || []} svcFilter={svcFilter} onFilterChange={setSvcFilter} />
             </Grid>
           ))}
         </Grid>
@@ -90,7 +88,7 @@ export default function Dashboard() {
   );
 }
 
-function ServerPanel({ server, metrics: m, backendSvcs, services, processes, svcFilter, onFilterChange }: { server: Server; metrics: MetricPoint[]; backendSvcs: BackendService[]; services: ServiceInfo[]; processes: ProcessInfo[]; svcFilter: string; onFilterChange: (v: string) => void }) {
+function ServerPanel({ server, metrics: m, backendSvcs, services, svcFilter, onFilterChange }: { server: Server; metrics: MetricPoint[]; backendSvcs: BackendService[]; services: ServiceInfo[]; svcFilter: string; onFilterChange: (v: string) => void }) {
   const latest = m.length ? m[m.length - 1] : null;
   const memPct = latest?.memTotalBytes ? (latest.memUsedBytes! / latest.memTotalBytes * 100).toFixed(1) : null;
   const diskPct = latest?.diskTotalBytes ? (latest.diskUsedBytes! / latest.diskTotalBytes * 100).toFixed(1) : null;
@@ -154,8 +152,9 @@ function ServerPanel({ server, metrics: m, backendSvcs, services, processes, svc
                 <TableCell>Service</TableCell>
                 <TableCell>Category</TableCell>
                 <TableCell>Port</TableCell>
+                <TableCell align="right">CPU</TableCell>
+                <TableCell align="right">RAM</TableCell>
                 <TableCell>Status</TableCell>
-                <TableCell>Description</TableCell>
                 <TableCell align="right">Actions</TableCell>
               </TableRow>
             </TableHead>
@@ -167,13 +166,18 @@ function ServerPanel({ server, metrics: m, backendSvcs, services, processes, svc
                     <Chip label={svc.category} size="small" sx={{ height: 20, fontWeight: 600, fontSize: '0.6rem', bgcolor: `${CATEGORY_COLORS[svc.category] || brand.primary[500]}20`, color: CATEGORY_COLORS[svc.category] || brand.primary[500], borderRadius: '6px' }} />
                   </TableCell>
                   <TableCell sx={{ fontFamily: "'DM Mono', 'Courier New', monospace", fontSize: '0.75rem', color: muted }}>:{svc.port}</TableCell>
+                  <TableCell align="right" sx={{ fontFamily: "'DM Mono', monospace", fontSize: '0.75rem', color: (svc.cpuPercent ?? 0) > 20 ? brand.operational.critical.text : brand.neutral[50] }}>
+                    {(svc.cpuPercent ?? 0).toFixed(1)}%
+                  </TableCell>
+                  <TableCell align="right" sx={{ fontFamily: "'DM Mono', monospace", fontSize: '0.72rem', color: muted }}>
+                    {((svc.memUsedBytes ?? 0) / 1048576).toFixed(0)} MB
+                  </TableCell>
                   <TableCell>
                     <Stack direction="row" spacing={0.75} sx={{ alignItems: 'center' }}>
                       <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: svc.status === 'UP' ? brand.success.main : brand.error.main, boxShadow: svc.status === 'UP' ? `0 0 6px ${brand.success.main}80` : 'none' }} />
                       <Typography variant="caption" sx={{ fontWeight: 700, color: svc.status === 'UP' ? brand.success.main : brand.error.main, fontSize: '0.7rem' }}>{svc.status}</Typography>
                     </Stack>
                   </TableCell>
-                  <TableCell sx={{ color: muted, fontSize: '0.72rem' }}>{svc.description}</TableCell>
                   <TableCell align="right">
                     <Stack direction="row" spacing={0.5} sx={{ justifyContent: 'flex-end' }}>
                       <Button size="small" variant="outlined" onClick={() => { serviceAction(server.hostname, svc.name.toLowerCase().replace(' ', '-'), 'restart').catch(() => {}); }}
@@ -185,34 +189,6 @@ function ServerPanel({ server, metrics: m, backendSvcs, services, processes, svc
             </TableBody>
           </Table>
         </TableContainer>
-
-        {/* Processes Table */}
-        {processes.length > 0 && (
-          <TableContainer>
-            <Table size="small">
-              <TableHead>
-                <TableRow sx={{ '& .MuiTableCell-root': { fontSize: '0.7rem', fontWeight: 700, color: muted, borderBottom: `1px solid ${brand.neutral[700]}` } }}>
-                  <TableCell>PID</TableCell>
-                  <TableCell align="right">CPU %</TableCell>
-                  <TableCell align="right">RAM</TableCell>
-                  <TableCell>Command</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {processes.slice(0, 12).map(p => (
-                  <TableRow key={p.pid} sx={{ '& .MuiTableCell-root': { fontSize: '0.75rem', color: brand.neutral[50], fontFamily: "'DM Mono', monospace", py: 0.5 } }}>
-                    <TableCell>{p.pid}</TableCell>
-                    <TableCell align="right" sx={{ color: p.cpuPercent > 50 ? brand.operational.critical.text : p.cpuPercent > 20 ? brand.warning.main : brand.neutral[50] }}>
-                      {p.cpuPercent.toFixed(1)}%
-                    </TableCell>
-                    <TableCell align="right">{(p.memKB / 1024).toFixed(0)} MB</TableCell>
-                    <TableCell sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.command}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        )}
 
         {/* Service Detail Dialog */}
         <Dialog open={!!detailSvc} onClose={() => setDetailSvc(null)} maxWidth="sm" fullWidth slotProps={{ paper: { sx: { borderRadius: '14px', bgcolor: brand.neutral[800], border: `1px solid ${brand.neutral[700]}` } } }}>

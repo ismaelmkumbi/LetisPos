@@ -32,6 +32,7 @@ export const clearLogs = (server: string, svc: string) =>
 
 export interface BackendService {
   name: string; category: string; port: number; status: 'UP' | 'DOWN'; description: string;
+  cpuPercent?: number; memUsedBytes?: number;
 }
 export const getBackendServices = (server: string) =>
   hubApi.get<BackendService[]>(`/api/v1/servers/${server}/backend-services`).then(r => r.data);
