@@ -36,6 +36,7 @@ public class TenantContextFilter implements Filter {
         if (path.startsWith("/api/v1/auth/login")
                 || path.startsWith("/api/v1/auth/register")
                 || path.startsWith("/api/v1/auth/refresh")
+                || path.startsWith("/api/v1/storefront")
                 || path.startsWith("/.well-known/")
                 || path.startsWith("/actuator")) {
             chain.doFilter(request, response);
