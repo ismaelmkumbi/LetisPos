@@ -96,6 +96,10 @@ const SmartPosIntegrations = Loadable(
 const SmartPosBranches = Loadable(lazy(() => import('../views/smartpos/settings/BranchesPage')));
 const SmartPosBilling = Loadable(lazy(() => import('../views/smartpos/settings/BillingPage')));
 const SmartPosBillingPlans = Loadable(lazy(() => import('../views/smartpos/settings/BillingPlansPage')));
+const SmartPosAuditLogs = Loadable(lazy(() => import('../views/smartpos/admin/AuditLogsPage')));
+const SmartPosErrorLogs = Loadable(lazy(() => import('../views/smartpos/admin/ErrorLogsPage')));
+const SmartPosApiKeys = Loadable(lazy(() => import('../views/smartpos/admin/ApiKeysPage')));
+const SmartPosSessions = Loadable(lazy(() => import('../views/smartpos/admin/SessionsPage')));
 import TenantBillingPage from '../views/smartpos/billing/TenantBillingPage';
 const SmartPosI18nAdmin = Loadable(lazy(() => import('../views/smartpos/settings/I18nAdminPage')));
 const SmartPosReceiptSettings = Loadable(
@@ -560,6 +564,10 @@ const Router = [
       { path: 'admin/branches', element: <SmartPosBranches /> },
       { path: 'admin/billing', element: <SmartPosBilling /> },
       { path: 'admin/billing/plans', element: <SmartPosBillingPlans /> },
+      { path: 'admin/audit-logs', element: <SmartPosAuditLogs /> },
+      { path: 'admin/sessions', element: <SmartPosSessions /> },
+      { path: 'admin/api-keys', element: <SmartPosApiKeys /> },
+      { path: 'admin/error-logs', element: <SmartPosErrorLogs /> },
     ],
   },
   // ---- Modernize demo (left intact while we build; can be stripped later) ----

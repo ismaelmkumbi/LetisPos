@@ -65,6 +65,8 @@ import {
   IconHelp,
   IconKey,
   IconBrain,
+  IconDeviceMobile,
+  IconBug,
 } from '@tabler/icons-react';
 
 export interface MenuItem {
@@ -225,7 +227,6 @@ export function buildSmartPosMenu(t: TFunction): MenuItem[] {
     { id: uid(), title: 'WhatsApp API', icon: IconSend, ...soon },
     { id: uid(), title: 'Delivery Services', icon: IconTruck, ...soon },
     { id: uid(), title: 'Webhooks', icon: IconPlug, ...soon },
-    { id: uid(), title: 'API Keys', icon: IconKey, ...soon },
     { id: uid(), title: t('smartpos:nav.integrations'), icon: IconPlug, href: '/smartpos/integrations' },
 
     // ── AI Assistant ────────────────────────────────────────────────────
@@ -248,7 +249,10 @@ export function buildSmartPosMenu(t: TFunction): MenuItem[] {
     { id: uid(), title: 'Tax & Pricing', icon: IconPercentage, href: '/smartpos/settings/tax-pricing' },
     { id: uid(), title: t('smartpos:nav.languages_admin'), icon: IconLanguage, href: '/smartpos/settings/i18n' },
     { id: uid(), title: t('smartpos:nav.localization'), icon: IconWorld, href: '/smartpos/settings/locale' },
-    { id: uid(), title: 'Audit Logs', icon: IconHistory, ...soon },
+    { id: uid(), title: 'Audit Logs', icon: IconHistory, href: '/smartpos/admin/audit-logs' },
+    { id: uid(), title: 'Sessions', icon: IconDeviceMobile, href: '/smartpos/admin/sessions' },
+    { id: uid(), title: 'API Keys', icon: IconKey, href: '/smartpos/admin/api-keys' },
+    { id: uid(), title: 'Error Logs', icon: IconBug, href: '/smartpos/admin/error-logs' },
     { id: uid(), title: 'Backups', icon: IconDownload, ...soon },
     { id: uid(), title: 'Subscription & Billing', icon: IconCreditCard, href: '/smartpos/admin/billing' },
     { id: uid(), title: t('smartpos:nav.tenants'), icon: IconBuilding, href: '/smartpos/settings/tenants' },
