@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -64,8 +65,13 @@ public class SalesReportService {
     }
 
     public List<HourlyBucket> byHour(LocalDate from, LocalDate to, UUID warehouseId) {
-        // TODO: wire to salesFeign hourly query
-        return List.of();
+        // Return hours 0-23 with zero counts — gives frontend proper data shape to render the chart.
+        // TODO: wire to salesFeign hourly query once the sales-service exposes a by-hour endpoint.
+        List<HourlyBucket> buckets = new ArrayList<>();
+        for (int h = 0; h < 24; h++) {
+            buckets.add(new HourlyBucket(h, 0, BigDecimal.ZERO));
+        }
+        return buckets;
     }
 
     public DiscountVoidAnalysis discountsVoids(LocalDate from, LocalDate to, UUID warehouseId) {

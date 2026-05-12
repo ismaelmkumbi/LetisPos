@@ -76,8 +76,15 @@ public class PaymentReportService {
     }
 
     public ArAging aging(LocalDate asOf) {
-        // TODO: compute AR aging buckets from open invoices
-        return new ArAging(List.of(), BigDecimal.ZERO);
+        // Return proper aging buckets even if empty — gives frontend correct shape.
+        // TODO: compute real AR aging from open invoices via payment-feign.
+        List<ArAging.AgingBucket> buckets = List.of(
+            new ArAging.AgingBucket("0-30 days", 0, 30, BigDecimal.ZERO, 0),
+            new ArAging.AgingBucket("31-60 days", 31, 60, BigDecimal.ZERO, 0),
+            new ArAging.AgingBucket("61-90 days", 61, 90, BigDecimal.ZERO, 0),
+            new ArAging.AgingBucket("90+ days", 91, Integer.MAX_VALUE, BigDecimal.ZERO, 0)
+        );
+        return new ArAging(buckets, BigDecimal.ZERO);
     }
 
     private static BigDecimal nz(BigDecimal v) { return v == null ? BigDecimal.ZERO : v; }

@@ -18,7 +18,14 @@ public class FinancialReportService {
     @Transactional(readOnly = true)
     public FinancialReportDto.BalanceSheet balanceSheet(LocalDate asOf) {
         UUID tenantId = TenantContext.require();
-        return new FinancialReportDto.BalanceSheet(List.of(), List.of(), List.of(), BigDecimal.ZERO, BigDecimal.ZERO);
+        // Return proper empty structure with account groups — gives frontend correct shape.
+        // TODO: wire to financial data source once chart-of-accounts is available.
+        return new FinancialReportDto.BalanceSheet(
+            List.of(new FinancialReportDto.AccountGroup("1", "Assets", BigDecimal.ZERO, List.of())),
+            List.of(new FinancialReportDto.AccountGroup("2", "Liabilities", BigDecimal.ZERO, List.of())),
+            List.of(new FinancialReportDto.AccountGroup("3", "Equity", BigDecimal.ZERO, List.of())),
+            BigDecimal.ZERO, BigDecimal.ZERO
+        );
     }
 
     @Transactional(readOnly = true)
