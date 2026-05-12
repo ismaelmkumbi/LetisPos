@@ -1,0 +1,43 @@
+package io.smartpos.commerce.domain.repository;
+
+import io.smartpos.commerce.domain.model.PublishedProduct;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
+
+import java.util.Optional;
+import java.util.UUID;
+
+@Repository
+public interface PublishedProductRepository extends JpaRepository<PublishedProduct, UUID> {
+    Optional<PublishedProduct> findByStoreIdAndProductId(UUID storeId, UUID productId);
+    Optional<PublishedProduct> findByStoreIdAndSlug(UUID storeId, String slug);
+    Page<PublishedProduct> findByStoreIdAndTenantId(UUID storeId, UUID tenantId, Pageable pageable);
+    Page<PublishedProduct> findByStoreIdAndFeaturedTrue(UUID storeId, Pageable pageable);
+
+    @Query(value = """
+        SELECT pp FROM PublishedProduct pp
+        WHERE pp.storeId = :storeId
+        AND pp.tenantId = :tenantId
+        AND (:search IS NULL OR
+             LOWER(pp.metaTitle) LIKE LOWER(CONCAT('%', :search, '%')) OR
+             LOWER(pp.metaDescription) LIKE LOWER(CONCAT('%', :search, '%')))
+        ORDER BY pp.displayOrder ASC, pp.publishedAt DESC
+        """, countQuery = """
+        SELECT count(pp) FROM PublishedProduct pp
+        WHERE pp.storeId = :storeId
+        AND pp.tenantId = :tenantId
+        AND (:search IS NULL OR
+             LOWER(pp.metaTitle) LIKE LOWER(CONCAT('%', :search, '%')) OR
+             LOWER(pp.metaDescription) LIKE LOWER(CONCAT('%', :search, '%')))
+        """)
+    Page<PublishedProduct> searchPublished(
+        @Param("storeId") UUID storeId,
+        @Param("tenantId") UUID tenantId,
+        @Param("search") String search,
+        Pageable pageable
+    );
+}

@@ -78,6 +78,7 @@ export const pricingTiers: PricingTier[] = [
   // Starter — highlighted: false, ctaVariant: 'secondary'
   {
     name: 'Starter',
+    planCode: 'STARTER',
     monthlyPrice: 'TZS 15K',
     annualPrice: 'TZS 150K',
     period: '/month',
@@ -100,6 +101,7 @@ export const pricingTiers: PricingTier[] = [
   // Business — highlighted: true, ctaVariant: 'primary'
   {
     name: 'Business',
+    planCode: 'BUSINESS',
     monthlyPrice: 'TZS 35K',
     annualPrice: 'TZS 350K',
     period: '/month',
@@ -120,6 +122,7 @@ export const pricingTiers: PricingTier[] = [
   // Professional — highlighted: false, ctaVariant: 'secondary'
   {
     name: 'Professional',
+    planCode: 'PROFESSIONAL',
     monthlyPrice: 'TZS 79K',
     annualPrice: 'TZS 790K',
     period: '/month',
@@ -142,6 +145,7 @@ export const pricingTiers: PricingTier[] = [
   // Enterprise — highlighted: false, ctaVariant: 'secondary', annualPrice: 'Custom'
   {
     name: 'Enterprise',
+    planCode: 'ENTERPRISE',
     monthlyPrice: 'TZS 250K',
     annualPrice: 'Custom',
     period: '/month',
