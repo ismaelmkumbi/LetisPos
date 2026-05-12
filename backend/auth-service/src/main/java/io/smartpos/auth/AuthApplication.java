@@ -8,10 +8,12 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.data.domain.AuditorAware;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 import org.springframework.scheduling.annotation.EnableAsync;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 @SpringBootApplication
 @EnableFeignClients(basePackages = "io.smartpos.auth.infrastructure.feign")
 @EnableAsync
+@EnableScheduling
 @EnableJpaAuditing(auditorAwareRef = "auditorAware")
 public class AuthApplication {
 
