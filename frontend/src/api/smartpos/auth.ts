@@ -24,6 +24,10 @@ export interface CurrentUser {
   tenantName?: string;
   tenantSlug?: string;
   billingPlan?: string;
+  tenantStatus?: string;    // TRIAL, ACTIVE, PAST_DUE, etc.
+  maxUsers?: number;
+  maxStores?: number;
+  trialEndsAt?: string;
   // Populated later from User Service:
   firstName?: string;
   lastName?: string;
