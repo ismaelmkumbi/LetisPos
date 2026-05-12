@@ -17,18 +17,14 @@ import java.util.*;
 
 @Slf4j
 @Service
-
+@RequiredArgsConstructor
 public class CustomerAuthService {
 
     private final CustomerRepository customerRepository;
     private final BCryptPasswordEncoder passwordEncoder;
-    // In production, use a proper secret from config
-    private final String jwtSecret;
 
-    public CustomerAuthService(CustomerRepository customerRepository, @Value("${commerce.customer.jwt-secret:commerce-customer-jwt-secret-change-me}") String jwtSecret) {
-        this.customerRepository = customerRepository;
-        this.jwtSecret = jwtSecret;
-    }
+    @Value("${commerce.customer.jwt-secret:commerce-customer-jwt-secret-change-me}")
+    private String jwtSecret;
 
     @Transactional
     public AuthResult register(UUID storeId, String email, String password, String firstName, String lastName) {
@@ -76,8 +72,6 @@ public class CustomerAuthService {
     }
 
     private String generateToken(Customer customer) {
-        // Simple HMAC-SHA256 JWT for MVP
-        // In production, use auth-service or a proper JWT library
         String header = Base64.getUrlEncoder().withoutPadding().encodeToString(
             "{\"alg\":\"HS256\",\"typ\":\"JWT\"}".getBytes(StandardCharsets.UTF_8));
         String payload = Base64.getUrlEncoder().withoutPadding().encodeToString(
