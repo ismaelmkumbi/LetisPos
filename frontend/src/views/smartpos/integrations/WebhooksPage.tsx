@@ -3,7 +3,7 @@
  * The generic webhook dispatch system is planned; this page uses mock data
  * and is structured to swap in real API calls when the backend is ready.
  */
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import {
   Alert,
   Box,

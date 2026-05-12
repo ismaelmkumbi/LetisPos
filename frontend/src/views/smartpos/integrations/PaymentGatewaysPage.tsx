@@ -16,7 +16,6 @@ import {
   Link as MuiLink,
 } from '@mui/material';
 import {
-  IconCreditCard,
   IconDeviceMobile,
   IconBuildingBank,
 } from '@tabler/icons-react';

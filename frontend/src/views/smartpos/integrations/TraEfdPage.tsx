@@ -28,16 +28,13 @@ import { brand } from 'src/theme/smartpos/brand';
 export default function TraEfdPage() {
   const navigate = useNavigate();
   const [configs, setConfigs] = useState<IntegrationConfig[]>([]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
     getIntegrationConfigs()
       .then((data) => { if (!cancelled) { setConfigs(data); setError(null); } })
-      .catch((e) => !cancelled && setError(e instanceof Error ? e.message : 'Failed to load'))
-      .finally(() => !cancelled && setLoading(false));
+      .catch((e) => !cancelled && setError(e instanceof Error ? e.message : 'Failed to load'));
     return () => { cancelled = true; };
   }, []);
 
