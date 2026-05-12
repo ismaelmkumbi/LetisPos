@@ -24,7 +24,7 @@ export interface PricingProps {
 const Pricing: React.FC<PricingProps> = ({ variant = 'default' }) => {
   const [billing, setBilling] = useState<BillingPeriod>('monthly');
   const [tiers, setTiers] = useState<PricingTier[]>(pricingTiers);
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
   const isAnnual = billing === 'annual';
 
   useEffect(() => {

@@ -38,7 +38,7 @@ import {
 } from '@tabler/icons-react';
 
 import { listInvoices, type Invoice } from 'src/api/smartpos/billing';
-import { fetchTenants, type Tenant } from 'src/api/smartpos/auth';
+import { fetchTenants } from 'src/api/smartpos/auth';
 import { PageHeader } from 'src/components/smartpos/PageHeader';
 import { brand } from 'src/theme/smartpos/brand';
 
@@ -94,7 +94,6 @@ export default function PaymentHistoryPage() {
         const tenants = await fetchTenants();
         if (cancelled) return;
         const t = tenants[0] ?? null;
-        setTenant(t);
 
         if (t) {
           const invs = await listInvoices(t.id);
