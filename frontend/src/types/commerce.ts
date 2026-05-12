@@ -22,6 +22,17 @@ export interface Store {
   orderPrefix: string;
 }
 
+export interface CategoryDisplayInput {
+  id?: string;
+  categoryId: string;
+  nameOverride?: string;
+  description?: string;
+  imageUrl?: string;
+  displayOrder?: number;
+  isVisible?: boolean;
+  parentId?: string;
+}
+
 export interface UpdateStoreRequest {
   name: string;
   contactEmail?: string;
@@ -34,7 +45,7 @@ export interface UpdateStoreRequest {
   postalCode?: string;
   currency?: string;
   timezone?: string;
-  taxDisplay?: string;
+  taxDisplay?: 'inclusive' | 'exclusive';
   socialFacebook?: string;
   socialInstagram?: string;
   socialTwitter?: string;

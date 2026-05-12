@@ -34,7 +34,7 @@ export const commerceAdmin = {
   getCategoryDisplay: () =>
     api.get('/api/v1/commerce/categories').then(r => r.data),
 
-  updateCategoryDisplay: (categories: any[]) =>
+  updateCategoryDisplay: (categories: Record<string, unknown>[]) =>
     api.put('/api/v1/commerce/categories', categories).then(r => r.data),
 
   getTheme: () =>

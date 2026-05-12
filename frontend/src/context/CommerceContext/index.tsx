@@ -3,7 +3,7 @@ import { commerceAdmin, storefront } from '../../api/smartpos/commerce';
 import { tokenStore } from '../../api/smartpos/client';
 import type {
   Store, Cart, AddToCartRequest, CustomerProfile,
-  Theme, ThemeSettings,
+  Theme, ThemeSettings, UpdateStoreRequest,
 } from '../../types/commerce';
 
 // ── Admin Context ──
@@ -15,7 +15,7 @@ interface CommerceAdminState {
   error: Error | null;
   refreshStore: () => Promise<void>;
   refreshTheme: () => Promise<void>;
-  updateStore: (req: any) => Promise<void>;
+  updateStore: (req: UpdateStoreRequest) => Promise<void>;
   updateTheme: (settings: ThemeSettings) => Promise<void>;
 }
 
@@ -45,14 +45,24 @@ export const CommerceAdminProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }, []);
 
-  const updateStore = useCallback(async (req: any) => {
-    const data = await commerceAdmin.updateSettings(req);
-    setStore(data);
+  const updateStore = useCallback(async (req: UpdateStoreRequest) => {
+    try {
+      const data = await commerceAdmin.updateSettings(req);
+      setStore(data);
+    } catch (e) {
+      setError(e as Error);
+      throw e;
+    }
   }, []);
 
   const updateTheme = useCallback(async (settings: ThemeSettings) => {
-    const data = await commerceAdmin.updateTheme(settings);
-    setTheme(data);
+    try {
+      const data = await commerceAdmin.updateTheme(settings);
+      setTheme(data);
+    } catch (e) {
+      setError(e as Error);
+      throw e;
+    }
   }, []);
 
   useEffect(() => {
