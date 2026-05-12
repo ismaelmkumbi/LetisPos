@@ -58,18 +58,41 @@ public class ServerController {
         return ResponseEntity.ok(proxyService.proxyGet("127.0.0.1", 9100, "/services"));
     }
 
+    /**
+     * Discovers services by scanning known ports + any additional port in range
+     * that is open. Known ports get proper names; unknown ones auto-appear as
+     * "Service :<port>". Deploy a new service on any port 8080-8099 and it shows
+     * up automatically — no code changes required.
+     */
     @GetMapping("/{name}/backend-services")
     public List<Map<String, Object>> listBackendServices(@PathVariable String name) {
         List<Map<String, Object>> result = new ArrayList<>();
-        for (var svc : BACKEND_SERVICES) {
-            boolean up = checkPort("127.0.0.1", svc.port);
+        Set<Integer> scanned = new LinkedHashSet<>();
+        // Always scan known ports first (even if down, show them)
+        for (int port : KNOWN_PORTS.keySet().stream().sorted().toList()) {
+            scanned.add(port);
+            boolean up = checkPort("127.0.0.1", port);
             Map<String, Object> info = new LinkedHashMap<>();
-            info.put("name", svc.name);
-            info.put("category", svc.category);
-            info.put("port", svc.port);
+            info.put("name", KNOWN_PORTS.get(port).name);
+            info.put("category", KNOWN_PORTS.get(port).category);
+            info.put("port", port);
             info.put("status", up ? "UP" : "DOWN");
-            info.put("description", svc.description);
+            info.put("description", KNOWN_PORTS.get(port).description);
             result.add(info);
+        }
+        // Also discover any unknown open ports in range
+        for (int port = 8080; port <= 8099; port++) {
+            if (scanned.contains(port)) continue;
+            if (checkPort("127.0.0.1", port)) {
+                scanned.add(port);
+                Map<String, Object> info = new LinkedHashMap<>();
+                info.put("name", "Service :" + port);
+                info.put("category", "Other");
+                info.put("port", port);
+                info.put("status", "UP");
+                info.put("description", "Auto-discovered on port " + port);
+                result.add(info);
+            }
         }
         return result;
     }
@@ -78,28 +101,27 @@ public class ServerController {
         try (Socket s = new Socket()) {
             s.connect(new InetSocketAddress(host, port), 2000);
             return true;
-        } catch (Exception e) {
-            return false;
-        }
+        } catch (Exception e) { return false; }
     }
 
-    private record BackendService(String name, String category, int port, String description) {}
-    private static final List<BackendService> BACKEND_SERVICES = List.of(
-        new BackendService("Gateway", "Core", 8080, "API Gateway / Router"),
-        new BackendService("Auth Service", "Core", 8081, "Authentication & JWT"),
-        new BackendService("User Service", "Core", 8082, "Users, Roles & Permissions"),
-        new BackendService("Product Service", "Catalog", 8083, "Products, Categories, Brands"),
-        new BackendService("Inventory Service", "Inventory", 8084, "Stock, Warehouses, Transfers"),
-        new BackendService("Sales Service", "Sales", 8085, "POS, Sales, Quotations"),
-        new BackendService("Payment Service", "Finance", 8086, "Payments, Accounts, Expenses"),
-        new BackendService("Report Service", "Insight", 8087, "Reports & Analytics"),
-        new BackendService("Notification Service", "Core", 8089, "Email, SMS, Push Notifications"),
-        new BackendService("HRM Service", "People", 8090, "Employees, Attendance, Payroll"),
-        new BackendService("AI Service", "Intelligence", 8091, "AI Insights & Automation"),
-        new BackendService("Integration Service", "Platform", 8092, "Third-party Integrations"),
-        new BackendService("Document Service", "Documents", 8093, "PDF Generation & Templates"),
-        new BackendService("Billing Service", "Finance", 8094, "Plans, Subscriptions & Billing"),
-        new BackendService("Control Hub", "Platform", 8100, "Letis Control Center Hub"),
-        new BackendService("LSA Agent", "Platform", 9100, "Server Monitoring Agent")
-    );
+    private record ServiceMeta(String name, String category, String description) {}
+    private static final Map<Integer, ServiceMeta> KNOWN_PORTS = new LinkedHashMap<>();
+    static {
+        KNOWN_PORTS.put(8080, new ServiceMeta("Gateway", "Core", "API Gateway / Router"));
+        KNOWN_PORTS.put(8081, new ServiceMeta("Auth Service", "Core", "Authentication & JWT"));
+        KNOWN_PORTS.put(8082, new ServiceMeta("User Service", "Core", "Users, Roles & Permissions"));
+        KNOWN_PORTS.put(8083, new ServiceMeta("Product Service", "Catalog", "Products, Categories, Brands"));
+        KNOWN_PORTS.put(8084, new ServiceMeta("Inventory Service", "Inventory", "Stock, Warehouses, Transfers"));
+        KNOWN_PORTS.put(8085, new ServiceMeta("Sales Service", "Sales", "POS, Sales, Quotations"));
+        KNOWN_PORTS.put(8086, new ServiceMeta("Payment Service", "Finance", "Payments, Accounts, Expenses"));
+        KNOWN_PORTS.put(8087, new ServiceMeta("Report Service", "Insight", "Reports & Analytics"));
+        KNOWN_PORTS.put(8089, new ServiceMeta("Notification Service", "Core", "Email, SMS, Push Notifications"));
+        KNOWN_PORTS.put(8090, new ServiceMeta("HRM Service", "People", "Employees, Attendance, Payroll"));
+        KNOWN_PORTS.put(8091, new ServiceMeta("AI Service", "Intelligence", "AI Insights & Automation"));
+        KNOWN_PORTS.put(8092, new ServiceMeta("Integration Service", "Platform", "Third-party Integrations"));
+        KNOWN_PORTS.put(8093, new ServiceMeta("Document Service", "Documents", "PDF Generation & Templates"));
+        KNOWN_PORTS.put(8094, new ServiceMeta("Billing Service", "Finance", "Plans, Subscriptions & Billing"));
+        KNOWN_PORTS.put(8100, new ServiceMeta("Control Hub", "Platform", "Letis Control Center Hub"));
+        KNOWN_PORTS.put(9100, new ServiceMeta("LSA Agent", "Platform", "Server Monitoring Agent"));
+    }
 }
