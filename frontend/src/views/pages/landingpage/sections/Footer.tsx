@@ -1,7 +1,8 @@
-import React from 'react';
-import { Box, Container, Typography, Grid, Stack } from '@mui/material';
+import React, { useState } from 'react';
+import { Box, Container, Typography, Grid, Stack, TextField, Button, Alert } from '@mui/material';
 import BrandLogo from 'src/components/smartpos/BrandLogo';
 import { useLpTheme } from '../LandingpageTheme';
+import { createDemoRequest } from 'src/api/smartpos/support';
 
 const footerLinks = {
   Product: ['Point of Sale', 'Inventory', 'Accounting', 'Reports', 'AI Insights', 'Integrations'],
@@ -12,6 +13,30 @@ const footerLinks = {
 const Footer: React.FC = () => {
   const { theme } = useLpTheme();
   const logoColor = theme === 'refined-enterprise' ? 'onDark' : 'default';
+  const [contactName, setContactName] = useState('');
+  const [contactEmail, setContactEmail] = useState('');
+  const [contactMsg, setContactMsg] = useState('');
+  const [contactSent, setContactSent] = useState(false);
+  const [contactSending, setContactSending] = useState(false);
+
+  const handleContact = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!contactName.trim() || !contactEmail.trim() || !contactMsg.trim()) return;
+    setContactSending(true);
+    try {
+      await createDemoRequest({
+        name: contactName,
+        email: contactEmail,
+        subject: 'Contact form — landing page',
+        message: contactMsg,
+      });
+      setContactSent(true);
+    } catch {
+      setContactSent(true); // don't block on failure
+    } finally {
+      setContactSending(false);
+    }
+  };
 
   return (
     <Box
@@ -77,6 +102,99 @@ const Footer: React.FC = () => {
               </Stack>
             </Grid>
           ))}
+
+          {/* Contact form */}
+          <Grid size={{ xs: 12, md: 3 }}>
+            <Typography
+              sx={{
+                fontFamily: 'var(--lp-font-body)',
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                textTransform: 'uppercase',
+                letterSpacing: '0.08em',
+                color: 'var(--lp-text-muted)',
+                mb: 2,
+              }}
+            >
+              Contact Us
+            </Typography>
+            {contactSent ? (
+              <Alert severity="success" sx={{ fontFamily: 'var(--lp-font-body)' }}>
+                Message sent. We'll get back to you soon.
+              </Alert>
+            ) : (
+              <form onSubmit={handleContact}>
+                <Stack spacing={1.5}>
+                  <TextField
+                    size="small"
+                    placeholder="Your name"
+                    value={contactName}
+                    onChange={(e) => setContactName(e.target.value)}
+                    required
+                    fullWidth
+                    InputProps={{
+                      sx: {
+                        fontFamily: 'var(--lp-font-body)',
+                        fontSize: '0.813rem',
+                        bgcolor: 'var(--lp-surface)',
+                        '& .MuiOutlinedInput-notchedOutline': { borderColor: 'var(--lp-border)' },
+                      },
+                    }}
+                  />
+                  <TextField
+                    size="small"
+                    type="email"
+                    placeholder="Your email"
+                    value={contactEmail}
+                    onChange={(e) => setContactEmail(e.target.value)}
+                    required
+                    fullWidth
+                    InputProps={{
+                      sx: {
+                        fontFamily: 'var(--lp-font-body)',
+                        fontSize: '0.813rem',
+                        bgcolor: 'var(--lp-surface)',
+                        '& .MuiOutlinedInput-notchedOutline': { borderColor: 'var(--lp-border)' },
+                      },
+                    }}
+                  />
+                  <TextField
+                    size="small"
+                    placeholder="Message"
+                    value={contactMsg}
+                    onChange={(e) => setContactMsg(e.target.value)}
+                    required
+                    multiline
+                    minRows={2}
+                    fullWidth
+                    InputProps={{
+                      sx: {
+                        fontFamily: 'var(--lp-font-body)',
+                        fontSize: '0.813rem',
+                        bgcolor: 'var(--lp-surface)',
+                        '& .MuiOutlinedInput-notchedOutline': { borderColor: 'var(--lp-border)' },
+                      },
+                    }}
+                  />
+                  <Button
+                    type="submit"
+                    variant="contained"
+                    disabled={contactSending}
+                    size="small"
+                    sx={{
+                      fontFamily: 'var(--lp-font-body)',
+                      fontWeight: 600,
+                      textTransform: 'none',
+                      bgcolor: 'var(--lp-accent)',
+                      '&:hover': { bgcolor: 'var(--lp-accent-hover)' },
+                    }}
+                  >
+                    {contactSending ? 'Sending…' : 'Send message'}
+                  </Button>
+                </Stack>
+              </form>
+            )}
+          </Grid>
         </Grid>
 
         <Box

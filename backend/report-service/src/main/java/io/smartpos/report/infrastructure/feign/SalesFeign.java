@@ -23,6 +23,8 @@ public interface SalesFeign {
 
     record SalesSeriesPoint(LocalDate date, BigDecimal net, long count) {}
 
+    record TopSupplier(UUID supplierId, long orderCount, BigDecimal totalSpent) {}
+
     record PurchaseStats(long count, BigDecimal gross, BigDecimal paid, BigDecimal due) {}
 
     record SalesByUser(UUID userId, String userName, long saleCount,

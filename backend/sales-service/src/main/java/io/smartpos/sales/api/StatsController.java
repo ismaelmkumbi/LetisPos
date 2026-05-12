@@ -62,4 +62,13 @@ public class StatsController {
                                                     @RequestParam(required = false) UUID supplierId) {
         return stats.purchaseStats(dateFrom, dateTo, warehouseId, supplierId);
     }
+
+    @GetMapping("/purchases/top-suppliers")
+    @PreAuthorize("hasAuthority('report.sales') or hasAuthority('purchase.view')")
+    public List<StatsService.TopSupplier> topSuppliers(@RequestParam(required = false) LocalDate dateFrom,
+                                                       @RequestParam(required = false) LocalDate dateTo,
+                                                       @RequestParam(required = false) UUID warehouseId,
+                                                       @RequestParam(defaultValue = "10") int limit) {
+        return stats.topSuppliers(dateFrom, dateTo, warehouseId, limit);
+    }
 }

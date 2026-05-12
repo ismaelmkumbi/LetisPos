@@ -173,6 +173,8 @@ public class StatsService {
 
     // ---------- Purchase stats (mirror) ----------
 
+    public record TopSupplier(UUID supplierId, long orderCount, BigDecimal totalSpent) {}
+
     public record PurchaseStats(long count, BigDecimal gross, BigDecimal paid, BigDecimal due) {}
 
     @Transactional(readOnly = true)
@@ -199,5 +201,36 @@ public class StatsService {
         BigDecimal gross = (BigDecimal) row[1];
         BigDecimal paid  = (BigDecimal) row[2];
         return new PurchaseStats(count, gross, paid, gross.subtract(paid).max(BigDecimal.ZERO));
+    }
+
+    @Transactional(readOnly = true)
+    public List<TopSupplier> topSuppliers(LocalDate from, LocalDate to, UUID warehouseId, int limit) {
+        String jpql = """
+            SELECT p.supplierId,
+                   COUNT(p),
+                   COALESCE(SUM(p.grandTotal), 0)
+            FROM Purchase p
+            WHERE p.status = io.smartpos.sales.domain.model.PurchaseStatus.RECEIVED
+              AND p.supplierId IS NOT NULL
+              AND p.tenantId = :tenantId
+              AND (CAST(:dateFrom    AS java.time.LocalDate) IS NULL OR p.date >= :dateFrom)
+              AND (CAST(:dateTo      AS java.time.LocalDate) IS NULL OR p.date <= :dateTo)
+              AND (CAST(:warehouseId AS java.util.UUID)      IS NULL OR p.warehouseId = :warehouseId)
+            GROUP BY p.supplierId
+            ORDER BY SUM(p.grandTotal) DESC
+            """;
+        @SuppressWarnings("unchecked")
+        List<Object[]> rows = em.createQuery(jpql)
+                .setParameter("tenantId", TenantContext.require())
+                .setParameter("dateFrom", from)
+                .setParameter("dateTo", to)
+                .setParameter("warehouseId", warehouseId)
+                .setMaxResults(Math.max(1, Math.min(limit, 100)))
+                .getResultList();
+        List<TopSupplier> out = new ArrayList<>(rows.size());
+        for (Object[] r : rows) {
+            out.add(new TopSupplier((UUID) r[0], ((Number) r[1]).longValue(), (BigDecimal) r[2]));
+        }
+        return out;
     }
 }

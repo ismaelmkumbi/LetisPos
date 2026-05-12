@@ -106,6 +106,8 @@ public class ServerController {
                 var res = readProcessStats(port);
                 info.put("cpuPercent", res.cpu);
                 info.put("memUsedBytes", res.mem);
+                info.put("pid", res.pid);
+                info.put("command", res.command);
             }
             result.add(info);
         }
@@ -123,6 +125,8 @@ public class ServerController {
                 var res = readProcessStats(port);
                 info.put("cpuPercent", res.cpu);
                 info.put("memUsedBytes", res.mem);
+                info.put("pid", res.pid);
+                info.put("command", res.command);
                 result.add(info);
             }
         }
@@ -155,8 +159,8 @@ public class ServerController {
             String stat = java.nio.file.Files.readString(
                 java.nio.file.Path.of("/proc/" + pid + "/stat"));
             String[] parts = stat.substring(stat.lastIndexOf(')') + 2).split(" ");
-            long utime = Long.parseLong(parts[11]); // field 14 (0-indexed: 11 after ')')
-            long stime = Long.parseLong(parts[12]); // field 15
+            long utime = Long.parseLong(parts[11]);
+            long stime = Long.parseLong(parts[12]);
             long totalCpu = utime + stime;
             long now = System.currentTimeMillis();
 
@@ -165,29 +169,29 @@ public class ServerController {
                 java.nio.file.Path.of("/proc/" + pid + "/statm"));
             String[] sm = statm.trim().split("\\s+");
             long rssPages = Long.parseLong(sm[1]);
-            long memBytes = rssPages * 4096; // 4KB pages
+            long memBytes = rssPages * 4096;
 
-            // Compute CPU% from delta since last call
+            // /proc/<pid>/comm: process command name
+            String comm = java.nio.file.Files.readString(
+                java.nio.file.Path.of("/proc/" + pid + "/comm")).trim();
+
             double cpu = 0.0;
             String key = "pid-" + pid;
-            long[] prev = lastCpu.get(key);
-            if (prev != null) {
-                long cpuDelta = totalCpu - prev[0];
-                long timeDelta = now - prev[1];
-                if (timeDelta > 0) {
-                    // cpuDelta ticks * 10ms/tick * 100 / timeDelta = % of one core
-                    cpu = (cpuDelta * 10.0 * 100.0) / timeDelta;
-                    cpu = Math.min(cpu, 100.0 * Runtime.getRuntime().availableProcessors());
-                }
+            long[] prev = lastCpu.computeIfAbsent(key, k -> new long[]{totalCpu, now});
+            long cpuDelta = totalCpu - prev[0];
+            long timeDelta = now - prev[1];
+            if (timeDelta > 0 && prev[0] > 0) {
+                cpu = (cpuDelta * 10.0 * 100.0) / timeDelta;
+                cpu = Math.min(cpu, 100.0 * Runtime.getRuntime().availableProcessors());
             }
-            lastCpu.put(key, new long[]{totalCpu, now});
-            return new ProcessStats(Math.round(cpu * 10.0) / 10.0, memBytes);
+            prev[0] = totalCpu; prev[1] = now;
+            return new ProcessStats(Math.round(cpu * 10.0) / 10.0, memBytes, pid, comm);
         } catch (Exception e) { return ProcessStats.EMPTY; }
     }
 
     private final Map<String, long[]> lastCpu = new ConcurrentHashMap<>();
-    private record ProcessStats(double cpu, long mem) {
-        static final ProcessStats EMPTY = new ProcessStats(0, 0);
+    private record ProcessStats(double cpu, long mem, long pid, String command) {
+        static final ProcessStats EMPTY = new ProcessStats(0, 0, 0, "");
     }
 
     private record ServiceMeta(String name, String category, String description) {}
