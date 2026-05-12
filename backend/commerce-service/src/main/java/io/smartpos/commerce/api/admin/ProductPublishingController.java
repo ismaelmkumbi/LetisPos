@@ -31,7 +31,7 @@ public class ProductPublishingController {
     public Page<PublishedProductDto> list(
         @RequestParam(required = false) String search,
         Pageable pageable) {
-        UUID tenantId = TenantContext.getTenantId();
+        UUID tenantId = TenantContext.require();
         Store store = storeService.getByTenant(tenantId);
         return publishingService.listPublished(store.getId(), search, pageable)
             .map(PublishedProductDto::from);
@@ -40,7 +40,7 @@ public class ProductPublishingController {
     @PostMapping("/publish")
     @PreAuthorize("hasAuthority('commerce.products')")
     public ResponseEntity<PublishedProductDto> publish(@Valid @RequestBody PublishProductRequest req) {
-        UUID tenantId = TenantContext.getTenantId();
+        UUID tenantId = TenantContext.require();
         Store store = storeService.getByTenant(tenantId);
         PublishedProduct pp = publishingService.publish(
             req.productId(), store.getId(),
@@ -67,7 +67,7 @@ public class ProductPublishingController {
     @DeleteMapping("/{productId}/unpublish")
     @PreAuthorize("hasAuthority('commerce.products')")
     public ResponseEntity<Void> unpublish(@PathVariable UUID productId) {
-        UUID tenantId = TenantContext.getTenantId();
+        UUID tenantId = TenantContext.require();
         Store store = storeService.getByTenant(tenantId);
         publishingService.unpublish(store.getId(), productId);
         return ResponseEntity.noContent().build();

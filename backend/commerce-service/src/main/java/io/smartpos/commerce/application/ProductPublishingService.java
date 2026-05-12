@@ -25,7 +25,7 @@ public class ProductPublishingService {
 
     @Transactional
     public PublishedProduct publish(UUID productId, UUID storeId, PublishRequest req) {
-        UUID tenantId = TenantContext.getTenantId();
+        UUID tenantId = TenantContext.require();
         publishedProductRepository.findByStoreIdAndProductId(storeId, productId)
             .ifPresent(pp -> { throw new IllegalArgumentException("Product is already published"); });
 
@@ -55,7 +55,7 @@ public class ProductPublishingService {
 
     @Transactional(readOnly = true)
     public Page<PublishedProduct> listPublished(UUID storeId, String search, Pageable pageable) {
-        UUID tenantId = TenantContext.getTenantId();
+        UUID tenantId = TenantContext.require();
         return publishedProductRepository.searchPublished(storeId, tenantId, search, pageable);
     }
 
