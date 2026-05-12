@@ -54,8 +54,6 @@ jobs:
       ai_service: ${{ steps.filter.outputs.ai_service }}
       integration_service: ${{ steps.filter.outputs.integration_service }}
       document_service: ${{ steps.filter.outputs.document_service }}
-            commerce_service:
-              - backend/commerce-service/**
       commerce_service: ${{ steps.filter.outputs.commerce_service }}
     steps:
       - uses: actions/checkout@v4
