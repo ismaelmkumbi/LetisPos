@@ -43,6 +43,7 @@ spring:
 
 smartpos:
   outbox:
+    enabled: false
     topic-prefix: smartpos.commerce
 
 commerce:
