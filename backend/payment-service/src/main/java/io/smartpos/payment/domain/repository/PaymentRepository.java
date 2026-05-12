@@ -52,10 +52,8 @@ public interface PaymentRepository extends JpaRepository<Payment, UUID> {
         ORDER BY p.date DESC
         """, nativeQuery = true)
     Page<Object[]> findSupplierPaymentsRaw(@Param("tenantId") UUID tenantId,
-                                            @Param("supplierId") UUID supplierId,
                                             @Param("method") String method,
                                             @Param("dateFrom") LocalDate dateFrom,
                                             @Param("dateTo") LocalDate dateTo,
-                                            @Param("search") String search,
                                             Pageable pageable);
 }

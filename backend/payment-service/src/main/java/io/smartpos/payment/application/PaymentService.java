@@ -158,7 +158,7 @@ public class PaymentService {
             UUID supplierId, String method, LocalDate dateFrom, LocalDate dateTo,
             String search, Pageable pageable) {
         return paymentRepo.findSupplierPaymentsRaw(
-                TenantContext.require(), supplierId, method, dateFrom, dateTo, search, pageable)
+                TenantContext.require(), method, dateFrom, dateTo, pageable)
                 .map(row -> new io.smartpos.payment.api.dto.SupplierPaymentDto(
                     (UUID) row[0],
                     (UUID) row[2],
