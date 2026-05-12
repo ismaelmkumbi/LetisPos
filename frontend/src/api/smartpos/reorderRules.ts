@@ -59,3 +59,22 @@ export async function updateReorderRule(id: UUID, body: ReorderRuleInput): Promi
 export async function deleteReorderRule(id: UUID): Promise<void> {
   await api.delete(`/api/v1/reorder-rules/${id}`);
 }
+
+// ── Reorder Suggestions ───────────────────────────────────────────────────────
+
+export interface ReorderSuggestion {
+  productId: string;
+  productName?: string | null;
+  currentStock: number;
+  suggestedQty: number;
+  minQty: number;
+  supplierId?: string | null;
+  urgency: 'HIGH' | 'MEDIUM' | 'LOW';
+  dailyVelocity: number;
+  expectedShortageDate?: string | null;
+}
+
+export async function getReorderSuggestions(): Promise<ReorderSuggestion[]> {
+  const { data } = await api.get<ReorderSuggestion[]>('/api/v1/inventory/reorder-suggestions');
+  return data;
+}

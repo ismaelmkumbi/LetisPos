@@ -8,4 +8,6 @@ import java.util.UUID;
 
 public interface ReorderRuleRepository extends JpaRepository<ReorderRule, UUID>, JpaSpecificationExecutor<ReorderRule> {
     List<ReorderRule> findByWarehouseIdAndActiveTrue(UUID warehouseId);
+
+    List<ReorderRule> findByTenantId(UUID tenantId);
 }

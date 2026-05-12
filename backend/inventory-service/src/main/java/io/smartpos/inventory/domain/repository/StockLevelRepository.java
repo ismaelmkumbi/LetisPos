@@ -81,4 +81,7 @@ public interface StockLevelRepository extends JpaRepository<StockLevel, UUID> {
     List<StockLevel> findByWarehouseAndProducts(@Param("warehouseId") UUID warehouseId,
                                                 @Param("productIds") List<UUID> productIds,
                                                 @Param("tenantId") UUID tenantId);
+
+    /** All stock levels for a given tenant. */
+    List<StockLevel> findByTenantId(UUID tenantId);
 }
