@@ -166,7 +166,7 @@ function ServerPanel({ server, metrics: m, backendSvcs, services, svcFilter, onF
                     <Chip label={svc.category} size="small" sx={{ height: 20, fontWeight: 600, fontSize: '0.6rem', bgcolor: `${CATEGORY_COLORS[svc.category] || brand.primary[500]}20`, color: CATEGORY_COLORS[svc.category] || brand.primary[500], borderRadius: '6px' }} />
                   </TableCell>
                   <TableCell sx={{ fontFamily: "'DM Mono', 'Courier New', monospace", fontSize: '0.75rem', color: muted }}>:{svc.port}</TableCell>
-                  <TableCell align="right" sx={{ fontFamily: "'DM Mono', monospace", fontSize: '0.75rem', color: (svc.cpuPercent ?? 0) > 20 ? brand.operational.critical.text : brand.neutral[50] }}>
+                  <TableCell align="right" sx={{ fontFamily: "'DM Mono', monospace", fontSize: '0.75rem', color: (svc.cpuPercent ?? 0) > 50 ? brand.error.main : (svc.cpuPercent ?? 0) > 20 ? brand.warning.main : brand.neutral[50] }}>
                     {(svc.cpuPercent ?? 0).toFixed(1)}%
                   </TableCell>
                   <TableCell align="right" sx={{ fontFamily: "'DM Mono', monospace", fontSize: '0.72rem', color: muted }}>
