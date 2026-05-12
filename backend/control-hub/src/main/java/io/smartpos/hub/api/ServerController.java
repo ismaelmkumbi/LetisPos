@@ -15,6 +15,7 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.time.Instant;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 @RestController
 @RequestMapping("/api/v1/servers")
@@ -78,6 +79,11 @@ public class ServerController {
             info.put("port", port);
             info.put("status", up ? "UP" : "DOWN");
             info.put("description", KNOWN_PORTS.get(port).description);
+            if (up) {
+                var res = readProcessStats(port);
+                info.put("cpuPercent", res.cpu);
+                info.put("memUsedBytes", res.mem);
+            }
             result.add(info);
         }
         // Also discover any unknown open ports in range
@@ -91,6 +97,9 @@ public class ServerController {
                 info.put("port", port);
                 info.put("status", "UP");
                 info.put("description", "Auto-discovered on port " + port);
+                var res = readProcessStats(port);
+                info.put("cpuPercent", res.cpu);
+                info.put("memUsedBytes", res.mem);
                 result.add(info);
             }
         }
@@ -102,6 +111,59 @@ public class ServerController {
             s.connect(new InetSocketAddress(host, port), 2000);
             return true;
         } catch (Exception e) { return false; }
+    }
+
+    /** Finds the PID listening on a port and reads its CPU% and RSS memory. */
+    private ProcessStats readProcessStats(int port) {
+        try {
+            // Find PID via ss (socket statistics — no root needed)
+            var proc = new ProcessBuilder("sh", "-c",
+                "ss -tlnp 'sport = :" + port + "' 2>/dev/null | grep -oP 'pid=\\K\\d+'").start();
+            String pidStr = new String(proc.getInputStream().readAllBytes()).trim();
+            if (pidStr.isEmpty()) return ProcessStats.EMPTY;
+            long pid = Long.parseLong(pidStr);
+            return readProcStats(pid);
+        } catch (Exception e) { return ProcessStats.EMPTY; }
+    }
+
+    private ProcessStats readProcStats(long pid) {
+        try {
+            // /proc/<pid>/stat: fields 14 (utime) + 15 (stime) in clock ticks
+            String stat = java.nio.file.Files.readString(
+                java.nio.file.Path.of("/proc/" + pid + "/stat"));
+            String[] parts = stat.substring(stat.lastIndexOf(')') + 2).split(" ");
+            long utime = Long.parseLong(parts[11]); // field 14 (0-indexed: 11 after ')')
+            long stime = Long.parseLong(parts[12]); // field 15
+            long totalCpu = utime + stime;
+            long now = System.currentTimeMillis();
+
+            // /proc/<pid>/statm: field 2 is RSS in pages
+            String statm = java.nio.file.Files.readString(
+                java.nio.file.Path.of("/proc/" + pid + "/statm"));
+            String[] sm = statm.trim().split("\\s+");
+            long rssPages = Long.parseLong(sm[1]);
+            long memBytes = rssPages * 4096; // 4KB pages
+
+            // Compute CPU% from delta since last call
+            double cpu = 0.0;
+            String key = "pid-" + pid;
+            long[] prev = lastCpu.get(key);
+            if (prev != null) {
+                long cpuDelta = totalCpu - prev[0];
+                long timeDelta = now - prev[1];
+                if (timeDelta > 0) {
+                    cpu = (cpuDelta * 1000.0 / timeDelta) / 100.0; // ticks/s / 100 = % per core
+                    cpu = Math.min(cpu, 100.0 * Runtime.getRuntime().availableProcessors());
+                }
+            }
+            lastCpu.put(key, new long[]{totalCpu, now});
+            return new ProcessStats(Math.round(cpu * 10.0) / 10.0, memBytes);
+        } catch (Exception e) { return ProcessStats.EMPTY; }
+    }
+
+    private final Map<String, long[]> lastCpu = new ConcurrentHashMap<>();
+    private record ProcessStats(double cpu, long mem) {
+        static final ProcessStats EMPTY = new ProcessStats(0, 0);
     }
 
     private record ServiceMeta(String name, String category, String description) {}
