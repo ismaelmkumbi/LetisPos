@@ -85,6 +85,18 @@ const SmartPosAdvReports = Loadable(
   lazy(() => import('../views/smartpos/reports/AdvancedReportsPage')),
 );
 const SmartPosAi = Loadable(lazy(() => import('../views/smartpos/ai/AiInsightsPage')));
+const SmartPosAiDemandForecasting = Loadable(
+  lazy(() => import('../views/smartpos/ai/DemandForecastingPage')),
+);
+const SmartPosAiReorderSuggestions = Loadable(
+  lazy(() => import('../views/smartpos/ai/ReorderSuggestionsPage')),
+);
+const SmartPosAiCustomerAnalytics = Loadable(
+  lazy(() => import('../views/smartpos/ai/CustomerAnalyticsPage')),
+);
+const SmartPosAiFraudDetection = Loadable(
+  lazy(() => import('../views/smartpos/ai/FraudDetectionPage')),
+);
 const SmartPosTerminals = Loadable(lazy(() => import('../views/smartpos/pos/TerminalsListPage')));
 const SmartPosCustomerDisplay = Loadable(
   lazy(() => import('../views/smartpos/pos/CustomerDisplayPage')),
@@ -119,6 +131,7 @@ const SmartPosErrorLogs = Loadable(lazy(() => import('../views/smartpos/admin/Er
 const SmartPosApiKeys = Loadable(lazy(() => import('../views/smartpos/admin/ApiKeysPage')));
 const SmartPosSessions = Loadable(lazy(() => import('../views/smartpos/admin/SessionsPage')));
 const SmartPosDataRetention = Loadable(lazy(() => import('../views/smartpos/admin/DataRetentionPage')));
+const SmartPosBackups = Loadable(lazy(() => import('../views/smartpos/admin/BackupsPage')));
 import TenantBillingPage from '../views/smartpos/billing/TenantBillingPage';
 const SmartPosI18nAdmin = Loadable(lazy(() => import('../views/smartpos/settings/I18nAdminPage')));
 const SmartPosReceiptSettings = Loadable(
@@ -141,6 +154,18 @@ const SmartPosTemplateEditor = Loadable(
 );
 const SmartPosPrinterSettings = Loadable(
   lazy(() => import('../views/smartpos/settings/PrinterSettingsPage')),
+);
+const SmartPosHelpCenter = Loadable(
+  lazy(() => import('../views/smartpos/support/HelpCenterPage')),
+);
+const SmartPosTutorials = Loadable(
+  lazy(() => import('../views/smartpos/support/TutorialsPage')),
+);
+const SmartPosSystemStatus = Loadable(
+  lazy(() => import('../views/smartpos/support/SystemStatusPage')),
+);
+const SmartPosContactSupport = Loadable(
+  lazy(() => import('../views/smartpos/support/ContactSupportPage')),
 );
 const SmartPosCustomers = Loadable(
   lazy(() => import('../views/smartpos/customers/CustomersListPage')),
@@ -270,6 +295,31 @@ const SmartPosSupplierReturns = Loadable(
 );
 const SmartPosSupplierPayments = Loadable(
   lazy(() => import('../views/smartpos/money/SupplierPaymentsPage')),
+);
+const SmartPosLeads = Loadable(lazy(() => import('../views/smartpos/crm/LeadsPage')));
+const SmartPosOpportunities = Loadable(
+  lazy(() => import('../views/smartpos/crm/OpportunitiesPage')),
+);
+const SmartPosFollowUps = Loadable(
+  lazy(() => import('../views/smartpos/crm/FollowUpsPage')),
+);
+const SmartPosActivities = Loadable(
+  lazy(() => import('../views/smartpos/crm/ActivitiesPage')),
+);
+const SmartPosPromotions = Loadable(
+  lazy(() => import('../views/smartpos/marketing/PromotionsPage')),
+);
+const SmartPosCoupons = Loadable(
+  lazy(() => import('../views/smartpos/marketing/CouponsPage')),
+);
+const SmartPosSmsCampaigns = Loadable(
+  lazy(() => import('../views/smartpos/marketing/SmsCampaignsPage')),
+);
+const SmartPosEmailCampaigns = Loadable(
+  lazy(() => import('../views/smartpos/marketing/EmailCampaignsPage')),
+);
+const SmartPosWhatsAppCampaigns = Loadable(
+  lazy(() => import('../views/smartpos/marketing/WhatsAppCampaignsPage')),
 );
 
 /* ****Pages***** */
@@ -513,6 +563,10 @@ const Router = [
       { path: 'reports/advanced', element: <SmartPosAdvReports /> },
       // AI
       { path: 'ai', element: <SmartPosAi /> },
+      { path: 'ai/forecasting', element: <SmartPosAiDemandForecasting /> },
+      { path: 'ai/reorder-suggestions', element: <SmartPosAiReorderSuggestions /> },
+      { path: 'ai/customer-analytics', element: <SmartPosAiCustomerAnalytics /> },
+      { path: 'ai/fraud-detection', element: <SmartPosAiFraudDetection /> },
       // POS terminals admin (display screen below uses BlankLayout)
       { path: 'pos/terminals', element: <SmartPosTerminals /> },
       // Integrations
@@ -574,6 +628,11 @@ const Router = [
       { path: 'deposits', element: <SmartPosDeposits /> },
       { path: 'cash-management', element: <SmartPosCashManagement /> },
       { path: 'supplier-payments', element: <SmartPosSupplierPayments /> },
+      // CRM
+      { path: 'crm/leads', element: <SmartPosLeads /> },
+      { path: 'crm/opportunities', element: <SmartPosOpportunities /> },
+      { path: 'crm/follow-ups', element: <SmartPosFollowUps /> },
+      { path: 'crm/activities', element: <SmartPosActivities /> },
       // Reports hub + individual report pages
       { path: 'reports', element: <SmartPosReportsHub /> },
       { path: 'reports/sales', element: <SmartPosSalesReport /> },
@@ -602,6 +661,18 @@ const Router = [
       { path: 'admin/api-keys', element: <SmartPosApiKeys /> },
       { path: 'admin/error-logs', element: <SmartPosErrorLogs /> },
       { path: 'admin/data-retention', element: <SmartPosDataRetention /> },
+      { path: 'admin/backups', element: <SmartPosBackups /> },
+      // Marketing
+      { path: 'marketing/promotions', element: <SmartPosPromotions /> },
+      { path: 'marketing/coupons', element: <SmartPosCoupons /> },
+      { path: 'marketing/sms-campaigns', element: <SmartPosSmsCampaigns /> },
+      { path: 'marketing/email-campaigns', element: <SmartPosEmailCampaigns /> },
+      { path: 'marketing/whatsapp-campaigns', element: <SmartPosWhatsAppCampaigns /> },
+      // Support
+      { path: 'support/help', element: <SmartPosHelpCenter /> },
+      { path: 'support/tutorials', element: <SmartPosTutorials /> },
+      { path: 'support/system-status', element: <SmartPosSystemStatus /> },
+      { path: 'support/contact', element: <SmartPosContactSupport /> },
     ],
   },
   // ---- Modernize demo (left intact while we build; can be stripped later) ----
