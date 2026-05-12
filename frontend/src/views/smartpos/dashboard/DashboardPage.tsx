@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, useContext, useCallback } from 'react';
-import { Alert, Box, Grid, LinearProgress } from '@mui/material';
-import { useSearchParams } from 'react-router';
+import { Alert, Box, Button, Grid, LinearProgress, Typography } from '@mui/material';
+import { useSearchParams, Link } from 'react-router';
 
 import {
   getDashboard,
@@ -48,7 +48,7 @@ import {
 } from './utils';
 
 export default function DashboardPage() {
-  const { user } = useAuth();
+  const { user, tenants, isTrialing, getTrialDaysLeft } = useAuth();
   const { state: onboardingState } = useOnboarding();
   const { activeMode } = useContext(CustomizerContext);
   const isDark = activeMode === 'dark';
@@ -311,6 +311,35 @@ export default function DashboardPage() {
       />
 
       <OnboardingBanner />
+
+      {/* Trial / Plan Banner */}
+      {isTrialing() && (
+        <Alert
+          severity="info"
+          sx={{ mb: 3, borderRadius: 2 }}
+          action={
+            <Button color="inherit" size="small" component={Link} to="/smartpos/billing">
+              Subscribe Now
+            </Button>
+          }
+        >
+          <Typography variant="body2" fontWeight={600}>
+            {getTrialDaysLeft() !== null && getTrialDaysLeft()! > 0
+              ? `${getTrialDaysLeft()} days left in your free trial.`
+              : 'Your trial is ending soon.'}
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            You're on the {tenants[0]?.billingPlan ?? 'STARTER'} plan. Subscribe to keep your data and unlock all features.
+          </Typography>
+        </Alert>
+      )}
+
+      {tenants[0]?.billingPlan === 'FREE' && (
+        <Alert severity="warning" sx={{ mb: 3, borderRadius: 2 }}>
+          You're on the Free plan with limited features.{' '}
+          <Link to="/smartpos/billing">Upgrade now</Link> to unlock accounting, reports, and more.
+        </Alert>
+      )}
 
       {error && (
         <Alert severity="error" sx={{ mb: 2, borderRadius: '12px' }}>
