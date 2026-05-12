@@ -55,6 +55,7 @@ export default function StockLevelsPage() {
   const [search, setSearch] = useState(searchParams.get('search') ?? '');
   const [warehouseId, setWarehouseId] = useState<string>(searchParams.get('warehouse') ?? '');
   const [onlyLow, setOnlyLow] = useState(searchParams.get('low') === '1');
+  const [batchedOnly, setBatchedOnly] = useState(searchParams.get('batched') === 'true');
   const [expiringDays, setExpiringDays] = useState<number | null>(() => {
     const v = searchParams.get('expiring');
     return v ? Number(v) : null;
@@ -69,13 +70,14 @@ export default function StockLevelsPage() {
         if (search && search !== '') next.set('search', search); else next.delete('search');
         if (warehouseId && warehouseId !== '') next.set('warehouse', warehouseId); else next.delete('warehouse');
         if (onlyLow) next.set('low', '1'); else next.delete('low');
+        if (batchedOnly) next.set('batched', 'true'); else next.delete('batched');
         if (expiringDays !== null) next.set('expiring', String(expiringDays)); else next.delete('expiring');
         if (page > 0) next.set('page', String(page)); else next.delete('page');
         return next;
       }, { replace: true });
     }, 400);
     return () => clearTimeout(timer);
-  }, [search, warehouseId, onlyLow, expiringDays, page, setSearchParams]);
+  }, [search, warehouseId, onlyLow, batchedOnly, expiringDays, page, setSearchParams]);
 
   // ── Local state ──────────────────────────────────────────────────────────
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
@@ -113,6 +115,32 @@ export default function StockLevelsPage() {
       });
     return () => { cancelled = true; };
   }, [expiringDays, warehouseId]);
+
+  // Batched-only filter: fetch all batches to find which products have them
+  const [batchedProductIds, setBatchedProductIds] = useState<Set<string>>(new Set());
+  const [batchedLoading, setBatchedLoading] = useState(false);
+
+  useEffect(() => {
+    if (!batchedOnly) {
+      setBatchedProductIds(new Set());
+      return;
+    }
+    let cancelled = false;
+    setBatchedLoading(true);
+    listBatches({ warehouseId: warehouseId || undefined, size: 200 })
+      .then((page) => {
+        if (cancelled) return;
+        setBatchedProductIds(new Set(page.content.map((b) => b.productId)));
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setBatchedProductIds(new Set());
+      })
+      .finally(() => {
+        if (!cancelled) setBatchedLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [batchedOnly, warehouseId]);
 
   // ── Batch receive dialog state ──────────────────────────────────────────
   const [receiveOpen, setReceiveOpen] = useState(false);
@@ -228,8 +256,11 @@ export default function StockLevelsPage() {
     if (expiringDays !== null && expiringProductIds.size > 0) {
       result = result.filter((s) => expiringProductIds.has(s.productId));
     }
+    if (batchedOnly && batchedProductIds.size > 0) {
+      result = result.filter((s) => batchedProductIds.has(s.productId));
+    }
     return result;
-  }, [allRows, search, expiringDays, expiringProductIds, productNames]);
+  }, [allRows, search, expiringDays, expiringProductIds, batchedOnly, batchedProductIds, productNames]);
 
   // ── Filter chips ─────────────────────────────────────────────────────────
   const activeFilters: ActiveFilter[] = useMemo(() => {
@@ -256,9 +287,16 @@ export default function StockLevelsPage() {
       });
     }
     return chips;
-  }, [warehouseId, onlyLow, expiringDays, warehouses]);
+    if (batchedOnly) {
+      chips.push({
+        key: 'batched', label: 'Batched products',
+        clear: () => setBatchedOnly(false),
+      });
+    }
+    return chips;
+  }, [warehouseId, onlyLow, expiringDays, batchedOnly, warehouses]);
 
-  // ── Keyboard shortcuts ───────────────────────────────────────────────────
+  // ── Keyboard shortcuts ──────────────────────────────────────────────────
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement).tagName;
@@ -601,8 +639,21 @@ export default function StockLevelsPage() {
         </Stack>
       </FilterBar>
 
-      {/* ── Expiry filter chips ────────────────────────────────────────────── */}
+      {/* ── Filter chips: Batched + Expiry ─────────────────────────────────── */}
       <Stack direction="row" spacing={1} sx={{ mt: 1.5, mb: 0.5 }}>
+        <Chip
+          label="Batched products"
+          variant={batchedOnly ? 'filled' : 'outlined'}
+          color={batchedOnly ? 'info' : 'default'}
+          onClick={() => setBatchedOnly(!batchedOnly)}
+          icon={batchedOnly ? <IconBoxMultiple size={14} /> : undefined}
+          sx={{
+            fontWeight: 600, fontSize: '0.75rem', borderRadius: '8px',
+            ...(batchedOnly ? { bgcolor: brand.info.main, color: '#fff' }
+              : { borderColor: brand.neutral[300], color: brand.neutral[700] }),
+          }}
+        />
+        {batchedLoading && <CircularProgress size={18} sx={{ ml: 1 }} />}
         {[
           { days: 7, label: 'Next 7 days' },
           { days: 30, label: 'Next 30 days' },
