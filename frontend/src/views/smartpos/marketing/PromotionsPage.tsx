@@ -73,7 +73,7 @@ export default function PromotionsPage() {
       const page = await listPromotions({ page: 0, size: 100 });
       setRows(page.content);
     } catch (e: unknown) {
-      setError(e?.response?.data?.message ?? e?.message ?? 'Failed to load promotions');
+      setError((e as { response?: { data?: { message?: string } }; message?: string }).response?.data?.message ?? (e as Error).message ?? 'Failed to load promotions');
     } finally {
       setLoading(false);
     }
@@ -128,7 +128,7 @@ export default function PromotionsPage() {
       setFormOpen(false);
       await load();
     } catch (e: unknown) {
-      setFormError(e?.response?.data?.message ?? e?.message ?? 'Failed to create promotion');
+      setFormError((e as { response?: { data?: { message?: string } }; message?: string }).response?.data?.message ?? (e as Error).message ?? 'Failed to create promotion');
     } finally {
       setSubmitting(false);
     }
@@ -141,7 +141,7 @@ export default function PromotionsPage() {
       setDeleteTarget(null);
       await load();
     } catch (e: unknown) {
-      setError(e?.response?.data?.message ?? e?.message ?? 'Failed to delete promotion');
+      setError((e as { response?: { data?: { message?: string } }; message?: string }).response?.data?.message ?? (e as Error).message ?? 'Failed to delete promotion');
       setDeleteTarget(null);
     }
   };

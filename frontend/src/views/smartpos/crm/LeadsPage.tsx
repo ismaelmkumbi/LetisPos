@@ -93,7 +93,7 @@ export default function LeadsPage() {
       const page = await listLeads({ page: 0, size: 100 });
       setRows(page.content);
     } catch (e: unknown) {
-      setError(e?.message || 'Failed to load leads');
+      setError((e as Error)?.message || 'Failed to load leads');
     } finally {
       setLoading(false);
     }
@@ -135,7 +135,7 @@ export default function LeadsPage() {
       setRows((prev) => [newLead, ...prev]);
       setFormDialogOpen(false);
     } catch (e: unknown) {
-      setFormError(e?.response?.data?.message || e?.message || 'Failed to create lead');
+      setFormError((e as { response?: { data?: { message?: string } }; message?: string }).response?.data?.message || (e as Error)?.message || 'Failed to create lead');
     } finally {
       setSubmitting(false);
     }

@@ -155,7 +155,7 @@ export default function ReorderSuggestionsPage() {
       setSuggestions(data.map((s, i) => mapToRow(s, i)));
       setLoaded(true);
     } catch (e: unknown) {
-      setError(e?.response?.data?.message ?? e?.message ?? 'Failed to load reorder suggestions');
+      setError((e as { response?: { data?: { message?: string } }; message?: string }).response?.data?.message ?? (e as Error).message ?? 'Failed to load reorder suggestions');
     } finally {
       setLoading(false);
     }

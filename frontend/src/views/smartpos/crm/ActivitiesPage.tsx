@@ -99,7 +99,7 @@ export default function ActivitiesPage() {
       const page = await listActivities(params);
       setActivities(page.content);
     } catch (e: unknown) {
-      setError(e?.message || 'Failed to load activities');
+      setError((e as Error)?.message || 'Failed to load activities');
     } finally {
       setLoading(false);
     }
@@ -136,7 +136,7 @@ export default function ActivitiesPage() {
       setActivities((prev) => [newActivity, ...prev]);
       setFormDialogOpen(false);
     } catch (e: unknown) {
-      setFormError(e?.response?.data?.message || e?.message || 'Failed to log activity');
+      setFormError((e as { response?: { data?: { message?: string } }; message?: string }).response?.data?.message || (e as Error)?.message || 'Failed to log activity');
     } finally {
       setSubmitting(false);
     }
