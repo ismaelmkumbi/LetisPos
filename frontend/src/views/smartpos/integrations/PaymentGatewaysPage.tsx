@@ -2,6 +2,7 @@
  * Payment Gateways — configure mobile money and card payment processors.
  */
 import { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import {
   Alert,
   Box,
@@ -19,7 +20,6 @@ import {
   IconDeviceMobile,
   IconBuildingBank,
 } from '@tabler/icons-react';
-import { Link } from 'react-router-dom';
 
 import PageHeader from 'src/components/smartpos/PageHeader';
 import { brand } from 'src/theme/smartpos/brand';
@@ -77,6 +77,7 @@ const GATEWAY_DEFS: GatewayDef[] = [
 /* ------------------------------------------------------------------ */
 
 export default function PaymentGatewaysPage() {
+  const navigate = useNavigate();
   const [enabled, setEnabled] = useState<Record<string, boolean>>({});
   const [formFields, setFormFields] = useState<Record<string, string>>({});
   const [saved, setSaved] = useState<Record<string, boolean>>({});
@@ -157,8 +158,7 @@ export default function PaymentGatewaysPage() {
                   <Chip
                     label="Billing Settings"
                     size="small"
-                    component={Link}
-                    to={gw.billingLink}
+                    onClick={() => navigate(gw.billingLink!)}
                     clickable
                     sx={{
                       bgcolor: brand.accent[50],
@@ -166,6 +166,7 @@ export default function PaymentGatewaysPage() {
                       fontWeight: 600,
                       fontSize: '0.7rem',
                       textDecoration: 'none',
+                      cursor: 'pointer',
                     }}
                   />
                 )}
