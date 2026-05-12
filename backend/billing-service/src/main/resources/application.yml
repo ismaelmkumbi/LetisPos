@@ -38,3 +38,14 @@ smartpos:
       price-professional-monthly: ${STRIPE_PRICE_PROFESSIONAL_MONTHLY:}
       price-professional-annual: ${STRIPE_PRICE_PROFESSIONAL_ANNUAL:}
       price-enterprise-monthly: ${STRIPE_PRICE_ENTERPRISE_MONTHLY:}
+    daraja:
+      enabled: ${DARAJA_ENABLED:false}
+      consumer-key: ${DARAJA_CONSUMER_KEY:}
+      consumer-secret: ${DARAJA_CONSUMER_SECRET:}
+      passkey: ${DARAJA_PASSKEY:}
+      shortcode: ${DARAJA_SHORTCODE:174379}
+      environment: ${DARAJA_ENVIRONMENT:sandbox}
+      # sandbox URLs
+      auth-url: https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials
+      stk-push-url: https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest
+      query-url: https://sandbox.safaricom.co.ke/mpesa/stkpushquery/v1/query

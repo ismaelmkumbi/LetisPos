@@ -93,7 +93,8 @@ public class FeatureGateFilter implements GlobalFilter, Ordered {
             "/webhooks",
             "/.well-known",
             "/actuator",
-            "/api/v1/billing/plans"
+            "/api/v1/billing/plans",
+            "/api/v1/billing/mpesa/callback"
     );
 
     @Override
