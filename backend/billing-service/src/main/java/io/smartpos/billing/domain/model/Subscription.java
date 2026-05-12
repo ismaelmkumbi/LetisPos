@@ -37,6 +37,9 @@ public class Subscription {
     @Column(name = "current_period_end", nullable = false)
     private Instant currentPeriodEnd;
 
+    @Column(name = "owner_email", length = 255)
+    private String ownerEmail;
+
     @Column(name = "cancelled_at")
     private Instant cancelledAt;
 
