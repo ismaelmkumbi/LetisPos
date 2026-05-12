@@ -35,3 +35,9 @@ export interface BackendService {
 }
 export const getBackendServices = (server: string) =>
   hubApi.get<BackendService[]>(`/api/v1/servers/${server}/backend-services`).then(r => r.data);
+
+export interface ProcessInfo {
+  pid: number; cpuPercent: number; memKB: number; command: string;
+}
+export const getProcesses = (server: string) =>
+  hubApi.get<ProcessInfo[]>(`/api/v1/servers/${server}/processes`).then(r => r.data);
