@@ -69,6 +69,7 @@ import {
   IconBug,
   IconDatabase,
   IconReceiptTax,
+  IconMail,
   IconMessage,
   IconBrandWhatsapp,
   IconWebhook,
@@ -203,11 +204,11 @@ export function buildSmartPosMenu(t: TFunction): MenuItem[] {
     { id: uid(), title: t('smartpos:nav.payroll'), icon: IconWallet, href: '/smartpos/hrm/payroll' },
     // ── Marketing ───────────────────────────────────────────────────────
     { subheader: 'Marketing' },
-    { id: uid(), title: 'Promotions', icon: IconGift, ...soon },
-    { id: uid(), title: 'Coupons', icon: IconPercentage, ...soon },
-    { id: uid(), title: 'SMS Campaigns', icon: IconSend, ...soon },
-    { id: uid(), title: 'Email Campaigns', icon: IconSend, ...soon },
-    { id: uid(), title: 'WhatsApp Campaigns', icon: IconSend, ...soon },
+    { id: uid(), title: 'Promotions', icon: IconGift, href: '/smartpos/marketing/promotions' },
+    { id: uid(), title: 'Coupons', icon: IconPercentage, href: '/smartpos/marketing/coupons' },
+    { id: uid(), title: 'SMS Campaigns', icon: IconSend, href: '/smartpos/marketing/sms-campaigns' },
+    { id: uid(), title: 'Email Campaigns', icon: IconMail, href: '/smartpos/marketing/email-campaigns' },
+    { id: uid(), title: 'WhatsApp Campaigns', icon: IconBrandWhatsapp, href: '/smartpos/marketing/whatsapp-campaigns' },
 
     // ── CRM ─────────────────────────────────────────────────────────────
     { subheader: 'CRM' },
