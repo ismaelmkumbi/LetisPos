@@ -2,7 +2,7 @@ import { useAuth } from 'src/context/smartpos/AuthContext';
 import { PLAN_LEVEL } from 'src/context/smartpos/AuthContext';
 import { Box, Typography, Button } from '@mui/material';
 import { IconLock } from '@tabler/icons-react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 
 interface PlanGateProps {
   minPlan: string;
