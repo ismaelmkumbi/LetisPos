@@ -2,6 +2,9 @@ package io.smartpos.inventory.domain.model;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.springframework.data.annotation.CreatedBy;
+import org.springframework.data.annotation.LastModifiedBy;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -11,6 +14,7 @@ import java.util.UUID;
 @Getter @Setter
 @NoArgsConstructor @AllArgsConstructor
 @Builder
+@EntityListeners(AuditingEntityListener.class)
 public class Warehouse {
 
     @Id
@@ -35,6 +39,14 @@ public class Warehouse {
 
     @Column(name = "branch_id")
     private UUID branchId;
+
+    @CreatedBy
+    @Column(name = "created_by", length = 200, updatable = false)
+    private String createdBy;
+
+    @LastModifiedBy
+    @Column(name = "last_modified_by", length = 200)
+    private String lastModifiedBy;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;

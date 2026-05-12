@@ -2,6 +2,9 @@ package io.smartpos.user.domain.model;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.springframework.data.annotation.CreatedBy;
+import org.springframework.data.annotation.LastModifiedBy;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.Instant;
 import java.util.*;
@@ -11,6 +14,7 @@ import java.util.*;
 @Getter @Setter
 @NoArgsConstructor @AllArgsConstructor
 @Builder
+@EntityListeners(AuditingEntityListener.class)
 public class UserProfile {
 
     @Id
@@ -56,6 +60,14 @@ public class UserProfile {
     @Column(name = "warehouse_id")
     @Builder.Default
     private Set<UUID> warehouseIds = new HashSet<>();
+
+    @CreatedBy
+    @Column(name = "created_by", length = 200, updatable = false)
+    private String createdBy;
+
+    @LastModifiedBy
+    @Column(name = "last_modified_by", length = 200)
+    private String lastModifiedBy;
 
     @PrePersist
     void onCreate() {

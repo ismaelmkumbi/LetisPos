@@ -4,6 +4,9 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
+import org.springframework.data.annotation.CreatedBy;
+import org.springframework.data.annotation.LastModifiedBy;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -14,6 +17,7 @@ import java.util.UUID;
 @Getter @Setter
 @NoArgsConstructor @AllArgsConstructor
 @Builder
+@EntityListeners(AuditingEntityListener.class)
 public class Tenant {
 
     @Id
@@ -63,6 +67,14 @@ public class Tenant {
 
     @Column(name = "status_reason", length = 500)
     private String statusReason;
+
+    @CreatedBy
+    @Column(name = "created_by", length = 200, updatable = false)
+    private String createdBy;
+
+    @LastModifiedBy
+    @Column(name = "last_modified_by", length = 200)
+    private String lastModifiedBy;
 
     @PrePersist
     void onCreate() {

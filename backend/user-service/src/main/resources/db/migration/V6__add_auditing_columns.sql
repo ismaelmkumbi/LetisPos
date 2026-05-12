@@ -1,0 +1,2 @@
+ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS created_by VARCHAR(200);
+ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS last_modified_by VARCHAR(200);
