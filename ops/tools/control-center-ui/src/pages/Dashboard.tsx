@@ -1,13 +1,13 @@
 import { useEffect, useState, useCallback } from 'react';
 import {
   Box, Button, Card, CardContent, Grid, Typography, Chip, CircularProgress,
-  IconButton, Tooltip, Stack, LinearProgress, Table, TableBody, TableCell,
+  IconButton, Tooltip, Stack, LinearProgress, Table, TableBody, TableCell, TextField,
   TableContainer, TableHead, TableRow, TextField, MenuItem, Collapse,
   Dialog, DialogTitle, DialogContent, DialogActions,
 } from '@mui/material';
 import { Refresh, Logout, Storage, Circle, KeyboardArrowDown, KeyboardArrowUp } from '@mui/icons-material';
 import { LineChart, Line, CartesianGrid, Tooltip as ReTooltip, ResponsiveContainer } from 'recharts';
-import { getServers, getMetrics, getServices, getBackendServices, getProcesses, serviceAction } from '../api/hub';
+import { getServers, getMetrics, getServices, getBackendServices, getProcesses, serviceAction, getLogs, clearLogs } from '../api/hub';
 import type { Server, MetricPoint, ServiceInfo, BackendService } from '../api/hub';
 import { logout } from '../api/client';
 import { brand } from '../theme';
@@ -204,26 +204,10 @@ function ServerPanel({ server, metrics: m, backendSvcs, services, svcFilter, onF
                 </Stack>
               </DialogTitle>
               <DialogContent sx={{ pt: 2 }}>
-                <Stack spacing={2}>
-                  <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5 }}>
-                    <Box sx={{ bgcolor: brand.neutral[900], borderRadius: '10px', p: 1.5 }}>
-                      <Typography sx={{ fontSize: '0.6rem', color: muted, textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 600, mb: 0.5 }}>Category</Typography>
-                      <Chip label={detailSvc.category} size="small" sx={{ fontWeight: 600, bgcolor: `${(CATEGORY_COLORS[detailSvc.category] || brand.primary[500])}20`, color: CATEGORY_COLORS[detailSvc.category] || brand.primary[500], borderRadius: '6px' }} />
-                    </Box>
-                    <Box sx={{ bgcolor: brand.neutral[900], borderRadius: '10px', p: 1.5 }}>
-                      <Typography sx={{ fontSize: '0.6rem', color: muted, textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 600, mb: 0.5 }}>Port</Typography>
-                      <Typography sx={{ fontWeight: 800, fontFamily: "'DM Mono', monospace", fontSize: '1rem' }}>:{detailSvc.port}</Typography>
-                    </Box>
-                    <Box sx={{ bgcolor: brand.neutral[900], borderRadius: '10px', p: 1.5, gridColumn: '1 / -1' }}>
-                      <Typography sx={{ fontSize: '0.6rem', color: muted, textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 600, mb: 0.5 }}>Description</Typography>
-                      <Typography sx={{ fontSize: '0.85rem' }}>{detailSvc.description}</Typography>
-                    </Box>
-                  </Box>
-                </Stack>
+                <ServiceDetailContent server={server.hostname} svc={detailSvc} />
               </DialogContent>
               <DialogActions sx={{ px: 3, pb: 2 }}>
                 <Button onClick={() => setDetailSvc(null)} sx={{ fontWeight: 600, borderRadius: '10px', textTransform: 'none', color: muted }}>Close</Button>
-                <Button variant="outlined" color="warning" onClick={() => { serviceAction(server.hostname, detailSvc.name.toLowerCase().replace(/\s+/g, '-'), 'restart').catch(() => {}); }} sx={{ fontWeight: 700, borderRadius: '10px', textTransform: 'none', ml: 1 }}>Restart Service</Button>
               </DialogActions>
             </>
           )}
@@ -252,6 +236,88 @@ function ServerPanel({ server, metrics: m, backendSvcs, services, svcFilter, onF
         </Box>
       </CardContent>
     </Card>
+  );
+}
+
+function ServiceDetailContent({ server, svc }: { server: string; svc: BackendService }) {
+  const [logs, setLogs] = useState('');
+  const [logFilter, setLogFilter] = useState('');
+  const [logGrep, setLogGrep] = useState(false);
+  const [logLoading, setLogLoading] = useState(false);
+  const [logTail, setLogTail] = useState(100);
+  const svcName = svc.name.toLowerCase().replace(/\s+/g, '-');
+
+  const fetchLogs = () => {
+    setLogLoading(true);
+    getLogs(server, svcName, logTail, logFilter || undefined, logGrep)
+      .then(setLogs).catch(() => setLogs('Failed to load logs'))
+      .finally(() => setLogLoading(false));
+  };
+
+  const doAction = (action: string) => {
+    serviceAction(server, svcName, action).catch(() => {});
+  };
+
+  return (
+    <Stack spacing={2}>
+      {/* Info grid */}
+      <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 1 }}>
+        <Box sx={{ bgcolor: brand.neutral[900], borderRadius: '8px', p: 1 }}>
+          <Typography sx={{ fontSize: '0.55rem', color: muted, textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 600 }}>Category</Typography>
+          <Chip label={svc.category} size="small" sx={{ mt: 0.5, height: 18, fontWeight: 600, fontSize: '0.6rem', bgcolor: `${(CATEGORY_COLORS[svc.category] || brand.primary[500])}20`, color: CATEGORY_COLORS[svc.category] || brand.primary[500], borderRadius: '4px' }} />
+        </Box>
+        <Box sx={{ bgcolor: brand.neutral[900], borderRadius: '8px', p: 1 }}>
+          <Typography sx={{ fontSize: '0.55rem', color: muted, textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 600 }}>Port / PID</Typography>
+          <Typography sx={{ mt: 0.5, fontWeight: 700, fontFamily: "'DM Mono', monospace", fontSize: '0.8rem' }}>:{svc.port} / {svc.pid ?? '—'}</Typography>
+        </Box>
+        <Box sx={{ bgcolor: brand.neutral[900], borderRadius: '8px', p: 1 }}>
+          <Typography sx={{ fontSize: '0.55rem', color: muted, textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 600 }}>CPU / RAM</Typography>
+          <Typography sx={{ mt: 0.5, fontWeight: 700, fontFamily: "'DM Mono', monospace", fontSize: '0.8rem', color: (svc.cpuPercent ?? 0) > 50 ? brand.error.main : brand.neutral[50] }}>
+            {(svc.cpuPercent ?? 0).toFixed(1)}% / {((svc.memUsedBytes ?? 0) / 1048576).toFixed(0)} MB
+          </Typography>
+        </Box>
+      </Box>
+
+      {/* Actions */}
+      <Stack direction="row" spacing={1}>
+        <Button size="small" variant="outlined" color="success" onClick={() => doAction('start')}
+          sx={{ fontWeight: 700, borderRadius: '6px', fontSize: '0.7rem', textTransform: 'none' }}>▶ Start</Button>
+        <Button size="small" variant="outlined" color="error" onClick={() => doAction('stop')}
+          sx={{ fontWeight: 700, borderRadius: '6px', fontSize: '0.7rem', textTransform: 'none' }}>■ Stop</Button>
+        <Button size="small" variant="outlined" color="warning" onClick={() => doAction('restart')}
+          sx={{ fontWeight: 700, borderRadius: '6px', fontSize: '0.7rem', textTransform: 'none' }}>↻ Restart</Button>
+      </Stack>
+
+      {/* Logs */}
+      <Box>
+        <Stack direction="row" spacing={1} sx={{ mb: 1, alignItems: 'center' }}>
+          <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: muted, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Logs</Typography>
+          <TextField size="small" placeholder="Filter..." value={logFilter}
+            onChange={e => setLogFilter(e.target.value)}
+            sx={{ '& .MuiInputBase-root': { height: 24, fontSize: '0.65rem', bgcolor: brand.neutral[900], borderRadius: '4px' } }} />
+          <Chip label="grep" size="small" variant={logGrep ? 'filled' : 'outlined'}
+            onClick={() => setLogGrep(!logGrep)}
+            sx={{ height: 20, fontSize: '0.6rem', cursor: 'pointer', borderRadius: '4px' }} />
+          <TextField size="small" type="number" value={logTail}
+            onChange={e => setLogTail(Number(e.target.value))}
+            sx={{ width: 60, '& .MuiInputBase-root': { height: 24, fontSize: '0.65rem', bgcolor: brand.neutral[900], borderRadius: '4px' } }} />
+          <Button size="small" variant="outlined" onClick={fetchLogs}
+            sx={{ minWidth: 20, height: 24, p: '0 8px', fontSize: '0.6rem', fontWeight: 700, borderRadius: '4px' }}>Load</Button>
+          <Button size="small" variant="outlined" color="error"
+            onClick={() => { clearLogs(server, svcName).then(() => setLogs('')).catch(() => {}); }}
+            sx={{ minWidth: 20, height: 24, p: '0 8px', fontSize: '0.6rem', fontWeight: 700, borderRadius: '4px' }}>Clear</Button>
+        </Stack>
+        {logLoading ? (
+          <LinearProgress sx={{ borderRadius: 2, height: 3 }} />
+        ) : logs ? (
+          <Box sx={{ bgcolor: brand.neutral[900], borderRadius: '8px', p: 1.5, maxHeight: 300, overflow: 'auto', fontFamily: "'DM Mono', monospace", fontSize: '0.6rem', color: brand.neutral[300], whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
+            {logs}
+          </Box>
+        ) : (
+          <Typography sx={{ fontSize: '0.65rem', color: muted, textAlign: 'center', py: 2 }}>Click "Load" to view logs</Typography>
+        )}
+      </Box>
+    </Stack>
   );
 }
 
