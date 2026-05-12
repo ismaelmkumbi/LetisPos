@@ -12,4 +12,6 @@ import java.util.UUID;
 public interface PurgeHistoryRepository extends JpaRepository<PurgeHistory, UUID> {
 
     List<PurgeHistory> findByTenantIdOrderByExecutedAtDesc(UUID tenantId, Pageable pageable);
+
+    List<PurgeHistory> findByTenantIdOrderByExecutedAtDesc(UUID tenantId);
 }
