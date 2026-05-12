@@ -69,7 +69,7 @@ const SidebarItems = () => {
 
   const Menuitems = useMemo(() => {
     if (isSmartPos) {
-      return filterByPlan(rawItems, billingPlan);
+      return filterByPlan(rawItems as MenuItem[], billingPlan);
     }
     return rawItems;
   }, [rawItems, billingPlan, isSmartPos]);

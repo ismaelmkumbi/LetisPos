@@ -15,8 +15,6 @@ export interface PricingTier {
   highlighted: boolean;
 }
 
-const FEATURE_ICON = '✓ ';
-
 function parseFeatures(featuresJson: string): string[] {
   try {
     const f = JSON.parse(featuresJson);
