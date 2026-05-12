@@ -30,15 +30,57 @@ public class FeatureGateFilter implements GlobalFilter, Ordered {
     /**
      * Endpoint path prefixes that require a minimum billing plan.
      * Order matters — more specific prefixes should come first.
+     * Report paths are handled separately via REPORT_GATES for finer granularity.
      */
     private static final LinkedHashMap<String, Integer> PLAN_GATES = new LinkedHashMap<>();
     static {
-        // HRM: Professional+
+        // Financial features — BUSINESS+
+        PLAN_GATES.put("/api/v1/accounting/", planOrdinal("BUSINESS"));
+        PLAN_GATES.put("/api/v1/purchases/", planOrdinal("BUSINESS"));
+        PLAN_GATES.put("/api/v1/taxes/", planOrdinal("BUSINESS"));
+        PLAN_GATES.put("/api/v1/deposits/", planOrdinal("BUSINESS"));
+        PLAN_GATES.put("/api/v1/cash-management/", planOrdinal("BUSINESS"));
+        PLAN_GATES.put("/api/v1/promotions/", planOrdinal("BUSINESS"));
+        PLAN_GATES.put("/api/v1/coupons/", planOrdinal("BUSINESS"));
+        PLAN_GATES.put("/api/v1/branches/", planOrdinal("BUSINESS"));
+        PLAN_GATES.put("/api/v1/quotations/", planOrdinal("BUSINESS"));
+        PLAN_GATES.put("/api/v1/documents/", planOrdinal("BUSINESS"));
+
+        // Advanced features — PROFESSIONAL+
         PLAN_GATES.put("/api/v1/hrm/", planOrdinal("PROFESSIONAL"));
-        // Billing admin (plan management, admin invoices): any paid plan
-        PLAN_GATES.put("/api/v1/billing/admin/", planOrdinal("STARTER"));
-        // Integrations / API Keys: Professional+
+        PLAN_GATES.put("/api/v1/crm/", planOrdinal("PROFESSIONAL"));
         PLAN_GATES.put("/api/v1/integrations/", planOrdinal("PROFESSIONAL"));
+        PLAN_GATES.put("/api/v1/ai/", planOrdinal("PROFESSIONAL"));
+        PLAN_GATES.put("/api/v1/admin/audit", planOrdinal("PROFESSIONAL"));
+        PLAN_GATES.put("/api/v1/admin/api-keys", planOrdinal("PROFESSIONAL"));
+
+        // Admin billing — STARTER+ (any paid plan)
+        PLAN_GATES.put("/api/v1/billing/admin/", planOrdinal("STARTER"));
+        PLAN_GATES.put("/api/v1/admin/", planOrdinal("STARTER"));
+    }
+
+    /**
+     * Report-specific gating for graduated access:
+     * - FREE: only /api/v1/reports/daily-summary, /api/v1/reports/stock-level
+     * - STARTER: + /api/v1/reports/sales, /api/v1/reports/customer
+     * - BUSINESS: + /api/v1/reports/financial, /api/v1/reports/tax, /api/v1/reports/purchase,
+     *             /api/v1/reports/supplier, /api/v1/reports/export
+     * - PROFESSIONAL: + /api/v1/reports/employee, /api/v1/reports/analytics
+     * - ENTERPRISE: + /api/v1/reports/custom, /api/v1/reports/scheduled
+     *
+     * Checked before the main PLAN_GATES map for finer granularity.
+     */
+    private static final LinkedHashMap<String, Integer> REPORT_GATES = new LinkedHashMap<>();
+    static {
+        REPORT_GATES.put("/api/v1/reports/financial", planOrdinal("BUSINESS"));
+        REPORT_GATES.put("/api/v1/reports/tax", planOrdinal("BUSINESS"));
+        REPORT_GATES.put("/api/v1/reports/purchase", planOrdinal("BUSINESS"));
+        REPORT_GATES.put("/api/v1/reports/supplier", planOrdinal("BUSINESS"));
+        REPORT_GATES.put("/api/v1/reports/export", planOrdinal("BUSINESS"));
+        REPORT_GATES.put("/api/v1/reports/employee", planOrdinal("PROFESSIONAL"));
+        REPORT_GATES.put("/api/v1/reports/analytics", planOrdinal("PROFESSIONAL"));
+        REPORT_GATES.put("/api/v1/reports/custom", planOrdinal("ENTERPRISE"));
+        REPORT_GATES.put("/api/v1/reports/scheduled", planOrdinal("ENTERPRISE"));
     }
 
     private static final Set<String> PUBLIC_PREFIXES = Set.of(
@@ -62,11 +104,18 @@ public class FeatureGateFilter implements GlobalFilter, Ordered {
 
         String path = exchange.getRequest().getURI().getPath();
 
-        // Check if this path matches any gated prefix
-        Map.Entry<String, Integer> gate = PLAN_GATES.entrySet().stream()
+        // Check report-specific gates first (finer granularity), then fall back to main gates
+        Map.Entry<String, Integer> gate = REPORT_GATES.entrySet().stream()
                 .filter(e -> path.startsWith(e.getKey()))
                 .findFirst()
                 .orElse(null);
+
+        if (gate == null) {
+            gate = PLAN_GATES.entrySet().stream()
+                    .filter(e -> path.startsWith(e.getKey()))
+                    .findFirst()
+                    .orElse(null);
+        }
 
         if (gate == null) {
             // No gate applies — allow through
