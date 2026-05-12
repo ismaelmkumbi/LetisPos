@@ -95,9 +95,9 @@ export default function AuditLogsPage() {
     })
       .then((data) => {
         if (!cancelled) {
-          setRows(data.content);
-          setTotalPages(data.totalPages);
-          setTotalElements(data.totalElements);
+          setRows(data);
+          setTotalPages(1);
+          setTotalElements(data.length);
           setError(null);
         }
       })

@@ -65,8 +65,8 @@ export async function listAuditEvents(params: {
   dateFrom?: string;
   dateTo?: string;
   targetType?: string;
-}): Promise<Page<AuditEvent>> {
-  const { data } = await api.get<Page<AuditEvent>>('/api/v1/admin/audit-events', { params });
+}): Promise<AuditEvent[]> {
+  const { data } = await api.get<AuditEvent[]>('/api/v1/admin/audit-events', { params });
   return data;
 }
 
