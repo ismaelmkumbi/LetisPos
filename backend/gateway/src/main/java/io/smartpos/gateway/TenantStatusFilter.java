@@ -35,7 +35,12 @@ public class TenantStatusFilter implements GlobalFilter, Ordered {
             "/webhooks",
             "/.well-known",
             "/actuator",
-            "/api/v1/billing/plans"
+            "/api/v1/billing/plans",
+            "/api/v1/billing/subscriptions",
+            "/api/v1/billing/mpesa",
+            "/api/v1/billing/payment-methods",
+            "/api/v1/billing/invoices",
+            "/api/v1/billing/webhooks"
     );
 
     @Override
