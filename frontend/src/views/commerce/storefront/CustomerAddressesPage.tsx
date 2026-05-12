@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   Container, Typography, Box, Grid, List, ListItem, ListItemButton, ListItemText,
   Button, TextField, Card, CardContent, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, CircularProgress,
@@ -25,17 +25,17 @@ const CustomerAddressesPage: React.FC = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  const fetchAddresses = () => {
+  const fetchAddresses = useCallback(() => {
     storefront.getAddresses(slug!)
       .then(setAddresses)
       .catch(() => {})
       .finally(() => setLoading(false));
-  };
+  }, [slug]);
 
   useEffect(() => {
     if (!isLoggedIn) { navigate(`/store/${slug}/login`); return; }
     fetchAddresses();
-  }, [slug, isLoggedIn, navigate]);
+  }, [slug, isLoggedIn, navigate, fetchAddresses]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -47,7 +47,7 @@ const CustomerAddressesPage: React.FC = () => {
       }
       setDialogOpen(false);
       fetchAddresses();
-    } catch {} finally { setSaving(false); }
+    } catch { /* handled by storefront API internals */ } finally { setSaving(false); }
   };
 
   const handleEdit = (addr: CustomerAddress) => {

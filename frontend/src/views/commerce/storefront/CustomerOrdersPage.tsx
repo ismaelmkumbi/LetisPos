@@ -25,7 +25,12 @@ const CustomerOrdersPage: React.FC = () => {
   useEffect(() => {
     if (!isLoggedIn) { navigate(`/store/${slug}/login`); return; }
     storefront.getOrders(slug!)
-      .then((data: any) => setOrders(Array.isArray(data) ? data : data?.content || []))
+      .then((data: unknown) => {
+        if (Array.isArray(data)) { setOrders(data as OrderSummary[]); }
+        else if (data && typeof data === 'object' && 'content' in data) {
+          setOrders((data as { content: OrderSummary[] }).content || []);
+        } else { setOrders([]); }
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [slug, isLoggedIn, navigate]);

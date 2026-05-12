@@ -4,9 +4,25 @@ import {
 } from '@mui/material';
 import { useCommerceAdmin } from '../../../context/CommerceContext';
 
+interface StoreFormData {
+  name: string; contactEmail: string; contactPhone: string;
+  addressLine1: string; addressLine2: string; city: string;
+  state: string; country: string; postalCode: string;
+  currency: string; timezone: string; taxDisplay: string;
+  socialFacebook: string; socialInstagram: string; socialTwitter: string;
+  orderPrefix: string;
+}
+
 const StoreSettings: React.FC = () => {
   const { store, loading, error, refreshStore, updateStore } = useCommerceAdmin();
-  const [form, setForm] = React.useState<any>({});
+  const [form, setForm] = React.useState<StoreFormData>({
+    name: '', contactEmail: '', contactPhone: '',
+    addressLine1: '', addressLine2: '', city: '',
+    state: '', country: '', postalCode: '',
+    currency: 'USD', timezone: 'UTC', taxDisplay: 'exclusive',
+    socialFacebook: '', socialInstagram: '', socialTwitter: '',
+    orderPrefix: 'ONL-',
+  });
   const [saving, setSaving] = React.useState(false);
   const [message, setMessage] = React.useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -24,7 +40,7 @@ const StoreSettings: React.FC = () => {
   }, [store]);
 
   const handleChange = (field: string, value: string) => {
-    setForm((prev: any) => ({ ...prev, [field]: value }));
+    setForm((prev: StoreFormData) => ({ ...prev, [field]: value }));
   };
 
   const handleSave = async () => {

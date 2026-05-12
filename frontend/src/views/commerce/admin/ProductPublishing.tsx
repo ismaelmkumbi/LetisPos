@@ -32,8 +32,8 @@ const ProductPublishing: React.FC = () => {
         await commerceAdmin.unpublishProduct(product.productId);
       }
       fetchPublished();
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'An error occurred');
     }
   };
 
@@ -57,8 +57,8 @@ const ProductPublishing: React.FC = () => {
       await commerceAdmin.updatePublishedProduct(editingProduct.id, editForm);
       setDrawerOpen(false);
       fetchPublished();
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'An error occurred');
     }
   };
 
