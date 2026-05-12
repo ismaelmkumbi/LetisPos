@@ -60,4 +60,10 @@ public interface SalesFeign {
     PurchaseStats purchaseStats(@RequestParam(value = "dateFrom", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateFrom,
                                 @RequestParam(value = "dateTo",   required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateTo,
                                 @RequestParam(value = "warehouseId", required = false) UUID warehouseId);
+
+    @GetMapping("/api/v1/purchases/top-suppliers")
+    List<TopSupplier> topSuppliers(@RequestParam(value = "dateFrom", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateFrom,
+                                    @RequestParam(value = "dateTo",   required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateTo,
+                                    @RequestParam(value = "warehouseId", required = false) UUID warehouseId,
+                                    @RequestParam(value = "limit", defaultValue = "10") int limit);
 }
