@@ -42,9 +42,37 @@ function parseFeatures(featuresJson: string): string[] {
   }
 }
 
+function isDisplayablePlan(plan: PlanDefinition): boolean {
+  const serializedPublic = (plan as PlanDefinition & { public?: boolean }).public;
+  const isPublic = plan.isPublic ?? serializedPublic ?? true;
+  return isPublic && plan.code !== 'FREE';
+}
+
+function formatCompactTzs(amount: number): string {
+  if (amount >= 1000 && amount % 1000 === 0) {
+    return `TZS ${amount / 1000}K`;
+  }
+  return `TZS ${amount.toLocaleString()}`;
+}
+
+function formatPlanDescription(plan: PlanDefinition): string {
+  switch (plan.code) {
+    case 'STARTER':
+      return 'For one-location businesses that need POS, stock control, receipts and daily reports.';
+    case 'BUSINESS':
+      return 'For growing businesses that need purchasing, accounting and stronger inventory control.';
+    case 'PROFESSIONAL':
+      return 'For established teams that need CRM, HR, approvals, analytics and integrations.';
+    case 'ENTERPRISE':
+      return 'For large operations that need multi-company control, custom workflows and SLA support.';
+    default:
+      return plan.description || '';
+  }
+}
+
 export function plansToTiers(plans: PlanDefinition[]): PricingTier[] {
   return plans
-    .filter(p => p.isPublic && p.code !== 'FREE')
+    .filter(isDisplayablePlan)
     .sort((a, b) => a.sortOrder - b.sortOrder)
     .map(p => {
       const isEnterprise = p.code === 'ENTERPRISE';
@@ -52,10 +80,10 @@ export function plansToTiers(plans: PlanDefinition[]): PricingTier[] {
       return {
         name: p.label,
         planCode: p.code,
-        monthlyPrice: p.monthlyPriceTzs > 0 ? `TZS ${p.monthlyPriceTzs.toLocaleString()}` : 'Free',
-        annualPrice: isEnterprise ? 'Custom' : p.annualPriceTzs ? `TZS ${p.annualPriceTzs.toLocaleString()}` : 'Custom',
+        monthlyPrice: p.monthlyPriceTzs > 0 ? formatCompactTzs(p.monthlyPriceTzs) : 'Free',
+        annualPrice: isEnterprise ? 'Custom' : p.annualPriceTzs ? formatCompactTzs(p.annualPriceTzs) : 'Custom',
         period: '/month',
-        description: p.description || '',
+        description: formatPlanDescription(p),
         features: [
           `${p.maxStores >= 2147483647 ? 'Unlimited' : p.maxStores} Store${p.maxStores !== 1 ? 's' : ''}`,
           `${p.maxUsers >= 2147483647 ? 'Unlimited' : p.maxUsers} Users`,
@@ -80,7 +108,7 @@ export const pricingTiers: PricingTier[] = [
     monthlyPrice: 'TZS 15K',
     annualPrice: 'TZS 150K',
     period: '/month',
-    description: 'For single dukas and small shops.',
+    description: 'For one-location businesses that need POS, stock control, receipts and daily reports.',
     features: [
       '1 Store', '2 Users', '500 Products',
       'Point of Sale', 'Inventory Management',
@@ -99,7 +127,7 @@ export const pricingTiers: PricingTier[] = [
     monthlyPrice: 'TZS 35K',
     annualPrice: 'TZS 350K',
     period: '/month',
-    description: 'For growing retailers — full financial suite.',
+    description: 'For growing businesses that need purchasing, accounting and stronger inventory control.',
     features: [
       '3 Stores', '5 Users', '5,000 Products',
       'Everything in Starter',
@@ -119,7 +147,7 @@ export const pricingTiers: PricingTier[] = [
     monthlyPrice: 'TZS 79K',
     annualPrice: 'TZS 790K',
     period: '/month',
-    description: 'For established businesses — CRM, HRM, API.',
+    description: 'For established teams that need CRM, HR, approvals, analytics and integrations.',
     features: [
       '10 Stores', '25 Users', '25,000 Products',
       'Everything in Business',
@@ -139,7 +167,7 @@ export const pricingTiers: PricingTier[] = [
     monthlyPrice: 'TZS 250K',
     annualPrice: 'Custom',
     period: '/month',
-    description: 'For supermarket chains and large organizations.',
+    description: 'For large operations that need multi-company control, custom workflows and SLA support.',
     features: [
       'Unlimited Everything',
       'Everything in Professional',

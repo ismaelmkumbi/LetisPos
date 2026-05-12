@@ -24,12 +24,19 @@ const PricingDefault: React.FC<PricingDefaultProps> = ({ billing, tiers }) => {
 
   const getPeriod = (tier: PricingTier): string => {
     if (isAnnual && tier.annualPrice && tier.annualPrice !== 'Custom') {
-      return '/year';
+      return 'per year';
     }
     if (tier.annualPrice === 'Custom') {
-      return '/month';
+      return 'per month';
     }
-    return tier.period;
+    return tier.period === '/year' ? 'per year' : 'per month';
+  };
+
+  const splitPrice = (price: string) => {
+    if (price.startsWith('TZS ')) {
+      return { currency: 'TZS', amount: price.slice(4) };
+    }
+    return { currency: '', amount: price };
   };
 
   const getCtaProps = (tier: PricingTier) => {
@@ -44,11 +51,15 @@ const PricingDefault: React.FC<PricingDefaultProps> = ({ billing, tiers }) => {
 
   return (
     <Grid container spacing={3} alignItems="stretch">
-      {activeTiers.map((tier) => (
+      {activeTiers.map((tier) => {
+        const price = splitPrice(getPrice(tier));
+        const period = getPeriod(tier);
+
+        return (
         <Grid key={tier.name} size={{ xs: 12, sm: 6, lg: 3 }}>
           <Box
             sx={{
-              p: 4,
+              p: { xs: 3, md: 3.25 },
               height: '100%',
               borderRadius: 2,
               bgcolor: 'var(--lp-surface)',
@@ -58,6 +69,7 @@ const PricingDefault: React.FC<PricingDefaultProps> = ({ billing, tiers }) => {
               position: 'relative',
               display: 'flex',
               flexDirection: 'column',
+              overflow: 'hidden',
             }}
           >
             {tier.highlighted && (
@@ -66,9 +78,8 @@ const PricingDefault: React.FC<PricingDefaultProps> = ({ billing, tiers }) => {
                 size="small"
                 sx={{
                   position: 'absolute',
-                  top: -12,
-                  left: '50%',
-                  transform: 'translateX(-50%)',
+                  top: 18,
+                  right: 22,
                   bgcolor: 'var(--lp-accent)',
                   color: '#fff',
                   fontFamily: 'var(--lp-font-body)',
@@ -78,51 +89,105 @@ const PricingDefault: React.FC<PricingDefaultProps> = ({ billing, tiers }) => {
               />
             )}
 
-            <Typography
+            <Box
               sx={{
-                fontFamily: 'var(--lp-font-display)',
-                fontSize: '1.25rem',
-                fontWeight: 600,
-                mb: 0.5,
+                minHeight: { xs: 86, md: 92 },
+                pr: tier.highlighted ? 9 : 0,
+                mb: { xs: 1, md: 1.25 },
               }}
             >
-              {tier.name}
-            </Typography>
-            <Typography
-              sx={{
-                fontFamily: 'var(--lp-font-body)',
-                fontSize: '0.875rem',
-                color: 'var(--lp-text-muted)',
-                mb: 3,
-              }}
-            >
-              {tier.description}
-            </Typography>
-
-            <Box sx={{ mb: 3 }}>
               <Typography
-                component="span"
                 sx={{
                   fontFamily: 'var(--lp-font-display)',
-                  fontSize: '2.5rem',
+                  fontSize: { xs: '1.35rem', md: '1.45rem' },
                   fontWeight: 700,
+                  lineHeight: 1.15,
+                  mb: 1.1,
                 }}
               >
-                {getPrice(tier)}
+                {tier.name}
               </Typography>
               <Typography
-                component="span"
                 sx={{
                   fontFamily: 'var(--lp-font-body)',
-                  fontSize: '0.938rem',
+                  fontSize: '0.9rem',
                   color: 'var(--lp-text-muted)',
+                  lineHeight: 1.55,
+                  display: '-webkit-box',
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden',
                 }}
               >
-                {getPeriod(tier)}
+                {tier.description}
               </Typography>
             </Box>
 
-            <Stack spacing={2} sx={{ mb: 4, flex: 1 }}>
+            <Box
+              sx={{
+                mb: { xs: 1.75, md: 2 },
+                textAlign: 'center',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                borderBottom: '1px solid var(--lp-border)',
+                pb: { xs: 1.75, md: 2 },
+              }}
+            >
+              <Box
+                sx={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: { xs: 0.75, md: 0.9 },
+                  lineHeight: 1,
+                }}
+              >
+                {price.currency && (
+                  <Typography
+                    component="span"
+                    sx={{
+                      fontFamily: 'var(--lp-font-body)',
+                      fontSize: { xs: '0.98rem', md: '1.05rem' },
+                      fontWeight: 700,
+                      color: 'var(--lp-text-muted)',
+                      letterSpacing: 0,
+                      lineHeight: 1,
+                      transform: 'translateY(4px)',
+                    }}
+                  >
+                    {price.currency}
+                  </Typography>
+                )}
+                <Typography
+                  component="span"
+                  sx={{
+                    fontFamily: 'var(--lp-font-display)',
+                    fontSize: { xs: '2.72rem', md: tier.highlighted ? '2.92rem' : '2.78rem' },
+                    fontWeight: 800,
+                    color: 'var(--lp-text)',
+                    letterSpacing: 0,
+                    lineHeight: 0.95,
+                  }}
+                >
+                  {price.amount}
+                </Typography>
+              </Box>
+              <Typography
+                sx={{
+                  fontFamily: 'var(--lp-font-body)',
+                  fontSize: '0.875rem',
+                  fontWeight: 600,
+                  color: 'var(--lp-text-muted)',
+                  mt: 1,
+                  lineHeight: 1.2,
+                }}
+              >
+                {period}
+              </Typography>
+            </Box>
+
+            <Stack spacing={1.6} sx={{ mb: 3.5, flex: 1 }}>
               {tier.features.map((f) => (
                 <Box key={f} sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                   <IconCheck
@@ -148,7 +213,8 @@ const PricingDefault: React.FC<PricingDefaultProps> = ({ billing, tiers }) => {
             </CtaButton>
           </Box>
         </Grid>
-      ))}
+        );
+      })}
     </Grid>
   );
 };

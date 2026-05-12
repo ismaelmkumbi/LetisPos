@@ -22,23 +22,23 @@ public interface ReportFeign {
                         BigDecimal discount, BigDecimal net, BigDecimal averageBasket) {}
 
     @GetMapping("/api/v1/reports/sales/summary")
-    SalesSummary salesSummary(@RequestParam(required = false) LocalDate dateFrom,
-                              @RequestParam(required = false) LocalDate dateTo,
+    SalesSummary salesSummary(@RequestParam(required = false) String dateFrom,
+                              @RequestParam(required = false) String dateTo,
                               @RequestParam(required = false) UUID warehouseId,
                               @RequestParam(required = false) UUID customerId);
 
     record TopProduct(UUID productId, String productName, BigDecimal qty, BigDecimal net) {}
 
     @GetMapping("/api/v1/reports/sales/top-products")
-    List<TopProduct> topProducts(@RequestParam(required = false) LocalDate dateFrom,
-                                 @RequestParam(required = false) LocalDate dateTo,
+    List<TopProduct> topProducts(@RequestParam(required = false) String dateFrom,
+                                 @RequestParam(required = false) String dateTo,
                                  @RequestParam(required = false) UUID warehouseId,
                                  @RequestParam(defaultValue = "10") int limit);
 
     record TopCustomer(UUID customerId, String customerName, long sales, BigDecimal net) {}
 
     @GetMapping("/api/v1/reports/sales/top-customers")
-    List<TopCustomer> topCustomers(@RequestParam(required = false) LocalDate dateFrom,
-                                   @RequestParam(required = false) LocalDate dateTo,
+    List<TopCustomer> topCustomers(@RequestParam(required = false) String dateFrom,
+                                   @RequestParam(required = false) String dateTo,
                                    @RequestParam(defaultValue = "10") int limit);
 }

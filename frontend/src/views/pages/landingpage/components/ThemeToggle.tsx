@@ -12,12 +12,7 @@ const themeOptions: Record<string, { label: string; short: string; swatches: str
   'bold-energetic': {
     label: 'Bright Retail',
     short: 'Bright',
-    swatches: ['#ECFDF5', '#16A34A', '#0F172A'],
-  },
-  'brutalist-honest': {
-    label: 'Honest Mono',
-    short: 'Honest',
-    swatches: ['#FFFBEB', '#0F172A', '#4ADE80'],
+    swatches: ['#0F172A', '#16A34A', '#FFFFFF'],
   },
 };
 

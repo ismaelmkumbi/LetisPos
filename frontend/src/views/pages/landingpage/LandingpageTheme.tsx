@@ -2,12 +2,10 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { ThemeTokens } from './themes/types';
 import { refinedEnterprise } from './themes/refined-enterprise';
 import { boldEnergetic } from './themes/bold-energetic';
-import { brutalistHonest } from './themes/brutalist-honest';
 
 const themes: Record<string, ThemeTokens> = {
   'refined-enterprise': refinedEnterprise,
   'bold-energetic': boldEnergetic,
-  'brutalist-honest': brutalistHonest,
 };
 
 const STORAGE_KEY = 'letis-lp-theme';

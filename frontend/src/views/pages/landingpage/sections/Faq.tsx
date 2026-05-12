@@ -61,6 +61,7 @@ const Faq: React.FC = () => {
             elevation={0}
             sx={{
               bgcolor: 'transparent',
+              color: 'var(--lp-text)',
               borderBottom: '1px solid var(--lp-border)',
               '&:before': { display: 'none' },
               '&:first-of-type': { borderTop: '1px solid var(--lp-border)' },
@@ -78,6 +79,7 @@ const Faq: React.FC = () => {
                   fontFamily: 'var(--lp-font-display)',
                   fontSize: '1.063rem',
                   fontWeight: 600,
+                  color: 'var(--lp-text)',
                 }}
               >
                 {faq.question}

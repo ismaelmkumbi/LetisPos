@@ -100,14 +100,14 @@ const BenefitList: React.FC<{ dense?: boolean; sx?: SxProps<Theme> }> = ({ dense
             sx={{
               fontSize: dense ? '0.94rem' : '0.98rem',
               fontWeight: 900,
-              color: '#0F172A',
+              color: '#F8FAFC',
               mb: 0.35,
             }}
           >
             {benefit.title}
           </Typography>
           <Typography
-            sx={{ fontSize: dense ? '0.86rem' : '0.9rem', color: '#52637A', lineHeight: 1.5 }}
+            sx={{ fontSize: dense ? '0.86rem' : '0.9rem', color: '#CBD5E1', lineHeight: 1.5 }}
           >
             {benefit.text}
           </Typography>
@@ -247,7 +247,7 @@ const Hero: React.FC = () => {
   return (
     <Box
       sx={{
-        color: '#0F172A',
+        color: 'var(--lp-hero-text)',
         minHeight: { xs: 'auto', md: 'calc(100vh - 80px)' },
         display: 'flex',
         alignItems: 'center',
@@ -256,7 +256,7 @@ const Hero: React.FC = () => {
         position: 'relative',
         overflow: 'hidden',
         background:
-          'radial-gradient(circle at 8% 84%, rgba(22, 163, 74, 0.12), transparent 30%), radial-gradient(circle at 58% 16%, rgba(22, 163, 74, 0.10), transparent 25%), linear-gradient(115deg, #F6FFF9 0%, #FFFFFF 48%, #F8FAFC 100%)',
+          'radial-gradient(circle at 8% 84%, rgba(34, 197, 94, 0.18), transparent 30%), radial-gradient(circle at 58% 16%, rgba(74, 222, 128, 0.14), transparent 25%), linear-gradient(115deg, var(--lp-hero-bg) 0%, #111827 52%, #07111F 100%)',
         '&:before': {
           content: '""',
           position: 'absolute',
@@ -265,7 +265,7 @@ const Hero: React.FC = () => {
           right: { xs: -180, md: '42%' },
           top: { xs: 140, md: -110 },
           borderRadius: '50%',
-          bgcolor: 'rgba(22, 163, 74, 0.08)',
+          bgcolor: 'rgba(74, 222, 128, 0.10)',
           pointerEvents: 'none',
         },
       }}
@@ -283,8 +283,9 @@ const Hero: React.FC = () => {
                 py: 0.65,
                 mb: { xs: 2.2, md: 2.8 },
                 borderRadius: '999px',
-                bgcolor: '#DCFCE7',
-                color: '#15803D',
+                bgcolor: 'rgba(34, 197, 94, 0.16)',
+                color: '#86EFAC',
+                border: '1px solid rgba(134, 239, 172, 0.28)',
                 fontWeight: 900,
                 fontSize: '0.76rem',
                 textTransform: 'uppercase',
@@ -307,7 +308,7 @@ const Hero: React.FC = () => {
               }}
             >
               Smarter POS.
-              <Box component="span" sx={{ display: 'block', color: '#16A34A' }}>
+              <Box component="span" sx={{ display: 'block', color: '#86EFAC' }}>
                 Stronger Business.
               </Box>
             </Typography>
@@ -315,7 +316,7 @@ const Hero: React.FC = () => {
             <Typography
               sx={{
                 fontSize: { xs: '1rem', md: '1.12rem' },
-                color: '#475569',
+                color: 'rgba(248, 250, 252, 0.78)',
                 lineHeight: 1.7,
                 maxWidth: 560,
                 mb: 3,
@@ -367,7 +368,7 @@ const Hero: React.FC = () => {
                   justifyContent: { xs: 'flex-start', md: 'flex-end' },
                   mb: { xs: 2, md: 3 },
                   pr: { md: 5 },
-                  color: '#475569',
+                  color: 'rgba(248, 250, 252, 0.72)',
                   fontSize: '0.9rem',
                   fontWeight: 750,
                 }}
@@ -635,7 +636,7 @@ const Hero: React.FC = () => {
           sx={{
             mt: { xs: 4, md: 5 },
             pt: { xs: 3, md: 4 },
-            borderTop: '1px solid rgba(15, 23, 42, 0.10)',
+            borderTop: '1px solid rgba(248, 250, 252, 0.14)',
             display: 'grid',
             gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' },
             gap: { xs: 2, md: 0 },
@@ -649,7 +650,7 @@ const Hero: React.FC = () => {
               alignItems="center"
               sx={{
                 px: { md: 3 },
-                borderLeft: { md: index === 0 ? '0' : '1px solid rgba(15, 23, 42, 0.12)' },
+                borderLeft: { md: index === 0 ? '0' : '1px solid rgba(248, 250, 252, 0.14)' },
               }}
             >
               <Box
@@ -667,10 +668,10 @@ const Hero: React.FC = () => {
                 {card.icon}
               </Box>
               <Box>
-                <Typography sx={{ fontSize: '1rem', fontWeight: 900, color: '#0F172A', mb: 0.35 }}>
+                <Typography sx={{ fontSize: '1rem', fontWeight: 900, color: '#F8FAFC', mb: 0.35 }}>
                   {card.title}
                 </Typography>
-                <Typography sx={{ fontSize: '0.88rem', color: '#52637A', lineHeight: 1.5 }}>
+                <Typography sx={{ fontSize: '0.88rem', color: '#CBD5E1', lineHeight: 1.5 }}>
                   {card.text}
                 </Typography>
               </Box>

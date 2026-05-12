@@ -43,9 +43,16 @@ const PricingSpotlight: React.FC<PricingSpotlightProps> = ({ billing, tiers }) =
 
   const getPeriod = (tier: PricingTier) => {
     if (isAnnual && tier.annualPrice !== 'Custom') {
-      return '/year';
+      return 'per year';
     }
-    return '/month';
+    return 'per month';
+  };
+
+  const splitPrice = (price: string) => {
+    if (price.startsWith('TZS ')) {
+      return { currency: 'TZS', amount: price.slice(4) };
+    }
+    return { currency: '', amount: price };
   };
 
   const getCtaProps = (tier: PricingTier) => {
@@ -95,12 +102,8 @@ const PricingSpotlight: React.FC<PricingSpotlightProps> = ({ billing, tiers }) =
         />
 
         {spotlightTiers.map((tier, index) => {
-          const price = getPrice(tier);
+          const price = splitPrice(getPrice(tier));
           const period = getPeriod(tier);
-          const currencyPrefix = 'TZS ';
-          const priceValue = price.startsWith('TZS ')
-            ? price.slice(4)
-            : price;
 
           return (
             <Box
@@ -183,38 +186,56 @@ const PricingSpotlight: React.FC<PricingSpotlightProps> = ({ billing, tiers }) =
               </Typography>
 
               {/* Price */}
-              <Box sx={{ mb: 0.5 }}>
-                <Typography
-                  component="span"
+              <Box sx={{ mb: 0.5, textAlign: 'center' }}>
+                <Box
                   sx={{
-                    fontFamily: 'var(--lp-font-display)',
-                    fontSize: tier.highlighted ? '2.5rem' : '2.125rem',
-                    fontWeight: 700,
-                    color: tier.highlighted
-                      ? 'var(--lp-text)'
-                      : 'var(--lp-text)',
+                    display: 'inline-flex',
+                    alignItems: 'baseline',
+                    justifyContent: 'center',
+                    gap: 0.85,
+                    lineHeight: 1,
                   }}
                 >
-                  <Box
+                  {price.currency && (
+                    <Typography
+                      component="span"
+                      sx={{
+                        fontFamily: 'var(--lp-font-body)',
+                        fontSize: tier.highlighted ? '1.25rem' : '1.05rem',
+                        fontWeight: 700,
+                        color: tier.highlighted
+                          ? 'rgba(255,255,255,0.6)'
+                          : 'var(--lp-text-muted)',
+                        letterSpacing: 0,
+                        lineHeight: 1,
+                      }}
+                    >
+                      {price.currency}
+                    </Typography>
+                  )}
+                  <Typography
                     component="span"
                     sx={{
-                      fontSize: tier.highlighted ? '1.25rem' : '1.0625rem',
-                      fontWeight: 600,
+                      fontFamily: 'var(--lp-font-display)',
+                      fontSize: tier.highlighted ? '3.25rem' : '2.75rem',
+                      fontWeight: 800,
+                      color: 'var(--lp-text)',
+                      letterSpacing: 0,
+                      lineHeight: 0.95,
                     }}
                   >
-                    {currencyPrefix}
-                  </Box>
-                  {priceValue}
-                </Typography>
+                    {price.amount}
+                  </Typography>
+                </Box>
                 <Typography
-                  component="span"
                   sx={{
                     fontFamily: 'var(--lp-font-body)',
                     fontSize: '0.875rem',
+                    fontWeight: 600,
                     color: tier.highlighted
                       ? 'rgba(255,255,255,0.6)'
                       : 'var(--lp-text-muted)',
-                    ml: 0.5,
+                    mt: 1.15,
                   }}
                 >
                   {period}

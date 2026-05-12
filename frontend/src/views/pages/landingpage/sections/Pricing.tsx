@@ -3,15 +3,12 @@ import {
   Box,
   Container,
   Typography,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
 } from '@mui/material';
-import { IconCheck, IconPlus } from '@tabler/icons-react';
+import { IconCheck } from '@tabler/icons-react';
 import SectionWrapper from '../components/SectionWrapper';
 import PricingDefault from './PricingDefault';
 import PricingSpotlight from './PricingSpotlight';
-import { pricingFaqs, trustItems, BillingPeriod, pricingTiers, plansToTiers, type PricingTier } from './pricingData';
+import { trustItems, BillingPeriod, pricingTiers, plansToTiers, type PricingTier } from './pricingData';
 import { listPlans } from 'src/api/smartpos/billing';
 
 export type PricingVariant = 'default' | 'spotlight';
@@ -28,7 +25,10 @@ const Pricing: React.FC<PricingProps> = ({ variant = 'default' }) => {
 
   useEffect(() => {
     listPlans()
-      .then(plans => { if (plans.length > 0) setTiers(plansToTiers(plans)); })
+      .then((plans) => {
+        const apiTiers = plansToTiers(plans);
+        if (apiTiers.length > 0) setTiers(apiTiers);
+      })
       .catch(() => { /* keep hardcoded fallback */ })
       .finally(() => setLoading(false));
   }, []);
@@ -201,71 +201,6 @@ const Pricing: React.FC<PricingProps> = ({ variant = 'default' }) => {
               />
               {item}
             </Box>
-          ))}
-        </Box>
-
-        {/* FAQ Accordion */}
-        <Box sx={{ maxWidth: 640, mx: 'auto' }}>
-          <Typography
-            sx={{
-              fontFamily: 'var(--lp-font-display)',
-              fontSize: { xs: '1.25rem', md: '1.5rem' },
-              fontWeight: 700,
-              textAlign: 'center',
-              mb: 3,
-            }}
-          >
-            Frequently asked questions
-          </Typography>
-
-          {pricingFaqs.map((faq, idx) => (
-            <Accordion
-              key={idx}
-              elevation={0}
-              sx={{
-                bgcolor: 'transparent',
-                borderBottom: '1px solid var(--lp-border)',
-                '&:before': { display: 'none' },
-                '&:first-of-type': { borderTop: '1px solid var(--lp-border)' },
-              }}
-            >
-              <AccordionSummary
-                expandIcon={
-                  <IconPlus
-                    size={14}
-                    strokeWidth={2}
-                    style={{ color: 'var(--lp-text-muted)' }}
-                  />
-                }
-                sx={{
-                  py: 0.5,
-                  '& .MuiAccordionSummary-content': { my: 1.5 },
-                }}
-              >
-                <Typography
-                  sx={{
-                    fontFamily: 'var(--lp-font-body)',
-                    fontSize: '0.875rem',
-                    fontWeight: 500,
-                  }}
-                >
-                  {faq.question}
-                </Typography>
-              </AccordionSummary>
-              <AccordionDetails>
-                <Typography
-                  sx={{
-                    fontFamily: 'var(--lp-font-body)',
-                    fontSize: '0.875rem',
-                    color: 'var(--lp-text-muted)',
-                    lineHeight: 1.7,
-                    pb: 1.5,
-                  }}
-                >
-                  {faq.answer}
-                </Typography>
-              </AccordionDetails>
-            </Accordion>
           ))}
         </Box>
       </Container>

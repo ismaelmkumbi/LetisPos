@@ -2,6 +2,8 @@ package io.smartpos.audit.domain.model;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -21,6 +23,7 @@ public class RetentionConfig {
     @Column(name = "tenant_id", nullable = false, unique = true)
     private UUID tenantId;
 
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(nullable = false, columnDefinition = "jsonb")
     private String config;
 

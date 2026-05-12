@@ -42,9 +42,11 @@ public class InsightService {
             """;
 
     public AiDtos.InsightResponse salesTrend(AiDtos.SalesTrendRequest req, UUID userId) {
-        ReportFeign.SalesSummary summary = reportFeign.salesSummary(req.dateFrom(), req.dateTo(), req.warehouseId(), null);
-        List<ReportFeign.TopProduct> topProducts = reportFeign.topProducts(req.dateFrom(), req.dateTo(), req.warehouseId(), 5);
-        List<ReportFeign.TopCustomer> topCustomers = reportFeign.topCustomers(req.dateFrom(), req.dateTo(), 5);
+        String dateFrom = req.dateFrom().toString();
+        String dateTo = req.dateTo().toString();
+        ReportFeign.SalesSummary summary = reportFeign.salesSummary(dateFrom, dateTo, req.warehouseId(), null);
+        List<ReportFeign.TopProduct> topProducts = reportFeign.topProducts(dateFrom, dateTo, req.warehouseId(), 5);
+        List<ReportFeign.TopCustomer> topCustomers = reportFeign.topCustomers(dateFrom, dateTo, 5);
 
         String tone = req.tone() == null ? "executive" : req.tone();
         String userPrompt = """
