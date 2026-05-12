@@ -150,7 +150,8 @@ public class ServerController {
                 long cpuDelta = totalCpu - prev[0];
                 long timeDelta = now - prev[1];
                 if (timeDelta > 0) {
-                    cpu = (cpuDelta * 1000.0 / timeDelta) / 100.0; // ticks/s / 100 = % per core
+                    // cpuDelta ticks * 10ms/tick * 100 / timeDelta = % of one core
+                    cpu = (cpuDelta * 10.0 * 100.0) / timeDelta;
                     cpu = Math.min(cpu, 100.0 * Runtime.getRuntime().availableProcessors());
                 }
             }
