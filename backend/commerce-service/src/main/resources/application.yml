@@ -58,6 +58,8 @@ commerce:
     base-url: ${CRM_SERVICE_URL:http://localhost:8096}
   notification-service:
     base-url: ${NOTIFICATION_SERVICE_URL:http://localhost:8089}
+  customer:
+    jwt-secret: ${CUSTOMER_JWT_SECRET:commerce-customer-jwt-secret-change-me}
   cart:
     cookie-name: commerce_cart_id
     guest-ttl-days: 7
