@@ -196,9 +196,15 @@ public class FeatureGateFilter implements GlobalFilter, Ordered {
         var response = exchange.getResponse();
         response.setStatusCode(HttpStatus.PAYMENT_REQUIRED);
         response.getHeaders().setContentType(MediaType.APPLICATION_JSON);
-        String body = "{\"error\":\"Feature not available\",\"message\":\"Upgrade to "
-                + requiredPlan + " to access this feature.\",\"requiredPlan\":\""
-                + requiredPlan + "\"}";
+
+        String body = String.format(
+            "{\"error\":\"Plan upgrade required\"," +
+            "\"message\":\"This feature requires the %s plan or higher. " +
+            "Visit Billing to upgrade your plan and unlock this feature.\"," +
+            "\"requiredPlan\":\"%s\"," +
+            "\"upgradeUrl\":\"/smartpos/billing\"}",
+            requiredPlan, requiredPlan);
+
         return response.writeWith(Mono.just(
                 response.bufferFactory().wrap(body.getBytes())));
     }

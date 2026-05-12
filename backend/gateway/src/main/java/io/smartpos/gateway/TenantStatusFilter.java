@@ -102,7 +102,9 @@ public class TenantStatusFilter implements GlobalFilter, Ordered {
         var response = exchange.getResponse();
         response.setStatusCode(HttpStatus.FORBIDDEN);
         response.getHeaders().setContentType(MediaType.APPLICATION_JSON);
-        String body = "{\"error\":\"" + error + "\",\"message\":\"" + message + "\"}";
+        String body = String.format(
+            "{\"error\":\"%s\",\"message\":\"%s\",\"upgradeUrl\":\"/smartpos/billing\"}",
+            error, message);
         return response.writeWith(Mono.just(
                 response.bufferFactory().wrap(body.getBytes())));
     }
