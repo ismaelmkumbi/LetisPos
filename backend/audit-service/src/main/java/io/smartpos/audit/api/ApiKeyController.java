@@ -117,10 +117,14 @@ public class ApiKeyController {
 
     private String generateSecret() {
         String randomPart = UUID.randomUUID().toString().replace("-", "");
-        String hexPart = SecureRandom.getInstanceStrong().ints(16, 0, 16)
-                .mapToObj(Integer::toHexString)
-                .collect(Collectors.joining());
-        return "sk_live_" + randomPart + hexPart;
+        try {
+            String hexPart = SecureRandom.getInstanceStrong().ints(16, 0, 16)
+                    .mapToObj(Integer::toHexString)
+                    .collect(Collectors.joining());
+            return "sk_live_" + randomPart + hexPart;
+        } catch (java.security.NoSuchAlgorithmException e) {
+            throw new IllegalStateException("Failed to initialise secure random generator", e);
+        }
     }
 
     private UUID resolveTenantId() {
