@@ -25,6 +25,7 @@ import {
 
 import { PageHeader } from 'src/components/smartpos/PageHeader';
 import { brand } from 'src/theme/smartpos/brand';
+import { createTicket } from 'src/api/smartpos/support';
 
 const SUBJECTS = [
   'Technical Issue',
@@ -111,15 +112,29 @@ export default function ContactSupportPage() {
       return;
     }
     setSubmitting(true);
-    // Simulate async submission
-    await new Promise((r) => setTimeout(r, 1000));
-    setSubmitting(false);
-    setForm(emptyForm());
-    setToast({
-      open: true,
-      message: "Ticket submitted. We'll respond within 24 hours.",
-      severity: 'success',
-    });
+    try {
+      await createTicket({
+        name: form.name.trim(),
+        email: form.email.trim(),
+        subject: form.subject,
+        message: form.message.trim(),
+        priority: form.priority,
+      });
+      setForm(emptyForm());
+      setToast({
+        open: true,
+        message: "Ticket submitted. We'll respond within 24 hours.",
+        severity: 'success',
+      });
+    } catch {
+      setToast({
+        open: true,
+        message: 'Failed to submit ticket. Please try again.',
+        severity: 'error',
+      });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (

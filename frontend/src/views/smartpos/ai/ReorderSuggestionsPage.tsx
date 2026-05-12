@@ -154,7 +154,7 @@ export default function ReorderSuggestionsPage() {
       const data = await getReorderSuggestions();
       setSuggestions(data.map((s, i) => mapToRow(s, i)));
       setLoaded(true);
-    } catch (e: any) {
+    } catch (e: unknown) {
       setError(e?.response?.data?.message ?? e?.message ?? 'Failed to load reorder suggestions');
     } finally {
       setLoading(false);

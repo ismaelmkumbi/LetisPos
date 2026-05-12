@@ -39,7 +39,7 @@ export default function BatchTrackingPage() {
 
   useEffect(() => {
     listWarehouses().then(ws => { setWarehouses(ws); if (!warehouseId && ws[0]) setWarehouseId(ws[0].id); }).catch(() => {});
-  }, []);
+  }, [warehouseId]);
 
   useEffect(() => {
     setLoading(true);
@@ -60,7 +60,7 @@ export default function BatchTrackingPage() {
       setCreateOpen(false);
       setCreateForm({ productId: '', batchNumber: '', qty: 0, manufacturingDate: '', expiryDate: '', warehouseId: warehouseId });
       setRefreshToken(n => n + 1);
-    } catch (e: any) {
+    } catch (e: unknown) {
       setCreateError(e?.message ?? 'Create failed');
     } finally {
       setCreateSubmitting(false);

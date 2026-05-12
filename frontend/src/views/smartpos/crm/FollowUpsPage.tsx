@@ -100,7 +100,7 @@ export default function FollowUpsPage() {
       setError(null);
       const page = await listFollowUps({ page: 0, size: 100 });
       setRows(page.content);
-    } catch (e: any) {
+    } catch (e: unknown) {
       setError(e?.message || 'Failed to load follow-ups');
     } finally {
       setLoading(false);
@@ -137,7 +137,7 @@ export default function FollowUpsPage() {
       });
       setRows((prev) => [newFU, ...prev]);
       setFormDialogOpen(false);
-    } catch (e: any) {
+    } catch (e: unknown) {
       setFormError(e?.response?.data?.message || e?.message || 'Failed to schedule follow-up');
     } finally {
       setSubmitting(false);

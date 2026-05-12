@@ -58,7 +58,7 @@ export default function CouponsPage() {
     try {
       const page = await listCoupons({ page: 0, size: 100 });
       setRows(page.content);
-    } catch (e: any) {
+    } catch (e: unknown) {
       setError(e?.response?.data?.message ?? e?.message ?? 'Failed to load coupons');
     } finally {
       setLoading(false);
@@ -124,7 +124,7 @@ export default function CouponsPage() {
       await deleteCoupon(created.id);
       setFormOpen(false);
       await load();
-    } catch (e: any) {
+    } catch (e: unknown) {
       setFormError(e?.response?.data?.message ?? e?.message ?? 'Failed to generate coupons');
     } finally {
       setSubmitting(false);
@@ -137,7 +137,7 @@ export default function CouponsPage() {
       await deleteCoupon(deleteTarget.id);
       setDeleteTarget(null);
       await load();
-    } catch (e: any) {
+    } catch (e: unknown) {
       setError(e?.response?.data?.message ?? e?.message ?? 'Failed to delete coupon');
       setDeleteTarget(null);
     }

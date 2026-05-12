@@ -136,6 +136,7 @@ export default function BackupsPage() {
   };
 
   const handleDownload = (_backup: BackupRecord) => {
+    void _backup;
     // In a real app, this would trigger a download
     closeRowMenu();
   };

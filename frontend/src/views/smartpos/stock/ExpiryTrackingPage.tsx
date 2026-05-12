@@ -18,7 +18,7 @@ export default function ExpiryTrackingPage() {
 
   useEffect(() => {
     listWarehouses().then(ws => { setWarehouses(ws); if (!warehouseId && ws[0]) setWarehouseId(ws[0].id); }).catch(() => {});
-  }, []);
+  }, [warehouseId]);
 
   useEffect(() => {
     if (!warehouseId) return;

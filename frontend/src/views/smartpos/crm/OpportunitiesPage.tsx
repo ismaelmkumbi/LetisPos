@@ -93,7 +93,7 @@ export default function OpportunitiesPage() {
       setError(null);
       const page = await listOpportunities({ page: 0, size: 200 });
       setOpps(page.content);
-    } catch (e: any) {
+    } catch (e: unknown) {
       setError(e?.message || 'Failed to load opportunities');
     } finally {
       setLoading(false);
@@ -134,7 +134,7 @@ export default function OpportunitiesPage() {
       });
       setOpps((prev) => [newOpp, ...prev]);
       setFormDialogOpen(false);
-    } catch (e: any) {
+    } catch (e: unknown) {
       setFormError(e?.response?.data?.message || e?.message || 'Failed to create opportunity');
     } finally {
       setSubmitting(false);

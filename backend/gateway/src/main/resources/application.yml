@@ -36,7 +36,7 @@ spring:
         - id: user-service
           uri: ${USER_URI:http://localhost:8082}
           predicates:
-            - Path=/api/v1/users/**,/api/v1/roles/**,/api/v1/permissions
+            - Path=/api/v1/users/**,/api/v1/roles/**,/api/v1/permissions,/api/v1/support/**
 
         # ---- User Service: i18n admin lives here ----
         - id: user-service-i18n

@@ -177,3 +177,47 @@ export async function manualPurge(entityType: string): Promise<{ entityType: str
   const { data } = await api.post<{ entityType: string; recordsRemoved: number }>(`/api/v1/admin/retention/purge/${entityType}`);
   return data;
 }
+
+// ── System Status ─────────────────────────────────────────────────────────
+
+export interface ServiceStatus {
+  name: string;
+  status: 'operational' | 'degraded' | 'down';
+  uptime: number;
+  lastChecked: string;
+}
+
+export async function getSystemStatus(): Promise<ServiceStatus[]> {
+  const { data } = await api.get<ServiceStatus[]>('/api/v1/admin/system-status');
+  return data;
+}
+
+// ── Backups ───────────────────────────────────────────────────────────────
+
+export interface Backup {
+  id: string;
+  tenantId: string;
+  name: string;
+  type: string;
+  sizeBytes?: number;
+  status: string;
+  filePath?: string;
+  errorMessage?: string;
+  createdBy?: string;
+  createdAt: string;
+  completedAt?: string;
+}
+
+export async function listBackups(): Promise<Backup[]> {
+  const { data } = await api.get<Backup[]>('/api/v1/admin/backups');
+  return data;
+}
+
+export async function createBackup(body: { name: string; type: string; createdBy?: string }): Promise<Backup> {
+  const { data } = await api.post<Backup>('/api/v1/admin/backups', body);
+  return data;
+}
+
+export async function restoreBackup(id: string): Promise<void> {
+  await api.post(`/api/v1/admin/backups/${id}/restore`);
+}

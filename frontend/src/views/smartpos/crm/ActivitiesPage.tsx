@@ -98,7 +98,7 @@ export default function ActivitiesPage() {
       if (filter !== 'All') params.type = filter;
       const page = await listActivities(params);
       setActivities(page.content);
-    } catch (e: any) {
+    } catch (e: unknown) {
       setError(e?.message || 'Failed to load activities');
     } finally {
       setLoading(false);
@@ -135,7 +135,7 @@ export default function ActivitiesPage() {
       });
       setActivities((prev) => [newActivity, ...prev]);
       setFormDialogOpen(false);
-    } catch (e: any) {
+    } catch (e: unknown) {
       setFormError(e?.response?.data?.message || e?.message || 'Failed to log activity');
     } finally {
       setSubmitting(false);
