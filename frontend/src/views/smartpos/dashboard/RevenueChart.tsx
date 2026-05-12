@@ -1,4 +1,4 @@
-import { Box, Card, CardContent, Chip, IconButton, Stack, Typography } from '@mui/material';
+import { Box, Card, CardContent, Chip, IconButton, Stack, Typography, useMediaQuery, useTheme } from '@mui/material';
 import { IconDotsVertical } from '@tabler/icons-react';
 import Chart from 'react-apexcharts';
 import type { ApexOptions } from 'apexcharts';
@@ -53,6 +53,9 @@ export default function RevenueChart({
   forecast,
 }: RevenueChartProps) {
   const navigate = useNavigate();
+  const theme = useTheme();
+  const isXs = useMediaQuery(theme.breakpoints.down('sm'));
+  const chartHeight = isXs ? 200 : 240;
 
   const handleDataPointSelection = useCallback(
     () => {
@@ -255,7 +258,7 @@ export default function RevenueChart({
             options={businessOptions}
             series={series}
             type="line"
-            height={{ xs: 200, sm: 240 }}
+            height={chartHeight}
           />
         ) : (
           <EmptyPanel

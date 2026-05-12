@@ -72,6 +72,7 @@ interface DashboardSideRailProps {
   paymentTotal: number;
   expiringBatchesCount: number;
   expiringUnitsAtRisk: number;
+  anomalySlot?: React.ReactNode;
 }
 
 export default function DashboardSideRail({
@@ -81,6 +82,7 @@ export default function DashboardSideRail({
   paymentTotal,
   expiringBatchesCount,
   expiringUnitsAtRisk,
+  anomalySlot,
 }: DashboardSideRailProps) {
   return (
     <Stack
@@ -90,6 +92,9 @@ export default function DashboardSideRail({
         top: { xl: 82 },
       }}
     >
+      {/* Anomaly alerts slot (renders above "Today needs attention") */}
+      {anomalySlot}
+
       <Box>
         <Typography sx={{ color: titleColor, fontWeight: 900, fontSize: 15, mb: 1 }}>
           Today needs attention

@@ -1,4 +1,4 @@
-import { Box, Card, CardActionArea, CardContent, Chip, Stack, Typography } from '@mui/material';
+import { Box, Card, CardActionArea, CardContent, Chip, Stack, Typography, useMediaQuery, useTheme } from '@mui/material';
 import { IconArrowDown, IconArrowUp } from '@tabler/icons-react';
 import Chart from 'react-apexcharts';
 import { useContext } from 'react';
@@ -20,26 +20,29 @@ export default function MetricCard({
 }: MetricCardProps) {
   const { activeMode: _am2 } = useContext(CustomizerContext);
   const isDark = _am2 === 'dark';
+  const theme = useTheme();
+  const isXs = useMediaQuery(theme.breakpoints.down('sm'));
+  const sparkHeight = isXs ? 32 : 46;
 
   const content = (
-    <CardContent sx={{ p: 1.75, display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <CardContent sx={{ p: { xs: 1.25, sm: 1.75 }, display: 'flex', flexDirection: 'column', height: '100%' }}>
       <Box
         sx={{
-          width: 40,
-          height: 40,
+          width: { xs: 32, sm: 40 },
+          height: { xs: 32, sm: 40 },
           borderRadius: '10px',
           bgcolor: `${color}12`,
           color,
           display: 'grid',
           placeItems: 'center',
-          mb: 1.25,
+          mb: { xs: 0.75, sm: 1.25 },
         }}
       >
         {icon}
       </Box>
-      <Typography sx={{ color: titleColor, fontWeight: 700, fontSize: 13 }}>{label}</Typography>
+      <Typography sx={{ color: titleColor, fontWeight: 700, fontSize: { xs: 11, sm: 13 } }}>{label}</Typography>
       <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 0.75 }}>
-        <Typography sx={{ color: titleColor, fontWeight: 900, fontSize: 20 }}>
+        <Typography sx={{ color: titleColor, fontWeight: 900, fontSize: { xs: 16, sm: 20 } }}>
           {value}
         </Typography>
         {delta && (
@@ -69,19 +72,19 @@ export default function MetricCard({
           </Typography>
         </Stack>
       ) : (
-        <Typography sx={{ color: muted(isDark), fontSize: 12, mt: 1 }}>Live total</Typography>
+        <Typography sx={{ color: muted(isDark), fontSize: { xs: 10, sm: 12 }, mt: 1 }}>Live total</Typography>
       )}
-      <Typography sx={{ color: muted(isDark), fontSize: 12 }}>selected period</Typography>
+      <Typography sx={{ color: muted(isDark), fontSize: { xs: 10, sm: 12 } }}>selected period</Typography>
       <Box sx={{ mt: 'auto', mx: -1, mb: -1 }}>
         {series.length ? (
           <Chart
             options={sparkOptions(color)}
             series={[{ name: label, data: series }]}
             type="area"
-            height={46}
+            height={sparkHeight}
           />
         ) : (
-          <EmptyPanel title="" subtitle="No series" height={46} compact />
+          <EmptyPanel title="" subtitle="No series" height={sparkHeight} compact />
         )}
       </Box>
     </CardContent>
@@ -93,7 +96,7 @@ export default function MetricCard({
         elevation={0}
         sx={{
           ...cardSx(isDark),
-          minHeight: 204,
+          minHeight: { xs: 172, sm: 204 },
           cursor: 'pointer',
           transition: 'transform 0.16s ease, box-shadow 0.16s ease',
           '&:hover': {
@@ -116,7 +119,7 @@ export default function MetricCard({
   }
 
   return (
-    <Card elevation={0} sx={{ ...cardSx(isDark), minHeight: 204 }}>
+    <Card elevation={0} sx={{ ...cardSx(isDark), minHeight: { xs: 172, sm: 204 } }}>
       {content}
     </Card>
   );

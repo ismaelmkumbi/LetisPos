@@ -5,7 +5,9 @@ import { useSearchParams } from 'react-router';
 import {
   getDashboard,
   getPaymentMethodMix,
+  getForecast,
   type Dashboard,
+  type Forecast,
   type PaymentMethodMixRow,
   type Period,
 } from 'src/api/smartpos/reports';
@@ -20,7 +22,7 @@ import { usePolling } from 'src/hooks/usePolling';
 import OnboardingBanner from './OnboardingBanner';
 import CelebrationModal from 'src/views/smartpos/onboarding/CelebrationModal';
 
-import DashboardGreetingBar from './GreetingBar';
+import DashboardGreetingBar, { loadLayout, type SectionKey } from './GreetingBar';
 import DashboardSkeleton from './Skeleton';
 import BusinessPulseCard from './BusinessPulseCard';
 import KpiGrid from './KpiGrid';
@@ -30,7 +32,9 @@ import RecentTransactions from './RecentTransactions';
 import FinancialHealth from './FinancialHealth';
 import OperationsOverview from './OperationsOverview';
 import DashboardSideRail from './SideRail';
+import AnomalyAlerts from './AnomalyAlerts';
 import GoalProgress from './GoalProgress';
+import TopPerformers from './TopPerformers';
 
 import {
   seriesOrFallback,
@@ -63,6 +67,10 @@ export default function DashboardPage() {
   const [expiringBatchesCount, setExpiringBatchesCount] = useState(0);
   const [expiringUnitsAtRisk, setExpiringUnitsAtRisk] = useState(0);
   const [lastUpdated, setLastUpdated] = useState<number | null>(null);
+  const [forecast, setForecast] = useState<Forecast | null>(null);
+  const [visibleSections, setVisibleSections] = useState<Set<SectionKey>>(() =>
+    loadLayout(user?.tenantId ?? ''),
+  );
   const loadedRef = useRef(false);
 
   useEffect(() => {
@@ -70,6 +78,22 @@ export default function DashboardPage() {
       setShowCelebration(true);
     }
   }, [onboardingState.isComplete]);
+
+  // Listen for layout changes from GreetingBar's customize dialog
+  useEffect(() => {
+    const handler = (e: Event) => {
+      setVisibleSections(e instanceof CustomEvent ? e.detail : new Set());
+    };
+    window.addEventListener('dashboard:layout-changed', handler);
+    return () => window.removeEventListener('dashboard:layout-changed', handler);
+  }, []);
+
+  // Re-read layout when tenantId changes
+  useEffect(() => {
+    if (user?.tenantId) {
+      setVisibleSections(loadLayout(user.tenantId));
+    }
+  }, [user?.tenantId]);
 
   // Read initial values from URL, default to MONTH / all warehouses
   const initPeriod = searchParams.get('period') as Period | null;
@@ -89,7 +113,6 @@ export default function DashboardPage() {
   const setFilter = (key: 'period' | 'warehouseId', value: string) => {
     if (key === 'period') setPeriod(value as Period);
     else setWarehouseId(value as UUID | '');
-    // Sync to URL for bookmarkability
     const next = new URLSearchParams(searchParams);
     if (value) next.set(key, value);
     else next.delete(key);
@@ -128,6 +151,7 @@ export default function DashboardPage() {
           sort: 'date,desc',
         }),
         getExpiringBatches({ withinDays: 30 }),
+        getForecast({ period, warehouseId: warehouseId || undefined, days: 30 }),
       ]);
 
       if (results[0].status === 'rejected') {
@@ -156,6 +180,12 @@ export default function DashboardPage() {
         setExpiringUnitsAtRisk(0);
       }
 
+      if (results[5].status === 'fulfilled') {
+        setForecast(results[5].value);
+      } else {
+        setForecast(null);
+      }
+
       const failedSections = [
         results[3].status === 'rejected' ? 'recent sales' : null,
       ].filter(Boolean);
@@ -180,7 +210,6 @@ export default function DashboardPage() {
     }
   }, [period, warehouseId, user?.tenantId]);
 
-  // Initial fetch + re-fetch on filter change
   useEffect(() => {
     fetchDashboardData();
   }, [fetchDashboardData]);
@@ -213,111 +242,59 @@ export default function DashboardPage() {
 
   // --- Deltas ---
   const cashDelta = useMemo(
-    () =>
-      computeDelta(
-        data?.payments.totalIn ?? 0,
-        previousData?.payments.totalIn ?? 0,
-      ),
+    () => computeDelta(data?.payments.totalIn ?? 0, previousData?.payments.totalIn ?? 0),
     [data, previousData],
   );
   const salesDelta = useMemo(
-    () =>
-      computeDelta(
-        data?.sales.net ?? 0,
-        previousData?.sales.net ?? 0,
-      ),
+    () => computeDelta(data?.sales.net ?? 0, previousData?.sales.net ?? 0),
     [data, previousData],
   );
   const ordersDelta = useMemo(
-    () =>
-      computeDelta(
-        data?.sales.count ?? 0,
-        previousData?.sales.count ?? 0,
-      ),
+    () => computeDelta(data?.sales.count ?? 0, previousData?.sales.count ?? 0),
     [data, previousData],
   );
   const purchasesKpiDelta = useMemo(
-    () =>
-      computeDelta(
-        data?.purchases.gross ?? 0,
-        previousData?.purchases.gross ?? 0,
-      ),
+    () => computeDelta(data?.purchases.gross ?? 0, previousData?.purchases.gross ?? 0),
     [data, previousData],
   );
   const profitDelta = useMemo(
-    () =>
-      computeDelta(
-        data?.netProfit ?? 0,
-        previousData?.netProfit ?? 0,
-      ),
+    () => computeDelta(data?.netProfit ?? 0, previousData?.netProfit ?? 0),
     [data, previousData],
   );
-  // FinancialHealth deltas
   const expensesDelta = useMemo(
-    () =>
-      computeDelta(
-        data?.expenses.total ?? 0,
-        previousData?.expenses.total ?? 0,
-      ),
+    () => computeDelta(data?.expenses.total ?? 0, previousData?.expenses.total ?? 0),
     [data, previousData],
   );
   const profitMarginDelta = useMemo(
-    () =>
-      computeDelta(
-        profitMargin(data),
-        profitMargin(previousData),
-      ),
+    () => computeDelta(profitMargin(data), profitMargin(previousData)),
     [data, previousData],
   );
   const salesDueDelta = useMemo(
-    () =>
-      computeDelta(
-        data?.sales.due ?? 0,
-        previousData?.sales.due ?? 0,
-      ),
+    () => computeDelta(data?.sales.due ?? 0, previousData?.sales.due ?? 0),
     [data, previousData],
   );
   const financialPurchasesDelta = useMemo(
-    () =>
-      computeDelta(
-        data?.purchases.gross ?? 0,
-        previousData?.purchases.gross ?? 0,
-      ),
+    () => computeDelta(data?.purchases.gross ?? 0, previousData?.purchases.gross ?? 0),
     [data, previousData],
   );
-  // OperationsOverview deltas
   const inventoryValueDelta = useMemo(
-    () =>
-      computeDelta(
-        data?.inventory.totalOnHand ?? 0,
-        previousData?.inventory.totalOnHand ?? 0,
-      ),
+    () => computeDelta(data?.inventory.totalOnHand ?? 0, previousData?.inventory.totalOnHand ?? 0),
     [data, previousData],
   );
   const stockAtRiskDelta = useMemo(
-    () =>
-      computeDelta(
-        data?.inventory.lowStockLines ?? 0,
-        previousData?.inventory.lowStockLines ?? 0,
-      ),
+    () => computeDelta(data?.inventory.lowStockLines ?? 0, previousData?.inventory.lowStockLines ?? 0),
     [data, previousData],
   );
   const totalSkusDelta = useMemo(
-    () =>
-      computeDelta(
-        data?.inventory.distinctProducts ?? 0,
-        previousData?.inventory.distinctProducts ?? 0,
-      ),
+    () => computeDelta(data?.inventory.distinctProducts ?? 0, previousData?.inventory.distinctProducts ?? 0),
     [data, previousData],
   );
   const stockMovementDelta = useMemo(
-    () =>
-      computeDelta(
-        data?.inventory.totalAvailable ?? 0,
-        previousData?.inventory.totalAvailable ?? 0,
-      ),
+    () => computeDelta(data?.inventory.totalAvailable ?? 0, previousData?.inventory.totalAvailable ?? 0),
     [data, previousData],
   );
+
+  const showSection = (key: SectionKey) => visibleSections.has(key);
 
   return (
     <Box sx={{ pb: 1 }}>
@@ -356,120 +333,161 @@ export default function DashboardPage() {
         <>
           <Grid container spacing={1.5} alignItems="flex-start">
             <Grid size={{ xs: 12, xl: 9 }}>
-              <Box
-                sx={{
-                  mb: 1.5,
-                  mx: { xs: -1.5, sm: 0 },
-                  px: { xs: 1.5, sm: 0 },
-                  overflow: { xs: 'auto', lg: 'visible' },
-                  WebkitOverflowScrolling: 'touch',
-                  scrollSnapType: { xs: 'x mandatory', lg: 'none' },
-                  '&::-webkit-scrollbar': { display: 'none' },
-                  scrollbarWidth: 'none',
-                }}
-              >
-                <Grid
-                  container
-                  spacing={1.5}
+              {/* KPI Grid */}
+              {showSection('kpiGrid') && (
+                <Box
                   sx={{
-                    flexWrap: { xs: 'nowrap', lg: 'wrap' },
-                    mx: 0,
-                    width: { xs: 'max-content', lg: '100%' },
+                    mb: 1.5,
+                    mx: { xs: -1.5, sm: 0 },
+                    px: { xs: 1.5, sm: 0 },
+                    overflow: { xs: 'auto', lg: 'visible' },
+                    WebkitOverflowScrolling: 'touch',
+                    scrollSnapType: { xs: 'x mandatory', lg: 'none' },
+                    '&::-webkit-scrollbar': { display: 'none' },
+                    scrollbarWidth: 'none',
                   }}
                 >
                   <Grid
-                    size={{ xs: 12, lg: 4 }}
+                    container
+                    spacing={1.5}
                     sx={{
-                      minWidth: { xs: 280, lg: 'auto' },
-                      scrollSnapAlign: 'start',
+                      flexWrap: { xs: 'nowrap', lg: 'wrap' },
+                      mx: 0,
+                      width: { xs: 'max-content', lg: '100%' },
                     }}
                   >
-                    <BusinessPulseCard
+                    <Grid
+                      size={{ xs: 12, lg: 4 }}
+                      sx={{
+                        minWidth: { xs: 280, lg: 'auto' },
+                        scrollSnapAlign: 'start',
+                      }}
+                    >
+                      <BusinessPulseCard
+                        data={data}
+                        salesSeries={salesSeries}
+                        period={period}
+                        delta={profitDelta}
+                      />
+                    </Grid>
+                    <KpiGrid
                       data={data}
                       salesSeries={salesSeries}
-                      period={period}
-                      delta={profitDelta}
+                      revenueTrend={revenueTrend}
+                      orderSeries={orderSeries}
+                      cashDelta={cashDelta}
+                      salesDelta={salesDelta}
+                      ordersDelta={ordersDelta}
+                      purchasesDelta={purchasesKpiDelta}
                     />
                   </Grid>
-                  <KpiGrid
-                    data={data}
-                    salesSeries={salesSeries}
-                    revenueTrend={revenueTrend}
-                    orderSeries={orderSeries}
-                    cashDelta={cashDelta}
-                    salesDelta={salesDelta}
-                    ordersDelta={ordersDelta}
-                    purchasesDelta={purchasesKpiDelta}
-                  />
-                </Grid>
-              </Box>
+                </Box>
+              )}
 
-              <Grid container spacing={1.5} sx={{ mb: 1.5 }}>
-                <Grid size={{ xs: 12, lg: 8 }}>
-                  <RevenueChart
-                    salesSeries={salesSeries}
+              {/* Revenue Chart + Recent Transactions */}
+              {(showSection('revenueChart') || showSection('recentTransactions')) && (
+                <Grid container spacing={1.5} sx={{ mb: 1.5 }}>
+                  {showSection('revenueChart') && (
+                    <Grid size={{ xs: 12, lg: showSection('recentTransactions') ? 8 : 12 }}>
+                      <RevenueChart
+                        salesSeries={salesSeries}
+                        period={period}
+                        isDark={isDark}
+                        data={data}
+                        previousSalesSeries={
+                          previousSalesSeries.length ? previousSalesSeries : undefined
+                        }
+                        forecast={forecast}
+                      />
+                    </Grid>
+                  )}
+                  {showSection('recentTransactions') && (
+                    <Grid size={{ xs: 12, lg: showSection('revenueChart') ? 4 : 12 }}>
+                      <RecentTransactions rows={recentSales} />
+                    </Grid>
+                  )}
+                </Grid>
+              )}
+
+              {/* Top Performers */}
+              {showSection('topPerformers') && (
+                <Box sx={{ mb: 1.5 }}>
+                  <TopPerformers
                     period={period}
-                    isDark={isDark}
-                    data={data}
-                    previousSalesSeries={
-                      previousSalesSeries.length ? previousSalesSeries : undefined
-                    }
+                    warehouseId={warehouseId}
+                    limit={5}
                   />
-                </Grid>
-                <Grid size={{ xs: 12, lg: 4 }}>
-                  <RecentTransactions rows={recentSales} />
-                </Grid>
-              </Grid>
+                </Box>
+              )}
 
-              <Grid container spacing={1.5} sx={{ mb: 1.5 }}>
-                <Grid size={{ xs: 12, lg: 4 }}>
-                  <FinancialHealth
-                    data={data}
-                    expensesDelta={expensesDelta}
-                    profitMarginDelta={profitMarginDelta}
-                    salesDueDelta={salesDueDelta}
-                    purchasesDelta={financialPurchasesDelta}
-                  />
+              {/* Financial Health + Operations Overview + Payment Mix */}
+              {(showSection('financialHealth') || showSection('operationsOverview') || showSection('paymentMix')) && (
+                <Grid container spacing={1.5} sx={{ mb: 1.5 }}>
+                  {showSection('financialHealth') && (
+                    <Grid size={{ xs: 12, lg: 4 }}>
+                      <FinancialHealth
+                        data={data}
+                        expensesDelta={expensesDelta}
+                        profitMarginDelta={profitMarginDelta}
+                        salesDueDelta={salesDueDelta}
+                        purchasesDelta={financialPurchasesDelta}
+                      />
+                    </Grid>
+                  )}
+                  {showSection('operationsOverview') && (
+                    <Grid size={{ xs: 12, lg: 3 }}>
+                      <OperationsOverview
+                        data={data}
+                        inventoryValueDelta={inventoryValueDelta}
+                        stockAtRiskDelta={stockAtRiskDelta}
+                        totalSkusDelta={totalSkusDelta}
+                        stockMovementDelta={stockMovementDelta}
+                      />
+                    </Grid>
+                  )}
+                  {showSection('paymentMix') && (
+                    <Grid size={{ xs: 12, lg: 5 }}>
+                      <PaymentMixCard
+                        paymentMix={paymentMix}
+                        paymentMixUnavailable={paymentMixUnavailable}
+                        isDark={isDark}
+                      />
+                    </Grid>
+                  )}
                 </Grid>
-                <Grid size={{ xs: 12, lg: 3 }}>
-                  <OperationsOverview
-                    data={data}
-                    inventoryValueDelta={inventoryValueDelta}
-                    stockAtRiskDelta={stockAtRiskDelta}
-                    totalSkusDelta={totalSkusDelta}
-                    stockMovementDelta={stockMovementDelta}
-                  />
-                </Grid>
-                <Grid size={{ xs: 12, lg: 5 }}>
-                  <PaymentMixCard
-                    paymentMix={paymentMix}
-                    paymentMixUnavailable={paymentMixUnavailable}
-                    isDark={isDark}
-                  />
-                </Grid>
-              </Grid>
+              )}
 
-              {/* Goal Progress - below the KPI grid, full width in main column */}
-              <Box sx={{ mb: 1.5 }}>
-                <GoalProgress
-                  currentRevenue={data?.sales.net ?? 0}
-                  currentOrders={data?.sales.count ?? 0}
-                  currentMargin={profitMargin(data)}
-                  tenantId={user?.tenantId ?? ''}
+              {/* Goal Progress */}
+              {showSection('goalProgress') && (
+                <Box sx={{ mb: 1.5 }}>
+                  <GoalProgress
+                    currentRevenue={data?.sales.net ?? 0}
+                    currentOrders={data?.sales.count ?? 0}
+                    currentMargin={profitMargin(data)}
+                    tenantId={user?.tenantId ?? ''}
+                  />
+                </Box>
+              )}
+            </Grid>
+
+            {/* SideRail + Anomaly Alerts */}
+            {showSection('sideRail') && (
+              <Grid size={{ xs: 12, xl: 3 }}>
+                <DashboardSideRail
+                  data={data}
+                  revenueTrend={revenueTrend}
+                  isDark={isDark}
+                  paymentTotal={paymentTotal}
+                  expiringBatchesCount={expiringBatchesCount}
+                  expiringUnitsAtRisk={expiringUnitsAtRisk}
+                  anomalySlot={
+                    <Box sx={{ mb: 1.5 }}>
+                      <AnomalyAlerts warehouseId={warehouseId} />
+                    </Box>
+                  }
                 />
-              </Box>
-            </Grid>
-
-            <Grid size={{ xs: 12, xl: 3 }}>
-              <DashboardSideRail
-                data={data}
-                revenueTrend={revenueTrend}
-                isDark={isDark}
-                paymentTotal={paymentTotal}
-                expiringBatchesCount={expiringBatchesCount}
-                expiringUnitsAtRisk={expiringUnitsAtRisk}
-              />
-            </Grid>
+              </Grid>
+            )}
           </Grid>
         </>
       )}

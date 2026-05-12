@@ -33,7 +33,7 @@ export default function KpiGrid({
 
   return (
     <>
-      <Grid size={{ xs: 12, sm: 6, lg: 2 }} sx={{ minWidth: { xs: 180, lg: 'auto' }, scrollSnapAlign: 'start' }}>
+      <Grid size={{ xs: 6, sm: 6, lg: 2 }} sx={{ minWidth: { xs: 0, lg: 'auto' }, scrollSnapAlign: 'start' }}>
         <MetricCard
           label="Cash in Hand"
           value={formatMoney(data?.payments.totalIn ?? 0)}
@@ -45,7 +45,7 @@ export default function KpiGrid({
           onClick={() => navigate('/smartpos/accounts')}
         />
       </Grid>
-      <Grid size={{ xs: 12, sm: 6, lg: 2 }} sx={{ minWidth: { xs: 180, lg: 'auto' }, scrollSnapAlign: 'start' }}>
+      <Grid size={{ xs: 6, sm: 6, lg: 2 }} sx={{ minWidth: { xs: 0, lg: 'auto' }, scrollSnapAlign: 'start' }}>
         <MetricCard
           label="Net Sales"
           value={formatMoney(data?.sales.net ?? 0)}
@@ -57,7 +57,7 @@ export default function KpiGrid({
           onClick={() => navigate('/smartpos/reports/sales')}
         />
       </Grid>
-      <Grid size={{ xs: 12, sm: 6, lg: 2 }} sx={{ minWidth: { xs: 180, lg: 'auto' }, scrollSnapAlign: 'start' }}>
+      <Grid size={{ xs: 6, sm: 6, lg: 2 }} sx={{ minWidth: { xs: 0, lg: 'auto' }, scrollSnapAlign: 'start' }}>
         <MetricCard
           label="Orders"
           value={formatNumber(data?.sales.count ?? 0)}
@@ -69,7 +69,7 @@ export default function KpiGrid({
           onClick={() => navigate('/smartpos/sales')}
         />
       </Grid>
-      <Grid size={{ xs: 12, sm: 6, lg: 2 }} sx={{ minWidth: { xs: 180, lg: 'auto' }, scrollSnapAlign: 'start' }}>
+      <Grid size={{ xs: 6, sm: 6, lg: 2 }} sx={{ minWidth: { xs: 0, lg: 'auto' }, scrollSnapAlign: 'start' }}>
         <MetricCard
           label="Purchases"
           value={formatMoney(data?.purchases.gross ?? 0)}
