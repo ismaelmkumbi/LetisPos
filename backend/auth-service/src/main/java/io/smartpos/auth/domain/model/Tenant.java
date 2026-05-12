@@ -102,9 +102,9 @@ public class Tenant {
     public void deriveLimits() {
         switch (billingPlan) {
             case FREE -> { maxUsers = 1; maxStores = 1; }
-            case STARTER -> { maxUsers = 5; maxStores = 1; }
-            case BUSINESS -> { maxUsers = 20; maxStores = 5; }
-            case PROFESSIONAL -> { maxUsers = 100; maxStores = 25; }
+            case STARTER -> { maxUsers = 2; maxStores = 1; }
+            case BUSINESS -> { maxUsers = 5; maxStores = 3; }
+            case PROFESSIONAL -> { maxUsers = 25; maxStores = 10; }
             case ENTERPRISE -> { maxUsers = Integer.MAX_VALUE; maxStores = Integer.MAX_VALUE; }
         }
     }
