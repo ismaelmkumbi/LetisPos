@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -56,6 +57,23 @@ public class ChartOfAccountService {
                 .tenantId(tenantId)
                 .build();
         return ChartOfAccountDto.from(repo.save(c));
+    }
+
+    public record ChartOfAccountSummary(String code, String name, String type,
+                                         BigDecimal balance) {}
+
+    @Transactional(readOnly = true)
+    public List<ChartOfAccountSummary> summary() {
+        UUID tenantId = TenantContext.require();
+        List<ChartOfAccount> accounts = repo.findByActiveTrueAndTenantIdOrderByCodeAsc(tenantId);
+        // TODO: Compute real balances from account_ledger once ledger entries
+        // are linked to chart_of_accounts (currently ledger entries reference
+        // the operational Account entity, not COA nodes).
+        return accounts.stream()
+                .map(a -> new ChartOfAccountSummary(
+                        a.getCode(), a.getName(), a.getAccountClass().name(),
+                        BigDecimal.ZERO))
+                .toList();
     }
 
     @Transactional

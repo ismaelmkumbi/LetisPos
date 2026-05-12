@@ -36,6 +36,12 @@ public class ChartOfAccountController {
         return ResponseEntity.status(HttpStatus.CREATED).body(service.create(req));
     }
 
+    @GetMapping("/summary")
+    @PreAuthorize("hasAuthority('account.view') or hasAuthority('report.financial')")
+    public List<ChartOfAccountService.ChartOfAccountSummary> summary() {
+        return service.summary();
+    }
+
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('account.manage')")
     public ChartOfAccountDto update(@PathVariable UUID id, @RequestBody ChartOfAccountDto.UpdateRequest req) {
