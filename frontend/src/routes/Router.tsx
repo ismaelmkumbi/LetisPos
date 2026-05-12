@@ -244,6 +244,8 @@ const SmartPosSupplierReport = Loadable(lazy(() => import('../views/smartpos/rep
 const SmartPosFinancialReport = Loadable(lazy(() => import('../views/smartpos/reports/FinancialReportPage')));
 const SmartPosEmployeeReport = Loadable(lazy(() => import('../views/smartpos/reports/EmployeeReportPage')));
 const SmartPosOperationsReport = Loadable(lazy(() => import('../views/smartpos/reports/OperationsReportPage')));
+const SmartPosReportSchedules = Loadable(lazy(() => import('../views/smartpos/reports/ReportSchedulesPage')));
+const SmartPosReportBuilder = Loadable(lazy(() => import('../views/smartpos/reports/ReportBuilderPage')));
 const SmartPosSettings = Loadable(
   lazy(() => import('../views/smartpos/settings/SettingsPlaceholder')),
 );
@@ -646,6 +648,8 @@ const Router = [
       { path: 'reports/financial', element: <SmartPosFinancialReport /> },
       { path: 'reports/employees', element: <SmartPosEmployeeReport /> },
       { path: 'reports/operations', element: <SmartPosOperationsReport /> },
+      { path: 'reports/schedules', element: <SmartPosReportSchedules /> },
+      { path: 'reports/builder', element: <SmartPosReportBuilder /> },
       { path: 'reports/exports', element: <SmartPosReports /> },
       // Settings
       { path: 'settings', element: <SmartPosSettings /> },
