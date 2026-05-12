@@ -59,6 +59,7 @@ export interface SalesSummary {
   net: number; paid: number; due: number;
   avgSale: number;
   series: { date: string; net: number; count: number }[];
+  priorNet: number; netChange: number; netChangePercent: number;
 }
 
 export async function getSalesSummary(params: {
@@ -261,6 +262,7 @@ export interface PurchaseSummary {
   avgPurchase: number;
   series: { date: string; net: number; count: number }[];
   topSuppliers: TopSupplier[];
+  priorGross: number; grossChange: number; grossChangePercent: number;
 }
 
 export interface TopSupplier {
@@ -288,6 +290,7 @@ export interface PaymentSummary {
   outstanding: number;
   inflowSeries: { date: string; net: number; count: number }[];
   byMethod: PaymentMethodRow[];
+  priorNetFlow: number; netFlowChange: number; netFlowChangePercent: number;
 }
 
 export async function getPaymentSummary(params: {
@@ -315,6 +318,7 @@ export interface CustomerSummary {
   totalRevenue: number; avgRevenuePerCustomer: number;
   topCustomers: TopCustomerDetail[];
   frequencyDistribution: FrequencyBucket[];
+  priorTotalRevenue: number; revenueChange: number; revenueChangePercent: number;
 }
 
 export async function getCustomerSummary(params: {
@@ -625,4 +629,48 @@ export interface OperationsReport {
 export async function getOperationsSummary(params: { date?: string } = {}): Promise<OperationsReport> {
   const { data } = await api.get<OperationsReport>('/api/v1/reports/operations/summary', { params });
   return data;
+}
+
+// ─── Scheduled Reports ───
+
+export interface ScheduledReport {
+  id: UUID; reportKey: string; frequency: string; cronExpression?: string | null;
+  recipients: string; format: string; active: boolean;
+  lastRunAt?: string | null; nextRunAt?: string | null; createdAt: string;
+}
+export interface CreateScheduledReport {
+  reportKey: string; frequency: string; cronExpression?: string;
+  recipients: string; format?: string; active?: boolean;
+}
+export async function listScheduledReports(): Promise<ScheduledReport[]> {
+  const { data } = await api.get<ScheduledReport[]>('/api/v1/reports/schedules');
+  return data;
+}
+export async function createScheduledReport(body: CreateScheduledReport): Promise<ScheduledReport> {
+  const { data } = await api.post<ScheduledReport>('/api/v1/reports/schedules', body);
+  return data;
+}
+export async function deleteScheduledReport(id: UUID): Promise<void> {
+  await api.delete(`/api/v1/reports/schedules/${id}`);
+}
+
+// ─── Report Dashboards ───
+
+export interface ReportDashboard {
+  id: UUID; name: string; layout: string; filters: string;
+  shared: boolean; createdAt: string; updatedAt: string;
+}
+export interface CreateReportDashboard {
+  name: string; layout?: string; filters?: string; shared?: boolean;
+}
+export async function listReportDashboards(): Promise<ReportDashboard[]> {
+  const { data } = await api.get<ReportDashboard[]>('/api/v1/reports/dashboards');
+  return data;
+}
+export async function createReportDashboard(body: CreateReportDashboard): Promise<ReportDashboard> {
+  const { data } = await api.post<ReportDashboard>('/api/v1/reports/dashboards', body);
+  return data;
+}
+export async function deleteReportDashboard(id: UUID): Promise<void> {
+  await api.delete(`/api/v1/reports/dashboards/${id}`);
 }

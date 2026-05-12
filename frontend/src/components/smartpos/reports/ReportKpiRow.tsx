@@ -49,6 +49,7 @@ export default function ReportKpiRow({ cards }: Props) {
                   <Typography sx={{ color: card.change.positive ? brand.success.main : brand.error.main, fontWeight: 700, fontSize: 12 }}>
                     {card.change.label}
                   </Typography>
+                  <Typography variant="caption" sx={{ color: brand.neutral[400] }}>vs prior</Typography>
                 </Stack>
               )}
               {card.sparkline && card.sparkline.length > 0 && (
