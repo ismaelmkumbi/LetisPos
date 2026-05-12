@@ -37,6 +37,7 @@
         <module>billing-service</module>
         <module>audit-service</module>
         <module>crm-service</module>
+        <module>commerce-service</module>
         <module>gateway</module>
     </modules>
 

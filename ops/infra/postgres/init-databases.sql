@@ -107,3 +107,13 @@ CREATE DATABASE ai_db OWNER ai_user;
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 GRANT ALL PRIVILEGES ON DATABASE ai_db TO ai_user;
 GRANT ALL ON SCHEMA public TO ai_user;
+
+-- COMMERCE
+\c postgres
+CREATE USER commerce_user WITH PASSWORD 'commerce_pass';
+CREATE DATABASE commerce_db OWNER commerce_user;
+\c commerce_db
+CREATE EXTENSION IF NOT EXISTS citext;
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+GRANT ALL PRIVILEGES ON DATABASE commerce_db TO commerce_user;
+GRANT ALL ON SCHEMA public TO commerce_user;

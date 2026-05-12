@@ -171,6 +171,27 @@ spring:
             - name: Retry
               args: { retries: 2 }
 
+        # ── Commerce Service: public storefront ──────────────────────
+        - id: commerce-service-public
+          uri: ${COMMERCE_URI:http://localhost:8097}
+          predicates:
+            - Path=/api/v1/storefront/**,/api/v1/robots.txt
+          filters:
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 100
+                redis-rate-limiter.burstCapacity: 200
+                key-resolver: "#{@clientIpKeyResolver}"
+
+        # ── Commerce Service: admin ──────────────────────────────────
+        - id: commerce-service-admin
+          uri: ${COMMERCE_URI:http://localhost:8097}
+          predicates:
+            - Path=/api/v1/commerce/**
+          filters:
+            - name: Retry
+              args: { retries: 2 }
+
       globalcors:
         cors-configurations:
           '[/**]':
