@@ -54,6 +54,10 @@ public class MeController {
                 result.put("tenantName", t.getName());
                 result.put("tenantSlug", t.getSlug());
                 result.put("billingPlan", t.getBillingPlan().name());
+                result.put("tenantStatus", t.getStatus().name());
+                result.put("maxUsers", t.getMaxUsers());
+                result.put("maxStores", t.getMaxStores());
+                result.put("trialEndsAt", t.getTrialEndsAt() != null ? t.getTrialEndsAt().toString() : null);
             });
         }
 
