@@ -74,6 +74,10 @@ public class AccountService {
         return ledgerRepo.ledgerFor(accountId, from, to, TenantContext.require(), pageable).map(LedgerDto::from);
     }
 
+    public Page<AccountTransferDto> listTransfers(Pageable pageable) {
+        return transferRepo.findAll(pageable).map(AccountTransferDto::from);
+    }
+
     /**
      * Atomic account-to-account transfer: locks both accounts (ordered by id to
      * avoid deadlocks), posts two ledger entries, records the transfer header.

@@ -55,6 +55,12 @@ public class AccountController {
         return service.ledger(id, dateFrom, dateTo, pageable);
     }
 
+    @GetMapping("/transfers")
+    @PreAuthorize("hasAuthority('account.manage') or hasAuthority('payment.view')")
+    public Page<AccountTransferDto> listTransfers(Pageable pageable) {
+        return service.listTransfers(pageable);
+    }
+
     @PostMapping("/transfers")
     @PreAuthorize("hasAuthority('account.manage')")
     public ResponseEntity<AccountTransferDto> transfer(@Valid @RequestBody AccountTransferDto.CreateRequest req,
