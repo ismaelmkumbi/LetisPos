@@ -232,6 +232,10 @@ export function buildSmartPosMenu(t: TFunction): MenuItem[] {
     { id: uid(), title: 'Theme', icon: IconPalette, href: '/smartpos/admin/commerce/theme', minPlan: 'PROFESSIONAL' },
     { id: uid(), title: 'Shipping', icon: IconTruck, href: '/smartpos/admin/commerce/shipping', minPlan: 'PROFESSIONAL' },
     { id: uid(), title: 'Banners', icon: IconAd, href: '/smartpos/admin/commerce/banners', minPlan: 'PROFESSIONAL' },
+    { id: uid(), title: 'Online Orders', icon: IconShoppingCart, ...soon, minPlan: 'BUSINESS' },
+    { id: uid(), title: 'Delivery Management', icon: IconTruck, ...soon, minPlan: 'BUSINESS' },
+    { id: uid(), title: 'Website Settings', icon: IconWorld, ...soon, minPlan: 'BUSINESS' },
+    { id: uid(), title: 'Marketplace Sync', icon: IconBuildingStore, ...soon, minPlan: 'PROFESSIONAL' },
 
     // ── Integrations ────────────────────────────────────────────────────
     { subheader: 'Integrations', minPlan: 'PROFESSIONAL' },
