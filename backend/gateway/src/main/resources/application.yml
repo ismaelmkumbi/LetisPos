@@ -145,13 +145,16 @@ spring:
             - name: Retry
               args: { retries: 2 }
 
-        - id: audit-service-admin
-          uri: ${AUDIT_URI:http://localhost:8095}
-          predicates:
-            - Path=/api/v1/admin/**
-          filters:
-            - name: Retry
-              args: { retries: 2 }
+        # audit-service-admin disabled while audit-service is not running.
+        # System-status is handled by gateway's SystemStatusHandler RouterFunction.
+        # Uncomment when audit-service is started:
+        # - id: audit-service-admin
+        #   uri: ${AUDIT_URI:http://localhost:8095}
+        #   predicates:
+        #     - Path=/api/v1/admin/**
+        #   filters:
+        #     - name: Retry
+        #       args: { retries: 2 }
 
         # ── CRM service ─────────────────────────────────────────────
         - id: crm-service
