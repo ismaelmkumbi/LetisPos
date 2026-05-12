@@ -674,3 +674,77 @@ export async function createReportDashboard(body: CreateReportDashboard): Promis
 export async function deleteReportDashboard(id: UUID): Promise<void> {
   await api.delete(`/api/v1/reports/dashboards/${id}`);
 }
+
+// ─── Forecast ───
+
+export interface ForecastPoint {
+  date: string;
+  value: number;
+}
+
+export interface Forecast {
+  historical: ForecastPoint[];
+  projected: ForecastPoint[];
+}
+
+export async function getForecast(params: {
+  period?: Period;
+  warehouseId?: UUID;
+  days?: number;
+} = {}): Promise<Forecast> {
+  const { data } = await api.get<Forecast>('/api/v1/reports/forecast', { params });
+  return data;
+}
+
+// ─── Top Performers ───
+
+export interface TopPerformer {
+  id: UUID;
+  name: string;
+  value: number;
+  percentage: number;
+}
+
+export async function getTopProductsV2(params: {
+  period?: Period;
+  warehouseId?: UUID;
+  limit?: number;
+} = {}): Promise<TopPerformer[]> {
+  const { data } = await api.get<TopPerformer[]>('/api/v1/reports/top-products', { params });
+  return data;
+}
+
+export async function getTopCustomersV2(params: {
+  period?: Period;
+  warehouseId?: UUID;
+  limit?: number;
+} = {}): Promise<TopPerformer[]> {
+  const { data } = await api.get<TopPerformer[]>('/api/v1/reports/top-customers', { params });
+  return data;
+}
+
+export async function getTopSuppliersV2(params: {
+  period?: Period;
+  warehouseId?: UUID;
+  limit?: number;
+} = {}): Promise<TopPerformer[]> {
+  const { data } = await api.get<TopPerformer[]>('/api/v1/reports/top-suppliers', { params });
+  return data;
+}
+
+// ─── Anomalies ───
+
+export interface Anomaly {
+  metric: string;
+  currentValue: number;
+  averageValue: number;
+  deviation: number;
+  severity: 'warning' | 'error';
+}
+
+export async function getAnomalies(params: {
+  warehouseId?: UUID;
+} = {}): Promise<Anomaly[]> {
+  const { data } = await api.get<Anomaly[]>('/api/v1/reports/anomalies', { params });
+  return data;
+}
