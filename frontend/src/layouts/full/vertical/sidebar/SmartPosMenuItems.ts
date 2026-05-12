@@ -68,6 +68,10 @@ import {
   IconDeviceMobile,
   IconBug,
   IconDatabase,
+  IconReceiptTax,
+  IconMessage,
+  IconBrandWhatsapp,
+  IconWebhook,
 } from '@tabler/icons-react';
 
 export interface MenuItem {
@@ -221,14 +225,13 @@ export function buildSmartPosMenu(t: TFunction): MenuItem[] {
 
     // ── Integrations ────────────────────────────────────────────────────
     { subheader: 'Integrations' },
-    { id: uid(), title: 'Payment Gateways', icon: IconCreditCard, ...soon },
-    { id: uid(), title: 'TRA EFD', icon: IconFileInvoice, ...soon },
-    { id: uid(), title: 'Accounting Integrations', icon: IconCalculator, ...soon },
-    { id: uid(), title: 'SMS Providers', icon: IconSend, ...soon },
-    { id: uid(), title: 'WhatsApp API', icon: IconSend, ...soon },
-    { id: uid(), title: 'Delivery Services', icon: IconTruck, ...soon },
-    { id: uid(), title: 'Webhooks', icon: IconPlug, ...soon },
     { id: uid(), title: t('smartpos:nav.integrations'), icon: IconPlug, href: '/smartpos/integrations' },
+    { id: uid(), title: 'Payment Gateways', icon: IconCreditCard, href: '/smartpos/integrations/payment-gateways' },
+    { id: uid(), title: 'TRA EFD', icon: IconReceiptTax, href: '/smartpos/integrations/tra-efd' },
+    { id: uid(), title: 'Accounting', icon: IconCalculator, href: '/smartpos/integrations/accounting' },
+    { id: uid(), title: 'SMS Providers', icon: IconMessage, href: '/smartpos/integrations/sms' },
+    { id: uid(), title: 'WhatsApp API', icon: IconBrandWhatsapp, href: '/smartpos/integrations/whatsapp' },
+    { id: uid(), title: 'Webhooks', icon: IconWebhook, href: '/smartpos/integrations/webhooks' },
 
     // ── AI Assistant ────────────────────────────────────────────────────
     { subheader: 'AI Assistant' },
