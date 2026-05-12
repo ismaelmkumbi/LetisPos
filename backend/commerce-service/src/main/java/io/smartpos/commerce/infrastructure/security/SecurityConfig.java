@@ -42,8 +42,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         // Public storefront endpoints
                         .requestMatchers(HttpMethod.GET, "/api/v1/storefront/**").permitAll()
-                        .requestMatchers("/api/v1/storefront/**/customers/register").permitAll()
-                        .requestMatchers("/api/v1/storefront/**/customers/login").permitAll()
+                        .requestMatchers("/api/v1/storefront/**/customers/**").permitAll()
                         .requestMatchers("/api/v1/storefront/resolve").permitAll()
                         // Health and API docs
                         .requestMatchers("/actuator/**", "/v3/api-docs/**", "/swagger-ui/**").permitAll()
