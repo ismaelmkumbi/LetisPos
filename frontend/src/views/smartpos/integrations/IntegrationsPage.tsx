@@ -1,18 +1,24 @@
 /**
- * Integrations admin — sync log + ZATCA QR generator + manual push helpers.
+ * Integrations admin — sync log + ZATCA QR generator + provider config.
  * Webhooks (incoming) are configured at the provider end; this page just
  * surfaces the audit log so ops can see what happened.
  */
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   Alert, Box, Button, Card, Chip, Dialog, DialogActions, DialogContent, DialogTitle,
-  IconButton, MenuItem, Stack, Tab, Tabs, TextField, Tooltip, Typography,
+  IconButton, MenuItem, Stack, Switch, Tab, Tabs, TextField, Tooltip, Typography,
+  CircularProgress, InputAdornment,
 } from '@mui/material';
-import { IconCopy, IconQrcode } from '@tabler/icons-react';
+import {
+  IconCopy, IconQrcode, IconFileInvoice, IconShoppingCart, IconCalculator,
+  IconSend, IconDeviceMobile,
+} from '@tabler/icons-react';
 
 import {
   generateZatcaQr, listSyncs,
+  getIntegrationConfigs, updateProviderConfig,
   type IntegrationProvider, type IntegrationStatus, type IntegrationSync,
+  type IntegrationConfig,
 } from 'src/api/smartpos/integrations';
 import PageHeader from 'src/components/smartpos/PageHeader';
 import DataTable, { type Column } from 'src/components/smartpos/DataTable';
@@ -31,8 +37,10 @@ const PROVIDER_COLOURS: Record<IntegrationProvider, { bg: string; fg: string }> 
   QUICKBOOKS:  { bg: brand.info.light,  fg: brand.info.dark },
 };
 
+type PageTab = 'log' | 'zatca' | 'config';
+
 export default function IntegrationsPage() {
-  const [tab, setTab] = useState<'log' | 'zatca'>('log');
+  const [tab, setTab] = useState<PageTab>('log');
   return (
     <>
       <PageHeader
@@ -40,11 +48,13 @@ export default function IntegrationsPage() {
         subtitle="ZATCA · WooCommerce · QuickBooks — sync log + tools"
       />
       <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 2 }}>
-        <Tab value="log"   label="Sync log" />
-        <Tab value="zatca" label="ZATCA QR" />
+        <Tab value="log"    label="Sync log" />
+        <Tab value="zatca"  label="ZATCA QR" />
+        <Tab value="config" label="Provider Config" />
       </Tabs>
-      {tab === 'log'   && <SyncLogTab />}
-      {tab === 'zatca' && <ZatcaTab />}
+      {tab === 'log'    && <SyncLogTab />}
+      {tab === 'zatca'  && <ZatcaTab />}
+      {tab === 'config' && <ProviderConfigTab />}
     </>
   );
 }
@@ -231,5 +241,274 @@ function ZatcaTab() {
         </Card>
       )}
     </Stack>
+  );
+}
+
+// ----------------------------------------------------------------
+// Provider Config Tab
+
+interface ProviderDef {
+  provider: IntegrationProvider;
+  label: string;
+  icon: React.ComponentType<{ size?: number }>;
+  configFields: { key: string; label: string; type?: string }[];
+  description: string;
+}
+
+const PROVIDER_DEFS: ProviderDef[] = [
+  {
+    provider: 'ZATCA',
+    label: 'TRA EFD (ZATCA)',
+    icon: IconFileInvoice,
+    configFields: [
+      { key: 'vatNumber', label: 'VAT Number' },
+      { key: 'sellerName', label: 'Seller Name' },
+    ],
+    description: 'Saudi Arabia ZATCA Phase-1 B2C e-invoicing. Generates TLV QR codes for receipts.',
+  },
+  {
+    provider: 'WOOCOMMERCE',
+    label: 'WooCommerce',
+    icon: IconShoppingCart,
+    configFields: [
+      { key: 'siteUrl', label: 'Store URL' },
+      { key: 'consumerKey', label: 'Consumer Key', type: 'password' },
+      { key: 'consumerSecret', label: 'Consumer Secret', type: 'password' },
+    ],
+    description: 'Sync products, orders, and inventory with your WooCommerce store.',
+  },
+  {
+    provider: 'QUICKBOOKS',
+    label: 'QuickBooks',
+    icon: IconCalculator,
+    configFields: [
+      { key: 'companyId', label: 'Company ID' },
+      { key: 'accessToken', label: 'Access Token', type: 'password' },
+    ],
+    description: 'Push invoices, payments, and financial data to QuickBooks Online.',
+  },
+];
+
+interface InformationalProvider {
+  label: string;
+  icon: React.ComponentType<{ size?: number }>;
+  description: string;
+  settingsLink: string;
+}
+
+const INFO_PROVIDERS: InformationalProvider[] = [
+  {
+    label: 'SMS Provider',
+    icon: IconSend,
+    description: 'SMS gateway configuration (Twilio, Africa\'s Talking, etc.) for transactional alerts and campaigns.',
+    settingsLink: '/smartpos/settings/notifications',
+  },
+  {
+    label: 'WhatsApp API',
+    icon: IconDeviceMobile,
+    description: 'WhatsApp Business API for customer messaging, order confirmations, and support.',
+    settingsLink: '/smartpos/settings/notifications',
+  },
+];
+
+function ProviderConfigTab() {
+  const [configs, setConfigs] = useState<IntegrationConfig[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState<Record<string, boolean>>({});
+
+  const fetchConfigs = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await getIntegrationConfigs();
+      setConfigs(data);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to load configs');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchConfigs();
+  }, [fetchConfigs]);
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (error) {
+    return <Alert severity="error" onClose={() => setError(null)}>{error}</Alert>;
+  }
+
+  return (
+    <Stack spacing={2.5}>
+      <Alert severity="info">
+        Configure integration providers per tenant. Enabled providers will appear in applicable
+        workflows. SMS and WhatsApp are managed under Notification Settings.
+      </Alert>
+
+      {PROVIDER_DEFS.map((def) => (
+        <ProviderCard
+          key={def.provider}
+          def={def}
+          config={configs.find((c) => c.provider === def.provider)}
+          saving={saving}
+          onSaved={fetchConfigs}
+          setSaving={(provider, v) => setSaving((s) => ({ ...s, [provider]: v }))}
+        />
+      ))}
+
+      <Typography variant="subtitle1" sx={{ mt: 1 }}>
+        Additional Providers (Notification Service)
+      </Typography>
+
+      {INFO_PROVIDERS.map((info) => (
+        <Card key={info.label} variant="outlined" sx={{ p: 2 }}>
+          <Stack direction="row" alignItems="center" spacing={2}>
+            <Box sx={{ color: brand.neutral[500] }}>
+              <info.icon size={28} />
+            </Box>
+            <Box sx={{ flex: 1 }}>
+              <Typography variant="subtitle1" fontWeight={600}>{info.label}</Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                {info.description}
+              </Typography>
+            </Box>
+            <Chip label="Notification Settings" size="small" sx={{ bgcolor: brand.neutral[100], color: brand.neutral[600] }} />
+          </Stack>
+        </Card>
+      ))}
+    </Stack>
+  );
+}
+
+// ----------------------------------------------------------------
+// Single provider card
+
+function ProviderCard({
+  def,
+  config,
+  saving,
+  onSaved,
+  setSaving,
+}: {
+  def: ProviderDef;
+  config?: IntegrationConfig;
+  saving: Record<string, boolean>;
+  onSaved: () => void;
+  setSaving: (provider: string, v: boolean) => void;
+}) {
+  const isEnabled = config?.enabled ?? false;
+  const parsedConfig = (() => {
+    try { return config ? JSON.parse(config.config) : {}; }
+    catch { return {}; }
+  })();
+
+  const [formFields, setFormFields] = useState<Record<string, string>>(() => {
+    const init: Record<string, string> = {};
+    for (const f of def.configFields) {
+      init[f.key] = parsedConfig[f.key] ?? '';
+    }
+    return init;
+  });
+
+  const [localEnabled, setLocalEnabled] = useState(isEnabled);
+  const [cardError, setCardError] = useState<string | null>(null);
+  const isChanged = localEnabled !== isEnabled ||
+    def.configFields.some((f) => formFields[f.key] !== (parsedConfig[f.key] ?? ''));
+  const isBusy = saving[def.provider] ?? false;
+
+  const statusLabel = config
+    ? (isEnabled ? 'Configured' : 'Disabled')
+    : 'Not configured';
+
+  const statusColor = config
+    ? (isEnabled ? brand.success.dark : brand.warning.dark)
+    : brand.neutral[500];
+
+  const handleSave = async () => {
+    setCardError(null);
+    setSaving(def.provider, true);
+    try {
+      const configObj: Record<string, unknown> = {};
+      for (const f of def.configFields) {
+        if (formFields[f.key]) {
+          configObj[f.key] = formFields[f.key];
+        }
+      }
+      await updateProviderConfig(def.provider, {
+        enabled: localEnabled,
+        config: Object.keys(configObj).length > 0 ? configObj : undefined,
+      });
+      onSaved();
+    } catch (e) {
+      setCardError(e instanceof Error ? e.message : 'Save failed');
+    } finally {
+      setSaving(def.provider, false);
+    }
+  };
+
+  return (
+    <Card variant="outlined" sx={{ p: 2 }}>
+      <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 2 }}>
+        <Box sx={{ color: (PROVIDER_COLOURS[def.provider]?.fg) ?? brand.primary[600] }}>
+          <def.icon size={28} />
+        </Box>
+        <Box sx={{ flex: 1 }}>
+          <Typography variant="subtitle1" fontWeight={600}>{def.label}</Typography>
+          <Typography variant="body2" color="text.secondary">{def.description}</Typography>
+        </Box>
+        <Stack direction="row" alignItems="center" spacing={1.5}>
+          <Chip
+            label={config ? statusLabel : 'Not Configured'}
+            size="small"
+            sx={{ bgcolor: statusColor, color: '#fff', fontWeight: 600 }}
+          />
+          <Switch
+            checked={localEnabled}
+            onChange={(_, v) => setLocalEnabled(v)}
+          />
+        </Stack>
+      </Stack>
+
+      {cardError && <Alert severity="error" sx={{ mb: 1.5 }}>{cardError}</Alert>}
+
+      <Stack spacing={1.5} sx={{ ml: 5 }}>
+        {def.configFields.map((field) => (
+          <TextField
+            key={field.key}
+            label={field.label}
+            type={field.type ?? 'text'}
+            size="small"
+            fullWidth
+            value={formFields[field.key]}
+            onChange={(e) => setFormFields((s) => ({ ...s, [field.key]: e.target.value }))}
+            disabled={!localEnabled}
+            InputProps={
+              field.type === 'password'
+                ? { endAdornment: <InputAdornment position="end">••••</InputAdornment> }
+                : undefined
+            }
+          />
+        ))}
+      </Stack>
+
+      <Stack direction="row" justifyContent="flex-end" sx={{ mt: 2 }}>
+        <Button
+          variant="contained"
+          size="small"
+          onClick={handleSave}
+          disabled={!isChanged || isBusy}
+        >
+          {isBusy ? 'Saving…' : 'Save'}
+        </Button>
+      </Stack>
+    </Card>
   );
 }
