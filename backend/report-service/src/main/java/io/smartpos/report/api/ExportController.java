@@ -4,6 +4,7 @@ import io.smartpos.report.api.dto.ExportJobDto;
 import io.smartpos.report.application.ExportJobService;
 import io.smartpos.report.application.ExportService;
 import io.smartpos.report.domain.model.ExportJob;
+import io.smartpos.report.infrastructure.feign.DocumentFeign;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
@@ -15,6 +16,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -24,6 +26,7 @@ public class ExportController {
 
     private final ExportService    exports;
     private final ExportJobService jobService;
+    private final DocumentFeign    documentFeign;
 
     /**
      * <strong>Legacy synchronous export.</strong> Kept for small datasets and
@@ -83,6 +86,30 @@ public class ExportController {
     public ExportJobDto getJob(@PathVariable UUID id) {
         return ExportJobDto.from(jobService.get(id));
     }
+
+    // ============================================================
+    // Branded PDF via document-service
+    // ============================================================
+
+    /**
+     * Generate a branded report PDF via the document-service template engine.
+     * The document-service renders a Handlebars template (e.g. report-sales.hbs)
+     * with the supplied data, converts to PDF via Gotenberg, stores in MinIO,
+     * and returns a presigned download URL.
+     */
+    @PostMapping("/reports/{reportKey}/pdf")
+    @PreAuthorize("hasAuthority('report.sales') or hasAuthority('report.financial')")
+    public ResponseEntity<Map<String, Object>> generateReportPdf(
+            @PathVariable String reportKey,
+            @RequestBody Map<String, Object> data) {
+        var req = DocumentFeign.GenerateReportRequest.forReportKey(reportKey, data);
+        var result = documentFeign.generateReport(req);
+        return ResponseEntity.ok(result);
+    }
+
+    // ============================================================
+    // helpers
+    // ============================================================
 
     private static UUID jwtSubject(Jwt jwt) {
         if (jwt == null) return null;

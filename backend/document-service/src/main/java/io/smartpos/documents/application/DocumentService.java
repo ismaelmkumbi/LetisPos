@@ -72,7 +72,15 @@ public class DocumentService {
         Map.entry("refund-receipt", "refund-receipt.hbs"),
         Map.entry("price-tag", "price-tag.hbs"),
         Map.entry("audit-report", "audit-report.hbs"),
-        Map.entry("account-confirmation", "account-confirmation.hbs")
+        Map.entry("account-confirmation", "account-confirmation.hbs"),
+        Map.entry("report-sales", "report-sales.hbs"),
+        Map.entry("report-financial", "report-financial.hbs"),
+        Map.entry("report-customer", "report-customer.hbs"),
+        Map.entry("report-employee", "report-employee.hbs"),
+        Map.entry("report-inventory", "report-inventory.hbs"),
+        Map.entry("report-supplier", "report-supplier.hbs"),
+        Map.entry("report-tax", "report-tax.hbs"),
+        Map.entry("report-operations", "report-operations.hbs")
     );
 
     @Transactional

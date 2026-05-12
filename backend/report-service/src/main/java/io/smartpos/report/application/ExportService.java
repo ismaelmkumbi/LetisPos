@@ -9,8 +9,10 @@ import io.smartpos.report.domain.model.ExportJob;
 import io.smartpos.report.infrastructure.export.CsvExporter;
 import io.smartpos.report.infrastructure.export.PdfExporter;
 import io.smartpos.report.infrastructure.export.XlsxExporter;
+import io.smartpos.report.infrastructure.feign.DocumentFeign;
 import io.smartpos.report.infrastructure.feign.SalesFeign;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -18,6 +20,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -31,6 +34,7 @@ import java.util.UUID;
  */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ExportService {
 
     private final SalesReportService salesReports;
@@ -42,6 +46,8 @@ public class ExportService {
     private final CsvExporter csv;
     private final XlsxExporter xlsx;
     private final PdfExporter pdf;
+
+    private final DocumentFeign documentFeign;
 
     public record RenderedExport(String filename, String contentType, byte[] body) {}
 
@@ -144,6 +150,25 @@ public class ExportService {
             rows.add(List.of(r.customerId(), r.customerName() != null ? r.customerName() : "—", r.orderCount(), r.totalSpent()));
         }
         return render(fmt, "customers-summary", "Customer Summary", "From " + from + " to " + to, headers, rows);
+    }
+
+    // ---- branded PDF via document-service ----
+
+    /**
+     * Render a report as a branded PDF by delegating to the document-service
+     * template engine (Handlebars + Gotenberg). The generated PDF is stored in
+     * MinIO and a presigned URL is returned.
+     *
+     * @param templateKey the document-service template key, e.g. {@code report-sales}
+     * @param data        report data passed to the Handlebars template
+     * @return a map containing {@code presignedUrl}, {@code id}, {@code documentNumber}
+     */
+    public Map<String, Object> renderReportPdf(String templateKey, Map<String, Object> data) {
+        var req = new DocumentFeign.GenerateReportRequest(templateKey, data);
+        Map<String, Object> result = documentFeign.generateReport(req);
+        log.info("Generated branded PDF via document-service: templateKey={}, docId={}",
+                templateKey, result.get("id"));
+        return result;
     }
 
     // ---- dispatch on format ----
