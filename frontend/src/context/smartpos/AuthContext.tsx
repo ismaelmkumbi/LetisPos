@@ -7,6 +7,10 @@ import {
 } from 'src/api/smartpos/auth';
 import { bootstrapAuthSession, tokenStore } from 'src/api/smartpos/client';
 
+export const PLAN_LEVEL: Record<string, number> = {
+  FREE: 0, STARTER: 1, BUSINESS: 2, PROFESSIONAL: 3, ENTERPRISE: 4,
+};
+
 interface AuthContextValue {
   user: CurrentUser | null;
   loading: boolean;
@@ -17,6 +21,9 @@ interface AuthContextValue {
   hasPermission: (perm: string) => boolean;
   hasRole: (role: string) => boolean;
   refreshMe: () => Promise<void>;
+  hasPlan: (minPlan: string) => boolean;
+  isTrialing: () => boolean;
+  getTrialDaysLeft: () => number | null;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -99,9 +106,32 @@ export function SmartPosAuthProvider({ children }: { children: React.ReactNode }
     return !!user?.roles?.includes(role);
   }, [user]);
 
+  const hasPlan = useCallback((minPlan: string): boolean => {
+    const tenant = tenants[0];
+    if (!tenant) return false;
+    const current = PLAN_LEVEL[tenant.billingPlan] ?? 0;
+    const required = PLAN_LEVEL[minPlan] ?? 0;
+    return current >= required;
+  }, [tenants]);
+
+  const isTrialing = useCallback((): boolean => {
+    const tenant = tenants[0];
+    return tenant?.status === 'TRIAL';
+  }, [tenants]);
+
+  const getTrialDaysLeft = useCallback((): number | null => {
+    const tenant = tenants[0];
+    if (!tenant?.trialEndsAt) return null;
+    const end = new Date(tenant.trialEndsAt);
+    const now = new Date();
+    return Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+  }, [tenants]);
+
   const value = useMemo<AuthContextValue>(() => ({
     user, loading, tenants, login, logout, switchTenant, hasPermission, hasRole, refreshMe: loadMe,
-  }), [user, loading, tenants, login, logout, switchTenant, hasPermission, hasRole, loadMe]);
+    hasPlan, isTrialing, getTrialDaysLeft,
+  }), [user, loading, tenants, login, logout, switchTenant, hasPermission, hasRole, loadMe,
+    hasPlan, isTrialing, getTrialDaysLeft]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
