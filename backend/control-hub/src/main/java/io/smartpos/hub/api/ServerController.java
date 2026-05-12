@@ -119,7 +119,9 @@ public class ServerController {
             var proc = new ProcessBuilder("lsof", "-ti", ":" + port).start();
             String pidStr = new String(proc.getInputStream().readAllBytes()).trim();
             if (pidStr.isEmpty()) return ProcessStats.EMPTY;
-            long pid = Long.parseLong(pidStr);
+            // Take first PID if multiple returned
+            String firstLine = pidStr.split("\\R")[0];
+            long pid = Long.parseLong(firstLine);
             return readProcStats(pid);
         } catch (Exception e) { return ProcessStats.EMPTY; }
     }
