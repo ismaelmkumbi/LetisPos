@@ -142,9 +142,9 @@ export function buildSmartPosMenu(t: TFunction): MenuItem[] {
     // ── Purchases ───────────────────────────────────────────────────────
     { subheader: 'Purchases' },
     { id: uid(), title: t('smartpos:nav.purchases'), icon: IconShoppingCart, href: '/smartpos/purchases' },
-    { id: uid(), title: 'Goods Received', icon: IconPackage, href: '/smartpos/purchases/goods-received' },
-    { id: uid(), title: 'Supplier Returns', icon: IconArrowBackUp, href: '/smartpos/purchases/supplier-returns' },
-    { id: uid(), title: 'Supplier Payments', icon: IconCoin, href: '/smartpos/purchases/supplier-payments' },
+    { id: uid(), title: 'Goods Received', icon: IconPackage, href: '/smartpos/purchases/received' },
+    { id: uid(), title: 'Supplier Returns', icon: IconArrowBackUp, href: '/smartpos/purchases/returns' },
+    { id: uid(), title: 'Supplier Payments', icon: IconCoin, href: '/smartpos/supplier-payments' },
 
     // ── Documents ────────────────────────────────────────────────────────
     { subheader: 'Documents' },
