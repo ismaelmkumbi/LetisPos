@@ -153,6 +153,15 @@ spring:
             - name: Retry
               args: { retries: 2 }
 
+        # ── CRM service ─────────────────────────────────────────────
+        - id: crm-service
+          uri: ${CRM_URI:http://localhost:8096}
+          predicates:
+            - Path=/api/v1/crm/**
+          filters:
+            - name: Retry
+              args: { retries: 2 }
+
         # ── Branch routes (inventory-service) ───────────────────────────
         - id: inventory-service-branches
           uri: ${INVENTORY_URI:http://localhost:8084}
