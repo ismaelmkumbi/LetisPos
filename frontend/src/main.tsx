@@ -33,6 +33,13 @@ async function bootstrap() {
   }
 }
 
+// Log unhandled rejections without crashing — surfaces the real source
+if (typeof window !== 'undefined') {
+  window.addEventListener('unhandledrejection', (event) => {
+    console.error('[unhandledrejection]', event.reason);
+  });
+}
+
 bootstrap().then(() => {
   ReactDOM.createRoot(document.getElementById('root')!).render(
     <CustomizerContextProvider>
