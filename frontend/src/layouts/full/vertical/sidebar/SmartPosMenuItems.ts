@@ -211,10 +211,10 @@ export function buildSmartPosMenu(t: TFunction): MenuItem[] {
 
     // ── CRM ─────────────────────────────────────────────────────────────
     { subheader: 'CRM' },
-    { id: uid(), title: 'Leads', icon: IconUsers, ...soon },
-    { id: uid(), title: 'Opportunities', icon: IconChartBar, ...soon },
-    { id: uid(), title: 'Follow-Ups', icon: IconBell, ...soon },
-    { id: uid(), title: 'Activities', icon: IconClipboardCheck, ...soon },
+    { id: uid(), title: 'Leads', icon: IconUsers, href: '/smartpos/crm/leads' },
+    { id: uid(), title: 'Opportunities', icon: IconChartBar, href: '/smartpos/crm/opportunities' },
+    { id: uid(), title: 'Follow-Ups', icon: IconBell, href: '/smartpos/crm/follow-ups' },
+    { id: uid(), title: 'Activities', icon: IconClipboardCheck, href: '/smartpos/crm/activities' },
 
     // ── E-Commerce ──────────────────────────────────────────────────────
     { subheader: 'E-Commerce' },
@@ -236,10 +236,10 @@ export function buildSmartPosMenu(t: TFunction): MenuItem[] {
     // ── AI Assistant ────────────────────────────────────────────────────
     { subheader: 'AI Assistant' },
     { id: uid(), title: t('smartpos:nav.ai_insights'), icon: IconSparkles, href: '/smartpos/ai' },
-    { id: uid(), title: 'Demand Forecasting', icon: IconBrain, ...soon },
-    { id: uid(), title: 'Reorder Suggestions', icon: IconAlertTriangle, ...soon },
-    { id: uid(), title: 'Customer Analytics', icon: IconUsers, ...soon },
-    { id: uid(), title: 'Fraud Detection', icon: IconAlertTriangle, ...soon },
+    { id: uid(), title: 'Demand Forecasting', icon: IconBrain, href: '/smartpos/ai/forecasting' },
+    { id: uid(), title: 'Reorder Suggestions', icon: IconAlertTriangle, href: '/smartpos/ai/reorder-suggestions' },
+    { id: uid(), title: 'Customer Analytics', icon: IconUsers, href: '/smartpos/ai/customer-analytics' },
+    { id: uid(), title: 'Fraud Detection', icon: IconAlertTriangle, href: '/smartpos/ai/fraud-detection' },
     { id: uid(), title: 'Smart Recommendations', icon: IconBrain, ...soon },
 
     // ── Administration ──────────────────────────────────────────────────
@@ -258,17 +258,17 @@ export function buildSmartPosMenu(t: TFunction): MenuItem[] {
     { id: uid(), title: 'Sessions', icon: IconDeviceMobile, href: '/smartpos/admin/sessions' },
     { id: uid(), title: 'API Keys', icon: IconKey, href: '/smartpos/admin/api-keys' },
     { id: uid(), title: 'Error Logs', icon: IconBug, href: '/smartpos/admin/error-logs' },
-    { id: uid(), title: 'Backups', icon: IconDownload, ...soon },
+    { id: uid(), title: 'Backups', icon: IconDownload, href: '/smartpos/admin/backups' },
     { id: uid(), title: 'Subscription & Billing', icon: IconCreditCard, href: '/smartpos/admin/billing' },
     { id: uid(), title: t('smartpos:nav.tenants'), icon: IconBuilding, href: '/smartpos/settings/tenants' },
     { id: uid(), title: 'Notifications', icon: IconBellRinging, href: '/smartpos/settings/notifications' },
 
     // ── Support ─────────────────────────────────────────────────────────
     { subheader: 'Support' },
-    { id: uid(), title: 'Help Center', icon: IconHelp, ...soon },
-    { id: uid(), title: 'Tutorials', icon: IconHelp, ...soon },
-    { id: uid(), title: 'System Status', icon: IconChartBar, ...soon },
-    { id: uid(), title: 'Contact Support', icon: IconBell, ...soon },
+    { id: uid(), title: 'Help Center', icon: IconHelp, href: '/smartpos/support/help' },
+    { id: uid(), title: 'Tutorials', icon: IconHelp, href: '/smartpos/support/tutorials' },
+    { id: uid(), title: 'System Status', icon: IconChartBar, href: '/smartpos/support/system-status' },
+    { id: uid(), title: 'Contact Support', icon: IconBell, href: '/smartpos/support/contact' },
   ];
 }
 
