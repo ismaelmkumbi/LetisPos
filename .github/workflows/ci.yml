@@ -57,6 +57,7 @@ jobs:
       commerce_service: ${{ steps.filter.outputs.commerce_service }}
       audit_service: ${{ steps.filter.outputs.audit_service }}
       billing_service: ${{ steps.filter.outputs.billing_service }}
+      crm_service: ${{ steps.filter.outputs.crm_service }}
     steps:
       - uses: actions/checkout@v4
 
@@ -118,6 +119,9 @@ jobs:
             billing_service:
               - backend/billing-service/**
               - 'backend/pom.xml'
+            crm_service:
+              - backend/crm-service/**
+              - 'backend/pom.xml'
 
   # ────────────────────────────────────────────────────────────────────────
   #  Build & Test — Backend (matrix across all services)
@@ -151,6 +155,7 @@ jobs:
           - commerce-service
           - audit-service
           - billing-service
+          - crm-service
     steps:
       - uses: actions/checkout@v4
 
@@ -308,11 +313,12 @@ jobs:
             [ "${{ needs.changes.outputs.commerce_service }}"   = "true" ] && CHANGED="$CHANGED commerce-service"
             [ "${{ needs.changes.outputs.audit_service }}"      = "true" ] && CHANGED="$CHANGED audit-service"
             [ "${{ needs.changes.outputs.billing_service }}"    = "true" ] && CHANGED="$CHANGED billing-service"
+            [ "${{ needs.changes.outputs.crm_service }}"        = "true" ] && CHANGED="$CHANGED crm-service"
             CHANGED="${CHANGED# }"
 
             # Fallback: if change detection gave no specific service, rebuild all
             if [ -z "$CHANGED" ]; then
-              CHANGED="gateway auth-service user-service product-service inventory-service sales-service payment-service report-service notification-service hrm-service ai-service integration-service document-service commerce-service audit-service billing-service"
+              CHANGED="gateway auth-service user-service product-service inventory-service sales-service payment-service report-service notification-service hrm-service ai-service integration-service document-service commerce-service audit-service billing-service crm-service"
             fi
 
             echo "==> Services to build: $CHANGED"
