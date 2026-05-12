@@ -105,9 +105,10 @@ jobs:
               - 'backend/integration-service/**'
               - 'backend/pom.xml'
             document_service:
+              - 'backend/document-service/**'
+              - 'backend/pom.xml'
             commerce_service:
               - backend/commerce-service/**
-              - 'backend/document-service/**'
               - 'backend/pom.xml'
 
   # ────────────────────────────────────────────────────────────────────────
