@@ -2,6 +2,7 @@ package io.smartpos.commerce.api.storefront;
 
 import io.smartpos.commerce.application.NavigationService;
 import io.smartpos.commerce.application.StoreService;
+import io.smartpos.common.context.TenantContext;
 import io.smartpos.commerce.domain.model.NavigationMenu;
 import io.smartpos.commerce.domain.model.Store;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +22,7 @@ public class StorefrontNavController {
     @GetMapping("/navigation")
     public List<Map<String, Object>> getNavigation(@PathVariable String slug) {
         Store store = storeService.getBySlug(slug);
+        TenantContext.set(store.getTenantId());
         List<NavigationMenu> menus = navigationService.getAllMenus(store.getId());
         return menus.stream()
             .map(m -> Map.of(

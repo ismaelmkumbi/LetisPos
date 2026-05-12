@@ -7,7 +7,6 @@ import jakarta.persistence.Query;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
-import java.math.BigInteger;
 import java.util.List;
 import java.util.UUID;
 
@@ -20,11 +19,9 @@ public class ProductSearchRepository {
 
     @SuppressWarnings("unchecked")
     public SearchResult search(UUID storeId, String query, int page, int size) {
-        // Sanitize query for tsquery
         String sanitized = query.trim().replaceAll("[^\\w\\s]", "");
         if (sanitized.isEmpty()) return new SearchResult(List.of(), 0);
 
-        // Build tsquery with prefix matching for typo tolerance
         String[] terms = sanitized.split("\\s+");
         StringBuilder tsquery = new StringBuilder();
         for (int i = 0; i < terms.length; i++) {
@@ -32,37 +29,38 @@ public class ProductSearchRepository {
             tsquery.append(terms[i]).append(":*");
         }
 
-        // Count query
-        Query countQ = em.createNativeQuery("""
-            SELECT count(*) FROM published_products
-            WHERE store_id = :storeId
-            AND deleted_at IS NULL
-            AND search_vector @@ to_tsquery('english', :query)
-            """);
-        countQ.setParameter("storeId", storeId);
-        countQ.setParameter("query", tsquery.toString());
-        long total = ((BigInteger) countQ.getSingleResult()).longValue();
+        try {
+            Query countQ = em.createNativeQuery("""
+                SELECT count(*) FROM published_products
+                WHERE store_id = :storeId
+                AND deleted_at IS NULL
+                AND search_vector @@ to_tsquery('english', :query)
+                """);
+            countQ.setParameter("storeId", storeId);
+            countQ.setParameter("query", tsquery.toString());
+            long total = ((Number) countQ.getSingleResult()).longValue();
 
-        // Search query with ranking
-        Query searchQ = em.createNativeQuery("""
-            SELECT pp.*, ts_rank(pp.search_vector, to_tsquery('english', :query)) AS rank
-            FROM published_products pp
-            WHERE pp.store_id = :storeId
-            AND pp.deleted_at IS NULL
-            AND pp.search_vector @@ to_tsquery('english', :query)
-            ORDER BY rank DESC
-            LIMIT :limit OFFSET :offset
-            """, PublishedProduct.class);
-        searchQ.setParameter("storeId", storeId);
-        searchQ.setParameter("query", tsquery.toString());
-        searchQ.setParameter("limit", size);
-        searchQ.setParameter("offset", page * size);
+            Query searchQ = em.createNativeQuery("""
+                SELECT pp.*, ts_rank(pp.search_vector, to_tsquery('english', :query)) AS rank
+                FROM published_products pp
+                WHERE pp.store_id = :storeId
+                AND pp.deleted_at IS NULL
+                AND pp.search_vector @@ to_tsquery('english', :query)
+                ORDER BY rank DESC
+                LIMIT :limit OFFSET :offset
+                """, PublishedProduct.class);
+            searchQ.setParameter("storeId", storeId);
+            searchQ.setParameter("query", tsquery.toString());
+            searchQ.setParameter("limit", size);
+            searchQ.setParameter("offset", page * size);
 
-        List<PublishedProduct> results = searchQ.getResultList();
-        return new SearchResult(results, total);
+            List<PublishedProduct> results = searchQ.getResultList();
+            return new SearchResult(results, total);
+        } catch (Exception e) {
+            return searchSimple(storeId, query, page, size);
+        }
     }
 
-    // Fallback: simple ILIKE search for when tsquery fails
     @SuppressWarnings("unchecked")
     public SearchResult searchSimple(UUID storeId, String query, int page, int size) {
         String pattern = "%" + query.trim().replace("%", "\\%") + "%";
@@ -74,7 +72,7 @@ public class ProductSearchRepository {
             """);
         countQ.setParameter("storeId", storeId);
         countQ.setParameter("pattern", pattern);
-        long total = ((BigInteger) countQ.getSingleResult()).longValue();
+        long total = ((Number) countQ.getSingleResult()).longValue();
 
         Query searchQ = em.createNativeQuery("""
             SELECT pp.* FROM published_products pp

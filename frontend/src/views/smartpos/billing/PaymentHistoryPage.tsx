@@ -80,7 +80,6 @@ function formatDateTime(dateStr: string): string {
 }
 
 export default function PaymentHistoryPage() {
-  const [tenant, setTenant] = useState<Tenant | null>(null);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

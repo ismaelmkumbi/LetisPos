@@ -1,6 +1,7 @@
 package io.smartpos.commerce.api.storefront;
 
 import io.smartpos.commerce.application.StoreService;
+import io.smartpos.common.context.TenantContext;
 import io.smartpos.commerce.application.ThemeService;
 import io.smartpos.commerce.domain.model.Store;
 import io.smartpos.commerce.domain.model.Theme;
@@ -21,6 +22,7 @@ public class StorefrontThemeController {
     @GetMapping("/theme")
     public ResponseEntity<Map<String, Object>> getTheme(@PathVariable String slug) {
         Store store = storeService.getBySlug(slug);
+        TenantContext.set(store.getTenantId());
         Theme theme = themeService.getTheme(store.getId());
         return ResponseEntity.ok(Map.of(
             "id", theme.getId(),

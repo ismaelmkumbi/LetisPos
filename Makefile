@@ -28,6 +28,7 @@ dev-backend:  ## Start all backend services via Maven (foreground)
 	cd backend && mvn -q spring-boot:run -pl notification-service &
 	cd backend && mvn -q spring-boot:run -pl hrm-service &
 	cd backend && mvn -q spring-boot:run -pl ai-service &
+tcd backend && mvn -q spring-boot:run -pl commerce-service &
 	cd backend && mvn -q spring-boot:run -pl integration-service &
 	cd backend && mvn -q spring-boot:run -pl document-service &
 	@echo "All services starting..."
@@ -40,6 +41,7 @@ dev-frontend:  ## Start frontend dev server
 build: build-backend build-frontend  ## Build everything
 
 build-backend:  ## Compile + package all backend services
+tcd backend && mvn -DskipTests package -pl commerce-service -am
 	cd backend && mvn -q -DskipTests clean package
 
 build-frontend:  ## Build frontend for production

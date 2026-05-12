@@ -2,6 +2,7 @@ package io.smartpos.commerce.api.storefront;
 
 import io.smartpos.commerce.application.CartService;
 import io.smartpos.commerce.application.StoreService;
+import io.smartpos.common.context.TenantContext;
 import io.smartpos.commerce.domain.model.Cart;
 import io.smartpos.commerce.domain.model.CartItem;
 import io.smartpos.commerce.domain.model.Store;
@@ -45,6 +46,7 @@ public class StorefrontCartController {
         @PathVariable String slug,
         HttpServletRequest request) {
         Store store = storeService.getBySlug(slug);
+        TenantContext.set(store.getTenantId());
         Cart cart = cartService.getCart(store.getId(), getSessionId(request), getCustomerId(request));
         return ResponseEntity.ok(cartToMap(cart));
     }
@@ -56,6 +58,7 @@ public class StorefrontCartController {
         HttpServletRequest request,
         HttpServletResponse response) {
         Store store = storeService.getBySlug(slug);
+        TenantContext.set(store.getTenantId());
         String sessionId = getSessionId(request);
         Cart cart = cartService.addItem(
             store.getId(), sessionId, getCustomerId(request),
@@ -75,6 +78,7 @@ public class StorefrontCartController {
         @RequestBody Map<String, Object> body,
         HttpServletRequest request) {
         Store store = storeService.getBySlug(slug);
+        TenantContext.set(store.getTenantId());
         int qty = ((Number) body.get("quantity")).intValue();
         Cart cart = cartService.updateItemQuantity(
             store.getId(), getSessionId(request), getCustomerId(request), itemId, qty);
@@ -87,6 +91,7 @@ public class StorefrontCartController {
         @PathVariable UUID itemId,
         HttpServletRequest request) {
         Store store = storeService.getBySlug(slug);
+        TenantContext.set(store.getTenantId());
         Cart cart = cartService.removeItem(
             store.getId(), getSessionId(request), getCustomerId(request), itemId);
         return ResponseEntity.ok(cartToMap(cart));

@@ -23,16 +23,16 @@ public interface PublishedProductRepository extends JpaRepository<PublishedProdu
         WHERE pp.storeId = :storeId
         AND pp.tenantId = :tenantId
         AND (:search IS NULL OR
-             LOWER(pp.metaTitle) LIKE LOWER(CONCAT('%', :search, '%')) OR
-             LOWER(pp.metaDescription) LIKE LOWER(CONCAT('%', :search, '%')))
+             pp.metaTitle ILIKE CONCAT('%', CAST(:search AS string), '%') OR
+             pp.metaDescription ILIKE CONCAT('%', CAST(:search AS string), '%'))
         ORDER BY pp.displayOrder ASC, pp.publishedAt DESC
         """, countQuery = """
         SELECT count(pp) FROM PublishedProduct pp
         WHERE pp.storeId = :storeId
         AND pp.tenantId = :tenantId
         AND (:search IS NULL OR
-             LOWER(pp.metaTitle) LIKE LOWER(CONCAT('%', :search, '%')) OR
-             LOWER(pp.metaDescription) LIKE LOWER(CONCAT('%', :search, '%')))
+             pp.metaTitle ILIKE CONCAT('%', CAST(:search AS string), '%') OR
+             pp.metaDescription ILIKE CONCAT('%', CAST(:search AS string), '%'))
         """)
     Page<PublishedProduct> searchPublished(
         @Param("storeId") UUID storeId,

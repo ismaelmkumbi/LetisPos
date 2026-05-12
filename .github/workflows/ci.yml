@@ -54,6 +54,9 @@ jobs:
       ai_service: ${{ steps.filter.outputs.ai_service }}
       integration_service: ${{ steps.filter.outputs.integration_service }}
       document_service: ${{ steps.filter.outputs.document_service }}
+            commerce_service:
+              - backend/commerce-service/**
+      commerce_service: ${{ steps.filter.outputs.commerce_service }}
     steps:
       - uses: actions/checkout@v4
 
@@ -104,6 +107,8 @@ jobs:
               - 'backend/integration-service/**'
               - 'backend/pom.xml'
             document_service:
+            commerce_service:
+              - backend/commerce-service/**
               - 'backend/document-service/**'
               - 'backend/pom.xml'
 
@@ -290,6 +295,7 @@ jobs:
             [ "${{ needs.changes.outputs.ai_service }}"           = "true" ] && CHANGED="$CHANGED ai-service"
             [ "${{ needs.changes.outputs.integration_service }}"  = "true" ] && CHANGED="$CHANGED integration-service"
             [ "${{ needs.changes.outputs.document_service }}"  = "true" ] && CHANGED="$CHANGED document-service"
+            [ "${{ needs.changes.outputs.commerce_service }}"   = "true" ] && CHANGED="$CHANGED commerce-service"
             CHANGED="${CHANGED# }"
 
             # Fallback: if change detection gave no specific service, rebuild all

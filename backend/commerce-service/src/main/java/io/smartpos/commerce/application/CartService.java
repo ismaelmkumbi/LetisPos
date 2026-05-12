@@ -37,6 +37,7 @@ public class CartService {
         if (redisCart != null) return redisCart;
         // Create new
         Cart cart = Cart.builder()
+            .id(UUID.randomUUID())
             .tenantId(tenantId)
             .storeId(storeId)
             .sessionId(sessionId)
@@ -145,6 +146,7 @@ public class CartService {
     private Cart createCustomerCart(UUID storeId, UUID customerId) {
         UUID tenantId = TenantContext.require();
         Cart cart = Cart.builder()
+            .id(UUID.randomUUID())
             .tenantId(tenantId)
             .storeId(storeId)
             .customerId(customerId)

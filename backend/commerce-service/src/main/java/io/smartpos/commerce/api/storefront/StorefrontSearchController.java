@@ -1,6 +1,7 @@
 package io.smartpos.commerce.api.storefront;
 
 import io.smartpos.commerce.application.StoreService;
+import io.smartpos.common.context.TenantContext;
 import io.smartpos.commerce.domain.model.PublishedProduct;
 import io.smartpos.commerce.domain.model.Store;
 import io.smartpos.commerce.domain.repository.ProductSearchRepository;
@@ -30,6 +31,7 @@ public class StorefrontSearchController {
         @RequestParam(defaultValue = "20") int size) {
 
         Store store = storeService.getBySlug(slug);
+        TenantContext.set(store.getTenantId());
 
         // Try full-text search first, fall back to ILIKE
         SearchResult result;

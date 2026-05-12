@@ -2,7 +2,9 @@ package io.smartpos.commerce.domain.model;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.SQLRestriction;
+import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -42,7 +44,8 @@ public class PublishedProduct {
     @Column(name = "og_image_url", length = 1000)
     private String ogImageUrl;
 
-    @Column(name = "gallery_urls", columnDefinition = "TEXT[]")
+    @JdbcTypeCode(SqlTypes.ARRAY)
+    @Column(name = "gallery_urls", columnDefinition = "text[]")
     private List<String> galleryUrls;
 
     @Column(name = "is_featured", nullable = false)

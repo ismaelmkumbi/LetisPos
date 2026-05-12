@@ -26,7 +26,9 @@ public class StorefrontCustomerController {
     // ---- Auth helpers ----
 
     private Store resolveStore(String slug) {
-        return storeService.getBySlug(slug);
+        Store store = storeService.getBySlug(slug);
+        TenantContext.set(store.getTenantId());
+        return store;
     }
 
     /**

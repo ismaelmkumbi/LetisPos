@@ -2,9 +2,13 @@ package io.smartpos.commerce.domain.model;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.SQLRestriction;
+import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -28,11 +32,13 @@ public class ShippingZone {
     @Column(name = "name", nullable = false)
     private String name;
 
+    @JdbcTypeCode(SqlTypes.ARRAY)
     @Column(name = "countries", columnDefinition = "text[]")
-    private String countries;
+    private List<String> countries;
 
+    @JdbcTypeCode(SqlTypes.ARRAY)
     @Column(name = "regions", columnDefinition = "text[]")
-    private String regions;
+    private List<String> regions;
 
     @Column(name = "rates", columnDefinition = "jsonb")
     private String rates;
@@ -63,16 +69,9 @@ public class ShippingZone {
     }
 
     @PreUpdate
-    void onUpdate() {
-        updatedAt = Instant.now();
-    }
+    void onUpdate() { updatedAt = Instant.now(); }
 
     public void softDelete() {
         this.deletedAt = Instant.now();
-        this.isActive = false;
-    }
-
-    public boolean isDeleted() {
-        return deletedAt != null;
     }
 }

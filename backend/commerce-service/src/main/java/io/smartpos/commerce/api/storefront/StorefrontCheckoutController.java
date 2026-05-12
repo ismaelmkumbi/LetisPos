@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
+import io.smartpos.common.context.TenantContext;
 
 @RestController
 @RequestMapping("/api/v1/storefront/{slug}")

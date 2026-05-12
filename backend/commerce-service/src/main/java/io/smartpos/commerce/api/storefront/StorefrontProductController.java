@@ -2,6 +2,7 @@ package io.smartpos.commerce.api.storefront;
 
 import io.smartpos.commerce.application.ProductPublishingService;
 import io.smartpos.commerce.application.StoreService;
+import io.smartpos.common.context.TenantContext;
 import io.smartpos.commerce.domain.model.PublishedProduct;
 import io.smartpos.commerce.domain.model.Store;
 import io.smartpos.commerce.infrastructure.client.ProductServiceClient;
@@ -31,6 +32,7 @@ public class StorefrontProductController {
         @RequestParam(required = false) UUID categoryId,
         Pageable pageable) {
         Store store = storeService.getBySlug(slug);
+        TenantContext.set(store.getTenantId());
         Page<PublishedProduct> published = publishingService.listPublished(
             store.getId(), search, pageable);
         // For MVP, return published product metadata. Full composite response
@@ -53,6 +55,7 @@ public class StorefrontProductController {
     @GetMapping("/products/featured")
     public List<Map<String, Object>> listFeatured(@PathVariable String slug) {
         Store store = storeService.getBySlug(slug);
+        TenantContext.set(store.getTenantId());
         Page<PublishedProduct> featured = publishingService.listFeatured(
             store.getId(), Pageable.ofSize(20));
         return featured.getContent().stream()
@@ -72,6 +75,7 @@ public class StorefrontProductController {
         @PathVariable String slug,
         @PathVariable String idOrSlug) {
         Store store = storeService.getBySlug(slug);
+        TenantContext.set(store.getTenantId());
         PublishedProduct pp;
         try {
             UUID productId = UUID.fromString(idOrSlug);
