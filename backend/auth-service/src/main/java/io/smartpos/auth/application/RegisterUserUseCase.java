@@ -10,6 +10,7 @@ import io.smartpos.auth.domain.model.User;
 import io.smartpos.auth.domain.model.UserStatus;
 import io.smartpos.auth.domain.repository.OutboxRepository;
 import io.smartpos.auth.domain.repository.UserRepository;
+import io.smartpos.auth.infrastructure.feign.BillingClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -19,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.http.HttpStatus;
 
+import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
 
@@ -32,6 +34,7 @@ public class RegisterUserUseCase {
     private final PasswordEncoder passwordEncoder;
     private final ObjectMapper objectMapper;
     private final TenantService tenantService;
+    private final BillingClient billingClient;
 
     @Transactional
     public UUID register(RegisterRequest req) {
@@ -48,6 +51,21 @@ public class RegisterUserUseCase {
                     : null;
             tenant = tenantService.create(req.tenantName(), req.tenantSlug(), plan);
             tenantId = tenant.getId();
+
+            // Create subscription for the new tenant's billing plan
+            try {
+                Instant now = Instant.now();
+                billingClient.createSubscription(Map.of(
+                        "tenantId", tenant.getId().toString(),
+                        "planCode", tenant.getBillingPlan().name().toLowerCase(),
+                        "status", "TRIAL",
+                        "billingCycle", "MONTHLY",
+                        "currentPeriodStart", now.toString(),
+                        "currentPeriodEnd", now.plusSeconds(30 * 86400).toString()
+                ));
+            } catch (Exception e) {
+                log.warn("Failed to create subscription for tenant {}: {}", tenant.getId(), e.getMessage());
+            }
         }
 
         // Enforce plan maxUsers limit
