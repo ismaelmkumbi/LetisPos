@@ -97,7 +97,7 @@ const Landingpage: React.FC = () => {
             </Box>
             <Box
               component="a"
-              href="/auth/register"
+              href="/auth/register?plan=starter"
               sx={{
                 minHeight: 44,
                 borderRadius: '12px',

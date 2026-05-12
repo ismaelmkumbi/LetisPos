@@ -109,7 +109,7 @@ export function buildSmartPosMenu(t: TFunction): MenuItem[] {
       chip: 'LIVE', chipColor: 'secondary',
     },
     { id: uid(), title: t('smartpos:nav.sales'), icon: IconReceipt, href: '/smartpos/sales' },
-    { id: uid(), title: t('smartpos:nav.quotations'), icon: IconFileInvoice, href: '/smartpos/quotations' },
+    { id: uid(), title: t('smartpos:nav.quotations'), icon: IconFileInvoice, href: '/smartpos/quotations', minPlan: 'BUSINESS' },
     { id: uid(), title: t('smartpos:nav.returns'), icon: IconArrowBackUp, href: '/smartpos/returns' },
     { id: uid(), title: 'Suspended Sales', icon: IconClock, href: '/smartpos/sales/suspended' },
     { id: uid(), title: t('smartpos:nav.recurring_invoices'), icon: IconRepeat, href: '/smartpos/recurring-invoices' },
@@ -150,7 +150,7 @@ export function buildSmartPosMenu(t: TFunction): MenuItem[] {
 
     // ── Documents ────────────────────────────────────────────────────────
     { subheader: 'Documents' },
-    { id: uid(), title: 'Document Search', icon: IconSearch, href: '/smartpos/documents/search' },
+    { id: uid(), title: 'Document Search', icon: IconSearch, href: '/smartpos/documents/search', minPlan: 'BUSINESS' },
 
     // ── Customers ───────────────────────────────────────────────────────
     { subheader: 'Customers' },
@@ -257,8 +257,8 @@ export function buildSmartPosMenu(t: TFunction): MenuItem[] {
     { id: uid(), title: t('smartpos:nav.languages_admin'), icon: IconLanguage, href: '/smartpos/settings/i18n' },
     { id: uid(), title: t('smartpos:nav.localization'), icon: IconWorld, href: '/smartpos/settings/locale' },
     { id: uid(), title: 'Audit Logs', icon: IconHistory, href: '/smartpos/admin/audit-logs', minPlan: 'PROFESSIONAL' },
-    { id: uid(), title: 'Data Retention', icon: IconDatabase, href: '/smartpos/admin/data-retention' },
-    { id: uid(), title: 'Sessions', icon: IconDeviceMobile, href: '/smartpos/admin/sessions' },
+    { id: uid(), title: 'Data Retention', icon: IconDatabase, href: '/smartpos/admin/data-retention', minPlan: 'PROFESSIONAL' },
+    { id: uid(), title: 'Sessions', icon: IconDeviceMobile, href: '/smartpos/admin/sessions', minPlan: 'PROFESSIONAL' },
     { id: uid(), title: 'API Keys', icon: IconKey, href: '/smartpos/admin/api-keys', minPlan: 'PROFESSIONAL' },
     { id: uid(), title: 'Error Logs', icon: IconBug, href: '/smartpos/admin/error-logs' },
     { id: uid(), title: 'Backups', icon: IconDownload, href: '/smartpos/admin/backups' },

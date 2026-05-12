@@ -132,7 +132,7 @@ const AuthRegister: React.FC<Props> = ({ title, subtitle, subtext }) => {
         lastName: lastName.trim(),
         tenantName: tenantName.trim(),
         tenantSlug: tenantSlug.trim() || undefined,
-        billingPlan: planParam || undefined,
+        billingPlan: planParam?.toUpperCase() || 'STARTER',
       });
       navigate('/auth/login', { state: { registered: true } });
       // Pre-seed default data in the background
