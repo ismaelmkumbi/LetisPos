@@ -25,8 +25,10 @@ export const getServices = (name: string) =>
   hubApi.get<ServiceInfo[]>(`/api/v1/servers/${name}/services`).then(r => r.data);
 export const serviceAction = (server: string, svc: string, action: string) =>
   hubApi.post(`/api/v1/servers/${server}/services/${encodeURIComponent(svc)}/${action}`);
-export const getLogs = (server: string, svc: string, tail = 100, filter?: string) =>
-  hubApi.get<string>(`/api/v1/servers/${server}/logs/${svc}`, { params: { tail, filter } }).then(r => r.data);
+export const getLogs = (server: string, svc: string, tail = 100, filter?: string, grep?: boolean) =>
+  hubApi.get<string>(`/api/v1/servers/${server}/logs/${svc}`, { params: { tail, filter, grep } }).then(r => r.data);
+export const clearLogs = (server: string, svc: string) =>
+  hubApi.delete(`/api/v1/servers/${server}/logs/${svc}`).then(r => r.data);
 
 export interface BackendService {
   name: string; category: string; port: number; status: 'UP' | 'DOWN'; description: string;

@@ -162,7 +162,7 @@ export default function LogViewer({ open, server, service, grep, onClose }: Prop
             sx={{ fontWeight: 600, borderRadius: '10px', textTransform: 'none', color: brand.warning.main, borderColor: `${brand.warning.main}30` }} variant="outlined">
             Clear Service
           </Button>
-          <Button onClick={() => { if (confirm('DELETE ALL journald logs from server? This cannot be undone.')) { clearLogs(server).then(() => setEntries([])).catch(() => {}); } }}
+          <Button onClick={() => { if (confirm('DELETE ALL journald logs from server? This cannot be undone.')) { clearLogs(server, service).then(() => setEntries([])).catch(() => {}); } }}
             startIcon={<DeleteForever fontSize="small" />} size="small"
             sx={{ fontWeight: 600, borderRadius: '10px', textTransform: 'none', color: brand.error.main, borderColor: `${brand.error.main}30` }} variant="outlined">
             Clear All Logs
