@@ -4,6 +4,7 @@ import React, { lazy } from 'react';
 import { createBrowserRouter, Navigate } from 'react-router';
 import Loadable from '../layouts/full/shared/loadable/Loadable';
 import { RequireAuth } from 'src/routes/smartpos/RequireAuth';
+import { commerceAdminRoutes, storefrontRoutes } from './smartpos/CommerceRoutes';
 
 import { PosLayoutProvider } from 'src/context/smartpos/PosLayoutContext';
 /* ***Layouts**** */
@@ -666,6 +667,8 @@ const Router = [
       { path: 'admin/error-logs', element: <SmartPosErrorLogs /> },
       { path: 'admin/data-retention', element: <SmartPosDataRetention /> },
       { path: 'admin/backups', element: <SmartPosBackups /> },
+      // Commerce admin
+      commerceAdminRoutes,
       // Marketing
       { path: 'marketing/promotions', element: <SmartPosPromotions /> },
       { path: 'marketing/coupons', element: <SmartPosCoupons /> },
@@ -809,6 +812,8 @@ const Router = [
       { path: '/capture/:sessionId', element: <CameraPage /> },
       // Customer-display screen — open in second monitor; no chrome.
       { path: '/smartpos/pos/display/:id', element: <SmartPosCustomerDisplay /> },
+      // Storefront — public commerce storefront
+      storefrontRoutes,
       { path: '/landingpage', element: <Landingpage /> },
       { path: '/frontend-pages/homepage', element: <Homepage /> },
       { path: '/frontend-pages/about', element: <About /> },
