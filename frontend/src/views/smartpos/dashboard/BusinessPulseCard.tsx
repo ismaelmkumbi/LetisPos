@@ -1,4 +1,4 @@
-import { Box, Card, CardContent, Stack, Typography } from '@mui/material';
+import { Box, Card, CardContent, Chip, Stack, Typography } from '@mui/material';
 import { IconArrowDown, IconArrowUp, IconWalletOff } from '@tabler/icons-react';
 import Chart from 'react-apexcharts';
 import { useContext } from 'react';
@@ -8,17 +8,20 @@ import { formatMoney } from 'src/utils/smartpos/currency';
 import { cardSx, titleColor, PERIOD_LABELS, sparkOptions } from './utils';
 import EmptyPanel from './EmptyPanel';
 import type { Dashboard, Period } from 'src/api/smartpos/reports';
+import type { Delta } from './types';
 
 interface BusinessPulseCardProps {
   data: Dashboard | null;
   salesSeries: number[];
   period: Period;
+  delta?: Delta;
 }
 
 export default function BusinessPulseCard({
   data,
   salesSeries,
   period,
+  delta,
 }: BusinessPulseCardProps) {
   const { activeMode: _am } = useContext(CustomizerContext);
   const isDark = _am === 'dark';
@@ -49,16 +52,35 @@ export default function BusinessPulseCard({
                 ? `You are losing money ${periodLabel}`
                 : `Your business is profitable ${periodLabel}`}
             </Typography>
-            <Typography
-              sx={{
-                color: loss < 0 ? brand.error.main : brand.primary[600],
-                fontSize: 26,
-                fontWeight: 900,
-                mt: 1.25,
-              }}
-            >
-              {loss < 0 ? `-${formatMoney(Math.abs(loss))}` : formatMoney(data?.netProfit ?? 0)}
-            </Typography>
+            <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 1.25 }}>
+              <Typography
+                sx={{
+                  color: loss < 0 ? brand.error.main : brand.primary[600],
+                  fontSize: 26,
+                  fontWeight: 900,
+                }}
+              >
+                {loss < 0 ? `-${formatMoney(Math.abs(loss))}` : formatMoney(data?.netProfit ?? 0)}
+              </Typography>
+              {delta && (
+                <Chip
+                  size="small"
+                  icon={delta.positive ? <IconArrowUp size={12} /> : <IconArrowDown size={12} />}
+                  label={`${delta.positive ? '+' : '-'}${delta.value.toFixed(1)}%`}
+                  sx={{
+                    height: 22,
+                    fontSize: 11,
+                    fontWeight: 800,
+                    bgcolor: delta.positive ? '#ECFDF5' : '#FEF2F2',
+                    color: delta.positive ? brand.primary[600] : brand.error.main,
+                    '& .MuiChip-icon': {
+                      color: delta.positive ? brand.primary[600] : brand.error.main,
+                      marginLeft: '4px',
+                    },
+                  }}
+                />
+              )}
+            </Stack>
           </Box>
           <Box
             sx={{

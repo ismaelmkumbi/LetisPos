@@ -2,7 +2,8 @@ import { Box, Card, CardContent, Chip, IconButton, Stack, Typography } from '@mu
 import { IconDotsVertical } from '@tabler/icons-react';
 import Chart from 'react-apexcharts';
 import type { ApexOptions } from 'apexcharts';
-import { useMemo } from 'react';
+import { useMemo, useCallback } from 'react';
+import { useNavigate } from 'react-router';
 import { brand } from 'src/theme/smartpos/brand';
 import { formatMoney } from 'src/utils/smartpos/currency';
 import { cardSx, titleColor, PERIOD_LABELS, chartFont, moneyShort, muted } from './utils';
@@ -14,9 +15,10 @@ interface RevenueChartProps {
   period: Period;
   isDark: boolean;
   data: Dashboard | null;
+  previousSalesSeries?: number[];
 }
 
-function Legend({ color, label }: { color: string; label: string }) {
+function SolidLegend({ color, label }: { color: string; label: string }) {
   return (
     <Stack direction="row" spacing={0.75} alignItems="center">
       <Box sx={{ width: 9, height: 9, borderRadius: '50%', bgcolor: color }} />
@@ -25,7 +27,38 @@ function Legend({ color, label }: { color: string; label: string }) {
   );
 }
 
-export default function RevenueChart({ salesSeries, period, isDark, data }: RevenueChartProps) {
+function DashedLegend({ color, label }: { color: string; label: string }) {
+  return (
+    <Stack direction="row" spacing={0.75} alignItems="center">
+      <Box
+        sx={{
+          width: 14,
+          height: 0,
+          borderTop: `2px dashed ${color}`,
+          mt: '-2px',
+        }}
+      />
+      <Typography sx={{ color: brand.neutral[500], fontSize: 12 }}>{label}</Typography>
+    </Stack>
+  );
+}
+
+export default function RevenueChart({
+  salesSeries,
+  period,
+  isDark,
+  data,
+  previousSalesSeries,
+}: RevenueChartProps) {
+  const navigate = useNavigate();
+
+  const handleDataPointSelection = useCallback(
+    () => {
+      navigate('/smartpos/reports/sales');
+    },
+    [navigate],
+  );
+
   const businessOptions: ApexOptions = useMemo(
     () => ({
       chart: {
@@ -33,16 +66,29 @@ export default function RevenueChart({ salesSeries, period, isDark, data }: Reve
         toolbar: { show: false },
         fontFamily: chartFont,
         zoom: { enabled: false },
+        events: {
+          dataPointSelection: handleDataPointSelection,
+        },
       },
-      colors: [brand.primary[600]],
-      stroke: { curve: 'smooth', width: 2.6 },
+      colors: previousSalesSeries?.length
+        ? [brand.primary[600], brand.neutral[400]]
+        : [brand.primary[600]],
+      stroke: {
+        curve: 'smooth',
+        width: previousSalesSeries?.length ? [2.6, 2] : 2.6,
+        dashArray: previousSalesSeries?.length ? [0, 5] : [0],
+      },
       dataLabels: { enabled: false },
       grid: {
         borderColor: isDark ? brand.neutral[700] : brand.neutral[200],
         strokeDashArray: 0,
         padding: { left: 8, right: 12 },
       },
-      markers: { size: 4, hover: { size: 6 }, strokeWidth: 3 },
+      markers: {
+        size: previousSalesSeries?.length ? [4, 0] : 4,
+        hover: { size: 6 },
+        strokeWidth: 3,
+      },
       xaxis: {
         categories: data?.salesSeries?.map((row) => row.date) ?? [],
         labels: { style: { colors: muted(isDark), fontSize: '11px' } },
@@ -50,18 +96,24 @@ export default function RevenueChart({ salesSeries, period, isDark, data }: Reve
         axisTicks: { show: false },
       },
       yaxis: {
-        labels: { formatter: (v) => moneyShort(v), style: { colors: muted(isDark), fontSize: '11px' } },
+        labels: {
+          formatter: (v) => moneyShort(v),
+          style: { colors: muted(isDark), fontSize: '11px' },
+        },
       },
-      legend: {
-        position: 'top',
-        horizontalAlign: 'left',
-        fontSize: '12px',
-        markers: { size: 6, strokeWidth: 0 },
-      },
+      legend: { show: false },
       tooltip: { y: { formatter: (v) => formatMoney(v) } },
     }),
-    [data, isDark],
+    [data, isDark, previousSalesSeries, handleDataPointSelection],
   );
+
+  const series = useMemo(() => {
+    const current = { name: 'Revenue', data: salesSeries };
+    if (previousSalesSeries?.length) {
+      return [current, { name: 'Previous period', data: previousSalesSeries }];
+    }
+    return [current];
+  }, [salesSeries, previousSalesSeries]);
 
   return (
     <Card elevation={0} sx={{ ...cardSx(isDark), height: '100%' }}>
@@ -77,7 +129,10 @@ export default function RevenueChart({ salesSeries, period, isDark, data }: Reve
               Business Overview
             </Typography>
             <Stack direction="row" spacing={2.5} sx={{ mt: 1 }}>
-              <Legend color={brand.primary[600]} label="Revenue" />
+              <SolidLegend color={brand.primary[600]} label="Revenue" />
+              {previousSalesSeries?.length ? (
+                <DashedLegend color={brand.neutral[400]} label="Previous period" />
+              ) : null}
             </Stack>
           </Box>
           <Stack direction="row" spacing={0.5} alignItems="center">
@@ -98,7 +153,7 @@ export default function RevenueChart({ salesSeries, period, isDark, data }: Reve
         {salesSeries.length ? (
           <Chart
             options={businessOptions}
-            series={[{ name: 'Revenue', data: salesSeries }]}
+            series={series}
             type="line"
             height={240}
           />

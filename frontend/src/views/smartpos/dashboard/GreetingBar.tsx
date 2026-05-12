@@ -1,9 +1,19 @@
-import { Box, Button, Stack, TextField, Typography, MenuItem } from '@mui/material';
-import { IconCalendar } from '@tabler/icons-react';
+import { Box, Button, IconButton, Stack, TextField, Typography, MenuItem } from '@mui/material';
+import { IconCalendar, IconRefresh } from '@tabler/icons-react';
 import { useAuth } from 'src/context/smartpos/AuthContext';
 import { brand } from 'src/theme/smartpos/brand';
 import { greeting, PERIODS, PERIOD_LABELS } from './utils';
 import type { GreetingBarProps } from './types';
+
+function timeAgo(ts: number): string {
+  const seconds = Math.floor((Date.now() - ts) / 1000);
+  if (seconds < 5) return 'just now';
+  if (seconds < 60) return `${seconds}s ago`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  return `${hours}h ago`;
+}
 
 export default function DashboardGreetingBar({
   period,
@@ -13,6 +23,8 @@ export default function DashboardGreetingBar({
   isDark,
   onPeriodChange,
   onWarehouseChange,
+  lastUpdated,
+  onRefresh,
 }: GreetingBarProps) {
   const { user } = useAuth();
   const { salutation, wave, name } = greeting(user?.firstName);
@@ -70,9 +82,21 @@ export default function DashboardGreetingBar({
             {wave}
           </Box>
         </Stack>
-        <Typography sx={{ color: brand.neutral[500], fontSize: 13, mt: 0.3 }}>
-          Here's what's happening with your business today.
-        </Typography>
+        <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mt: 0.3 }}>
+          <Typography sx={{ color: brand.neutral[500], fontSize: 13 }}>
+            Here's what's happening with your business today.
+          </Typography>
+          {lastUpdated && (
+            <Typography sx={{ color: brand.neutral[400], fontSize: 11 }}>
+              Updated {timeAgo(lastUpdated)}
+            </Typography>
+          )}
+          {onRefresh && (
+            <IconButton size="small" onClick={onRefresh} sx={{ p: 0.25 }}>
+              <IconRefresh size={14} color={brand.neutral[400]} />
+            </IconButton>
+          )}
+        </Stack>
       </Box>
 
       <Box sx={{ flex: 1 }} />

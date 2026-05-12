@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, useContext } from 'react';
+import { useEffect, useMemo, useRef, useState, useContext, useCallback } from 'react';
 import { Alert, Box, Grid, LinearProgress } from '@mui/material';
 import { useSearchParams } from 'react-router';
 
@@ -16,6 +16,7 @@ import { useAuth } from 'src/context/smartpos/AuthContext';
 import { useOnboarding } from 'src/context/smartpos/OnboardingContext';
 import { CustomizerContext } from 'src/context/CustomizerContext';
 import type { UUID } from 'src/api/smartpos/types';
+import { usePolling } from 'src/hooks/usePolling';
 import OnboardingBanner from './OnboardingBanner';
 import CelebrationModal from 'src/views/smartpos/onboarding/CelebrationModal';
 
@@ -29,6 +30,7 @@ import RecentTransactions from './RecentTransactions';
 import FinancialHealth from './FinancialHealth';
 import OperationsOverview from './OperationsOverview';
 import DashboardSideRail from './SideRail';
+import GoalProgress from './GoalProgress';
 
 import {
   seriesOrFallback,
@@ -36,6 +38,9 @@ import {
   formatDateRange,
   periodRange,
   PERIODS,
+  previousPeriod,
+  computeDelta,
+  profitMargin,
 } from './utils';
 
 export default function DashboardPage() {
@@ -46,6 +51,7 @@ export default function DashboardPage() {
   const [showCelebration, setShowCelebration] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const [data, setData] = useState<Dashboard | null>(null);
+  const [previousData, setPreviousData] = useState<Dashboard | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -56,6 +62,7 @@ export default function DashboardPage() {
   const [recentSales, setRecentSales] = useState<Sale[]>([]);
   const [expiringBatchesCount, setExpiringBatchesCount] = useState(0);
   const [expiringUnitsAtRisk, setExpiringUnitsAtRisk] = useState(0);
+  const [lastUpdated, setLastUpdated] = useState<number | null>(null);
   const loadedRef = useRef(false);
 
   useEffect(() => {
@@ -89,80 +96,227 @@ export default function DashboardPage() {
     setSearchParams(next, { replace: true });
   };
 
-  useEffect(() => {
-    let cancelled = false;
-    if (loadedRef.current) {
-      setRefreshing(true);
-    } else {
+  const fetchDashboardData = useCallback(async () => {
+    if (!user?.tenantId) return;
+
+    const isInitialLoad = !loadedRef.current;
+    if (isInitialLoad) {
       setLoading(true);
+    } else {
+      setRefreshing(true);
     }
     setError(null);
     setSectionError(null);
     setPaymentMixUnavailable(false);
+
     const range = periodRange(period);
-    Promise.allSettled([
-      getDashboard({ period, warehouseId: warehouseId || undefined }),
-      getPaymentMethodMix(range),
-      listSales({
-        ...range,
-        warehouseId: warehouseId || undefined,
-        status: 'CONFIRMED',
-        page: 0,
-        size: 5,
-        sort: 'date,desc',
-      }),
-      getExpiringBatches({ withinDays: 30 }),
-    ])
-      .then(([dashboardResult, paymentMixResult, salesResult, expiringResult]) => {
-        if (cancelled) return;
-        if (dashboardResult.status === 'rejected') {
-          throw dashboardResult.reason;
-        }
+    const prev = previousPeriod(period);
 
-        setData(dashboardResult.value);
-        loadedRef.current = true;
-        setPaymentMix(paymentMixResult.status === 'fulfilled' ? paymentMixResult.value : []);
-        setPaymentMixUnavailable(paymentMixResult.status === 'rejected');
-        setRecentSales(salesResult.status === 'fulfilled' ? salesResult.value.content : []);
+    try {
+      const results = await Promise.allSettled([
+        getDashboard({ period, warehouseId: warehouseId || undefined }),
+        prev
+          ? getDashboard({ period: prev, warehouseId: warehouseId || undefined })
+          : Promise.resolve(null),
+        getPaymentMethodMix(range),
+        listSales({
+          ...range,
+          warehouseId: warehouseId || undefined,
+          status: 'CONFIRMED',
+          page: 0,
+          size: 5,
+          sort: 'date,desc',
+        }),
+        getExpiringBatches({ withinDays: 30 }),
+      ]);
 
-        if (expiringResult.status === 'fulfilled') {
-          setExpiringBatchesCount(expiringResult.value.length);
-          setExpiringUnitsAtRisk(expiringResult.value.reduce((sum, b) => sum + b.onHand, 0));
-        } else {
-          setExpiringBatchesCount(0);
-          setExpiringUnitsAtRisk(0);
-        }
+      if (results[0].status === 'rejected') {
+        throw results[0].reason;
+      }
 
-        const failedSections = [salesResult.status === 'rejected' ? 'recent sales' : null].filter(
-          Boolean,
+      setData(results[0].value);
+      setPreviousData(
+        results[1].status === 'fulfilled' ? results[1].value : null,
+      );
+      setPaymentMix(
+        results[2].status === 'fulfilled' ? results[2].value : [],
+      );
+      setPaymentMixUnavailable(results[2].status === 'rejected');
+      setRecentSales(
+        results[3].status === 'fulfilled' ? results[3].value.content : [],
+      );
+
+      if (results[4].status === 'fulfilled') {
+        setExpiringBatchesCount(results[4].value.length);
+        setExpiringUnitsAtRisk(
+          results[4].value.reduce((sum, b) => sum + b.onHand, 0),
         );
-        setSectionError(
-          failedSections.length
-            ? `Live ${failedSections.join(' and ')} could not be loaded.`
-            : null,
-        );
+      } else {
+        setExpiringBatchesCount(0);
+        setExpiringUnitsAtRisk(0);
+      }
+
+      const failedSections = [
+        results[3].status === 'rejected' ? 'recent sales' : null,
+      ].filter(Boolean);
+      setSectionError(
+        failedSections.length
+          ? `Live ${failedSections.join(' and ')} could not be loaded.`
+          : null,
+      );
+
+      loadedRef.current = true;
+      setLastUpdated(Date.now());
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load dashboard');
+      if (!loadedRef.current) {
         setLoading(false);
-        setRefreshing(false);
-      })
-      .catch((err) => {
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : 'Failed to load dashboard');
-          setLoading(false);
-          setRefreshing(false);
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
+      }
+    } finally {
+      if (isInitialLoad) {
+        setLoading(false);
+      }
+      setRefreshing(false);
+    }
   }, [period, warehouseId, user?.tenantId]);
 
+  // Initial fetch + re-fetch on filter change
+  useEffect(() => {
+    fetchDashboardData();
+  }, [fetchDashboardData]);
+
+  // Auto-refresh every 60 seconds
+  usePolling(fetchDashboardData, 60000);
+
+  const handleManualRefresh = useCallback(() => {
+    fetchDashboardData();
+  }, [fetchDashboardData]);
+
   const salesSeries = useMemo(() => seriesOrFallback(data), [data]);
+  const previousSalesSeries = useMemo(
+    () => seriesOrFallback(previousData),
+    [previousData],
+  );
   const revenueTrend = useMemo(() => trend(salesSeries), [salesSeries]);
-  const orderSeries = useMemo(() => data?.salesSeries?.map((row) => row.count) ?? [], [data]);
-  const dateRangeLabel = useMemo(() => formatDateRange(data?.from, data?.to), [data]);
+  const orderSeries = useMemo(
+    () => data?.salesSeries?.map((row) => row.count) ?? [],
+    [data],
+  );
+  const dateRangeLabel = useMemo(
+    () => formatDateRange(data?.from, data?.to),
+    [data],
+  );
   const paymentTotal = useMemo(
     () => paymentMix.reduce((sum, row) => sum + row.total, 0),
     [paymentMix],
+  );
+
+  // --- Deltas ---
+  const cashDelta = useMemo(
+    () =>
+      computeDelta(
+        data?.payments.totalIn ?? 0,
+        previousData?.payments.totalIn ?? 0,
+      ),
+    [data, previousData],
+  );
+  const salesDelta = useMemo(
+    () =>
+      computeDelta(
+        data?.sales.net ?? 0,
+        previousData?.sales.net ?? 0,
+      ),
+    [data, previousData],
+  );
+  const ordersDelta = useMemo(
+    () =>
+      computeDelta(
+        data?.sales.count ?? 0,
+        previousData?.sales.count ?? 0,
+      ),
+    [data, previousData],
+  );
+  const purchasesKpiDelta = useMemo(
+    () =>
+      computeDelta(
+        data?.purchases.gross ?? 0,
+        previousData?.purchases.gross ?? 0,
+      ),
+    [data, previousData],
+  );
+  const profitDelta = useMemo(
+    () =>
+      computeDelta(
+        data?.netProfit ?? 0,
+        previousData?.netProfit ?? 0,
+      ),
+    [data, previousData],
+  );
+  // FinancialHealth deltas
+  const expensesDelta = useMemo(
+    () =>
+      computeDelta(
+        data?.expenses.total ?? 0,
+        previousData?.expenses.total ?? 0,
+      ),
+    [data, previousData],
+  );
+  const profitMarginDelta = useMemo(
+    () =>
+      computeDelta(
+        profitMargin(data),
+        profitMargin(previousData),
+      ),
+    [data, previousData],
+  );
+  const salesDueDelta = useMemo(
+    () =>
+      computeDelta(
+        data?.sales.due ?? 0,
+        previousData?.sales.due ?? 0,
+      ),
+    [data, previousData],
+  );
+  const financialPurchasesDelta = useMemo(
+    () =>
+      computeDelta(
+        data?.purchases.gross ?? 0,
+        previousData?.purchases.gross ?? 0,
+      ),
+    [data, previousData],
+  );
+  // OperationsOverview deltas
+  const inventoryValueDelta = useMemo(
+    () =>
+      computeDelta(
+        data?.inventory.totalOnHand ?? 0,
+        previousData?.inventory.totalOnHand ?? 0,
+      ),
+    [data, previousData],
+  );
+  const stockAtRiskDelta = useMemo(
+    () =>
+      computeDelta(
+        data?.inventory.lowStockLines ?? 0,
+        previousData?.inventory.lowStockLines ?? 0,
+      ),
+    [data, previousData],
+  );
+  const totalSkusDelta = useMemo(
+    () =>
+      computeDelta(
+        data?.inventory.distinctProducts ?? 0,
+        previousData?.inventory.distinctProducts ?? 0,
+      ),
+    [data, previousData],
+  );
+  const stockMovementDelta = useMemo(
+    () =>
+      computeDelta(
+        data?.inventory.totalAvailable ?? 0,
+        previousData?.inventory.totalAvailable ?? 0,
+      ),
+    [data, previousData],
   );
 
   return (
@@ -175,6 +329,8 @@ export default function DashboardPage() {
         isDark={isDark}
         onPeriodChange={(p) => setFilter('period', p)}
         onWarehouseChange={(id) => setFilter('warehouseId', id)}
+        lastUpdated={lastUpdated}
+        onRefresh={handleManualRefresh}
       />
 
       <OnboardingBanner />
@@ -190,7 +346,9 @@ export default function DashboardPage() {
         </Alert>
       )}
 
-      {refreshing && <LinearProgress sx={{ mb: 2, borderRadius: '4px', height: 3 }} />}
+      {refreshing && (
+        <LinearProgress sx={{ mb: 2, borderRadius: '4px', height: 3 }} />
+      )}
 
       {loading && !data ? (
         <DashboardSkeleton />
@@ -213,16 +371,35 @@ export default function DashboardPage() {
                 <Grid
                   container
                   spacing={1.5}
-                  sx={{ flexWrap: { xs: 'nowrap', lg: 'wrap' }, mx: 0, width: { xs: 'max-content', lg: '100%' } }}
+                  sx={{
+                    flexWrap: { xs: 'nowrap', lg: 'wrap' },
+                    mx: 0,
+                    width: { xs: 'max-content', lg: '100%' },
+                  }}
                 >
-                  <Grid size={{ xs: 12, lg: 4 }} sx={{ minWidth: { xs: 280, lg: 'auto' }, scrollSnapAlign: 'start' }}>
-                    <BusinessPulseCard data={data} salesSeries={salesSeries} period={period} />
+                  <Grid
+                    size={{ xs: 12, lg: 4 }}
+                    sx={{
+                      minWidth: { xs: 280, lg: 'auto' },
+                      scrollSnapAlign: 'start',
+                    }}
+                  >
+                    <BusinessPulseCard
+                      data={data}
+                      salesSeries={salesSeries}
+                      period={period}
+                      delta={profitDelta}
+                    />
                   </Grid>
                   <KpiGrid
                     data={data}
                     salesSeries={salesSeries}
                     revenueTrend={revenueTrend}
                     orderSeries={orderSeries}
+                    cashDelta={cashDelta}
+                    salesDelta={salesDelta}
+                    ordersDelta={ordersDelta}
+                    purchasesDelta={purchasesKpiDelta}
                   />
                 </Grid>
               </Box>
@@ -234,6 +411,9 @@ export default function DashboardPage() {
                     period={period}
                     isDark={isDark}
                     data={data}
+                    previousSalesSeries={
+                      previousSalesSeries.length ? previousSalesSeries : undefined
+                    }
                   />
                 </Grid>
                 <Grid size={{ xs: 12, lg: 4 }}>
@@ -241,12 +421,24 @@ export default function DashboardPage() {
                 </Grid>
               </Grid>
 
-              <Grid container spacing={1.5}>
+              <Grid container spacing={1.5} sx={{ mb: 1.5 }}>
                 <Grid size={{ xs: 12, lg: 4 }}>
-                  <FinancialHealth data={data} />
+                  <FinancialHealth
+                    data={data}
+                    expensesDelta={expensesDelta}
+                    profitMarginDelta={profitMarginDelta}
+                    salesDueDelta={salesDueDelta}
+                    purchasesDelta={financialPurchasesDelta}
+                  />
                 </Grid>
                 <Grid size={{ xs: 12, lg: 3 }}>
-                  <OperationsOverview data={data} />
+                  <OperationsOverview
+                    data={data}
+                    inventoryValueDelta={inventoryValueDelta}
+                    stockAtRiskDelta={stockAtRiskDelta}
+                    totalSkusDelta={totalSkusDelta}
+                    stockMovementDelta={stockMovementDelta}
+                  />
                 </Grid>
                 <Grid size={{ xs: 12, lg: 5 }}>
                   <PaymentMixCard
@@ -256,6 +448,16 @@ export default function DashboardPage() {
                   />
                 </Grid>
               </Grid>
+
+              {/* Goal Progress - below the KPI grid, full width in main column */}
+              <Box sx={{ mb: 1.5 }}>
+                <GoalProgress
+                  currentRevenue={data?.sales.net ?? 0}
+                  currentOrders={data?.sales.count ?? 0}
+                  currentMargin={profitMargin(data)}
+                  tenantId={user?.tenantId ?? ''}
+                />
+              </Box>
             </Grid>
 
             <Grid size={{ xs: 12, xl: 3 }}>
@@ -272,7 +474,10 @@ export default function DashboardPage() {
         </>
       )}
 
-      <CelebrationModal open={showCelebration} onClose={() => setShowCelebration(false)} />
+      <CelebrationModal
+        open={showCelebration}
+        onClose={() => setShowCelebration(false)}
+      />
     </Box>
   );
 }

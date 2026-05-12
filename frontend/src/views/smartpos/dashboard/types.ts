@@ -1,8 +1,8 @@
 import type React from 'react';
 import type { Period } from 'src/api/smartpos/reports';
-import type { Trend } from './utils';
+import type { Trend, Delta } from './utils';
 
-export type { Period, Trend };
+export type { Period, Trend, Delta };
 
 export interface GreetingBarProps {
   period: Period;
@@ -12,6 +12,8 @@ export interface GreetingBarProps {
   isDark: boolean;
   onPeriodChange: (p: Period) => void;
   onWarehouseChange: (id: string) => void;
+  lastUpdated?: number | null;
+  onRefresh?: () => void;
 }
 
 export interface MetricCardProps {
@@ -21,6 +23,8 @@ export interface MetricCardProps {
   icon: React.ReactNode;
   color: string;
   series: number[];
+  delta?: Delta;
+  onClick?: () => void;
 }
 
 export interface AlertStripProps {
@@ -36,6 +40,7 @@ export interface SmallStatProps {
   value: string;
   tone: 'success' | 'warning' | 'error' | 'info' | 'purple';
   icon?: React.ReactNode;
+  delta?: Delta;
 }
 
 export interface PaymentRowProps {
@@ -43,4 +48,11 @@ export interface PaymentRowProps {
   value: number;
   color: string;
   total: number;
+}
+
+export interface GoalProgressProps {
+  currentRevenue: number;
+  currentOrders: number;
+  currentMargin: number;
+  tenantId: string;
 }

@@ -99,7 +99,7 @@ export default function PaymentMixCard({
           </Typography>
           <Typography
             component={RouterLink}
-            to="/smartpos/reports"
+            to="/smartpos/reports/payments"
             sx={{ color: brand.primary[600], fontWeight: 700, fontSize: 13 }}
           >
             View report

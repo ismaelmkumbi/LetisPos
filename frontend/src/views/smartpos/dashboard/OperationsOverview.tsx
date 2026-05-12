@@ -5,12 +5,23 @@ import { formatNumber } from 'src/utils/smartpos/currency';
 import { cardSx, titleColor } from './utils';
 import SmallStat from './SmallStat';
 import type { Dashboard } from 'src/api/smartpos/reports';
+import type { Delta } from './types';
 
 interface OperationsOverviewProps {
   data: Dashboard | null;
+  inventoryValueDelta?: Delta;
+  stockAtRiskDelta?: Delta;
+  totalSkusDelta?: Delta;
+  stockMovementDelta?: Delta;
 }
 
-export default function OperationsOverview({ data }: OperationsOverviewProps) {
+export default function OperationsOverview({
+  data,
+  inventoryValueDelta,
+  stockAtRiskDelta,
+  totalSkusDelta,
+  stockMovementDelta,
+}: OperationsOverviewProps) {
   const { activeMode } = useContext(CustomizerContext);
   const isDark = activeMode === 'dark';
   return (
@@ -25,6 +36,7 @@ export default function OperationsOverview({ data }: OperationsOverviewProps) {
               label="Inventory Value"
               value={formatNumber(data?.inventory.totalOnHand ?? 0)}
               tone="info"
+              delta={inventoryValueDelta}
             />
           </Grid>
           <Grid size={{ xs: 6 }}>
@@ -32,6 +44,7 @@ export default function OperationsOverview({ data }: OperationsOverviewProps) {
               label="Stock at Risk"
               value={`${formatNumber(data?.inventory.lowStockLines ?? 0)} Items`}
               tone="warning"
+              delta={stockAtRiskDelta}
             />
           </Grid>
           <Grid size={{ xs: 6 }}>
@@ -39,6 +52,7 @@ export default function OperationsOverview({ data }: OperationsOverviewProps) {
               label="Total SKUs"
               value={formatNumber(data?.inventory.distinctProducts ?? 0)}
               tone="purple"
+              delta={totalSkusDelta}
             />
           </Grid>
           <Grid size={{ xs: 6 }}>
@@ -46,6 +60,7 @@ export default function OperationsOverview({ data }: OperationsOverviewProps) {
               label="Stock Movement"
               value={formatNumber(data?.inventory.totalAvailable ?? 0)}
               tone="success"
+              delta={stockMovementDelta}
             />
           </Grid>
         </Grid>

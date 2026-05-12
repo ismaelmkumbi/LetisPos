@@ -1,12 +1,12 @@
-import { Box, Stack, Typography } from '@mui/material';
-import { IconArrowUp } from '@tabler/icons-react';
+import { Box, Chip, Stack, Typography } from '@mui/material';
+import { IconArrowDown, IconArrowUp } from '@tabler/icons-react';
 import { useContext } from 'react';
 import { CustomizerContext } from 'src/context/CustomizerContext';
 import { brand } from 'src/theme/smartpos/brand';
 import { muted, titleColor } from './utils';
 import type { SmallStatProps } from './types';
 
-export default function SmallStat({ label, value, tone, icon }: SmallStatProps) {
+export default function SmallStat({ label, value, tone, icon, delta }: SmallStatProps) {
   const { activeMode: _s } = useContext(CustomizerContext);
   const isDark = _s === 'dark';
   const map = {
@@ -43,9 +43,29 @@ export default function SmallStat({ label, value, tone, icon }: SmallStatProps) 
           {icon ?? <IconArrowUp size={18} />}
         </Box>
       </Stack>
-      <Typography sx={{ color: titleColor, fontWeight: 900, fontSize: 17, mt: 1 }}>
-        {value}
-      </Typography>
+      <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 1 }}>
+        <Typography sx={{ color: titleColor, fontWeight: 900, fontSize: 17 }}>
+          {value}
+        </Typography>
+        {delta && (
+          <Chip
+            size="small"
+            icon={delta.positive ? <IconArrowUp size={12} /> : <IconArrowDown size={12} />}
+            label={`${delta.positive ? '+' : '-'}${delta.value.toFixed(1)}%`}
+            sx={{
+              height: 22,
+              fontSize: 11,
+              fontWeight: 800,
+              bgcolor: delta.positive ? '#ECFDF5' : '#FEF2F2',
+              color: delta.positive ? brand.primary[600] : brand.error.main,
+              '& .MuiChip-icon': {
+                color: delta.positive ? brand.primary[600] : brand.error.main,
+                marginLeft: '4px',
+              },
+            }}
+          />
+        )}
+      </Stack>
       <Typography
         sx={{
           color: tone === 'error' ? brand.error.main : brand.primary[600],

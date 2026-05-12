@@ -79,6 +79,30 @@ export function moneyShort(value: number): string {
 
 export type Trend = { positive: boolean; value: number };
 
+/** Map a current period to a reasonable previous period for delta comparison. */
+export function previousPeriod(period: Period): Period | null {
+  const map: Record<Period, Period | null> = {
+    TODAY: 'YESTERDAY',
+    YESTERDAY: null,
+    WEEK: 'LAST_30_DAYS',
+    MONTH: 'LAST_30_DAYS',
+    LAST_30_DAYS: 'MONTH',
+    YTD: null,
+  };
+  return map[period];
+}
+
+export interface Delta {
+  value: number;
+  positive: boolean;
+}
+
+export function computeDelta(current: number, previous: number): Delta | undefined {
+  if (!previous || previous === 0) return undefined;
+  const value = ((current - previous) / Math.abs(previous)) * 100;
+  return { value: Math.abs(value), positive: value >= 0 };
+}
+
 export function trend(series: number[]): Trend | null {
   if (series.length < 2 || !series[0]) return null;
   const value = ((series[series.length - 1] - series[0]) / Math.abs(series[0])) * 100;

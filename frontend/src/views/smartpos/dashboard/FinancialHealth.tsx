@@ -6,12 +6,23 @@ import { formatMoney } from 'src/utils/smartpos/currency';
 import { cardSx, titleColor, profitMargin } from './utils';
 import SmallStat from './SmallStat';
 import type { Dashboard } from 'src/api/smartpos/reports';
+import type { Delta } from './types';
 
 interface FinancialHealthProps {
   data: Dashboard | null;
+  expensesDelta?: Delta;
+  profitMarginDelta?: Delta;
+  salesDueDelta?: Delta;
+  purchasesDelta?: Delta;
 }
 
-export default function FinancialHealth({ data }: FinancialHealthProps) {
+export default function FinancialHealth({
+  data,
+  expensesDelta,
+  profitMarginDelta,
+  salesDueDelta,
+  purchasesDelta,
+}: FinancialHealthProps) {
   const { activeMode } = useContext(CustomizerContext);
   const isDark = activeMode === 'dark';
   return (
@@ -27,6 +38,7 @@ export default function FinancialHealth({ data }: FinancialHealthProps) {
               value={formatMoney(data?.expenses.total ?? 0)}
               tone="error"
               icon={<IconWalletOff size={19} />}
+              delta={expensesDelta}
             />
           </Grid>
           <Grid size={{ xs: 12, sm: 6 }}>
@@ -35,6 +47,7 @@ export default function FinancialHealth({ data }: FinancialHealthProps) {
               value={`${profitMargin(data).toFixed(1)}%`}
               tone={profitMargin(data) >= 0 ? 'success' : 'error'}
               icon={<IconAlertTriangle size={19} />}
+              delta={profitMarginDelta}
             />
           </Grid>
           <Grid size={{ xs: 12, sm: 6 }}>
@@ -43,6 +56,7 @@ export default function FinancialHealth({ data }: FinancialHealthProps) {
               value={formatMoney(data?.sales.due ?? 0)}
               tone="warning"
               icon={<IconX size={19} />}
+              delta={salesDueDelta}
             />
           </Grid>
           <Grid size={{ xs: 12, sm: 6 }}>
@@ -51,6 +65,7 @@ export default function FinancialHealth({ data }: FinancialHealthProps) {
               value={formatMoney(data?.purchases.gross ?? 0)}
               tone="success"
               icon={<IconShoppingCart size={19} />}
+              delta={purchasesDelta}
             />
           </Grid>
         </Grid>

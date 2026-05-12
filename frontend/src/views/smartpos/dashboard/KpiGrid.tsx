@@ -1,20 +1,36 @@
 import { Grid } from '@mui/material';
 import { IconBriefcase, IconShoppingCart, IconWallet } from '@tabler/icons-react';
+import { useNavigate } from 'react-router';
 import { brand } from 'src/theme/smartpos/brand';
 import { formatMoney, formatNumber } from 'src/utils/smartpos/currency';
 import { trend, trendLabel } from './utils';
 import MetricCard from './MetricCard';
 import type { Dashboard } from 'src/api/smartpos/reports';
-import type { Trend } from './utils';
+import type { Trend, Delta } from './types';
 
 interface KpiGridProps {
   data: Dashboard | null;
   salesSeries: number[];
   revenueTrend: Trend | null;
   orderSeries: number[];
+  cashDelta?: Delta;
+  salesDelta?: Delta;
+  ordersDelta?: Delta;
+  purchasesDelta?: Delta;
 }
 
-export default function KpiGrid({ data, salesSeries, revenueTrend, orderSeries }: KpiGridProps) {
+export default function KpiGrid({
+  data,
+  salesSeries,
+  revenueTrend,
+  orderSeries,
+  cashDelta,
+  salesDelta,
+  ordersDelta,
+  purchasesDelta,
+}: KpiGridProps) {
+  const navigate = useNavigate();
+
   return (
     <>
       <Grid size={{ xs: 12, sm: 6, lg: 2 }} sx={{ minWidth: { xs: 180, lg: 'auto' }, scrollSnapAlign: 'start' }}>
@@ -25,6 +41,8 @@ export default function KpiGrid({ data, salesSeries, revenueTrend, orderSeries }
           icon={<IconWallet size={20} />}
           color={brand.primary[600]}
           series={salesSeries}
+          delta={cashDelta}
+          onClick={() => navigate('/smartpos/accounts')}
         />
       </Grid>
       <Grid size={{ xs: 12, sm: 6, lg: 2 }} sx={{ minWidth: { xs: 180, lg: 'auto' }, scrollSnapAlign: 'start' }}>
@@ -35,6 +53,8 @@ export default function KpiGrid({ data, salesSeries, revenueTrend, orderSeries }
           icon={<IconBriefcase size={20} />}
           color={brand.info.main}
           series={salesSeries}
+          delta={salesDelta}
+          onClick={() => navigate('/smartpos/reports/sales')}
         />
       </Grid>
       <Grid size={{ xs: 12, sm: 6, lg: 2 }} sx={{ minWidth: { xs: 180, lg: 'auto' }, scrollSnapAlign: 'start' }}>
@@ -45,6 +65,8 @@ export default function KpiGrid({ data, salesSeries, revenueTrend, orderSeries }
           icon={<IconShoppingCart size={20} />}
           color={brand.warning.main}
           series={orderSeries}
+          delta={ordersDelta}
+          onClick={() => navigate('/smartpos/sales')}
         />
       </Grid>
       <Grid size={{ xs: 12, sm: 6, lg: 2 }} sx={{ minWidth: { xs: 180, lg: 'auto' }, scrollSnapAlign: 'start' }}>
@@ -55,6 +77,8 @@ export default function KpiGrid({ data, salesSeries, revenueTrend, orderSeries }
           icon={<IconShoppingCart size={20} />}
           color={brand.primary[600]}
           series={[]}
+          delta={purchasesDelta}
+          onClick={() => navigate('/smartpos/purchases')}
         />
       </Grid>
     </>
