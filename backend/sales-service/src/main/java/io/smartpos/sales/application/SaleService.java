@@ -4,6 +4,7 @@ import io.smartpos.sales.api.SaleController;
 import io.smartpos.sales.api.dto.CreateSaleRequest;
 import io.smartpos.sales.api.dto.SaleDto;
 import io.smartpos.sales.api.dto.SaleLineInput;
+import io.smartpos.sales.api.dto.SalesByUserDto;
 import io.smartpos.sales.domain.model.*;
 import io.smartpos.sales.domain.repository.SalePaymentAppliedRepository;
 import io.smartpos.sales.domain.repository.SaleRepository;
@@ -170,7 +171,7 @@ public class SaleService {
     }
 
     @Transactional(readOnly = true)
-    public List<SaleController.SalesByUser> salesByUser(LocalDate from, LocalDate to) {
+    public List<SalesByUserDto> salesByUser(LocalDate from, LocalDate to) {
         var stats = saleRepo.findSalesByUser(TenantContext.require(), from, to);
         if (stats.isEmpty()) return List.of();
 
@@ -179,16 +180,16 @@ public class SaleService {
         return stats.stream().map(s -> {
             String name = names.getOrDefault(s.userId(),
                     "User " + s.userId().toString().substring(0, 8));
-            return new SaleController.SalesByUser(
+            return new SalesByUserDto(
                     s.userId(), name, s.saleCount(),
                     s.totalNet(), s.totalGross(), s.itemsSold());
         }).toList();
     }
 
-    private Map<UUID, String> resolveUserNames(List<SaleController.SalesByUser> stats) {
+    private Map<UUID, String> resolveUserNames(List<SalesByUserDto> stats) {
         try {
             var userIds = stats.stream()
-                    .map(SaleController.SalesByUser::userId)
+                    .map(SalesByUserDto::userId)
                     .distinct()
                     .toList();
             var users = userFeign.getUsersByIds(userIds);

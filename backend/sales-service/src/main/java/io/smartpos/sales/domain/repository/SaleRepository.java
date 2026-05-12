@@ -59,7 +59,7 @@ public interface SaleRepository extends JpaRepository<Sale, UUID> {
         Pageable pageable);
 
     @Query("""
-        SELECT new io.smartpos.sales.api.SaleController.SalesByUser(
+        SELECT new io.smartpos.sales.api.dto.SalesByUserDto(
             s.userId, '', COUNT(s), SUM(s.grandTotal), SUM(s.subtotal), 0L)
         FROM Sale s
         WHERE s.tenantId = :tenantId
@@ -69,7 +69,7 @@ public interface SaleRepository extends JpaRepository<Sale, UUID> {
         GROUP BY s.userId
         ORDER BY SUM(s.grandTotal) DESC
         """)
-    List<SaleController.SalesByUser> findSalesByUser(@Param("tenantId") UUID tenantId,
+    List<io.smartpos.sales.api.dto.SalesByUserDto> findSalesByUser(@Param("tenantId") UUID tenantId,
                                                       @Param("dateFrom") LocalDate dateFrom,
                                                       @Param("dateTo") LocalDate dateTo);
 }

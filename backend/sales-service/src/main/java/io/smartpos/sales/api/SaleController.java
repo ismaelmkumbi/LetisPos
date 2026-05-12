@@ -3,6 +3,7 @@ package io.smartpos.sales.api;
 import io.smartpos.sales.api.dto.CreateSaleRequest;
 import io.smartpos.sales.api.dto.SaleDto;
 import io.smartpos.sales.api.dto.SaleReturnDto;
+import io.smartpos.sales.api.dto.SalesByUserDto;
 import io.smartpos.sales.application.SaleReturnService;
 import io.smartpos.sales.application.SaleService;
 import io.smartpos.sales.domain.model.Sale;
@@ -91,12 +92,10 @@ public class SaleController {
     }
 
     // ---- Sales by user ----
-    public record SalesByUser(UUID userId, String userName, long saleCount,
-                              BigDecimal totalNet, BigDecimal totalGross, long itemsSold) {}
 
     @GetMapping("/by-user")
     @PreAuthorize("hasAuthority('sale.view')")
-    public List<SalesByUser> salesByUser(@RequestParam(required = false) LocalDate dateFrom,
+    public List<SalesByUserDto> salesByUser(@RequestParam(required = false) LocalDate dateFrom,
                                           @RequestParam(required = false) LocalDate dateTo) {
         return saleService.salesByUser(dateFrom, dateTo);
     }
