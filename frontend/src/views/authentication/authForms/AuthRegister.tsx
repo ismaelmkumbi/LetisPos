@@ -1,14 +1,20 @@
 /**
  * Letis POS registration wizard.
  *
- * Light-themed two-step form with smooth step transitions,
+ * Light-themed three-step form with smooth step transitions,
  * mobile-friendly spacing, and refined styling.
+ *
+ * Step 1 — Choose a plan (fetched from /api/v1/billing/plans).
+ * Step 2 — Workspace details.
+ * Step 3 — Admin account.
  */
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Alert,
   Box,
   Button,
+  Card,
+  CardContent,
   CircularProgress,
   Divider,
   IconButton,
@@ -22,6 +28,7 @@ import {
   IconArrowLeft,
   IconArrowRight,
   IconBuilding,
+  IconCheck,
   IconEye,
   IconEyeOff,
   IconLock,
@@ -33,6 +40,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router';
 import { register } from 'src/api/smartpos/auth';
 import { seedDefaultUnits } from 'src/api/smartpos/products';
 import { seedDefaultCOA } from 'src/api/smartpos/accounting';
+import { listPlans, type PlanDefinition } from 'src/api/smartpos/billing';
 import { brand } from 'src/theme/smartpos/brand';
 
 interface Props {
@@ -84,6 +92,17 @@ function slugify(value: string): string {
     .replace(/^-+|-+$/g, '');
 }
 
+const CARD_GAP = { xs: 1.5, sm: 2 };
+
+function formatTzs(amount: number): string {
+  return new Intl.NumberFormat('en-TZ', {
+    style: 'currency',
+    currency: 'TZS',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(amount);
+}
+
 /* ─── Component ─────────────────────────────────────────────────────────────── */
 
 const AuthRegister: React.FC<Props> = ({ title, subtitle, subtext }) => {
@@ -91,15 +110,15 @@ const AuthRegister: React.FC<Props> = ({ title, subtitle, subtext }) => {
   const [searchParams] = useSearchParams();
   const planParam = searchParams.get('plan');
 
-  const planLabels: Record<string, string> = {
-    starter: 'Starter',
-    business: 'Business',
-    professional: 'Professional',
-    enterprise: 'Enterprise',
-  };
-  const planLabel = planParam ? planLabels[planParam.toLowerCase()] ?? planParam : null;
+  // Plans from API
+  const [plans, setPlans] = useState<PlanDefinition[]>([]);
+  const [plansLoading, setPlansLoading] = useState(true);
 
-  const [step, setStep] = useState<1 | 2>(1);
+  // Wizard state
+  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [selectedPlanCode, setSelectedPlanCode] = useState<string>(
+    planParam?.toUpperCase() ?? 'STARTER',
+  );
   const [tenantName, setTenantName] = useState('');
   const [tenantSlug, setTenantSlug] = useState('');
   const [firstName, setFirstName] = useState('');
@@ -110,6 +129,35 @@ const AuthRegister: React.FC<Props> = ({ title, subtitle, subtext }) => {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Fetch plans on mount
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await listPlans();
+        if (!cancelled) setPlans(data.filter((p) => p.isPublic));
+      } catch {
+        // Non-critical — plan param fallback still works
+      } finally {
+        if (!cancelled) setPlansLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  // If the URL param matches a known plan code, pre-select it
+  useEffect(() => {
+    if (planParam && plans.length > 0) {
+      const match = plans.find(
+        (p) => p.code.toUpperCase() === planParam.toUpperCase(),
+      );
+      if (match) setSelectedPlanCode(match.code);
+    }
+  }, [planParam, plans]);
+
+  const selectedPlan = plans.find((p) => p.code === selectedPlanCode);
+
+  const isPlanReady = !!selectedPlanCode;
   const isWorkspaceReady = tenantName.trim().length > 1 && tenantSlug.trim().length > 1;
   const isAccountReady = email.trim().length > 0 && password.length >= 8;
 
@@ -132,7 +180,7 @@ const AuthRegister: React.FC<Props> = ({ title, subtitle, subtext }) => {
         lastName: lastName.trim(),
         tenantName: tenantName.trim(),
         tenantSlug: tenantSlug.trim() || undefined,
-        billingPlan: planParam?.toUpperCase() || 'STARTER',
+        billingPlan: selectedPlanCode || 'STARTER',
       });
       navigate('/auth/login', { state: { registered: true } });
       // Pre-seed default data in the background
@@ -155,32 +203,6 @@ const AuthRegister: React.FC<Props> = ({ title, subtitle, subtext }) => {
       {title}
       {subtext}
 
-      {planLabel && (
-        <Box
-          sx={{
-            mt: 1.5,
-            mb: 0.5,
-            p: 1.25,
-            borderRadius: '10px',
-            bgcolor: brand.primary[50],
-            border: `1px solid ${brand.primary[200]}`,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 1,
-          }}
-        >
-          <Typography
-            sx={{
-              fontSize: '0.8rem',
-              color: brand.primary[700],
-              fontWeight: 600,
-            }}
-          >
-            You selected the {planLabel} plan
-          </Typography>
-        </Box>
-      )}
-
       {error && (
         <Alert severity="error" sx={{ mb: 2.5, borderRadius: '10px' }}>
           {error}
@@ -190,10 +212,12 @@ const AuthRegister: React.FC<Props> = ({ title, subtitle, subtext }) => {
       {/* Step indicators */}
       <Stack direction="row" spacing={1} sx={{ mb: 2.5 }}>
         {[
-          { id: 1, label: 'Workspace' },
-          { id: 2, label: 'Admin' },
+          { id: 1, label: 'Plan' },
+          { id: 2, label: 'Workspace' },
+          { id: 3, label: 'Admin' },
         ].map((item) => {
           const active = step >= item.id;
+          const current = step === item.id;
           return (
             <Box
               key={item.id}
@@ -204,7 +228,7 @@ const AuthRegister: React.FC<Props> = ({ title, subtitle, subtext }) => {
                 py: 0.85,
                 borderRadius: '8px',
                 bgcolor: active ? brand.primary[50] : brand.neutral[50],
-                border: `1px solid ${active ? brand.primary[200] : brand.neutral[200]}`,
+                border: `1px solid ${current ? brand.primary[400] : active ? brand.primary[200] : brand.neutral[200]}`,
                 transition: 'all 0.3s ease',
               }}
             >
@@ -220,7 +244,7 @@ const AuthRegister: React.FC<Props> = ({ title, subtitle, subtext }) => {
                     transition: 'all 0.3s ease',
                   }}
                 >
-                  {item.id}
+                  {active ? <IconCheck size={12} stroke={3} /> : item.id}
                 </Box>
                 <Typography
                   sx={{
@@ -241,8 +265,173 @@ const AuthRegister: React.FC<Props> = ({ title, subtitle, subtext }) => {
         })}
       </Stack>
 
-      {/* Step 1: Workspace details */}
+      {/* Step 1: Plan selection */}
       {step === 1 && (
+        <Box sx={{ animation: `${stepIn} 0.35s ease both` }}>
+          <Stack spacing={{ xs: 1.5, sm: 2 }}>
+            <Box>
+              <Typography sx={{ fontSize: '0.9rem', fontWeight: 800, color: brand.neutral[900] }}>
+                Choose your plan
+              </Typography>
+              <Typography sx={{ mt: 0.25, fontSize: '0.78rem', color: brand.neutral[500], lineHeight: 1.4 }}>
+                Select the plan that fits your business. You can upgrade at any time.
+              </Typography>
+            </Box>
+
+            {plansLoading ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
+                <CircularProgress size={28} sx={{ color: brand.primary[500] }} />
+              </Box>
+            ) : (
+              <Stack spacing={CARD_GAP}>
+                {plans.map((plan) => {
+                  const isSelected = selectedPlanCode === plan.code;
+                  const features = plan.features
+                    ? plan.features.split(',').map((f) => f.trim()).filter(Boolean)
+                    : [];
+
+                  return (
+                    <Card
+                      key={plan.id}
+                      onClick={() => setSelectedPlanCode(plan.code)}
+                      sx={{
+                        borderRadius: '12px',
+                        cursor: 'pointer',
+                        border: `2px solid ${isSelected ? brand.primary[500] : brand.neutral[200]}`,
+                        bgcolor: isSelected ? brand.primary[50] : '#FFFFFF',
+                        transition: 'all 0.2s ease',
+                        '&:hover': {
+                          borderColor: isSelected ? brand.primary[500] : brand.primary[300],
+                          boxShadow: `0 4px 16px rgba(15,23,42,0.06)`,
+                        },
+                      }}
+                      elevation={0}
+                    >
+                      <CardContent sx={{ p: { xs: 1.5, sm: 2 }, '&:last-child': { pb: { xs: 1.5, sm: 2 } } }}>
+                        <Stack direction="row" alignItems="flex-start" justifyContent="space-between">
+                          <Box sx={{ flex: 1, minWidth: 0 }}>
+                            <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.5 }}>
+                              <Typography
+                                sx={{
+                                  fontSize: '0.95rem',
+                                  fontWeight: 800,
+                                  color: brand.neutral[900],
+                                }}
+                              >
+                                {plan.label}
+                              </Typography>
+                              {isSelected && (
+                                <Box
+                                  sx={{
+                                    width: 20,
+                                    height: 20,
+                                    borderRadius: '50%',
+                                    bgcolor: brand.primary[600],
+                                    color: '#FFFFFF',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    flexShrink: 0,
+                                  }}
+                                >
+                                  <IconCheck size={12} stroke={3} />
+                                </Box>
+                              )}
+                            </Stack>
+                            {plan.description && (
+                              <Typography
+                                sx={{
+                                  fontSize: '0.75rem',
+                                  color: brand.neutral[500],
+                                  mb: 1,
+                                  lineHeight: 1.4,
+                                }}
+                              >
+                                {plan.description}
+                              </Typography>
+                            )}
+                            {features.length > 0 && (
+                              <Stack spacing={0.25} sx={{ mb: 1 }}>
+                                {features.slice(0, 4).map((f, i) => (
+                                  <Stack key={i} direction="row" spacing={0.75} alignItems="center">
+                                    <Box
+                                      sx={{
+                                        width: 4,
+                                        height: 4,
+                                        borderRadius: '50%',
+                                        bgcolor: brand.primary[400],
+                                        flexShrink: 0,
+                                      }}
+                                    />
+                                    <Typography sx={{ fontSize: '0.7rem', color: brand.neutral[600] }}>
+                                      {f}
+                                    </Typography>
+                                  </Stack>
+                                ))}
+                              </Stack>
+                            )}
+                          </Box>
+                          <Box sx={{ textAlign: 'right', flexShrink: 0, ml: 2 }}>
+                            <Typography
+                              sx={{
+                                fontSize: '1.05rem',
+                                fontWeight: 800,
+                                color: brand.primary[700],
+                                lineHeight: 1.2,
+                              }}
+                            >
+                              {plan.monthlyPriceTzs > 0
+                                ? formatTzs(plan.monthlyPriceTzs)
+                                : 'Free'}
+                            </Typography>
+                            <Typography sx={{ fontSize: '0.65rem', color: brand.neutral[400] }}>
+                              /month
+                            </Typography>
+                          </Box>
+                        </Stack>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </Stack>
+            )}
+
+            <Button
+              type="button"
+              variant="contained"
+              fullWidth
+              disabled={!isPlanReady}
+              endIcon={<IconArrowRight size={16} stroke={2} />}
+              onClick={() => setStep(2)}
+              sx={{
+                mt: 0.5,
+                py: 1.4,
+                fontSize: '0.9rem',
+                fontWeight: 700,
+                textTransform: 'none',
+                borderRadius: '10px',
+                background: `linear-gradient(135deg, ${brand.primary[500]} 0%, ${brand.primary[700]} 100%)`,
+                boxShadow: `0 10px 22px -12px ${brand.primary[600]}`,
+                transition: 'all 0.2s ease',
+                '&:hover': {
+                  background: `linear-gradient(135deg, ${brand.primary[600]} 0%, ${brand.primary[800]} 100%)`,
+                  boxShadow: `0 12px 26px -10px ${brand.primary[700]}`,
+                },
+                '&.Mui-disabled': {
+                  background: brand.neutral[200],
+                  boxShadow: 'none',
+                  color: brand.neutral[400],
+                },
+              }}
+            >
+              Continue
+            </Button>
+          </Stack>
+        </Box>
+      )}
+
+      {/* Step 2: Workspace details */}
+      {step === 2 && (
         <Box sx={{ animation: `${stepIn} 0.35s ease both` }}>
           <Stack spacing={{ xs: 1.5, sm: 2 }}>
             <Box>
@@ -253,6 +442,34 @@ const AuthRegister: React.FC<Props> = ({ title, subtitle, subtext }) => {
                 This becomes the tenant that keeps your data separated.
               </Typography>
             </Box>
+
+            {/* Show selected plan badge */}
+            {selectedPlan && (
+              <Box
+                sx={{
+                  p: 1.25,
+                  borderRadius: '10px',
+                  bgcolor: brand.primary[50],
+                  border: `1px solid ${brand.primary[200]}`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1,
+                }}
+              >
+                <Typography
+                  sx={{
+                    fontSize: '0.8rem',
+                    color: brand.primary[700],
+                    fontWeight: 600,
+                  }}
+                >
+                  {selectedPlan.label} plan
+                  {selectedPlan.monthlyPriceTzs > 0 && (
+                    <> -- {formatTzs(selectedPlan.monthlyPriceTzs)}/month</>
+                  )}
+                </Typography>
+              </Box>
+            )}
 
             <Box>
               <Typography component="label" htmlFor="tenantName" sx={labelSx}>
@@ -294,42 +511,58 @@ const AuthRegister: React.FC<Props> = ({ title, subtitle, subtext }) => {
               />
             </Box>
 
-            <Button
-              type="button"
-              variant="contained"
-              fullWidth
-              disabled={!isWorkspaceReady}
-              endIcon={<IconArrowRight size={16} stroke={2} />}
-              onClick={() => setStep(2)}
-              sx={{
-                mt: 0.5,
-                py: 1.4,
-                fontSize: '0.9rem',
-                fontWeight: 700,
-                textTransform: 'none',
-                borderRadius: '10px',
-                background: `linear-gradient(135deg, ${brand.primary[500]} 0%, ${brand.primary[700]} 100%)`,
-                boxShadow: `0 10px 22px -12px ${brand.primary[600]}`,
-                transition: 'all 0.2s ease',
-                '&:hover': {
-                  background: `linear-gradient(135deg, ${brand.primary[600]} 0%, ${brand.primary[800]} 100%)`,
-                  boxShadow: `0 12px 26px -10px ${brand.primary[700]}`,
-                },
-                '&.Mui-disabled': {
-                  background: brand.neutral[200],
-                  boxShadow: 'none',
-                  color: brand.neutral[400],
-                },
-              }}
-            >
-              Continue
-            </Button>
+            <Stack direction={{ xs: 'column-reverse', sm: 'row' }} spacing={1.25}>
+              <Button
+                type="button"
+                variant="outlined"
+                startIcon={<IconArrowLeft size={16} stroke={2} />}
+                onClick={() => setStep(1)}
+                sx={{
+                  py: 1.4, px: 2,
+                  fontSize: '0.85rem', fontWeight: 600,
+                  textTransform: 'none', borderRadius: '10px',
+                  color: brand.neutral[700], borderColor: brand.neutral[200],
+                  transition: 'all 0.2s ease',
+                  '&:hover': { borderColor: brand.neutral[300], bgcolor: brand.neutral[50] },
+                }}
+              >
+                Back
+              </Button>
+
+              <Button
+                type="button"
+                variant="contained"
+                fullWidth
+                disabled={!isWorkspaceReady}
+                endIcon={<IconArrowRight size={16} stroke={2} />}
+                onClick={() => setStep(3)}
+                sx={{
+                  py: 1.4,
+                  fontSize: '0.9rem', fontWeight: 700,
+                  textTransform: 'none', borderRadius: '10px',
+                  background: `linear-gradient(135deg, ${brand.primary[500]} 0%, ${brand.primary[700]} 100%)`,
+                  boxShadow: `0 10px 22px -12px ${brand.primary[600]}`,
+                  transition: 'all 0.2s ease',
+                  '&:hover': {
+                    background: `linear-gradient(135deg, ${brand.primary[600]} 0%, ${brand.primary[800]} 100%)`,
+                    boxShadow: `0 12px 26px -10px ${brand.primary[700]}`,
+                  },
+                  '&.Mui-disabled': {
+                    background: brand.neutral[200],
+                    boxShadow: 'none',
+                    color: brand.neutral[400],
+                  },
+                }}
+              >
+                Continue
+              </Button>
+            </Stack>
           </Stack>
         </Box>
       )}
 
-      {/* Step 2: Admin account */}
-      {step === 2 && (
+      {/* Step 3: Admin account */}
+      {step === 3 && (
         <Box sx={{ animation: `${stepIn} 0.35s ease both` }}>
           <Stack spacing={{ xs: 1.5, sm: 2 }}>
             <Box>
@@ -449,7 +682,7 @@ const AuthRegister: React.FC<Props> = ({ title, subtitle, subtext }) => {
                 type="button"
                 variant="outlined"
                 startIcon={<IconArrowLeft size={16} stroke={2} />}
-                onClick={() => setStep(1)}
+                onClick={() => setStep(2)}
                 sx={{
                   py: 1.4, px: 2,
                   fontSize: '0.85rem', fontWeight: 600,

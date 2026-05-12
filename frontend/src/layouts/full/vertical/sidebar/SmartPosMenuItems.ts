@@ -163,16 +163,16 @@ export function buildSmartPosMenu(t: TFunction): MenuItem[] {
     // ── Suppliers ───────────────────────────────────────────────────────
     { subheader: 'Suppliers' },
     { id: uid(), title: t('smartpos:nav.suppliers'), icon: IconTruck, href: '/smartpos/suppliers' },
-    { id: uid(), title: 'Supplier Groups', icon: IconUsersGroup, ...soon },
+    { id: uid(), title: 'Supplier Groups', icon: IconUsersGroup, ...soon, minPlan: 'BUSINESS' },
 
-    // ── Finance ─────────────────────────────────────────────────────────
-    { subheader: 'Finance', minPlan: 'BUSINESS' },
-    { id: uid(), title: t('smartpos:nav.accounts'), icon: IconWallet, href: '/smartpos/accounts', minPlan: 'BUSINESS' },
-    { id: uid(), title: t('smartpos:nav.payments'), icon: IconCoin, href: '/smartpos/payments', minPlan: 'BUSINESS' },
-    { id: uid(), title: t('smartpos:nav.expenses'), icon: IconReceipt2, href: '/smartpos/expenses', minPlan: 'BUSINESS' },
-    { id: uid(), title: 'Deposits', icon: IconCashBanknote, href: '/smartpos/deposits', minPlan: 'BUSINESS' },
-    { id: uid(), title: 'Cash Management', icon: IconCashRegister, href: '/smartpos/cash-management', minPlan: 'BUSINESS' },
-    { id: uid(), title: t('smartpos:nav.transfers'), icon: IconArrowsTransferDown, href: '/smartpos/transfers', minPlan: 'BUSINESS' },
+    // ── Money ─────────────────────────────────────────────────────────
+    { subheader: 'Money' },
+    { id: uid(), title: t('smartpos:nav.accounts'), icon: IconWallet, href: '/smartpos/accounts' },
+    { id: uid(), title: t('smartpos:nav.payments'), icon: IconCoin, href: '/smartpos/payments' },
+    { id: uid(), title: t('smartpos:nav.expenses'), icon: IconReceipt2, href: '/smartpos/expenses' },
+    { id: uid(), title: 'Deposits', icon: IconCashBanknote, href: '/smartpos/deposits' },
+    { id: uid(), title: 'Cash Management', icon: IconCashRegister, href: '/smartpos/cash-management' },
+    { id: uid(), title: t('smartpos:nav.transfers'), icon: IconArrowsTransferDown, href: '/smartpos/transfers' },
     {
       id: uid(), title: t('smartpos:nav.accounting'), icon: IconCalculator,
       minPlan: 'BUSINESS',
@@ -185,8 +185,8 @@ export function buildSmartPosMenu(t: TFunction): MenuItem[] {
       ],
     },
     // ── Reports ─────────────────────────────────────────────────────────
-    { subheader: 'Reports', minPlan: 'BUSINESS' },
-    { id: uid(), title: 'Reports Hub', icon: IconChartBar, href: '/smartpos/reports', minPlan: 'BUSINESS' },
+    { subheader: 'Reports' },
+    { id: uid(), title: 'Reports Hub', icon: IconChartBar, href: '/smartpos/reports' },
     { id: uid(), title: 'Sales Reports', icon: IconChartBar, href: '/smartpos/reports/sales', minPlan: 'BUSINESS' },
     { id: uid(), title: 'Purchase Reports', icon: IconShoppingCart, href: '/smartpos/reports/purchases', minPlan: 'BUSINESS' },
     { id: uid(), title: 'Inventory Reports', icon: IconPackage, href: '/smartpos/reports/inventory', minPlan: 'BUSINESS' },
@@ -220,11 +220,11 @@ export function buildSmartPosMenu(t: TFunction): MenuItem[] {
     { id: uid(), title: 'Activities', icon: IconClipboardCheck, href: '/smartpos/crm/activities', minPlan: 'PROFESSIONAL' },
 
     // ── E-Commerce ──────────────────────────────────────────────────────
-    { subheader: 'E-Commerce' },
-    { id: uid(), title: 'Online Orders', icon: IconShoppingCart, ...soon },
-    { id: uid(), title: 'Delivery Management', icon: IconTruck, ...soon },
-    { id: uid(), title: 'Website Settings', icon: IconWorld, ...soon },
-    { id: uid(), title: 'Marketplace Sync', icon: IconBuildingStore, ...soon },
+    { subheader: 'E-Commerce', minPlan: 'BUSINESS' },
+    { id: uid(), title: 'Online Orders', icon: IconShoppingCart, ...soon, minPlan: 'BUSINESS' },
+    { id: uid(), title: 'Delivery Management', icon: IconTruck, ...soon, minPlan: 'BUSINESS' },
+    { id: uid(), title: 'Website Settings', icon: IconWorld, ...soon, minPlan: 'BUSINESS' },
+    { id: uid(), title: 'Marketplace Sync', icon: IconBuildingStore, ...soon, minPlan: 'PROFESSIONAL' },
 
     // ── Integrations ────────────────────────────────────────────────────
     { subheader: 'Integrations', minPlan: 'PROFESSIONAL' },

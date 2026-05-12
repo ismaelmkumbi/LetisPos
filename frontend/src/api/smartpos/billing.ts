@@ -112,3 +112,15 @@ export async function listInvoices(tenantId: string): Promise<Invoice[]> {
   const { data } = await api.get<Invoice[]>(`/api/v1/billing/invoices/tenant/${tenantId}`);
   return data;
 }
+
+// ── Self-service subscription actions ──
+
+export async function upgradeSubscription(id: string, planCode: string): Promise<Subscription> {
+  const { data } = await api.post<Subscription>(`/api/v1/billing/subscriptions/${id}/upgrade`, { planCode });
+  return data;
+}
+
+export async function cancelSubscription(id: string): Promise<Subscription> {
+  const { data } = await api.post<Subscription>(`/api/v1/billing/subscriptions/${id}/cancel`);
+  return data;
+}
