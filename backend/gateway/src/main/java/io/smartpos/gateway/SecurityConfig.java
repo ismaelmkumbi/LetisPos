@@ -45,6 +45,8 @@ public class SecurityConfig {
                                 "/api/v1/auth/logout",
                                 "/api/v1/auth/register",
                                 "/api/v1/auth/password/**",
+                                "/api/v1/billing/plans",
+                                "/api/v1/support/demo-requests",
                                 "/api/v1/payments/stripe/webhook",
                                 "/webhooks/**",
                                 "/.well-known/jwks.json",

@@ -6,6 +6,7 @@ import { pricingTiers, PricingTier, BillingPeriod } from './pricingData';
 
 interface PricingSpotlightProps {
   billing: BillingPeriod;
+  tiers?: PricingTier[];
 }
 
 const GridSvg: React.FC = () => (
@@ -26,11 +27,12 @@ const GridSvg: React.FC = () => (
   </svg>
 );
 
-const PricingSpotlight: React.FC<PricingSpotlightProps> = ({ billing }) => {
+const PricingSpotlight: React.FC<PricingSpotlightProps> = ({ billing, tiers }) => {
   const { openDemo } = useDemoDialog();
   const isAnnual = billing === 'annual';
+  const activeTiers = tiers ?? pricingTiers;
 
-  const spotlightTiers = pricingTiers.filter((t) => t.name !== 'Enterprise');
+  const spotlightTiers = activeTiers.filter((t) => t.name !== 'Enterprise');
 
   const getPrice = (tier: PricingTier): string => {
     if (isAnnual && tier.annualPrice && tier.annualPrice !== 'Custom') {

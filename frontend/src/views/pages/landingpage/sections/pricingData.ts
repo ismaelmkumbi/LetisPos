@@ -1,7 +1,10 @@
+import type { PlanDefinition } from 'src/api/smartpos/billing';
+
 export type BillingPeriod = 'monthly' | 'annual';
 
 export interface PricingTier {
   name: string;
+  planCode: string;
   monthlyPrice: string;
   annualPrice: string;
   period: string;
@@ -10,6 +13,65 @@ export interface PricingTier {
   cta: string;
   ctaVariant: 'primary' | 'secondary';
   highlighted: boolean;
+}
+
+const FEATURE_ICON = '✓ ';
+
+function parseFeatures(featuresJson: string): string[] {
+  try {
+    const f = JSON.parse(featuresJson);
+    const labels: Record<string, string> = {
+      accounting: 'Accounting Suite',
+      purchases: 'Purchases & Suppliers',
+      reports: 'Advanced Reports',
+      hrm: 'HR & Payroll',
+      api: 'API Access',
+      multi_currency: 'Multi-Currency',
+      multi_company: 'Multi-Company',
+      white_label: 'White-Label',
+      support: 'Priority Support',
+    };
+    const result: string[] = [];
+    for (const [key, label] of Object.entries(labels)) {
+      const val = f[key];
+      if (val === true || val === 'full' || val === 'full_export' || val === 'full_custom') {
+        result.push(label);
+      }
+    }
+    return result;
+  } catch {
+    return [];
+  }
+}
+
+export function plansToTiers(plans: PlanDefinition[]): PricingTier[] {
+  return plans
+    .filter(p => p.isPublic && p.code !== 'FREE')
+    .sort((a, b) => a.sortOrder - b.sortOrder)
+    .map(p => {
+      const isEnterprise = p.code === 'ENTERPRISE';
+      const isBusiness = p.code === 'BUSINESS';
+      return {
+        name: p.label,
+        planCode: p.code,
+        monthlyPrice: p.monthlyPriceTzs > 0 ? `TZS ${p.monthlyPriceTzs.toLocaleString()}` : 'Free',
+        annualPrice: isEnterprise ? 'Custom' : p.annualPriceTzs ? `TZS ${p.annualPriceTzs.toLocaleString()}` : 'Custom',
+        period: '/month',
+        description: p.description || '',
+        features: [
+          `${p.maxStores >= 2147483647 ? 'Unlimited' : p.maxStores} Store${p.maxStores !== 1 ? 's' : ''}`,
+          `${p.maxUsers >= 2147483647 ? 'Unlimited' : p.maxUsers} Users`,
+          `${p.maxProducts >= 2147483647 ? 'Unlimited' : p.maxProducts.toLocaleString()} Products`,
+          'Inventory Management',
+          'Sales & Purchases',
+          ...parseFeatures(p.features),
+          isEnterprise ? 'SLA Support' : p.code === 'PROFESSIONAL' ? 'Priority Support' : 'Email Support',
+        ],
+        cta: isEnterprise ? 'Contact sales' : 'Start free trial',
+        ctaVariant: (isBusiness ? 'primary' : 'secondary') as 'primary' | 'secondary',
+        highlighted: isBusiness,
+      };
+    });
 }
 
 export const pricingTiers: PricingTier[] = [

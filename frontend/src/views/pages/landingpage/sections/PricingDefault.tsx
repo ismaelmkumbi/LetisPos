@@ -7,11 +7,13 @@ import { pricingTiers, PricingTier, BillingPeriod } from './pricingData';
 
 interface PricingDefaultProps {
   billing: BillingPeriod;
+  tiers?: PricingTier[];
 }
 
-const PricingDefault: React.FC<PricingDefaultProps> = ({ billing }) => {
+const PricingDefault: React.FC<PricingDefaultProps> = ({ billing, tiers }) => {
   const { openDemo } = useDemoDialog();
   const isAnnual = billing === 'annual';
+  const activeTiers = tiers ?? pricingTiers;
 
   const getPrice = (tier: PricingTier): string => {
     if (isAnnual && tier.annualPrice && tier.annualPrice !== 'Custom') {
@@ -42,7 +44,7 @@ const PricingDefault: React.FC<PricingDefaultProps> = ({ billing }) => {
 
   return (
     <Grid container spacing={3} alignItems="stretch">
-      {pricingTiers.map((tier) => (
+      {activeTiers.map((tier) => (
         <Grid key={tier.name} size={{ xs: 12, sm: 6, lg: 3 }}>
           <Box
             sx={{

@@ -32,6 +32,20 @@ public class SupportController {
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }
 
+    /**
+     * Public demo request — no auth required. Landing page visitors can
+     * submit their contact info to request a product demo.
+     */
+    @PostMapping("/demo-requests")
+    public ResponseEntity<SupportTicket> createDemoRequest(@RequestBody SupportTicket ticket) {
+        ticket.setTenantId(null); // no tenant yet — pre-signup
+        ticket.setSubject("Demo Request: " + (ticket.getSubject() != null ? ticket.getSubject() : "Landing page"));
+        ticket.setPriority("high");
+        ticket.setStatus("open");
+        SupportTicket saved = ticketRepository.save(ticket);
+        return ResponseEntity.status(HttpStatus.CREATED).body(saved);
+    }
+
     @GetMapping
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<SupportTicket>> list() {

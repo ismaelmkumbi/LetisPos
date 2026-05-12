@@ -37,6 +37,7 @@ public class SecurityConfig {
                                 "/actuator/**",
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
+                                "/api/v1/support/demo-requests",
                                 // Internal service-to-service endpoints are secured by
                                 // the X-Internal-Token header check inside each handler,
                                 // not by Spring Security — JWT filter is bypassed here.

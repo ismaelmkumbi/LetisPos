@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Box,
   Container,
@@ -6,12 +6,14 @@ import {
   Accordion,
   AccordionSummary,
   AccordionDetails,
+  CircularProgress,
 } from '@mui/material';
 import { IconCheck, IconPlus } from '@tabler/icons-react';
 import SectionWrapper from '../components/SectionWrapper';
 import PricingDefault from './PricingDefault';
 import PricingSpotlight from './PricingSpotlight';
-import { pricingFaqs, trustItems, BillingPeriod } from './pricingData';
+import { pricingFaqs, trustItems, BillingPeriod, pricingTiers, plansToTiers, type PricingTier } from './pricingData';
+import { listPlans } from 'src/api/smartpos/billing';
 
 export type PricingVariant = 'default' | 'spotlight';
 
@@ -21,7 +23,16 @@ export interface PricingProps {
 
 const Pricing: React.FC<PricingProps> = ({ variant = 'default' }) => {
   const [billing, setBilling] = useState<BillingPeriod>('monthly');
+  const [tiers, setTiers] = useState<PricingTier[]>(pricingTiers);
+  const [loading, setLoading] = useState(true);
   const isAnnual = billing === 'annual';
+
+  useEffect(() => {
+    listPlans()
+      .then(plans => { if (plans.length > 0) setTiers(plansToTiers(plans)); })
+      .catch(() => { /* keep hardcoded fallback */ })
+      .finally(() => setLoading(false));
+  }, []);
 
   const PricingCards = variant === 'spotlight' ? PricingSpotlight : PricingDefault;
 
@@ -157,7 +168,7 @@ const Pricing: React.FC<PricingProps> = ({ variant = 'default' }) => {
 
         {/* Pricing Cards — variant-specific */}
         <Box sx={{ mb: 6 }}>
-          <PricingCards billing={billing} />
+          <PricingCards billing={billing} tiers={tiers} />
         </Box>
 
         {/* Trust Bar */}

@@ -26,6 +26,17 @@ export async function createTicket(body: {
   return data;
 }
 
+/** Public — submit demo request from landing page (no auth required). */
+export async function createDemoRequest(body: {
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+}): Promise<SupportTicket> {
+  const { data } = await api.post<SupportTicket>('/api/v1/support/demo-requests', body);
+  return data;
+}
+
 export async function listTickets(): Promise<SupportTicket[]> {
   const { data } = await api.get<SupportTicket[]>('/api/v1/support/tickets');
   return data;

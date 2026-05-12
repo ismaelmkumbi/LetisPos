@@ -1,10 +1,11 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import {
   Dialog, DialogTitle, DialogContent, DialogActions,
-  TextField, Typography, Stack, Box, IconButton,
+  TextField, Typography, Stack, Box, IconButton, CircularProgress,
 } from '@mui/material';
 import { IconX, IconCheck } from '@tabler/icons-react';
 import CtaButton from './CtaButton';
+import { createDemoRequest } from 'src/api/smartpos/support';
 
 interface DemoDialogContextValue {
   openDemo: () => void;
@@ -21,6 +22,7 @@ export function useDemoDialog(): DemoDialogContextValue {
 export function DemoDialogProvider({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [sending, setSending] = useState(false);
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [company, setCompany] = useState('');
@@ -34,9 +36,23 @@ export function DemoDialogProvider({ children }: { children: React.ReactNode }) 
     setOpen(false);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitted(true);
+    setSending(true);
+    try {
+      await createDemoRequest({
+        name,
+        email,
+        subject: `Demo request from ${company || name}`,
+        message: `Company: ${company || 'N/A'}\nName: ${name}\nEmail: ${email}\n\nRequested a product demo from the landing page.`,
+      });
+      setSubmitted(true);
+    } catch {
+      // Still show success — don't block the user on API failure
+      setSubmitted(true);
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
@@ -175,8 +191,8 @@ export function DemoDialogProvider({ children }: { children: React.ReactNode }) 
                 <CtaButton variant="secondary" onClick={handleClose}>
                   Cancel
                 </CtaButton>
-                <CtaButton variant="primary" type="submit">
-                  Request demo
+                <CtaButton variant="primary" type="submit" disabled={sending}>
+                  {sending ? 'Sending…' : 'Request demo'}
                 </CtaButton>
               </DialogActions>
             </form>

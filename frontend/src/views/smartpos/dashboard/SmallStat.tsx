@@ -1,0 +1,64 @@
+import { Box, Stack, Typography } from '@mui/material';
+import { IconArrowUp } from '@tabler/icons-react';
+import { useContext } from 'react';
+import { CustomizerContext } from 'src/context/CustomizerContext';
+import { brand } from 'src/theme/smartpos/brand';
+import { muted, titleColor } from './utils';
+import type { SmallStatProps } from './types';
+
+export default function SmallStat({ label, value, tone, icon }: SmallStatProps) {
+  const { activeMode: _s } = useContext(CustomizerContext);
+  const isDark = _s === 'dark';
+  const map = {
+    success: { bg: brand.primary[50], color: brand.primary[600] },
+    warning: { bg: brand.warning.light, color: brand.warning.main },
+    error: { bg: brand.error.light, color: brand.error.main },
+    info: { bg: brand.info.light, color: brand.info.main },
+    purple: { bg: brand.purple.light, color: brand.purple.main },
+  };
+  const current = map[tone];
+  return (
+    <Box
+      sx={{
+        p: 1.5,
+        borderRadius: '10px',
+        border: `1px solid ${isDark ? brand.neutral[700] : brand.neutral[200]}`,
+        bgcolor: isDark ? brand.neutral[800] : '#fff',
+        minHeight: 100,
+      }}
+    >
+      <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+        <Typography sx={{ color: brand.neutral[600], fontSize: 12 }}>{label}</Typography>
+        <Box
+          sx={{
+            width: 38,
+            height: 38,
+            borderRadius: '10px',
+            bgcolor: current.bg,
+            color: current.color,
+            display: 'grid',
+            placeItems: 'center',
+          }}
+        >
+          {icon ?? <IconArrowUp size={18} />}
+        </Box>
+      </Stack>
+      <Typography sx={{ color: titleColor, fontWeight: 900, fontSize: 17, mt: 1 }}>
+        {value}
+      </Typography>
+      <Typography
+        sx={{
+          color: tone === 'error' ? brand.error.main : brand.primary[600],
+          fontSize: 12,
+          fontWeight: 800,
+          mt: 1,
+        }}
+      >
+        Live{' '}
+        <Box component="span" sx={{ color: muted(isDark), fontWeight: 500 }}>
+          selected period
+        </Box>
+      </Typography>
+    </Box>
+  );
+}
