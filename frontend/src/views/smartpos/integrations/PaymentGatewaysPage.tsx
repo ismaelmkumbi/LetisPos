@@ -2,7 +2,7 @@
  * Payment Gateways — configure mobile money and card payment processors.
  */
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router';
 import {
   Alert,
   Box,

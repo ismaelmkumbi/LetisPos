@@ -79,7 +79,7 @@ export default function StoreCreditPage() {
         setTotalPages(txPage.totalPages || 1);
         setBalance(bal);
       })
-      .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load'))
+      .catch((e) => setError(e instanceof Error ? (e as Error).message : 'Failed to load'))
       .finally(() => {
         setLoading(false);
       });
@@ -109,7 +109,7 @@ export default function StoreCreditPage() {
       setTotalPages(txPage.totalPages || 1);
       setBalance(bal);
     } catch (e: unknown) {
-      setAddError(e instanceof Error ? e.message : 'Add credit failed');
+      setAddError(e instanceof Error ? (e as Error).message : 'Add credit failed');
     } finally {
       setAdding(false);
     }
@@ -138,7 +138,7 @@ export default function StoreCreditPage() {
       setTotalPages(txPage.totalPages || 1);
       setBalance(bal);
     } catch (e: unknown) {
-      setRedeemError(e instanceof Error ? e.message : 'Redeem failed');
+      setRedeemError(e instanceof Error ? (e as Error).message : 'Redeem failed');
     } finally {
       setRedeeming(false);
     }

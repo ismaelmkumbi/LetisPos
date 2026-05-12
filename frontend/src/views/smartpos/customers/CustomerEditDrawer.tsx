@@ -87,7 +87,7 @@ export default function CustomerEditDrawer({ open, initial, onClose, onSaved }: 
       onSaved(saved);
       onClose();
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Save failed');
+      setError(e instanceof Error ? (e as Error).message : 'Save failed');
     } finally {
       setSubmitting(false);
     }

@@ -2,20 +2,15 @@ package io.smartpos.ai.application;
 
 import io.smartpos.ai.api.dto.AiAnalyticsDtos;
 import io.smartpos.ai.infrastructure.feign.SalesFeign;
-import io.smartpos.common.context.TenantContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.temporal.WeekFields;
 import java.util.*;
-import java.util.stream.Collectors;
-
-import static java.time.temporal.ChronoUnit.DAYS;
 
 /**
  * Demand Forecasting using simple moving average.

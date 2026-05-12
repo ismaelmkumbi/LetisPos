@@ -155,7 +155,7 @@ export default function SaleBuilderPage() {
           });
         }
       })
-      .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load sale'))
+      .catch((e) => setError(e instanceof Error ? (e as Error).message : 'Failed to load sale'))
       .finally(() => setLoading(false));
   }, [id, warehouseId, warehouses]);
 
@@ -222,7 +222,7 @@ export default function SaleBuilderPage() {
       setBanner(`Sale ${sale.ref} cancelled`);
       setTimeout(() => nav(`/smartpos/sales`), 900);
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Cancel failed');
+      setError(e instanceof Error ? (e as Error).message : 'Cancel failed');
     }
   };
 

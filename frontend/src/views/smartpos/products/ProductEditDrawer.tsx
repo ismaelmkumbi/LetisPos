@@ -378,7 +378,7 @@ export default function ProductEditDrawer({ open, initial, onClose, onSaved, onD
       setOpenSections((s) => ({ ...s, pricing: true, basic: true }));
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } }; message?: string };
-      setAiError(e.response?.data?.message ?? e.message ?? 'Suggestion request failed');
+      setAiError((e as { response?: { data?: { message?: string } }; message?: string }).response?.data?.message ?? (e as Error).message ?? 'Suggestion request failed');
     } finally {
       setAiSuggesting(false);
     }
@@ -407,7 +407,7 @@ export default function ProductEditDrawer({ open, initial, onClose, onSaved, onD
       setOpenSections((s) => ({ ...s, pricing: true, basic: true, inventory: true, warranty: true }));
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } }; message?: string };
-      setAiError(e.response?.data?.message ?? e.message ?? 'Suggestion request failed');
+      setAiError((e as { response?: { data?: { message?: string } }; message?: string }).response?.data?.message ?? (e as Error).message ?? 'Suggestion request failed');
     } finally {
       setAiSuggesting(false);
     }
@@ -513,7 +513,7 @@ export default function ProductEditDrawer({ open, initial, onClose, onSaved, onD
       }
       setQuickAdd(emptyQuickAdd);
     } catch (e) {
-      setQuickAddError(e instanceof Error ? e.message : 'Quick-add failed');
+      setQuickAddError(e instanceof Error ? (e as Error).message : 'Quick-add failed');
     } finally {
       setQuickAddSubmitting(false);
     }
@@ -553,7 +553,7 @@ export default function ProductEditDrawer({ open, initial, onClose, onSaved, onD
       onSaved(saved);
       onClose();
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Save failed');
+      setError(e instanceof Error ? (e as Error).message : 'Save failed');
     } finally {
       setSubmitting(false);
     }

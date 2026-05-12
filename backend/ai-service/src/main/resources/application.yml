@@ -37,6 +37,7 @@ smartpos:
   internal:
     shared-secret: ${SMARTPOS_INTERNAL_SHARED_SECRET:dev-internal-token-change-me}
   ai:
+    sales-service-url: ${SALES_SERVICE_URL:http://localhost:8085}
     # Active provider — one of: anthropic | openai | deepseek | stub
     provider: ${AI_PROVIDER:stub}
     anthropic:

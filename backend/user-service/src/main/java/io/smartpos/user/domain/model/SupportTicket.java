@@ -1,4 +1,4 @@
-package package io.smartpos.user.domain.model;
+package io.smartpos.user.domain.model;
 
 import jakarta.persistence.*;
 import lombok.*;

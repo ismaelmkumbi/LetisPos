@@ -94,7 +94,7 @@ export default function CustomersListPage() {
         creditMax: creditMax !== '' ? creditMax : undefined,
       })
         .then((p) => { if (!cancelled) { setRows(p.content); setTotalPages(p.totalPages || 1); } })
-        .catch((e) => { if (!cancelled) setError(e instanceof Error ? e.message : 'Failed to load'); })
+        .catch((e) => { if (!cancelled) setError(e instanceof Error ? (e as Error).message : 'Failed to load'); })
         .finally(() => { if (!cancelled) setLoading(false); });
     }, 300);
     return () => { cancelled = true; clearTimeout(timeout); };
@@ -118,7 +118,7 @@ export default function CustomersListPage() {
       setDeleteTarget(null);
       setRefreshToken((n) => n + 1);
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Delete failed');
+      setError(e instanceof Error ? (e as Error).message : 'Delete failed');
     } finally {
       setDeleting(false);
     }

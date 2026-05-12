@@ -53,7 +53,7 @@ export default function GiftCardsPage() {
     setLoading(true);
     listGiftCards(page, 50)
       .then((p) => { setRows(p.content); setTotalPages(p.totalPages || 1); })
-      .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load'))
+      .catch((e) => setError(e instanceof Error ? (e as Error).message : 'Failed to load'))
       .finally(() => setLoading(false));
   }, [page, refreshToken]);
 
@@ -69,7 +69,7 @@ export default function GiftCardsPage() {
       setIssuedCard(card);
       setRefreshToken((n) => n + 1);
     } catch (e: unknown) {
-      setIssueError(e instanceof Error ? e.message : 'Issue failed');
+      setIssueError(e instanceof Error ? (e as Error).message : 'Issue failed');
     } finally {
       setIssuing(false);
     }
@@ -98,7 +98,7 @@ export default function GiftCardsPage() {
       setRedeemOpen(false);
       setRefreshToken((n) => n + 1);
     } catch (e: unknown) {
-      setRedeemError(e instanceof Error ? e.message : 'Redeem failed');
+      setRedeemError(e instanceof Error ? (e as Error).message : 'Redeem failed');
     } finally {
       setRedeeming(false);
     }

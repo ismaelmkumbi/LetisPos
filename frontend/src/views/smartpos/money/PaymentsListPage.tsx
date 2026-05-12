@@ -110,7 +110,7 @@ export default function PaymentsListPage() {
         }
       })
       .catch((e) => {
-        if (!cancelled) setError(e instanceof Error ? e.message : 'Failed to load');
+        if (!cancelled) setError(e instanceof Error ? (e as Error).message : 'Failed to load');
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -206,7 +206,7 @@ export default function PaymentsListPage() {
       setDialogOpen(false);
       refresh();
     } catch (e: unknown) {
-      setFormError(e instanceof Error ? e.message : 'Failed');
+      setFormError(e instanceof Error ? (e as Error).message : 'Failed');
     } finally {
       setSaving(false);
     }

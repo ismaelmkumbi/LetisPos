@@ -94,7 +94,7 @@ export default function ExpensesListPage() {
         }
       })
       .catch((e) => {
-        if (!cancelled) setError(e instanceof Error ? e.message : 'Failed to load');
+        if (!cancelled) setError(e instanceof Error ? (e as Error).message : 'Failed to load');
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -221,7 +221,7 @@ export default function ExpensesListPage() {
       setDialogOpen(false);
       refresh();
     } catch (e: unknown) {
-      setFormError(e instanceof Error ? e.message : 'Save failed');
+      setFormError(e instanceof Error ? (e as Error).message : 'Save failed');
     } finally {
       setSaving(false);
     }

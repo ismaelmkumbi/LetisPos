@@ -98,7 +98,7 @@ export default function CashManagementPage() {
         }
       })
       .catch((e) => {
-        if (!cancelled) setError(e instanceof Error ? e.message : 'Failed to load');
+        if (!cancelled) setError(e instanceof Error ? (e as Error).message : 'Failed to load');
       })
       .finally(() => {
         if (!cancelled) {
@@ -137,7 +137,7 @@ export default function CashManagementPage() {
       setOpenDialogOpen(false);
       refresh();
     } catch (e: unknown) {
-      setOpenError(e instanceof Error ? e.message : 'Failed to open register');
+      setOpenError(e instanceof Error ? (e as Error).message : 'Failed to open register');
     } finally {
       setOpening(false);
     }
@@ -162,7 +162,7 @@ export default function CashManagementPage() {
       setCloseDialogOpen(false);
       refresh();
     } catch (e: unknown) {
-      setCloseError(e instanceof Error ? e.message : 'Failed to close register');
+      setCloseError(e instanceof Error ? (e as Error).message : 'Failed to close register');
     } finally {
       setClosing(false);
     }

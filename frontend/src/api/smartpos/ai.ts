@@ -92,3 +92,71 @@ export async function aiGetRecommendations(reportKind: string, factsJson: string
   });
   return data;
 }
+
+// ── AI Analytics: Forecasting ────────────────────────────────────────────────
+
+export interface ForecastItem {
+  productId: string;
+  productName: string;
+  productCode: string;
+  currentStock: number;
+  projectedDemand: number;
+  confidence: number;
+  trend: string; // UP | DOWN | STABLE
+  weeksOfData: number;
+  weeklyDemandHistory: number[];
+}
+
+export async function getForecasting(): Promise<ForecastItem[]> {
+  const { data } = await api.get<ForecastItem[]>('/api/v1/ai/forecasting');
+  return data;
+}
+
+// ── AI Analytics: Customer Analytics ─────────────────────────────────────────
+
+export interface CustomerSegment {
+  label: string;
+  count: number;
+  percentage: number;
+  color: string;
+}
+
+export interface TopCustomer {
+  id: string;
+  name: string;
+  totalSpent: number;
+  visits: number;
+  lastPurchase: string;
+  segment: string;
+}
+
+export interface CustomerAnalytics {
+  totalCustomers: number;
+  repeatRate: number;
+  avgOrderValue: number;
+  churnRisk: number;
+  segments: CustomerSegment[];
+  topCustomers: TopCustomer[];
+}
+
+export async function getCustomerAnalytics(): Promise<CustomerAnalytics> {
+  const { data } = await api.get<CustomerAnalytics>('/api/v1/ai/customer-analytics');
+  return data;
+}
+
+// ── AI Analytics: Fraud Detection ────────────────────────────────────────────
+
+export interface FlaggedTransaction {
+  transactionId: string;
+  amount: number;
+  type: string;
+  riskScore: number;
+  reasons: string[];
+  detectedAt: string;
+  status: string;
+}
+
+export async function getFraudAlerts(): Promise<FlaggedTransaction[]> {
+  const { data } = await api.get<FlaggedTransaction[]>('/api/v1/ai/fraud-detection');
+  return data;
+}

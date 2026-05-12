@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Box,
@@ -30,34 +30,41 @@ import {
 import { PageHeader } from 'src/components/smartpos/PageHeader';
 import DataTable, { type Column } from 'src/components/smartpos/DataTable';
 import { brand } from 'src/theme/smartpos/brand';
+import { listBackups, createBackup, restoreBackup, type Backup } from 'src/api/smartpos/audit';
 
 interface BackupRecord {
   id: string;
   name: string;
   sizeMB: number;
-  type: 'Full' | 'Incremental';
-  status: 'Completed' | 'In Progress' | 'Failed';
+  type: string;
+  status: string;
   createdAt: string;
 }
 
-const MOCK_BACKUPS: BackupRecord[] = [
-  { id: '1', name: 'daily-backup-2026-05-12', sizeMB: 245.3, type: 'Full', status: 'Completed', createdAt: '2026-05-12T02:00:00Z' },
-  { id: '2', name: 'daily-backup-2026-05-11', sizeMB: 238.7, type: 'Full', status: 'Completed', createdAt: '2026-05-11T02:00:00Z' },
-  { id: '3', name: 'incremental-2026-05-12-12', sizeMB: 12.4, type: 'Incremental', status: 'Completed', createdAt: '2026-05-12T12:00:00Z' },
-  { id: '4', name: 'incremental-2026-05-12-06', sizeMB: 8.9, type: 'Incremental', status: 'Completed', createdAt: '2026-05-12T06:00:00Z' },
-  { id: '5', name: 'daily-backup-2026-05-10', sizeMB: 232.1, type: 'Full', status: 'Completed', createdAt: '2026-05-10T02:00:00Z' },
-  { id: '6', name: 'pre-upgrade-2026-05-09', sizeMB: 250.0, type: 'Full', status: 'Completed', createdAt: '2026-05-09T14:30:00Z' },
-  { id: '7', name: 'incremental-2026-05-09-18', sizeMB: 15.2, type: 'Incremental', status: 'Completed', createdAt: '2026-05-09T18:00:00Z' },
-  { id: '8', name: 'manual-2026-05-08', sizeMB: 228.5, type: 'Full', status: 'Completed', createdAt: '2026-05-08T10:15:00Z' },
-];
+function mapApiToRecord(b: Backup): BackupRecord {
+  return {
+    id: b.id,
+    name: b.name,
+    sizeMB: b.sizeBytes ? b.sizeBytes / 1_000_000 : 0,
+    type: b.type === 'full' ? 'Full' : b.type === 'incremental' ? 'Incremental' : b.type,
+    status:
+      b.status === 'completed' ? 'Completed'
+      : b.status === 'in_progress' ? 'In Progress'
+      : b.status === 'failed' ? 'Failed'
+      : b.status === 'pending' ? 'Pending'
+      : b.status,
+    createdAt: b.createdAt,
+  };
+}
 
-const STATUS_STYLES: Record<BackupRecord['status'], { bg: string; color: string }> = {
+const STATUS_STYLES: Record<string, { bg: string; color: string }> = {
   Completed: { bg: brand.success.light, color: brand.success.dark },
   'In Progress': { bg: brand.info.light, color: brand.info.dark },
   Failed: { bg: brand.error.light, color: brand.error.dark },
+  Pending: { bg: brand.warning.light, color: brand.warning.dark },
 };
 
-const TYPE_STYLES: Record<BackupRecord['type'], { bg: string; color: string }> = {
+const TYPE_STYLES: Record<string, { bg: string; color: string }> = {
   Full: { bg: brand.primary[50], color: brand.primary[700] },
   Incremental: { bg: brand.purple.light, color: brand.purple.dark },
 };
@@ -81,20 +88,20 @@ const actionBtnSx = {
 
 interface CreateForm {
   name: string;
-  type: 'Full' | 'Incremental';
+  type: string;
   notes: string;
 }
 
 const emptyCreateForm = (): CreateForm => ({
   name: `backup-${new Date().toISOString().slice(0, 10)}`,
-  type: 'Full',
+  type: 'full',
   notes: '',
 });
 
 export default function BackupsPage() {
-  const [rows, setRows] = useState<BackupRecord[]>(MOCK_BACKUPS);
-  const [loading] = useState(false);
-  const [error] = useState<string | null>(null);
+  const [rows, setRows] = useState<BackupRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const [createOpen, setCreateOpen] = useState(false);
   const [createForm, setCreateForm] = useState<CreateForm>(emptyCreateForm());
@@ -106,33 +113,56 @@ export default function BackupsPage() {
   const [rowMenu, setRowMenu] = useState<{ anchor: HTMLElement; row: BackupRecord } | null>(null);
   const closeRowMenu = useCallback(() => setRowMenu(null), []);
 
+  const fetchBackups = useCallback(() => {
+    setLoading(true);
+    listBackups()
+      .then((data) => {
+        setRows(data.map(mapApiToRecord));
+        setError(null);
+      })
+      .catch(() => setError('Failed to load backups'))
+      .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    fetchBackups();
+  }, [fetchBackups]);
+
   const patch = <K extends keyof CreateForm>(k: K, v: CreateForm[K]) =>
     setCreateForm((f) => ({ ...f, [k]: v }));
 
   const handleCreate = async () => {
     if (!createForm.name.trim()) return;
     setCreating(true);
-    await new Promise((r) => setTimeout(r, 1500));
-    const newBackup: BackupRecord = {
-      id: String(Date.now()),
-      name: createForm.name.trim(),
-      sizeMB: Math.round(Math.random() * 200 + 50),
-      type: createForm.type,
-      status: 'Completed',
-      createdAt: new Date().toISOString(),
-    };
-    setRows((prev) => [newBackup, ...prev]);
-    setCreating(false);
-    setCreateOpen(false);
-    setCreateForm(emptyCreateForm());
+    try {
+      await createBackup({
+        name: createForm.name.trim(),
+        type: createForm.type,
+        createdBy: createForm.notes || undefined,
+      });
+      setCreateOpen(false);
+      setCreateForm(emptyCreateForm());
+      // Poll for status updates (async backup processing)
+      setTimeout(() => fetchBackups(), 1000);
+      setTimeout(() => fetchBackups(), 3000);
+    } catch {
+      setError('Failed to create backup');
+    } finally {
+      setCreating(false);
+    }
   };
 
   const handleRestore = async () => {
     if (!restoreTarget) return;
     setRestoring(true);
-    await new Promise((r) => setTimeout(r, 2000));
-    setRestoring(false);
-    setRestoreTarget(null);
+    try {
+      await restoreBackup(restoreTarget.id);
+    } catch {
+      setError('Failed to restore backup');
+    } finally {
+      setRestoring(false);
+      setRestoreTarget(null);
+    }
   };
 
   const handleDownload = (_backup: BackupRecord) => {
@@ -191,7 +221,7 @@ export default function BackupsPage() {
               fontFamily: 'monospace',
             }}
           >
-            {b.sizeMB.toFixed(1)} MB
+            {b.sizeMB > 0 ? `${b.sizeMB.toFixed(1)} MB` : '--'}
           </Typography>
         ),
       },
@@ -203,7 +233,7 @@ export default function BackupsPage() {
         width: 120,
         exportValue: (b) => b.type,
         render: (b) => {
-          const s = TYPE_STYLES[b.type];
+          const s = TYPE_STYLES[b.type] ?? TYPE_STYLES.Full;
           return (
             <Chip
               label={b.type}
@@ -230,7 +260,7 @@ export default function BackupsPage() {
         width: 120,
         exportValue: (b) => b.status,
         render: (b) => {
-          const s = STATUS_STYLES[b.status];
+          const s = STATUS_STYLES[b.status] ?? STATUS_STYLES.Completed;
           return (
             <Chip
               label={b.status}
@@ -312,7 +342,7 @@ export default function BackupsPage() {
       </Alert>
 
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
+        <Alert severity="error" sx={{ mb: 2, borderRadius: '10px' }}>
           {error}
         </Alert>
       )}
@@ -407,10 +437,10 @@ export default function BackupsPage() {
               <Select
                 value={createForm.type}
                 label="Type"
-                onChange={(e) => patch('type', e.target.value as 'Full' | 'Incremental')}
+                onChange={(e) => patch('type', e.target.value)}
               >
-                <MenuItem value="Full">Full Backup</MenuItem>
-                <MenuItem value="Incremental">Incremental Backup</MenuItem>
+                <MenuItem value="full">Full Backup</MenuItem>
+                <MenuItem value="incremental">Incremental Backup</MenuItem>
               </Select>
             </FormControl>
             <TextField

@@ -1,4 +1,4 @@
-package package io.smartpos.audit.domain.model;
+package io.smartpos.audit.domain.model;
 
 import jakarta.persistence.*;
 import lombok.*;

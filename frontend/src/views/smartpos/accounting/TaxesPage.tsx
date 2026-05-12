@@ -84,7 +84,7 @@ export default function TaxesPage() {
         }
       })
       .catch((e) => {
-        if (!cancelled) setError(e instanceof Error ? e.message : 'Failed to load tax data');
+        if (!cancelled) setError(e instanceof Error ? (e as Error).message : 'Failed to load tax data');
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -150,7 +150,7 @@ export default function TaxesPage() {
       setDialogOpen(false);
       refresh();
     } catch (e: unknown) {
-      setFormError(e instanceof Error ? e.message : 'Save failed');
+      setFormError(e instanceof Error ? (e as Error).message : 'Save failed');
     } finally {
       setSaving(false);
     }

@@ -181,7 +181,7 @@ export default function PurchaseBuilderPage() {
           });
         }
       })
-      .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load purchase'))
+      .catch((e) => setError(e instanceof Error ? (e as Error).message : 'Failed to load purchase'))
       .finally(() => {
         setLoading(false);
         setFormDirty(false);
@@ -239,7 +239,7 @@ export default function PurchaseBuilderPage() {
       setFormDirty(false);
       setTimeout(() => nav('/smartpos/purchases'), 900);
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Save failed');
+      setError(e instanceof Error ? (e as Error).message : 'Save failed');
     } finally {
       setSubmitting(false);
     }
@@ -262,7 +262,7 @@ export default function PurchaseBuilderPage() {
       setPayAmount(0);
       setPayNotes('');
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Payment failed');
+      setError(e instanceof Error ? (e as Error).message : 'Payment failed');
     } finally {
       setPaying(false);
     }
@@ -283,7 +283,7 @@ export default function PurchaseBuilderPage() {
       setBanner('Purchase cancelled.');
       setTimeout(() => nav('/smartpos/purchases'), 900);
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Cancel failed');
+      setError(e instanceof Error ? (e as Error).message : 'Cancel failed');
     } finally {
       setSubmitting(false);
     }

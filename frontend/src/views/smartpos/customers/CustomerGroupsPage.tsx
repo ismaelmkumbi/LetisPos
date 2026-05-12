@@ -39,7 +39,7 @@ export default function CustomerGroupsPage() {
     setLoading(true);
     listCustomerGroups(page, 50)
       .then((p: Page<CustomerGroup>) => { setRows(p.content); setTotalPages(p.totalPages || 1); })
-      .catch((e: unknown) => setError(e instanceof Error ? e.message : 'Failed to load'))
+      .catch((e: unknown) => setError(e instanceof Error ? (e as Error).message : 'Failed to load'))
       .finally(() => setLoading(false));
   }, [page, refreshToken]);
 
@@ -70,7 +70,7 @@ export default function CustomerGroupsPage() {
       setDialogOpen(false);
       setRefreshToken((n) => n + 1);
     } catch (e: unknown) {
-      setFormError(e instanceof Error ? e.message : 'Save failed');
+      setFormError(e instanceof Error ? (e as Error).message : 'Save failed');
     } finally {
       setSubmitting(false);
     }
@@ -84,7 +84,7 @@ export default function CustomerGroupsPage() {
       setDeleteTarget(null);
       setRefreshToken((n) => n + 1);
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Delete failed');
+      setError(e instanceof Error ? (e as Error).message : 'Delete failed');
     } finally {
       setDeleting(false);
     }

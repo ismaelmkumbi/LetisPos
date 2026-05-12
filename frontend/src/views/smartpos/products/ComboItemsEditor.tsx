@@ -54,7 +54,7 @@ export default function ComboItemsEditor({ productId }: ComboItemsEditorProps) {
           position: i.position,
         })));
       })
-      .catch((e) => !cancelled && setError(e instanceof Error ? e.message : 'Failed to load'))
+      .catch((e) => !cancelled && setError(e instanceof Error ? (e as Error).message : 'Failed to load'))
       .finally(() => !cancelled && setLoading(false));
     return () => { cancelled = true; };
   }, [productId]);
@@ -106,7 +106,7 @@ export default function ComboItemsEditor({ productId }: ComboItemsEditorProps) {
       await replaceComboItems(productId, body);
       setInfo('Combo composition saved.');
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Save failed');
+      setError(e instanceof Error ? (e as Error).message : 'Save failed');
     } finally {
       setSaving(false);
     }

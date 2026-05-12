@@ -1,8 +1,8 @@
 /**
  * Demand Forecasting — AI-powered sales predictions for inventory planning.
- * Shows mock forecast cards with predicted demand, confidence, and trend indicators.
+ * Uses real forecasting API backed by ai-service.
  */
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   Alert,
   Box,
@@ -17,31 +17,14 @@ import {
 import {
   IconArrowUpRight,
   IconArrowDownRight,
+  IconMinus,
   IconBrain,
   IconRefresh,
 } from '@tabler/icons-react';
 
 import PageHeader from 'src/components/smartpos/PageHeader';
 import { brand } from 'src/theme/smartpos/brand';
-
-interface ForecastItem {
-  product: string;
-  sku: string;
-  predictedDemand: number;
-  confidence: number;
-  trend: 'up' | 'down';
-  trendPct: number;
-  currentStock: number;
-  suggestedReorder: number;
-}
-
-const MOCK_FORECASTS: ForecastItem[] = [
-  { product: 'Fresh Milk 1L', sku: 'MILK-001', predictedDemand: 480, confidence: 94, trend: 'up', trendPct: 12, currentStock: 120, suggestedReorder: 360 },
-  { product: 'Wheat Flour 2kg', sku: 'FLR-002', predictedDemand: 350, confidence: 91, trend: 'up', trendPct: 8, currentStock: 200, suggestedReorder: 150 },
-  { product: 'Cooking Oil 5L', sku: 'OIL-003', predictedDemand: 220, confidence: 88, trend: 'down', trendPct: 5, currentStock: 310, suggestedReorder: 0 },
-  { product: 'Sugar 1kg', sku: 'SUG-004', predictedDemand: 600, confidence: 96, trend: 'up', trendPct: 15, currentStock: 80, suggestedReorder: 520 },
-  { product: 'Rice 5kg', sku: 'RIC-005', predictedDemand: 410, confidence: 90, trend: 'down', trendPct: 3, currentStock: 450, suggestedReorder: 0 },
-];
+import { getForecasting, type ForecastItem } from 'src/api/smartpos/ai';
 
 export default function DemandForecastingPage() {
   const [forecasts, setForecasts] = useState<ForecastItem[]>([]);
@@ -49,24 +32,25 @@ export default function DemandForecastingPage() {
   const [error, setError] = useState<string | null>(null);
   const [generated, setGenerated] = useState(false);
 
-  const handleGenerate = () => {
+  const loadForecast = useCallback(async () => {
     setLoading(true);
     setError(null);
-    // Simulate API call
-    setTimeout(() => {
-      // Randomize mock data slightly on each generate
-      const updated = MOCK_FORECASTS.map((f) => ({
-        ...f,
-        predictedDemand: f.predictedDemand + Math.floor(Math.random() * 40 - 20),
-        confidence: Math.min(99, Math.max(80, f.confidence + Math.floor(Math.random() * 6 - 3))),
-      }));
-      setForecasts(updated);
+    try {
+      const data = await getForecasting();
+      setForecasts(data);
       setGenerated(true);
+    } catch (e: any) {
+      const msg = e?.response?.data?.message || e?.message || 'Failed to load forecast';
+      setError(msg);
+    } finally {
       setLoading(false);
-    }, 1200);
-  };
+    }
+  }, []);
 
-  const maxDemand = forecasts.length > 0 ? Math.max(...forecasts.map((f) => f.predictedDemand), 1) : 1;
+  // Auto-load on first render
+  useEffect(() => { loadForecast(); }, [loadForecast]);
+
+  const maxDemand = forecasts.length > 0 ? Math.max(...forecasts.map((f) => f.projectedDemand), 1) : 1;
 
   return (
     <>
@@ -74,9 +58,9 @@ export default function DemandForecastingPage() {
         title="Demand Forecasting"
         subtitle="AI-powered sales predictions for inventory planning"
         action={{
-          label: loading ? 'Generating…' : 'Generate Forecast',
+          label: loading ? 'Loading…' : 'Generate Forecast',
           icon: loading ? <CircularProgress size={14} color="inherit" /> : <IconBrain size={16} />,
-          onClick: handleGenerate,
+          onClick: loadForecast,
           variant: 'accent',
         }}
       />
@@ -103,7 +87,7 @@ export default function DemandForecastingPage() {
       {/* Error state */}
       {error && (
         <Alert severity="error" sx={{ mb: 2 }} action={
-          <Button size="small" onClick={handleGenerate} startIcon={<IconRefresh size={14} />}>Retry</Button>
+          <Button size="small" onClick={loadForecast} startIcon={<IconRefresh size={14} />}>Retry</Button>
         }>
           {error}
         </Alert>
@@ -145,7 +129,7 @@ export default function DemandForecastingPage() {
           <Button
             variant="contained"
             startIcon={<IconBrain size={16} />}
-            onClick={handleGenerate}
+            onClick={loadForecast}
             sx={{
               bgcolor: brand.accent[500],
               '&:hover': { bgcolor: brand.accent[600] },
@@ -190,7 +174,7 @@ export default function DemandForecastingPage() {
           {/* Forecast cards grid */}
           <Grid container spacing={2}>
             {forecasts.map((f) => (
-              <Grid size={{ xs: 12, sm: 6, lg: 4 }} key={f.sku}>
+              <Grid size={{ xs: 12, sm: 6, lg: 4 }} key={f.productId}>
                 <Card
                   elevation={0}
                   sx={{
@@ -206,10 +190,10 @@ export default function DemandForecastingPage() {
                     <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
                       <Box>
                         <Typography variant="subtitle2" sx={{ fontWeight: 700, color: brand.neutral[900], lineHeight: 1.3 }}>
-                          {f.product}
+                          {f.productName}
                         </Typography>
                         <Typography variant="caption" sx={{ color: brand.neutral[500], fontWeight: 500 }}>
-                          {f.sku}
+                          {f.productCode}
                         </Typography>
                       </Box>
                       <Chip
@@ -229,10 +213,10 @@ export default function DemandForecastingPage() {
                     <Stack direction="row" spacing={2} alignItems="center">
                       <Box sx={{ flex: 1 }}>
                         <Typography variant="caption" sx={{ color: brand.neutral[500], fontWeight: 500, display: 'block', mb: 0.5 }}>
-                          Predicted Demand
+                          Projected Demand
                         </Typography>
                         <Typography variant="h5" sx={{ fontWeight: 800, color: brand.neutral[900], lineHeight: 1.2 }}>
-                          {f.predictedDemand.toLocaleString()}
+                          {f.projectedDemand.toLocaleString()}
                           <Typography component="span" variant="caption" sx={{ fontWeight: 500, color: brand.neutral[400], ml: 0.5 }}>
                             units
                           </Typography>
@@ -240,20 +224,22 @@ export default function DemandForecastingPage() {
                       </Box>
 
                       <Stack direction="row" alignItems="center" spacing={0.25}>
-                        {f.trend === 'up' ? (
+                        {f.trend === 'UP' ? (
                           <IconArrowUpRight size={16} color={brand.success.main} stroke={2.5} />
-                        ) : (
+                        ) : f.trend === 'DOWN' ? (
                           <IconArrowDownRight size={16} color={brand.error.main} stroke={2.5} />
+                        ) : (
+                          <IconMinus size={16} color={brand.neutral[400]} stroke={2.5} />
                         )}
                         <Typography
                           variant="caption"
                           sx={{
                             fontWeight: 700,
-                            color: f.trend === 'up' ? brand.success.dark : brand.error.dark,
+                            color: f.trend === 'UP' ? brand.success.dark : f.trend === 'DOWN' ? brand.error.dark : brand.neutral[500],
                             fontSize: '0.75rem',
                           }}
                         >
-                          {f.trendPct}%
+                          {f.trend}
                         </Typography>
                       </Stack>
                     </Stack>
@@ -271,7 +257,7 @@ export default function DemandForecastingPage() {
                         <Box
                           sx={{
                             height: '100%',
-                            width: `${Math.round((f.predictedDemand / maxDemand) * 100)}%`,
+                            width: `${Math.round((f.projectedDemand / maxDemand) * 100)}%`,
                             borderRadius: '4px',
                             background: `linear-gradient(90deg, ${brand.primary[400]}, ${brand.primary[600]})`,
                             transition: 'width 0.6s ease',
@@ -284,9 +270,9 @@ export default function DemandForecastingPage() {
                       <Typography variant="caption" sx={{ color: brand.neutral[500], fontWeight: 500 }}>
                         Stock: <strong style={{ color: brand.neutral[700] }}>{f.currentStock}</strong>
                       </Typography>
-                      {f.suggestedReorder > 0 && (
-                        <Typography variant="caption" sx={{ color: brand.warning.dark, fontWeight: 700 }}>
-                          Reorder {f.suggestedReorder} units
+                      {f.weeksOfData > 0 && (
+                        <Typography variant="caption" sx={{ color: brand.neutral[400], fontWeight: 500 }}>
+                          {f.weeksOfData} weeks of data
                         </Typography>
                       )}
                     </Stack>
@@ -301,7 +287,7 @@ export default function DemandForecastingPage() {
             <Button
               variant="outlined"
               startIcon={loading ? <CircularProgress size={14} /> : <IconRefresh size={16} />}
-              onClick={handleGenerate}
+              onClick={loadForecast}
               disabled={loading}
               sx={{
                 borderColor: brand.neutral[300],

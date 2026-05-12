@@ -1,8 +1,8 @@
 /**
  * Fraud Detection — AI-powered anomaly detection for suspicious transactions.
- * Shows flag stats, alert table with risk scores, and review actions.
+ * Uses real fraud detection API backed by ai-service.
  */
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   Alert,
   Box,
@@ -27,34 +27,13 @@ import { DataTable, StatusBadge, type Column } from 'src/components/smartpos/Dat
 import { MetricCard } from 'src/components/smartpos/MetricCard';
 import PageHeader from 'src/components/smartpos/PageHeader';
 import { brand } from 'src/theme/smartpos/brand';
-
-interface FraudAlert {
-  id: string;
-  transactionId: string;
-  amount: number;
-  type: 'Void' | 'Refund' | 'Discount' | 'After Hours' | 'Unusual Amount';
-  riskScore: number;
-  detectedAt: string;
-  status: 'pending' | 'reviewed' | 'dismissed';
-  note?: string;
-}
+import { getFraudAlerts, type FlaggedTransaction as FraudAlert } from 'src/api/smartpos/ai';
 
 const STATUS_TONES: Record<string, 'warning' | 'success' | 'neutral'> = {
   pending: 'warning',
   reviewed: 'success',
   dismissed: 'neutral',
 };
-
-const MOCK_ALERTS: FraudAlert[] = [
-  { id: '1', transactionId: 'TXN-20260511-00432', amount: 450000, type: 'Refund', riskScore: 92, detectedAt: '2026-05-11 14:23', status: 'pending' },
-  { id: '2', transactionId: 'TXN-20260511-00218', amount: 15000, type: 'Void', riskScore: 88, detectedAt: '2026-05-11 11:05', status: 'pending' },
-  { id: '3', transactionId: 'TXN-20260510-00891', amount: 320000, type: 'After Hours', riskScore: 75, detectedAt: '2026-05-10 23:45', status: 'reviewed', note: 'Legitimate late sale confirmed' },
-  { id: '4', transactionId: 'TXN-20260510-00654', amount: 85000, type: 'Discount', riskScore: 82, detectedAt: '2026-05-10 16:12', status: 'pending' },
-  { id: '5', transactionId: 'TXN-20260509-01234', amount: 1200000, type: 'Unusual Amount', riskScore: 95, detectedAt: '2026-05-09 09:30', status: 'reviewed', note: 'Bulk B2B order — approved' },
-  { id: '6', transactionId: 'TXN-20260509-00321', amount: 5000, type: 'Void', riskScore: 45, detectedAt: '2026-05-09 08:15', status: 'dismissed' },
-  { id: '7', transactionId: 'TXN-20260508-00987', amount: 78000, type: 'Refund', riskScore: 70, detectedAt: '2026-05-08 17:40', status: 'reviewed', note: 'Customer return — valid' },
-  { id: '8', transactionId: 'TXN-20260508-00456', amount: 210000, type: 'After Hours', riskScore: 85, detectedAt: '2026-05-08 22:10', status: 'pending' },
-];
 
 const columns: Column<FraudAlert>[] = [
   { key: 'transactionId', label: 'Transaction ID', sortable: true, render: (row) => (
@@ -70,8 +49,8 @@ const columns: Column<FraudAlert>[] = [
   { key: 'type', label: 'Type', sortable: true, render: (row) => (
     <Chip label={row.type} size="small" sx={{
       height: 22, fontWeight: 700, fontSize: '0.68rem', borderRadius: '6px',
-      bgcolor: row.type === 'Void' ? brand.error.light : row.type === 'Refund' ? brand.warning.light : row.type === 'After Hours' ? brand.purple.light : brand.info.light,
-      color: row.type === 'Void' ? brand.error.dark : row.type === 'Refund' ? brand.warning.dark : row.type === 'After Hours' ? brand.purple.dark : brand.info.dark,
+      bgcolor: row.type.includes('Void') ? brand.error.light : row.type.includes('Refund') ? brand.warning.light : row.type.includes('After Hours') ? brand.purple.light : row.type.includes('Discount') ? brand.info.light : brand.warning.light,
+      color: row.type.includes('Void') ? brand.error.dark : row.type.includes('Refund') ? brand.warning.dark : row.type.includes('After Hours') ? brand.purple.dark : row.type.includes('Discount') ? brand.info.dark : brand.warning.dark,
     }} />
   )},
   { key: 'riskScore', label: 'Risk Score', sortable: true, render: (row) => (
@@ -138,23 +117,29 @@ export default function FraudDetectionPage() {
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const loadAlerts = () => {
+  const loadAlerts = useCallback(async () => {
     setLoading(true);
     setError(null);
-    setTimeout(() => {
-      setAlerts(MOCK_ALERTS);
+    try {
+      const data = await getFraudAlerts();
+      setAlerts(data);
       setLoaded(true);
+    } catch (e: any) {
+      const msg = e?.response?.data?.message || e?.message || 'Failed to load fraud alerts';
+      setError(msg);
+    } finally {
       setLoading(false);
-    }, 600);
-  };
+    }
+  }, []);
 
   // Load on first render
-  useState(() => { loadAlerts(); });
+  useEffect(() => { loadAlerts(); }, [loadAlerts]);
 
-  const flaggedToday = MOCK_ALERTS.filter((a) => a.detectedAt.startsWith('2026-05-11')).length;
-  const underReview = MOCK_ALERTS.filter((a) => a.status === 'pending').length;
-  const confirmedFraud = MOCK_ALERTS.filter((a) => a.status === 'reviewed').length;
-  const falsePositives = MOCK_ALERTS.filter((a) => a.status === 'dismissed').length;
+  const today = new Date().toISOString().split('T')[0];
+  const flaggedToday = alerts.filter((a) => a.detectedAt.startsWith(today)).length;
+  const underReview = alerts.filter((a) => a.status === 'pending').length;
+  const confirmedFraud = alerts.filter((a) => a.status === 'reviewed').length;
+  const falsePositives = alerts.filter((a) => a.status === 'dismissed').length;
 
   return (
     <>

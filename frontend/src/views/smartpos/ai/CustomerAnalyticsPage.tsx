@@ -1,8 +1,8 @@
 /**
  * Customer Analytics — AI-powered customer segmentation and behavior insights.
- * Shows segment breakdown bars, stat cards, and top customers table.
+ * Uses real customer analytics API backed by ai-service.
  */
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   Box,
   Button,
@@ -23,48 +23,15 @@ import { DataTable, StatusBadge, type Column } from 'src/components/smartpos/Dat
 import { MetricCard } from 'src/components/smartpos/MetricCard';
 import PageHeader from 'src/components/smartpos/PageHeader';
 import { brand } from 'src/theme/smartpos/brand';
-
-interface CustomerSegment {
-  label: string;
-  count: number;
-  percentage: number;
-  color: string;
-  bgColor: string;
-}
-
-interface TopCustomer {
-  id: string;
-  name: string;
-  totalSpent: number;
-  visits: number;
-  lastPurchase: string;
-  segment: 'Loyal' | 'At Risk' | 'Lost' | 'New';
-}
+import { getCustomerAnalytics, type CustomerSegment, type TopCustomer } from 'src/api/smartpos/ai';
 
 const SEGMENT_TONES: Record<string, 'success' | 'warning' | 'error' | 'info'> = {
   Loyal: 'success',
   'At Risk': 'warning',
   Lost: 'error',
   New: 'info',
+  Others: 'info',
 };
-
-const MOCK_SEGMENTS: CustomerSegment[] = [
-  { label: 'Loyal', count: 342, percentage: 42, color: brand.success.main, bgColor: brand.success.light },
-  { label: 'At Risk', count: 186, percentage: 23, color: brand.warning.main, bgColor: brand.warning.light },
-  { label: 'Lost', count: 145, percentage: 18, color: brand.error.main, bgColor: brand.error.light },
-  { label: 'New', count: 138, percentage: 17, color: brand.info.main, bgColor: brand.info.light },
-];
-
-const MOCK_TOP_CUSTOMERS: TopCustomer[] = [
-  { id: '1', name: 'Jane Mwangi', totalSpent: 452000, visits: 48, lastPurchase: '2026-05-11', segment: 'Loyal' },
-  { id: '2', name: 'David Ochieng', totalSpent: 387500, visits: 35, lastPurchase: '2026-05-10', segment: 'Loyal' },
-  { id: '3', name: 'Sarah Kamau', totalSpent: 298000, visits: 22, lastPurchase: '2026-04-28', segment: 'At Risk' },
-  { id: '4', name: 'Peter Njoroge', totalSpent: 245000, visits: 18, lastPurchase: '2026-05-09', segment: 'Loyal' },
-  { id: '5', name: 'Mary Achieng', totalSpent: 182000, visits: 12, lastPurchase: '2026-03-15', segment: 'Lost' },
-  { id: '6', name: 'John Mutua', totalSpent: 156000, visits: 8, lastPurchase: '2026-05-12', segment: 'New' },
-  { id: '7', name: 'Grace Wanjiku', totalSpent: 134000, visits: 10, lastPurchase: '2026-04-05', segment: 'At Risk' },
-  { id: '8', name: 'James Kariuki', totalSpent: 98000, visits: 5, lastPurchase: '2026-05-01', segment: 'New' },
-];
 
 const columns: Column<TopCustomer>[] = [
   { key: 'name', label: 'Customer', sortable: true, render: (row) => (
@@ -91,22 +58,33 @@ const columns: Column<TopCustomer>[] = [
 export default function CustomerAnalyticsPage() {
   const [loading, setLoading] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const [segments, setSegments] = useState<CustomerSegment[]>([]);
+  const [topCustomers, setTopCustomers] = useState<TopCustomer[]>([]);
+  const [totalCustomers, setTotalCustomers] = useState(0);
+  const [repeatRate, setRepeatRate] = useState(0);
+  const [avgOrder, setAvgOrder] = useState(0);
+  const [churnRisk, setChurnRisk] = useState(0);
 
-  const loadData = () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
-    setTimeout(() => {
+    try {
+      const data = await getCustomerAnalytics();
+      setSegments(data.segments);
+      setTopCustomers(data.topCustomers);
+      setTotalCustomers(data.totalCustomers);
+      setRepeatRate(data.repeatRate);
+      setAvgOrder(data.avgOrderValue);
+      setChurnRisk(data.churnRisk);
       setLoaded(true);
+    } catch {
+      // Error handled by parent if needed
+    } finally {
       setLoading(false);
-    }, 600);
-  };
+    }
+  }, []);
 
   // Load on first render
-  useState(() => { loadData(); });
-
-  const totalCustomers = MOCK_SEGMENTS.reduce((s, seg) => s + seg.count, 0);
-  const repeatRate = 56;
-  const avgOrder = 28500;
-  const churnRisk = 18;
+  useEffect(() => { loadData(); }, [loadData]);
 
   return (
     <>
@@ -164,7 +142,7 @@ export default function CustomerAnalyticsPage() {
           Customer Segments
         </Typography>
         <Stack spacing={1.5}>
-          {MOCK_SEGMENTS.map((seg) => (
+          {segments.map((seg) => (
             <Box key={seg.label}>
               <Stack direction="row" justifyContent="space-between" sx={{ mb: 0.5 }}>
                 <Stack direction="row" spacing={0.75} alignItems="center">
@@ -209,7 +187,7 @@ export default function CustomerAnalyticsPage() {
       {loaded ? (
         <DataTable<TopCustomer>
           columns={columns}
-          rows={MOCK_TOP_CUSTOMERS}
+          rows={topCustomers}
           loading={loading}
           emptyText="No customer data available"
           itemLabel="customers"

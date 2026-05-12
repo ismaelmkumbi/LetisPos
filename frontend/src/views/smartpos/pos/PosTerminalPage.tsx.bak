@@ -224,7 +224,7 @@ export default function PosTerminalPage() {
       clear();
       try { printReceipt(sale); } catch { /* non-blocking */ }
     } catch (e: unknown) {
-      setBanner({ kind: 'error', text: e instanceof Error ? e.message : 'Checkout failed' });
+      setBanner({ kind: 'error', text: e instanceof Error ? (e as Error).message : 'Checkout failed' });
     } finally {
       setSubmitting(false);
     }

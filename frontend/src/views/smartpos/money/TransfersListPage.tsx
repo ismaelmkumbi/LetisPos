@@ -67,7 +67,7 @@ export default function TransfersListPage() {
         }
       })
       .catch((e) => {
-        if (!cancelled) setError(e instanceof Error ? e.message : 'Failed to load transfers');
+        if (!cancelled) setError(e instanceof Error ? (e as Error).message : 'Failed to load transfers');
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -121,7 +121,7 @@ export default function TransfersListPage() {
         .then((accs) => setAccounts(accs.filter((a) => a.active)))
         .catch(() => {});
     } catch (e: unknown) {
-      setFormError(e instanceof Error ? e.message : 'Transfer failed');
+      setFormError(e instanceof Error ? (e as Error).message : 'Transfer failed');
     } finally {
       setSaving(false);
     }

@@ -70,7 +70,7 @@ export default function ReportsPage() {
       });
       setRuns((rs) => rs.map((r) => r.job.id === finished.id ? { ...r, job: finished } : r));
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Export failed');
+      setError(e instanceof Error ? (e as Error).message : 'Export failed');
     }
   };
 

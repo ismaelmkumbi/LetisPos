@@ -45,7 +45,7 @@ export default function BatchTrackingPage() {
     setLoading(true);
     listBatches({ warehouseId: warehouseId || undefined, search: search || undefined, page, size: PAGE_SIZE })
       .then(p => { setRows(p.content); setTotalPages(p.totalPages || 1); setTotalElements(p.totalElements || 0); })
-      .catch(e => setError(e instanceof Error ? e.message : 'Failed to load'))
+      .catch(e => setError(e instanceof Error ? (e as Error).message : 'Failed to load'))
       .finally(() => setLoading(false));
   }, [warehouseId, search, page, refreshToken]);
 
@@ -61,7 +61,7 @@ export default function BatchTrackingPage() {
       setCreateForm({ productId: '', batchNumber: '', qty: 0, manufacturingDate: '', expiryDate: '', warehouseId: warehouseId });
       setRefreshToken(n => n + 1);
     } catch (e: unknown) {
-      setCreateError(e?.message ?? 'Create failed');
+      setCreateError((e as Error)?.message ?? 'Create failed');
     } finally {
       setCreateSubmitting(false);
     }
@@ -97,7 +97,8 @@ export default function BatchTrackingPage() {
       />
       <FilterBar searchPlaceholder="Search by batch number…" searchValue={search} onSearchChange={v => { setSearch(v); setPage(0); }}
         activeFilters={search ? [{ key: 'search', label: `Search: ${search}`, clear: () => { setSearch(''); setPage(0); } }] : []}
-        onClearAll={() => { setSearch(''); setPage(0); }} />
+        onClearAll={() => { setSearch(''); setPage(0); }}
+        filtersOpen={false} onFiltersToggle={() => {}} />
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
       <DataTable columns={columns} rows={rows} loading={loading} page={page} totalPages={totalPages} totalElements={totalElements} onPageChange={setPage}
         getRowKey={r => r.id} emptyText="No batches found" emptyIcon={<IconBookmarks size={32} />}
