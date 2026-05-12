@@ -58,9 +58,11 @@ public class TenantStatusFilter implements GlobalFilter, Ordered {
                         return chain.filter(exchange);
                     }
 
-                    if ("SUSPENDED".equals(status) || "CLOSED".equals(status)) {
-                        return forbidden(exchange, "Account suspended",
-                                "Your account has been suspended. Please contact support.");
+                    if ("SUSPENDED".equals(status) || "CLOSED".equals(status) || "TRIAL_EXPIRED".equals(status)) {
+                        String message = "TRIAL_EXPIRED".equals(status)
+                            ? "Your free trial has ended. Please subscribe to continue using Letis POS."
+                            : "Your account has been suspended. Please contact support.";
+                        return forbidden(exchange, "Account " + status.toLowerCase(), message);
                     }
 
                     if ("PAST_DUE".equals(status)) {
