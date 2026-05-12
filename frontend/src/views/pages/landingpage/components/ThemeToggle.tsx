@@ -12,7 +12,7 @@ const themeOptions: Record<string, { label: string; short: string; swatches: str
   'bold-energetic': {
     label: 'Bright Retail',
     short: 'Bright',
-    swatches: ['#0F172A', '#16A34A', '#FFFFFF'],
+    swatches: ['#ECFDF5', '#16A34A', '#0F172A'],
   },
 };
 

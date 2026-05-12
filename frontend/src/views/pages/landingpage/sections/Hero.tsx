@@ -12,6 +12,7 @@ import {
 } from '@tabler/icons-react';
 import CtaButton from '../components/CtaButton';
 import { useDemoDialog } from '../components/DemoDialog';
+import { useLpTheme } from '../LandingpageTheme';
 import dashboardCapture from 'src/assets/images/landingpage/letis-dashboard-real.png';
 import BrandLogo, { LetisMark } from 'src/components/smartpos/BrandLogo';
 
@@ -76,7 +77,13 @@ const receiptItems = [
   ['Notebook A5', 'x5', '17.5K'],
 ];
 
-const BenefitList: React.FC<{ dense?: boolean; sx?: SxProps<Theme> }> = ({ dense = false, sx }) => (
+type HeroTone = 'dark' | 'light';
+
+const BenefitList: React.FC<{ dense?: boolean; sx?: SxProps<Theme>; tone?: HeroTone }> = ({
+  dense = false,
+  sx,
+  tone = 'dark',
+}) => (
   <Stack spacing={dense ? 1.45 : 2.2} sx={sx}>
     {aiBenefits.map((benefit) => (
       <Stack key={benefit.title} direction="row" spacing={1.7} alignItems="flex-start">
@@ -100,14 +107,18 @@ const BenefitList: React.FC<{ dense?: boolean; sx?: SxProps<Theme> }> = ({ dense
             sx={{
               fontSize: dense ? '0.94rem' : '0.98rem',
               fontWeight: 900,
-              color: '#F8FAFC',
+              color: tone === 'dark' ? '#F8FAFC' : '#0F172A',
               mb: 0.35,
             }}
           >
             {benefit.title}
           </Typography>
           <Typography
-            sx={{ fontSize: dense ? '0.86rem' : '0.9rem', color: '#CBD5E1', lineHeight: 1.5 }}
+            sx={{
+              fontSize: dense ? '0.86rem' : '0.9rem',
+              color: tone === 'dark' ? '#CBD5E1' : '#52637A',
+              lineHeight: 1.5,
+            }}
           >
             {benefit.text}
           </Typography>
@@ -243,6 +254,40 @@ const ReceiptPreview: React.FC<{ compact?: boolean; rows?: number }> = ({
 
 const Hero: React.FC = () => {
   const { openDemo } = useDemoDialog();
+  const { theme } = useLpTheme();
+  const isBrightTheme = theme === 'bold-energetic';
+  const heroTone: HeroTone = isBrightTheme ? 'light' : 'dark';
+  const heroStyles = isBrightTheme
+    ? {
+        background:
+          'radial-gradient(circle at 8% 84%, rgba(22, 163, 74, 0.12), transparent 30%), radial-gradient(circle at 58% 16%, rgba(22, 163, 74, 0.10), transparent 25%), linear-gradient(115deg, #F6FFF9 0%, #FFFFFF 48%, #F8FAFC 100%)',
+        beforeBg: 'rgba(22, 163, 74, 0.08)',
+        badgeBg: '#DCFCE7',
+        badgeColor: '#15803D',
+        badgeBorder: 'rgba(22, 163, 74, 0.18)',
+        accent: '#16A34A',
+        bodyText: '#475569',
+        statusText: '#475569',
+        divider: 'rgba(15, 23, 42, 0.10)',
+        trustDivider: 'rgba(15, 23, 42, 0.12)',
+        trustTitle: '#0F172A',
+        trustText: '#52637A',
+      }
+    : {
+        background:
+          'radial-gradient(circle at 8% 84%, rgba(34, 197, 94, 0.18), transparent 30%), radial-gradient(circle at 58% 16%, rgba(74, 222, 128, 0.14), transparent 25%), linear-gradient(115deg, var(--lp-hero-bg) 0%, #111827 52%, #07111F 100%)',
+        beforeBg: 'rgba(74, 222, 128, 0.10)',
+        badgeBg: 'rgba(34, 197, 94, 0.16)',
+        badgeColor: '#86EFAC',
+        badgeBorder: 'rgba(134, 239, 172, 0.28)',
+        accent: '#86EFAC',
+        bodyText: 'rgba(248, 250, 252, 0.78)',
+        statusText: 'rgba(248, 250, 252, 0.72)',
+        divider: 'rgba(248, 250, 252, 0.14)',
+        trustDivider: 'rgba(248, 250, 252, 0.14)',
+        trustTitle: '#F8FAFC',
+        trustText: '#CBD5E1',
+      };
 
   return (
     <Box
@@ -255,8 +300,7 @@ const Hero: React.FC = () => {
         pb: { xs: 5, md: 6 },
         position: 'relative',
         overflow: 'hidden',
-        background:
-          'radial-gradient(circle at 8% 84%, rgba(34, 197, 94, 0.18), transparent 30%), radial-gradient(circle at 58% 16%, rgba(74, 222, 128, 0.14), transparent 25%), linear-gradient(115deg, var(--lp-hero-bg) 0%, #111827 52%, #07111F 100%)',
+        background: heroStyles.background,
         '&:before': {
           content: '""',
           position: 'absolute',
@@ -265,7 +309,7 @@ const Hero: React.FC = () => {
           right: { xs: -180, md: '42%' },
           top: { xs: 140, md: -110 },
           borderRadius: '50%',
-          bgcolor: 'rgba(74, 222, 128, 0.10)',
+          bgcolor: heroStyles.beforeBg,
           pointerEvents: 'none',
         },
       }}
@@ -283,9 +327,9 @@ const Hero: React.FC = () => {
                 py: 0.65,
                 mb: { xs: 2.2, md: 2.8 },
                 borderRadius: '999px',
-                bgcolor: 'rgba(34, 197, 94, 0.16)',
-                color: '#86EFAC',
-                border: '1px solid rgba(134, 239, 172, 0.28)',
+                bgcolor: heroStyles.badgeBg,
+                color: heroStyles.badgeColor,
+                border: `1px solid ${heroStyles.badgeBorder}`,
                 fontWeight: 900,
                 fontSize: '0.76rem',
                 textTransform: 'uppercase',
@@ -308,7 +352,7 @@ const Hero: React.FC = () => {
               }}
             >
               Smarter POS.
-              <Box component="span" sx={{ display: 'block', color: '#86EFAC' }}>
+              <Box component="span" sx={{ display: 'block', color: heroStyles.accent }}>
                 Stronger Business.
               </Box>
             </Typography>
@@ -316,7 +360,7 @@ const Hero: React.FC = () => {
             <Typography
               sx={{
                 fontSize: { xs: '1rem', md: '1.12rem' },
-                color: 'rgba(248, 250, 252, 0.78)',
+                color: heroStyles.bodyText,
                 lineHeight: 1.7,
                 maxWidth: 560,
                 mb: 3,
@@ -352,7 +396,7 @@ const Hero: React.FC = () => {
               </CtaButton>
             </Stack>
 
-            <BenefitList sx={{ display: { xs: 'none', md: 'flex' } }} />
+            <BenefitList tone={heroTone} sx={{ display: { xs: 'none', md: 'flex' } }} />
           </Grid>
 
           <Grid size={{ xs: 12, md: 7 }} sx={{ order: { xs: 2, md: 0 } }}>
@@ -368,7 +412,7 @@ const Hero: React.FC = () => {
                   justifyContent: { xs: 'flex-start', md: 'flex-end' },
                   mb: { xs: 2, md: 3 },
                   pr: { md: 5 },
-                  color: 'rgba(248, 250, 252, 0.72)',
+                  color: heroStyles.statusText,
                   fontSize: '0.9rem',
                   fontWeight: 750,
                 }}
@@ -630,13 +674,13 @@ const Hero: React.FC = () => {
           </Grid>
         </Grid>
 
-        <BenefitList dense sx={{ display: { xs: 'flex', md: 'none' }, mt: 3 }} />
+        <BenefitList dense tone={heroTone} sx={{ display: { xs: 'flex', md: 'none' }, mt: 3 }} />
 
         <Box
           sx={{
             mt: { xs: 4, md: 5 },
             pt: { xs: 3, md: 4 },
-            borderTop: '1px solid rgba(248, 250, 252, 0.14)',
+            borderTop: `1px solid ${heroStyles.divider}`,
             display: 'grid',
             gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' },
             gap: { xs: 2, md: 0 },
@@ -650,7 +694,7 @@ const Hero: React.FC = () => {
               alignItems="center"
               sx={{
                 px: { md: 3 },
-                borderLeft: { md: index === 0 ? '0' : '1px solid rgba(248, 250, 252, 0.14)' },
+                borderLeft: { md: index === 0 ? '0' : `1px solid ${heroStyles.trustDivider}` },
               }}
             >
               <Box
@@ -668,10 +712,10 @@ const Hero: React.FC = () => {
                 {card.icon}
               </Box>
               <Box>
-                <Typography sx={{ fontSize: '1rem', fontWeight: 900, color: '#F8FAFC', mb: 0.35 }}>
+                <Typography sx={{ fontSize: '1rem', fontWeight: 900, color: heroStyles.trustTitle, mb: 0.35 }}>
                   {card.title}
                 </Typography>
-                <Typography sx={{ fontSize: '0.88rem', color: '#CBD5E1', lineHeight: 1.5 }}>
+                <Typography sx={{ fontSize: '0.88rem', color: heroStyles.trustText, lineHeight: 1.5 }}>
                   {card.text}
                 </Typography>
               </Box>
