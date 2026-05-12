@@ -60,6 +60,8 @@ spring:
             url: ${PAYMENT_URI:http://localhost:8086}
           product-service:
             url: ${PRODUCT_URI:http://localhost:8083}
+          document-service:
+            url: ${DOCUMENT_URI:http://localhost:8093}
 
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:9094}
