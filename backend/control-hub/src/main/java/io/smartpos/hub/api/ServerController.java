@@ -116,9 +116,7 @@ public class ServerController {
     /** Finds the PID listening on a port and reads its CPU% and RSS memory. */
     private ProcessStats readProcessStats(int port) {
         try {
-            // Find PID via ss (socket statistics — no root needed)
-            var proc = new ProcessBuilder("sh", "-c",
-                "ss -tlnp 'sport = :" + port + "' 2>/dev/null | grep -oP 'pid=\\K\\d+'").start();
+            var proc = new ProcessBuilder("lsof", "-ti", ":" + port).start();
             String pidStr = new String(proc.getInputStream().readAllBytes()).trim();
             if (pidStr.isEmpty()) return ProcessStats.EMPTY;
             long pid = Long.parseLong(pidStr);
