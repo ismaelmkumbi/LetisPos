@@ -8,7 +8,7 @@ import { brand } from 'src/theme/smartpos/brand';
 import { formatMoney } from 'src/utils/smartpos/currency';
 import { cardSx, titleColor, PERIOD_LABELS, chartFont, moneyShort, muted } from './utils';
 import EmptyPanel from './EmptyPanel';
-import type { Dashboard, Period } from 'src/api/smartpos/reports';
+import type { Dashboard, Period, Forecast } from 'src/api/smartpos/reports';
 
 interface RevenueChartProps {
   salesSeries: number[];
@@ -16,6 +16,7 @@ interface RevenueChartProps {
   isDark: boolean;
   data: Dashboard | null;
   previousSalesSeries?: number[];
+  forecast?: Forecast | null;
 }
 
 function SolidLegend({ color, label }: { color: string; label: string }) {
@@ -49,6 +50,7 @@ export default function RevenueChart({
   isDark,
   data,
   previousSalesSeries,
+  forecast,
 }: RevenueChartProps) {
   const navigate = useNavigate();
 
@@ -59,8 +61,19 @@ export default function RevenueChart({
     [navigate],
   );
 
-  const businessOptions: ApexOptions = useMemo(
-    () => ({
+  const hasForecast = !!(forecast?.projected?.length);
+
+  const categories = useMemo(() => {
+    const base = data?.salesSeries?.map((row) => row.date) ?? [];
+    if (hasForecast) {
+      const fDates = forecast!.projected.map((p) => p.date);
+      return [...base, ...fDates];
+    }
+    return base;
+  }, [data, forecast, hasForecast]);
+
+  const businessOptions: ApexOptions = useMemo(() => {
+    const opts: ApexOptions = {
       chart: {
         type: 'line',
         toolbar: { show: false },
@@ -70,13 +83,11 @@ export default function RevenueChart({
           dataPointSelection: handleDataPointSelection,
         },
       },
-      colors: previousSalesSeries?.length
-        ? [brand.primary[600], brand.neutral[400]]
-        : [brand.primary[600]],
+      colors: [brand.primary[600]],
       stroke: {
         curve: 'smooth',
-        width: previousSalesSeries?.length ? [2.6, 2] : 2.6,
-        dashArray: previousSalesSeries?.length ? [0, 5] : [0],
+        width: 2.6,
+        dashArray: [0],
       },
       dataLabels: { enabled: false },
       grid: {
@@ -85,12 +96,12 @@ export default function RevenueChart({
         padding: { left: 8, right: 12 },
       },
       markers: {
-        size: previousSalesSeries?.length ? [4, 0] : 4,
+        size: 4,
         hover: { size: 6 },
         strokeWidth: 3,
       },
       xaxis: {
-        categories: data?.salesSeries?.map((row) => row.date) ?? [],
+        categories,
         labels: { style: { colors: muted(isDark), fontSize: '11px' } },
         axisBorder: { show: false },
         axisTicks: { show: false },
@@ -102,18 +113,104 @@ export default function RevenueChart({
         },
       },
       legend: { show: false },
-      tooltip: { y: { formatter: (v) => formatMoney(v) } },
-    }),
-    [data, isDark, previousSalesSeries, handleDataPointSelection],
-  );
+      tooltip: {
+        y: {
+          formatter: (v, { seriesIndex }) => {
+            if (seriesIndex === 2) return `Projected: ${formatMoney(v)}`;
+            return formatMoney(v);
+          },
+        },
+      },
+    };
+
+    // Previous period series (dashed)
+    if (previousSalesSeries?.length) {
+      opts.colors = [brand.primary[600], brand.neutral[400]];
+      opts.stroke = {
+        curve: 'smooth',
+        width: [2.6, 2],
+        dashArray: [0, 5],
+      };
+      opts.markers = {
+        size: [4, 0],
+        hover: { size: 6 },
+        strokeWidth: 3,
+      };
+    }
+
+    // Forecast series: add forecast color and lighter dash
+    if (hasForecast) {
+      const currentColors = opts.colors ?? [brand.primary[600]];
+      opts.colors = [...currentColors, brand.info.main];
+      if (opts.stroke && Array.isArray(opts.stroke.width)) {
+        opts.stroke = {
+          curve: 'smooth',
+          width: [...(opts.stroke.width as number[]), 2],
+          dashArray: [...(opts.stroke.dashArray as number[]), 6],
+        };
+      } else {
+        opts.stroke = {
+          curve: 'smooth',
+          width: [2.6, 2],
+          dashArray: [0, 6],
+        };
+      }
+      if (opts.markers && Array.isArray(opts.markers.size)) {
+        opts.markers = {
+          size: [...(opts.markers.size as number[]), 0],
+          hover: { size: 6 },
+          strokeWidth: 3,
+        };
+      }
+
+      // Annotation to show forecast start
+      const histLen = data?.salesSeries?.length ?? 0;
+      if (histLen > 0) {
+        opts.annotations = {
+          xaxis: [
+            {
+              x: categories[histLen - 1],
+              borderColor: brand.info.main,
+              borderWidth: 1,
+              strokeDashArray: 4,
+              label: {
+                text: 'Forecast start',
+                style: {
+                  color: brand.info.main,
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  background: isDark ? brand.neutral[800] : '#fff',
+                },
+              },
+            },
+          ],
+        };
+      }
+    }
+
+    return opts;
+  }, [data, isDark, previousSalesSeries, forecast, hasForecast, categories, handleDataPointSelection]);
 
   const series = useMemo(() => {
-    const current = { name: 'Revenue', data: salesSeries };
+    const result: ApexAxisChartSeries = [];
+    result.push({ name: 'Revenue', data: salesSeries });
     if (previousSalesSeries?.length) {
-      return [current, { name: 'Previous period', data: previousSalesSeries }];
+      // Pad previous series with nulls to match categories length
+      const padded = [...previousSalesSeries];
+      while (padded.length < categories.length) padded.push(null as unknown as number);
+      result.push({ name: 'Previous period', data: padded.slice(0, categories.length) });
     }
-    return [current];
-  }, [salesSeries, previousSalesSeries]);
+    if (hasForecast) {
+      const histLen = salesSeries.length;
+      const fData: (number | null)[] = [];
+      // Pad with nulls for historical range
+      for (let i = 0; i < histLen; i++) fData.push(null);
+      // Add forecast values
+      for (const p of forecast!.projected) fData.push(p.value);
+      result.push({ name: 'Forecast', data: fData as number[] });
+    }
+    return result;
+  }, [salesSeries, previousSalesSeries, forecast, hasForecast, categories.length]);
 
   return (
     <Card elevation={0} sx={{ ...cardSx(isDark), height: '100%' }}>
@@ -132,6 +229,9 @@ export default function RevenueChart({
               <SolidLegend color={brand.primary[600]} label="Revenue" />
               {previousSalesSeries?.length ? (
                 <DashedLegend color={brand.neutral[400]} label="Previous period" />
+              ) : null}
+              {hasForecast ? (
+                <DashedLegend color={brand.info.main} label="Forecast" />
               ) : null}
             </Stack>
           </Box>
@@ -155,7 +255,7 @@ export default function RevenueChart({
             options={businessOptions}
             series={series}
             type="line"
-            height={240}
+            height={{ xs: 200, sm: 240 }}
           />
         ) : (
           <EmptyPanel
