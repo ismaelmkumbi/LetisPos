@@ -1,10 +1,15 @@
 package io.smartpos.gateway;
 
+import com.nimbusds.jose.jwk.source.JWKSource;
+import com.nimbusds.jose.proc.SecurityContext;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
+import org.springframework.security.oauth2.jwt.NimbusReactiveJwtDecoder;
+import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder;
 import org.springframework.security.web.server.SecurityWebFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.reactive.CorsConfigurationSource;
@@ -54,6 +59,14 @@ public class SecurityConfig {
                         ).permitAll()
                         .anyExchange().authenticated())
                 .oauth2ResourceServer(o -> o.jwt(org.springframework.security.config.Customizer.withDefaults()))
+                .build();
+    }
+
+    @Bean
+    public ReactiveJwtDecoder reactiveJwtDecoder(
+            @Value("${spring.security.oauth2.resourceserver.jwt.jwk-set-uri}") String jwkSetUri) {
+        return NimbusReactiveJwtDecoder.withJwkSetUri(jwkSetUri)
+                .jwsAlgorithms(a -> a.add(org.springframework.security.oauth2.jose.jws.SignatureAlgorithm.RS256))
                 .build();
     }
 
