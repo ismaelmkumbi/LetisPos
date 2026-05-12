@@ -100,6 +100,7 @@ const SmartPosAuditLogs = Loadable(lazy(() => import('../views/smartpos/admin/Au
 const SmartPosErrorLogs = Loadable(lazy(() => import('../views/smartpos/admin/ErrorLogsPage')));
 const SmartPosApiKeys = Loadable(lazy(() => import('../views/smartpos/admin/ApiKeysPage')));
 const SmartPosSessions = Loadable(lazy(() => import('../views/smartpos/admin/SessionsPage')));
+const SmartPosDataRetention = Loadable(lazy(() => import('../views/smartpos/admin/DataRetentionPage')));
 import TenantBillingPage from '../views/smartpos/billing/TenantBillingPage';
 const SmartPosI18nAdmin = Loadable(lazy(() => import('../views/smartpos/settings/I18nAdminPage')));
 const SmartPosReceiptSettings = Loadable(
@@ -568,6 +569,7 @@ const Router = [
       { path: 'admin/sessions', element: <SmartPosSessions /> },
       { path: 'admin/api-keys', element: <SmartPosApiKeys /> },
       { path: 'admin/error-logs', element: <SmartPosErrorLogs /> },
+      { path: 'admin/data-retention', element: <SmartPosDataRetention /> },
     ],
   },
   // ---- Modernize demo (left intact while we build; can be stripped later) ----

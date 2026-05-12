@@ -67,6 +67,7 @@ import {
   IconBrain,
   IconDeviceMobile,
   IconBug,
+  IconDatabase,
 } from '@tabler/icons-react';
 
 export interface MenuItem {
@@ -250,6 +251,7 @@ export function buildSmartPosMenu(t: TFunction): MenuItem[] {
     { id: uid(), title: t('smartpos:nav.languages_admin'), icon: IconLanguage, href: '/smartpos/settings/i18n' },
     { id: uid(), title: t('smartpos:nav.localization'), icon: IconWorld, href: '/smartpos/settings/locale' },
     { id: uid(), title: 'Audit Logs', icon: IconHistory, href: '/smartpos/admin/audit-logs' },
+    { id: uid(), title: 'Data Retention', icon: IconDatabase, href: '/smartpos/admin/data-retention' },
     { id: uid(), title: 'Sessions', icon: IconDeviceMobile, href: '/smartpos/admin/sessions' },
     { id: uid(), title: 'API Keys', icon: IconKey, href: '/smartpos/admin/api-keys' },
     { id: uid(), title: 'Error Logs', icon: IconBug, href: '/smartpos/admin/error-logs' },
