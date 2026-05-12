@@ -28,7 +28,7 @@ public class RetentionController {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @GetMapping
-    @PreAuthorize("hasAuthority('retention.manage')")
+    @PreAuthorize("hasAuthority('retention.manage') or hasAuthority('admin')")
     public ResponseEntity<RetentionConfig> getConfig() {
         UUID tenantId = TenantContext.require();
         return ResponseEntity.ok(
@@ -38,7 +38,7 @@ public class RetentionController {
     }
 
     @PutMapping
-    @PreAuthorize("hasAuthority('retention.manage')")
+    @PreAuthorize("hasAuthority('retention.manage') or hasAuthority('admin')")
     public ResponseEntity<RetentionConfig> updateConfig(
             @RequestBody Map<String, Integer> config) {
         UUID tenantId = TenantContext.require();
@@ -55,14 +55,14 @@ public class RetentionController {
     }
 
     @GetMapping("/history")
-    @PreAuthorize("hasAuthority('retention.manage')")
+    @PreAuthorize("hasAuthority('retention.manage') or hasAuthority('admin')")
     public ResponseEntity<List<PurgeHistory>> getHistory() {
         UUID tenantId = TenantContext.require();
         return ResponseEntity.ok(purgeHistoryRepo.findByTenantIdOrderByExecutedAtDesc(tenantId));
     }
 
     @PostMapping("/purge/{entityType}")
-    @PreAuthorize("hasAuthority('retention.manage')")
+    @PreAuthorize("hasAuthority('retention.manage') or hasAuthority('admin')")
     public ResponseEntity<Map<String, Object>> manualPurge(
             @PathVariable String entityType) {
         UUID tenantId = TenantContext.require();
