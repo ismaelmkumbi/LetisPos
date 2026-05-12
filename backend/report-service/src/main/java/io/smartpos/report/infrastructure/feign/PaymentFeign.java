@@ -16,6 +16,9 @@ public interface PaymentFeign {
     record PaymentStats(long count, BigDecimal totalIn, BigDecimal totalOut) {}
     record ByMethodRow(String method, BigDecimal total, long count) {}
     record ExpenseStats(BigDecimal total, long count) {}
+    record AgingBucket(String label, int daysFrom, int daysTo,
+                       BigDecimal amount, int invoiceCount) {}
+    record CoARow(String code, String name, String type, BigDecimal balance) {}
 
     @GetMapping("/api/v1/payments/stats")
     PaymentStats paymentStats(@RequestParam(value = "dateFrom", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateFrom,
@@ -25,6 +28,13 @@ public interface PaymentFeign {
     @GetMapping("/api/v1/payments/by-method")
     List<ByMethodRow> byMethod(@RequestParam(value = "dateFrom", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateFrom,
                                @RequestParam(value = "dateTo",   required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateTo);
+
+    @GetMapping("/api/v1/payments/aging")
+    List<AgingBucket> aging(@RequestParam(value = "asOf", required = false)
+                            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate asOf);
+
+    @GetMapping("/api/v1/chart-of-accounts/summary")
+    List<CoARow> chartOfAccountsSummary();
 
     @GetMapping("/api/v1/expenses/stats")
     ExpenseStats expenseStats(@RequestParam(value = "dateFrom", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateFrom,

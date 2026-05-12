@@ -74,6 +74,25 @@ public class PaymentStatsService {
 
     public record ByMethodRow(String method, BigDecimal total, long count) {}
 
+    public record AgingBucket(String label, int daysFrom, int daysTo,
+                              BigDecimal amount, int invoiceCount) {}
+
+    @Transactional(readOnly = true)
+    public List<AgingBucket> aging(LocalDate asOf) {
+        LocalDate end = asOf != null ? asOf : LocalDate.now();
+        // TODO: Query outstanding purchase payments grouped by age.
+        // Real AR tracking requires joining with the sales-service purchase
+        // data (grand_total - paid_total per purchase) to know outstanding
+        // amounts. Until that cross-service aggregation is available, return
+        // properly-shaped empty buckets so the frontend can render the table.
+        return List.of(
+            new AgingBucket("0-30 days", 0, 30, BigDecimal.ZERO, 0),
+            new AgingBucket("31-60 days", 31, 60, BigDecimal.ZERO, 0),
+            new AgingBucket("61-90 days", 61, 90, BigDecimal.ZERO, 0),
+            new AgingBucket("90+ days", 91, Integer.MAX_VALUE, BigDecimal.ZERO, 0)
+        );
+    }
+
     @Transactional(readOnly = true)
     public List<ByMethodRow> paymentsByMethod(LocalDate from, LocalDate to) {
         StringBuilder jpql = new StringBuilder("""
