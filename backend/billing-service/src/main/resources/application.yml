@@ -28,7 +28,7 @@ smartpos:
     base-url: http://localhost:8081
   billing:
     stripe:
-      enabled: false
+      enabled: ${STRIPE_ENABLED:true}
       secret-key: ${STRIPE_SECRET_KEY:}
       webhook-secret: ${STRIPE_WEBHOOK_SECRET:}
       price-starter-monthly: ${STRIPE_PRICE_STARTER_MONTHLY:}
