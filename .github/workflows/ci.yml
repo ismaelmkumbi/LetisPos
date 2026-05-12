@@ -55,6 +55,8 @@ jobs:
       integration_service: ${{ steps.filter.outputs.integration_service }}
       document_service: ${{ steps.filter.outputs.document_service }}
       commerce_service: ${{ steps.filter.outputs.commerce_service }}
+      audit_service: ${{ steps.filter.outputs.audit_service }}
+      billing_service: ${{ steps.filter.outputs.billing_service }}
     steps:
       - uses: actions/checkout@v4
 
@@ -110,6 +112,12 @@ jobs:
             commerce_service:
               - backend/commerce-service/**
               - 'backend/pom.xml'
+            audit_service:
+              - backend/audit-service/**
+              - 'backend/pom.xml'
+            billing_service:
+              - backend/billing-service/**
+              - 'backend/pom.xml'
 
   # ────────────────────────────────────────────────────────────────────────
   #  Build & Test — Backend (matrix across all services)
@@ -140,6 +148,9 @@ jobs:
           - ai-service
           - integration-service
           - document-service
+          - commerce-service
+          - audit-service
+          - billing-service
     steps:
       - uses: actions/checkout@v4
 
@@ -295,11 +306,13 @@ jobs:
             [ "${{ needs.changes.outputs.integration_service }}"  = "true" ] && CHANGED="$CHANGED integration-service"
             [ "${{ needs.changes.outputs.document_service }}"  = "true" ] && CHANGED="$CHANGED document-service"
             [ "${{ needs.changes.outputs.commerce_service }}"   = "true" ] && CHANGED="$CHANGED commerce-service"
+            [ "${{ needs.changes.outputs.audit_service }}"      = "true" ] && CHANGED="$CHANGED audit-service"
+            [ "${{ needs.changes.outputs.billing_service }}"    = "true" ] && CHANGED="$CHANGED billing-service"
             CHANGED="${CHANGED# }"
 
             # Fallback: if change detection gave no specific service, rebuild all
             if [ -z "$CHANGED" ]; then
-              CHANGED="gateway auth-service user-service product-service inventory-service sales-service payment-service report-service notification-service hrm-service ai-service integration-service document-service"
+              CHANGED="gateway auth-service user-service product-service inventory-service sales-service payment-service report-service notification-service hrm-service ai-service integration-service document-service commerce-service audit-service billing-service"
             fi
 
             echo "==> Services to build: $CHANGED"
