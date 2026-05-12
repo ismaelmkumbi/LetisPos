@@ -61,3 +61,35 @@ export async function pushQbInvoice(saleId: UUID, payload: Record<string, unknow
   const { data } = await api.post<IntegrationSync>(`/api/v1/integrations/quickbooks/invoices/${saleId}`, payload);
   return data;
 }
+
+// ---- Integration Provider Config ----
+
+export interface IntegrationConfig {
+  id: string;
+  tenantId: string;
+  provider: IntegrationProvider;
+  enabled: boolean;
+  config: string; // JSON string of provider-specific settings
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProviderConfigUpdate {
+  enabled?: boolean;
+  config?: Record<string, unknown>;
+}
+
+export async function getIntegrationConfigs(): Promise<IntegrationConfig[]> {
+  const { data } = await api.get<IntegrationConfig[]>('/api/v1/integrations/config');
+  return data;
+}
+
+export async function updateProviderConfig(
+  provider: IntegrationProvider,
+  update: ProviderConfigUpdate
+): Promise<IntegrationConfig> {
+  const { data } = await api.put<IntegrationConfig>(
+    `/api/v1/integrations/config/${provider.toLowerCase()}`, update
+  );
+  return data;
+}
