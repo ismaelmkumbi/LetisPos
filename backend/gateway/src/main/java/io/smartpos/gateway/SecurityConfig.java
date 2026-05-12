@@ -31,6 +31,7 @@ public class SecurityConfig {
                         // without a JWT. Use the broadest matcher we can to avoid any
                         // path-pattern subtlety where one of the more specific patterns
                         // gets swallowed by the matcher set.
+                        // Phone-only routes — token-authenticated by ai-service.
                         .pathMatchers(HttpMethod.POST, "/api/v1/ai/capture-sessions/**").permitAll()
                         .pathMatchers(HttpMethod.GET,  "/api/v1/ai/capture-sessions/**").permitAll()
                         .pathMatchers(

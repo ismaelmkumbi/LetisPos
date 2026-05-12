@@ -9,15 +9,10 @@ import {
   DialogContent,
   DialogContentText,
   DialogTitle,
-  FormControl,
   FormGroup,
   FormControlLabel,
   Checkbox,
   IconButton,
-  InputLabel,
-  MenuItem,
-  Select,
-  Snackbar,
   Stack,
   TextField,
   Tooltip,
@@ -29,7 +24,6 @@ import {
   IconTrash,
   IconRefresh,
   IconCopy,
-  IconEye,
 } from '@tabler/icons-react';
 
 import {

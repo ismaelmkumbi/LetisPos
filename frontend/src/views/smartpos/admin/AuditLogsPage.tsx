@@ -9,10 +9,6 @@ import {
   MenuItem,
   Select,
   Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableRow,
   TextField,
   Typography,
 } from '@mui/material';
@@ -85,7 +81,6 @@ export default function AuditLogsPage() {
   const [actionFilter, setActionFilter] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
-  const [refreshToken, setRefreshToken] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -115,7 +110,7 @@ export default function AuditLogsPage() {
     return () => {
       cancelled = true;
     };
-  }, [page, serviceFilter, actionFilter, dateFrom, dateTo, refreshToken]);
+  }, [page, serviceFilter, actionFilter, dateFrom, dateTo]);
 
   const columns: Column<AuditEvent>[] = useMemo(
     () => [

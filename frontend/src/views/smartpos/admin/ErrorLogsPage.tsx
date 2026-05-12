@@ -75,7 +75,6 @@ export default function ErrorLogsPage() {
   const [levelFilter, setLevelFilter] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
-  const [refreshToken, setRefreshToken] = useState(0);
 
   // Drawer state for error detail
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -112,7 +111,7 @@ export default function ErrorLogsPage() {
     return () => {
       cancelled = true;
     };
-  }, [page, serviceFilter, levelFilter, dateFrom, dateTo, refreshToken]);
+  }, [page, serviceFilter, levelFilter, dateFrom, dateTo]);
 
   // Load stats for last 24h on mount
   useEffect(() => {

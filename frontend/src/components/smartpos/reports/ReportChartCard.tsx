@@ -19,7 +19,7 @@ export default function ReportChartCard({ title, options, series, type, height =
         chart: {
           ...options.chart,
           events: {
-            ...(options.chart as Record<string, unknown>)?.events,
+            ...(((options.chart ?? {}) as { events?: Record<string, unknown> }).events),
             dataPointSelection: (
               _event: unknown,
               _chartContext: unknown,
