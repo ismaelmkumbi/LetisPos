@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   Alert,
   Box,
@@ -28,79 +28,86 @@ import {
 
 import { PageHeader } from 'src/components/smartpos/PageHeader';
 import { brand } from 'src/theme/smartpos/brand';
+import {
+  listActivities,
+  createActivity,
+  type Activity,
+} from 'src/api/smartpos/crm';
+import { tokenStore } from 'src/api/smartpos/client';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-interface Activity {
-  id: string;
-  type: 'Call' | 'Email' | 'Note' | 'Task';
-  description: string;
-  customer: string;
-  timestamp: string;
-  user: string;
-}
-
-type ActivityType = 'All' | 'Call' | 'Email' | 'Note' | 'Task';
+type ActivityType = 'All' | 'call' | 'email' | 'note' | 'task';
 
 type ActivityFormData = {
   type: string;
-  customer: string;
+  customerName: string;
   description: string;
 };
 
-// ─── Mock data ────────────────────────────────────────────────────────────────
-
-const MOCK_ACTIVITIES: Activity[] = [
-  { id: '1', type: 'Call', description: 'Discussed POS upgrade pricing and requirements. Customer is interested in the multi-branch option.', customer: 'Jane Mushi', timestamp: '2026-05-12 14:30', user: 'Anna Kimaro' },
-  { id: '2', type: 'Email', description: 'Sent proposal document with software license terms and annual pricing breakdown.', customer: 'David Msangi', timestamp: '2026-05-12 10:15', user: 'John Banda' },
-  { id: '3', type: 'Note', description: 'Customer prefers on-premise deployment over cloud. Added to system requirements.', customer: 'Moses Mwakibete', timestamp: '2026-05-11 16:45', user: 'Anna Kimaro' },
-  { id: '4', type: 'Task', description: 'Prepare demo environment for Zanzibar Distributors visit next week.', customer: 'Rehema Saleh', timestamp: '2026-05-11 09:00', user: 'John Banda' },
-  { id: '5', type: 'Call', description: 'Follow-up call regarding training package. Customer confirmed dates for next month.', customer: 'Fatma Omari', timestamp: '2026-05-10 11:30', user: 'Anna Kimaro' },
-  { id: '6', type: 'Email', description: 'Sent documentation and integration specs as requested by the technical team.', customer: 'Hassan Juma', timestamp: '2026-05-10 08:45', user: 'John Banda' },
-  { id: '7', type: 'Note', description: 'Internal discussion: may need to extend support hours for Dar Express account.', customer: 'Jane Mushi', timestamp: '2026-05-09 15:00', user: 'Anna Kimaro' },
-  { id: '8', type: 'Task', description: 'Update proposal template with new pricing for 2026.', customer: '—', timestamp: '2026-05-09 10:00', user: 'John Banda' },
-];
-
-const TYPE_OPTIONS = ['Call', 'Email', 'Note', 'Task'];
-const CUSTOMERS = ['Jane Mushi', 'David Msangi', 'Moses Mwakibete', 'Rehema Saleh', 'Fatma Omari', 'Hassan Juma'];
+const TYPE_OPTIONS = ['call', 'email', 'note', 'task'];
+const TYPE_LABELS: Record<string, string> = { call: 'Call', email: 'Email', note: 'Note', task: 'Task' };
 
 const typeIcon = (type: string) => {
   switch (type) {
-    case 'Call': return <IconPhone size={16} />;
-    case 'Email': return <IconMail size={16} />;
-    case 'Note': return <IconNote size={16} />;
-    case 'Task': return <IconChecklist size={16} />;
+    case 'call': return <IconPhone size={16} />;
+    case 'email': return <IconMail size={16} />;
+    case 'note': return <IconNote size={16} />;
+    case 'task': return <IconChecklist size={16} />;
     default: return <IconNote size={16} />;
   }
 };
 
 const typeColor = (type: string) => {
   switch (type) {
-    case 'Call': return { bg: brand.info.light, color: brand.info.dark };
-    case 'Email': return { bg: brand.primary[50], color: brand.primary[700] };
-    case 'Note': return { bg: brand.warning.light, color: brand.warning.dark };
-    case 'Task': return { bg: brand.success.light, color: brand.success.dark };
+    case 'call': return { bg: brand.info.light, color: brand.info.dark };
+    case 'email': return { bg: brand.primary[50], color: brand.primary[700] };
+    case 'note': return { bg: brand.warning.light, color: brand.warning.dark };
+    case 'task': return { bg: brand.success.light, color: brand.success.dark };
     default: return { bg: brand.neutral[100], color: brand.neutral[600] };
   }
 };
 
 const emptyForm = (): ActivityFormData => ({
-  type: 'Note',
-  customer: CUSTOMERS[0],
+  type: 'note',
+  customerName: '',
   description: '',
 });
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function ActivitiesPage() {
-  const [activities, setActivities] = useState<Activity[]>(MOCK_ACTIVITIES);
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<ActivityType>('All');
-  const error: string | null = null;
+  const [error, setError] = useState<string | null>(null);
 
   const [formDialogOpen, setFormDialogOpen] = useState(false);
   const [form, setForm] = useState<ActivityFormData>(emptyForm());
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+
+  const tenantId = tokenStore.getTenantId();
+
+  const fetchActivities = useCallback(async () => {
+    if (!tenantId) return;
+    try {
+      setLoading(true);
+      setError(null);
+      const params: { page?: number; size?: number; type?: string } = { page: 0, size: 200 };
+      if (filter !== 'All') params.type = filter;
+      const page = await listActivities(params);
+      setActivities(page.content);
+    } catch (e: any) {
+      setError(e?.message || 'Failed to load activities');
+    } finally {
+      setLoading(false);
+    }
+  }, [tenantId, filter]);
+
+  useEffect(() => {
+    fetchActivities();
+  }, [fetchActivities]);
 
   const filtered = filter === 'All' ? activities : activities.filter((a) => a.type === filter);
 
@@ -120,22 +127,31 @@ export default function ActivitiesPage() {
     }
     setSubmitting(true);
     setFormError(null);
-    await new Promise((r) => setTimeout(r, 400));
-    const newActivity: Activity = {
-      id: String(Date.now()),
-      type: form.type as Activity['type'],
-      customer: form.customer,
-      description: form.description,
-      timestamp: new Date().toISOString().slice(0, 16).replace('T', ' '),
-      user: 'Anna Kimaro',
-    };
-    setActivities((prev) => [newActivity, ...prev]);
-    setSubmitting(false);
-    setFormDialogOpen(false);
+    try {
+      const newActivity = await createActivity({
+        type: form.type,
+        customerName: form.customerName.trim() || undefined,
+        description: form.description.trim(),
+      });
+      setActivities((prev) => [newActivity, ...prev]);
+      setFormDialogOpen(false);
+    } catch (e: any) {
+      setFormError(e?.response?.data?.message || e?.message || 'Failed to log activity');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleFilter = (_: React.MouseEvent<HTMLElement>, newFilter: ActivityType | null) => {
     if (newFilter !== null) setFilter(newFilter);
+  };
+
+  const formatTimestamp = (ts: string): string => {
+    try {
+      return new Date(ts).toISOString().slice(0, 16).replace('T', ' ');
+    } catch {
+      return ts;
+    }
   };
 
   return (
@@ -184,131 +200,139 @@ export default function ActivitiesPage() {
           }}
         >
           <ToggleButton value="All">All</ToggleButton>
-          <ToggleButton value="Call">Calls</ToggleButton>
-          <ToggleButton value="Email">Emails</ToggleButton>
-          <ToggleButton value="Note">Notes</ToggleButton>
-          <ToggleButton value="Task">Tasks</ToggleButton>
+          <ToggleButton value="call">Calls</ToggleButton>
+          <ToggleButton value="email">Emails</ToggleButton>
+          <ToggleButton value="note">Notes</ToggleButton>
+          <ToggleButton value="task">Tasks</ToggleButton>
         </ToggleButtonGroup>
       </Box>
 
-      {/* Timeline */}
-      {filtered.length === 0 ? (
-        <Box
-          sx={{
-            textAlign: 'center',
-            py: 8,
-            border: `1px solid ${brand.neutral[200]}`,
-            borderRadius: '12px',
-            bgcolor: brand.neutral[50],
-          }}
-        >
-          <Box sx={{ color: brand.neutral[300], mb: 1 }}>
-            <IconClipboardCheck size={32} />
-          </Box>
-          <Typography variant="body2" sx={{ fontWeight: 600, color: brand.neutral[700] }}>
-            No activities found
-          </Typography>
-          <Typography variant="caption" sx={{ color: brand.neutral[500] }}>
-            Try changing the filter or log a new activity
-          </Typography>
-        </Box>
+      {loading ? (
+        <Typography variant="body2" sx={{ color: brand.neutral[500], py: 4, textAlign: 'center' }}>
+          Loading activities...
+        </Typography>
       ) : (
-        <Box sx={{ position: 'relative', pl: 4 }}>
-          {/* Vertical line */}
-          <Box
-            sx={{
-              position: 'absolute',
-              left: 15,
-              top: 0,
-              bottom: 0,
-              width: 2,
-              bgcolor: brand.neutral[200],
-              borderRadius: 1,
-            }}
-          />
+        <>
+          {/* Timeline */}
+          {filtered.length === 0 ? (
+            <Box
+              sx={{
+                textAlign: 'center',
+                py: 8,
+                border: `1px solid ${brand.neutral[200]}`,
+                borderRadius: '12px',
+                bgcolor: brand.neutral[50],
+              }}
+            >
+              <Box sx={{ color: brand.neutral[300], mb: 1 }}>
+                <IconClipboardCheck size={32} />
+              </Box>
+              <Typography variant="body2" sx={{ fontWeight: 600, color: brand.neutral[700] }}>
+                No activities found
+              </Typography>
+              <Typography variant="caption" sx={{ color: brand.neutral[500] }}>
+                Try changing the filter or log a new activity
+              </Typography>
+            </Box>
+          ) : (
+            <Box sx={{ position: 'relative', pl: 4 }}>
+              {/* Vertical line */}
+              <Box
+                sx={{
+                  position: 'absolute',
+                  left: 15,
+                  top: 0,
+                  bottom: 0,
+                  width: 2,
+                  bgcolor: brand.neutral[200],
+                  borderRadius: 1,
+                }}
+              />
 
-          <Stack spacing={3}>
-            {filtered.map((activity) => {
-              const tc = typeColor(activity.type);
-              return (
-                <Box key={activity.id} sx={{ position: 'relative' }}>
-                  {/* Timeline dot */}
-                  <Box
-                    sx={{
-                      position: 'absolute',
-                      left: -22,
-                      top: 4,
-                      width: 16,
-                      height: 16,
-                      borderRadius: '50%',
-                      bgcolor: tc.bg,
-                      border: `2px solid ${tc.color}`,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      zIndex: 1,
-                    }}
-                  />
+              <Stack spacing={3}>
+                {filtered.map((activity) => {
+                  const tc = typeColor(activity.type);
+                  return (
+                    <Box key={activity.id} sx={{ position: 'relative' }}>
+                      {/* Timeline dot */}
+                      <Box
+                        sx={{
+                          position: 'absolute',
+                          left: -22,
+                          top: 4,
+                          width: 16,
+                          height: 16,
+                          borderRadius: '50%',
+                          bgcolor: tc.bg,
+                          border: `2px solid ${tc.color}`,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          zIndex: 1,
+                        }}
+                      />
 
-                  {/* Activity card */}
-                  <Box
-                    sx={{
-                      border: `1px solid ${brand.neutral[200]}`,
-                      borderRadius: '10px',
-                      p: 2,
-                      bgcolor: '#fff',
-                      transition: 'box-shadow 0.15s ease',
-                      '&:hover': {
-                        boxShadow: `0 2px 8px rgba(15,23,42,0.06)`,
-                      },
-                    }}
-                  >
-                    <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={1}>
-                      <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
-                        <Box
-                          sx={{
-                            width: 28,
-                            height: 28,
-                            borderRadius: '8px',
-                            bgcolor: tc.bg,
-                            color: tc.color,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                          }}
+                      {/* Activity card */}
+                      <Box
+                        sx={{
+                          border: `1px solid ${brand.neutral[200]}`,
+                          borderRadius: '10px',
+                          p: 2,
+                          bgcolor: '#fff',
+                          transition: 'box-shadow 0.15s ease',
+                          '&:hover': {
+                            boxShadow: `0 2px 8px rgba(15,23,42,0.06)`,
+                          },
+                        }}
+                      >
+                        <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={1}>
+                          <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
+                            <Box
+                              sx={{
+                                width: 28,
+                                height: 28,
+                                borderRadius: '8px',
+                                bgcolor: tc.bg,
+                                color: tc.color,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                              }}
+                            >
+                              {typeIcon(activity.type)}
+                            </Box>
+                            <Typography variant="body2" sx={{ fontWeight: 700, color: brand.neutral[800], fontSize: '0.8rem' }}>
+                              {TYPE_LABELS[activity.type] || activity.type}
+                            </Typography>
+                          </Stack>
+                          <Typography variant="caption" sx={{ color: brand.neutral[400], fontWeight: 500, whiteSpace: 'nowrap' }}>
+                            {formatTimestamp(activity.createdAt)}
+                          </Typography>
+                        </Stack>
+
+                        <Typography
+                          variant="body2"
+                          sx={{ color: brand.neutral[600], fontSize: '0.8125rem', lineHeight: 1.5, mb: 1 }}
                         >
-                          {typeIcon(activity.type)}
-                        </Box>
-                        <Typography variant="body2" sx={{ fontWeight: 700, color: brand.neutral[800], fontSize: '0.8rem' }}>
-                          {activity.type}
+                          {activity.description}
                         </Typography>
-                      </Stack>
-                      <Typography variant="caption" sx={{ color: brand.neutral[400], fontWeight: 500, whiteSpace: 'nowrap' }}>
-                        {activity.timestamp}
-                      </Typography>
-                    </Stack>
 
-                    <Typography
-                      variant="body2"
-                      sx={{ color: brand.neutral[600], fontSize: '0.8125rem', lineHeight: 1.5, mb: 1 }}
-                    >
-                      {activity.description}
-                    </Typography>
-
-                    <Stack direction="row" justifyContent="space-between" alignItems="center">
-                      <Typography variant="caption" sx={{ color: brand.neutral[500], fontWeight: 600 }}>
-                        {activity.customer}
-                      </Typography>
-                      <Typography variant="caption" sx={{ color: brand.neutral[400], fontWeight: 500 }}>
-                        {activity.user}
-                      </Typography>
-                    </Stack>
-                  </Box>
-                </Box>
-              );
-            })}
-          </Stack>
-        </Box>
+                        <Stack direction="row" justifyContent="space-between" alignItems="center">
+                          <Typography variant="caption" sx={{ color: brand.neutral[500], fontWeight: 600 }}>
+                            {activity.customerName || '—'}
+                          </Typography>
+                          <Typography variant="caption" sx={{ color: brand.neutral[400], fontWeight: 500 }}>
+                            {activity.performedByName || '—'}
+                          </Typography>
+                        </Stack>
+                      </Box>
+                    </Box>
+                  );
+                })}
+              </Stack>
+            </Box>
+          )}
+        </>
       )}
 
       {/* Log Activity Dialog */}
@@ -337,22 +361,17 @@ export default function ActivitiesPage() {
                 onChange={(e) => patch('type', e.target.value)}
               >
                 {TYPE_OPTIONS.map((t) => (
-                  <MenuItem key={t} value={t}>{t}</MenuItem>
+                  <MenuItem key={t} value={t}>{TYPE_LABELS[t]}</MenuItem>
                 ))}
               </Select>
             </FormControl>
-            <FormControl fullWidth size="small">
-              <InputLabel>Customer</InputLabel>
-              <Select
-                value={form.customer}
-                label="Customer"
-                onChange={(e) => patch('customer', e.target.value)}
-              >
-                {CUSTOMERS.map((c) => (
-                  <MenuItem key={c} value={c}>{c}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+            <TextField
+              label="Customer Name"
+              fullWidth
+              size="small"
+              value={form.customerName}
+              onChange={(e) => patch('customerName', e.target.value)}
+            />
             <TextField
               label="Description"
               required
