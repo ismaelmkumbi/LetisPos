@@ -8,9 +8,11 @@ import io.smartpos.billing.domain.repository.InvoiceRepository;
 import io.smartpos.billing.domain.repository.PlanDefinitionRepository;
 import io.smartpos.billing.domain.repository.SubscriptionRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -93,5 +95,32 @@ public class SubscriptionController {
             sub.getBillingCycle(), amount, successUrl, cancelUrl);
 
         return ResponseEntity.ok(Map.of("checkoutUrl", checkoutUrl));
+    }
+
+    @PostMapping("/{id}/upgrade")
+    @PreAuthorize("hasAuthority('billing.manage') or @tenantOwnershipCheck.isCurrentTenant(#tenantId)")
+    public ResponseEntity<Subscription> upgrade(@PathVariable UUID id, @RequestBody Map<String, String> body) {
+        String newPlanCode = body.get("planCode");
+        if (newPlanCode == null || newPlanCode.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "planCode is required");
+        }
+        Subscription sub = subscriptionRepo.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Subscription not found: " + id));
+        sub.setPlanCode(newPlanCode);
+        sub.setCurrentPeriodStart(Instant.now());
+        sub.setCurrentPeriodEnd(Instant.now().plus(30, ChronoUnit.DAYS));
+        return ResponseEntity.ok(subscriptionRepo.save(sub));
+    }
+
+    @PostMapping("/{id}/cancel")
+    @PreAuthorize("hasAuthority('billing.manage') or @tenantOwnershipCheck.isCurrentTenant(#tenantId)")
+    public ResponseEntity<Subscription> cancel(@PathVariable UUID id) {
+        Subscription sub = subscriptionRepo.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Subscription not found: " + id));
+        sub.setStatus("CANCELLED");
+        sub.setCancelledAt(Instant.now());
+        return ResponseEntity.ok(subscriptionRepo.save(sub));
     }
 }
