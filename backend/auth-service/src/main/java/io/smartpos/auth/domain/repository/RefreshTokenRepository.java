@@ -1,12 +1,17 @@
 package io.smartpos.auth.domain.repository;
 
 import io.smartpos.auth.domain.model.RefreshToken;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 public interface RefreshTokenRepository extends JpaRepository<RefreshToken, UUID> {
     Optional<RefreshToken> findByTokenHash(String tokenHash);
     void deleteByUserId(UUID userId);
+    Page<RefreshToken> findAllByRevokedAtIsNull(Pageable pageable);
+    List<RefreshToken> findAllByUserIdAndRevokedAtIsNull(UUID userId);
 }
