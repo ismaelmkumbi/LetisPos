@@ -1,5 +1,6 @@
 package io.smartpos.billing.domain.model;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.JdbcTypeCode;
@@ -51,6 +52,7 @@ public class PlanDefinition {
     @Builder.Default
     private String features = "{}";
 
+    @JsonProperty("isPublic")
     @Column(name = "is_public", nullable = false)
     @Builder.Default
     private boolean isPublic = true;
