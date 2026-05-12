@@ -14,5 +14,6 @@ public record RegisterRequest(
         String lastName,
         UUID tenantId,
         String tenantName,
-        String tenantSlug
+        String tenantSlug,
+        String billingPlan
 ) {}
