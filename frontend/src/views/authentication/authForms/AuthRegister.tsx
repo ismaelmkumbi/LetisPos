@@ -28,7 +28,7 @@ import {
   IconMail,
   IconUser,
 } from '@tabler/icons-react';
-import { Link, useNavigate } from 'react-router';
+import { Link, useNavigate, useSearchParams } from 'react-router';
 
 import { register } from 'src/api/smartpos/auth';
 import { seedDefaultUnits } from 'src/api/smartpos/products';
@@ -88,6 +88,16 @@ function slugify(value: string): string {
 
 const AuthRegister: React.FC<Props> = ({ title, subtitle, subtext }) => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const planParam = searchParams.get('plan');
+
+  const planLabels: Record<string, string> = {
+    starter: 'Starter',
+    business: 'Business',
+    professional: 'Professional',
+    enterprise: 'Enterprise',
+  };
+  const planLabel = planParam ? planLabels[planParam.toLowerCase()] ?? planParam : null;
 
   const [step, setStep] = useState<1 | 2>(1);
   const [tenantName, setTenantName] = useState('');
@@ -122,6 +132,7 @@ const AuthRegister: React.FC<Props> = ({ title, subtitle, subtext }) => {
         lastName: lastName.trim(),
         tenantName: tenantName.trim(),
         tenantSlug: tenantSlug.trim() || undefined,
+        billingPlan: planParam || undefined,
       });
       navigate('/auth/login', { state: { registered: true } });
       // Pre-seed default data in the background
@@ -143,6 +154,32 @@ const AuthRegister: React.FC<Props> = ({ title, subtitle, subtext }) => {
     <Box component="form" onSubmit={handleSubmit} noValidate>
       {title}
       {subtext}
+
+      {planLabel && (
+        <Box
+          sx={{
+            mt: 1.5,
+            mb: 0.5,
+            p: 1.25,
+            borderRadius: '10px',
+            bgcolor: brand.primary[50],
+            border: `1px solid ${brand.primary[200]}`,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1,
+          }}
+        >
+          <Typography
+            sx={{
+              fontSize: '0.8rem',
+              color: brand.primary[700],
+              fontWeight: 600,
+            }}
+          >
+            You selected the {planLabel} plan
+          </Typography>
+        </Box>
+      )}
 
       {error && (
         <Alert severity="error" sx={{ mb: 2.5, borderRadius: '10px' }}>
