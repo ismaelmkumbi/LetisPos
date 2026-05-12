@@ -10,6 +10,7 @@ export interface KpiCard {
   change?: { positive: boolean; label: string } | null;
   sparkline?: number[];
   color?: string;
+  onClick?: () => void;
 }
 
 interface Props {
@@ -39,7 +40,8 @@ export default function ReportKpiRow({ cards }: Props) {
     <Grid container spacing={2} sx={{ mb: 2 }}>
       {cards.map((card, i) => (
         <Grid size={size} key={i}>
-          <Card elevation={0} sx={{ border: `1px solid ${brand.neutral[200]}`, borderRadius: '12px', height: '100%' }}>
+          <Card elevation={0} onClick={card.onClick}
+            sx={{ border: `1px solid ${brand.neutral[200]}`, borderRadius: '12px', height: '100%', cursor: card.onClick ? 'pointer' : 'default' }}>
             <CardContent sx={{ p: 2.25 }}>
               <Typography sx={{ color: brand.neutral[600], fontSize: 12, fontWeight: 600 }}>{card.label}</Typography>
               <Typography sx={{ color: brand.neutral[900], fontWeight: 900, fontSize: 22, mt: 0.75 }}>{card.value}</Typography>

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Grid } from '@mui/material';
+import { Box, Button, Grid, Stack, Typography } from '@mui/material';
 import { ReportPageShell, ReportFilterBar, ReportKpiRow, ReportChartCard, ReportDataTable, ReportExportBar } from 'src/components/smartpos/reports';
 import type { ReportFilters, KpiCard, Column } from 'src/components/smartpos/reports';
 import ExecutiveSummary from 'src/components/smartpos/reports/ExecutiveSummary';
@@ -26,6 +26,7 @@ export default function SalesReportPage() {
   const [hourly, setHourly] = useState<HourlyBucket[]>([]);
   const [dv, setDv] = useState<DiscountVoidAnalysis | null>(null);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+  const [drillCategory, setDrillCategory] = useState<string | null>(null);
 
   useEffect(() => {
     listWarehouses().then((w) => setWarehouses(w.filter((r) => r.active))).catch(() => {});
@@ -110,9 +111,27 @@ export default function SalesReportPage() {
             dataLabels: { enabled: false },
             legend: { position: 'bottom', fontSize: '11px' },
             tooltip: { y: { formatter: (v: number) => formatMoney(v) } },
-          }} series={byDimension?.buckets?.map((b) => b.net) ?? []} type="donut" height={300} />
+          }} series={byDimension?.buckets?.map((b) => b.net) ?? []} type="donut" height={300}
+            onDataPointClick={(_seriesIndex: number, dataPointIndex: number) => {
+              const cat = byDimension?.buckets?.[dataPointIndex]?.dimensionName ?? null;
+              setDrillCategory(cat);
+            }} />
         </Grid>
       </Grid>
+      {drillCategory && (
+        <Box sx={{ mb: 2 }}>
+          <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
+            <Typography sx={{ fontWeight: 700 }}>Products in {drillCategory}</Typography>
+            <Button size="small" onClick={() => setDrillCategory(null)}>Clear</Button>
+          </Stack>
+          <ReportDataTable
+            title=""
+            columns={productColumns}
+            rows={topProducts}
+            getRowKey={(r: TopProduct) => r.productId}
+          />
+        </Box>
+      )}
       <SmartInsights reportKind="SALES" factsJson={factsJson} />
 
       <ReportChartCard

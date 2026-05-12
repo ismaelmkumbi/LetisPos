@@ -29,12 +29,14 @@ interface Props<T> {
   searchPlaceholder?: string;
   defaultSort?: string;
   defaultSortDir?: 'asc' | 'desc';
+  onRowClick?: (row: T) => void;
 }
 
 export default function ReportDataTable<T>({
   title, columns, rows, getRowKey,
   searchPlaceholder = 'Search…',
   defaultSort, defaultSortDir = 'desc',
+  onRowClick,
 }: Props<T>) {
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState(defaultSort ?? '');
@@ -100,7 +102,9 @@ export default function ReportDataTable<T>({
           </TableHead>
           <TableBody>
             {paged.map((row, i) => (
-              <TableRow key={getRowKey(row, i)} hover>
+              <TableRow key={getRowKey(row, i)} hover
+                onClick={onRowClick ? () => onRowClick(row) : undefined}
+                sx={onRowClick ? { cursor: 'pointer' } : undefined}>
                 {columns.map((c) => (
                   <TableCell key={c.id} align={c.align ?? 'left'}>{c.render(row)}</TableCell>
                 ))}

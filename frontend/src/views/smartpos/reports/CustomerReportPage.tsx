@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Stack, Chip } from '@mui/material';
+import { Box, Button, Stack, Chip, Typography } from '@mui/material';
 import { ReportPageShell, ReportFilterBar, ReportKpiRow, ReportDataTable, ReportExportBar, ReportChartCard } from 'src/components/smartpos/reports';
 import type { ReportFilters, KpiCard, Column } from 'src/components/smartpos/reports';
 import AiReportSummary from 'src/components/smartpos/reports/AiReportSummary';
@@ -17,6 +17,7 @@ export default function CustomerReportPage() {
   const [data, setData] = useState<CustomerSummary | null>(null);
   const [rfm, setRfm] = useState<RfmSegments | null>(null);
   const [retention, setRetention] = useState<RetentionRate | null>(null);
+  const [selectedSegment, setSelectedSegment] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -62,22 +63,48 @@ export default function CustomerReportPage() {
             { label: 'At Risk', value: rfm.atRisk, color: brand.warning.main },
             { label: 'Lost', value: rfm.lost, color: brand.error.main },
           ]).map((seg) => (
-            <ReportChartCard key={seg.label} title={seg.label}
-              options={{
-                chart: { type: 'radialBar', fontFamily: 'Inter, DM Sans, sans-serif' },
-                plotOptions: { radialBar: {
-                  hollow: { size: '55%' },
-                  dataLabels: { name: { show: false }, value: { fontSize: '22px', fontWeight: 700, color: seg.color } },
-                }},
-                colors: [seg.color],
-                grid: { show: false },
-              }}
-              series={[rfm.customers.length > 0 ? Math.round((seg.value / rfm.customers.length) * 100) : 0]}
-              type="radialBar"
-              height={160}
-            />
+            <Box key={seg.label} onClick={() => setSelectedSegment(selectedSegment === seg.label ? null : seg.label)}
+              sx={{
+                cursor: 'pointer', flex: 1,
+                border: selectedSegment === seg.label ? `2px solid ${seg.color}` : '2px solid transparent',
+                borderRadius: '12px', transition: 'border-color 0.2s',
+              }}>
+              <ReportChartCard title={seg.label}
+                options={{
+                  chart: { type: 'radialBar', fontFamily: 'Inter, DM Sans, sans-serif' },
+                  plotOptions: { radialBar: {
+                    hollow: { size: '55%' },
+                    dataLabels: { name: { show: false }, value: { fontSize: '22px', fontWeight: 700, color: seg.color } },
+                  }},
+                  colors: [seg.color],
+                  grid: { show: false },
+                }}
+                series={[rfm.customers.length > 0 ? Math.round((seg.value / rfm.customers.length) * 100) : 0]}
+                type="radialBar"
+                height={160}
+              />
+            </Box>
           ))}
         </Stack>
+      )}
+      {selectedSegment && rfm && (
+        <Box sx={{ mb: 2 }}>
+          <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
+            <Typography sx={{ fontWeight: 700 }}>{selectedSegment} Customers</Typography>
+            <Button size="small" onClick={() => setSelectedSegment(null)}>Show All</Button>
+          </Stack>
+          <ReportDataTable
+            title=""
+            columns={[
+              { id: 'name', label: 'Customer', render: (r: RfmCustomer) => r.customerName },
+              { id: 'recency', label: 'Recency (days)', align: 'right', render: (r: RfmCustomer) => r.recency },
+              { id: 'frequency', label: 'Orders', align: 'right', render: (r: RfmCustomer) => r.frequency },
+              { id: 'monetary', label: 'Total Spend', align: 'right', render: (r: RfmCustomer) => formatMoney(r.monetary) },
+            ]}
+            rows={rfm.customers.filter((c) => c.segment === selectedSegment)}
+            getRowKey={(r) => r.customerId}
+          />
+        </Box>
       )}
       <ReportDataTable title="Top Customers" columns={customerColumns} rows={data?.topCustomers ?? []} getRowKey={(r) => r.customerId} />
       <ReportDataTable
