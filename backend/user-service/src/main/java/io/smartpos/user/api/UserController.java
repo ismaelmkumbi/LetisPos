@@ -29,6 +29,12 @@ public class UserController {
         return userService.list(search, active, pageable);
     }
 
+    @GetMapping("/batch")
+    @PreAuthorize("hasAuthority('user.view')")
+    public List<UserDto> getBatch(@RequestParam List<UUID> ids) {
+        return userService.getBatch(ids);
+    }
+
     @GetMapping("/{id}")
     @PreAuthorize("hasAuthority('user.view') or #id.toString() == authentication.name")
     public UserDto get(@PathVariable UUID id) {

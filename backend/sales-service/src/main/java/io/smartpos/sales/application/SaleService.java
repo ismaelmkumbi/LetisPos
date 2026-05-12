@@ -8,6 +8,7 @@ import io.smartpos.sales.domain.model.*;
 import io.smartpos.sales.domain.repository.SalePaymentAppliedRepository;
 import io.smartpos.sales.domain.repository.SaleRepository;
 import io.smartpos.sales.infrastructure.feign.InventoryClient;
+import io.smartpos.sales.infrastructure.feign.UserFeign;
 import io.smartpos.common.context.TenantContext;
 import jakarta.persistence.EntityManager;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -27,6 +28,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.Year;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Sale lifecycle with the Inventory reservation saga.
@@ -59,6 +61,7 @@ public class SaleService {
     private final OutboxPublisher  outbox;
     private final SalePaymentAppliedRepository appliedRepo;
     private final EntityManager em;
+    private final UserFeign userFeign;
 
     @Value("${smartpos.sales.default-currency:TZS}")
     private String defaultCurrency;
@@ -168,7 +171,35 @@ public class SaleService {
 
     @Transactional(readOnly = true)
     public List<SaleController.SalesByUser> salesByUser(LocalDate from, LocalDate to) {
-        return saleRepo.findSalesByUser(TenantContext.require(), from, to);
+        var stats = saleRepo.findSalesByUser(TenantContext.require(), from, to);
+        if (stats.isEmpty()) return List.of();
+
+        // Resolve user names via user-service
+        final Map<UUID, String> names = resolveUserNames(stats);
+        return stats.stream().map(s -> {
+            String name = names.getOrDefault(s.userId(),
+                    "User " + s.userId().toString().substring(0, 8));
+            return new SaleController.SalesByUser(
+                    s.userId(), name, s.saleCount(),
+                    s.totalNet(), s.totalGross(), s.itemsSold());
+        }).toList();
+    }
+
+    private Map<UUID, String> resolveUserNames(List<SaleController.SalesByUser> stats) {
+        try {
+            var userIds = stats.stream()
+                    .map(SaleController.SalesByUser::userId)
+                    .distinct()
+                    .toList();
+            var users = userFeign.getUsersByIds(userIds);
+            return users.stream()
+                    .collect(Collectors.toMap(
+                            UserFeign.UserRef::id,
+                            u -> u.firstName() + " " + u.lastName()));
+        } catch (Exception e) {
+            log.warn("Failed to resolve user names for sales-by-user: {}", e.getMessage());
+            return Map.of();
+        }
     }
 
     // ---------- Create & confirm (back-office) ----------

@@ -40,6 +40,11 @@ public class UserProfileService {
     }
 
     @Transactional(readOnly = true)
+    public List<UserDto> getBatch(List<UUID> ids) {
+        return userRepo.findAllById(ids).stream().map(UserDto::from).toList();
+    }
+
+    @Transactional(readOnly = true)
     public UserDto get(UUID id) {
         UserProfile u = userRepo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
