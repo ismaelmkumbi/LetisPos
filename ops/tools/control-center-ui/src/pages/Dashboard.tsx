@@ -150,30 +150,36 @@ function ServerPanel({ server, metrics: m, backendSvcs, services, svcFilter, onF
             <TableHead>
               <TableRow sx={{ '& .MuiTableCell-root': { fontWeight: 700, fontSize: '0.7rem', color: muted, textTransform: 'uppercase', letterSpacing: '0.04em', bgcolor: brand.neutral[900] } }}>
                 <TableCell>Service</TableCell>
+                <TableCell>Category</TableCell>
+                <TableCell>Port</TableCell>
                 <TableCell align="right">CPU</TableCell>
                 <TableCell align="right">RAM</TableCell>
+                <TableCell>Status</TableCell>
                 <TableCell>PID</TableCell>
-                <TableCell>Command</TableCell>
                 <TableCell align="right">Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {filtered.map(svc => (
                 <TableRow key={svc.name} hover onClick={() => setDetailSvc(svc)} sx={{ cursor: 'pointer', '&:hover': { bgcolor: `${brand.neutral[700]}50` }, '& .MuiTableCell-root': { fontSize: '0.75rem', color: brand.neutral[50] } }}>
-                  <TableCell sx={{ fontWeight: 600 }}>
-                    <Stack direction="row" spacing={0.75} sx={{ alignItems: 'center' }}>
-                      <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: svc.status === 'UP' ? brand.success.main : brand.error.main, flexShrink: 0 }} />
-                      {svc.name}
-                    </Stack>
+                  <TableCell sx={{ fontWeight: 600 }}>{svc.name}</TableCell>
+                  <TableCell>
+                    <Chip label={svc.category} size="small" sx={{ height: 20, fontWeight: 600, fontSize: '0.6rem', bgcolor: `${CATEGORY_COLORS[svc.category] || brand.primary[500]}20`, color: CATEGORY_COLORS[svc.category] || brand.primary[500], borderRadius: '6px' }} />
                   </TableCell>
+                  <TableCell sx={{ fontFamily: "'DM Mono', 'Courier New', monospace", fontSize: '0.75rem', color: muted }}>:{svc.port}</TableCell>
                   <TableCell align="right" sx={{ fontFamily: "'DM Mono', monospace", color: (svc.cpuPercent ?? 0) > 50 ? brand.error.main : (svc.cpuPercent ?? 0) > 20 ? brand.warning.main : brand.neutral[50] }}>
                     {(svc.cpuPercent ?? 0).toFixed(1)}%
                   </TableCell>
                   <TableCell align="right" sx={{ fontFamily: "'DM Mono', monospace", color: muted }}>
                     {((svc.memUsedBytes ?? 0) / 1048576).toFixed(0)} MB
                   </TableCell>
+                  <TableCell>
+                    <Stack direction="row" spacing={0.75} sx={{ alignItems: 'center' }}>
+                      <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: svc.status === 'UP' ? brand.success.main : brand.error.main, boxShadow: svc.status === 'UP' ? `0 0 6px ${brand.success.main}80` : 'none' }} />
+                      <Typography variant="caption" sx={{ fontWeight: 700, color: svc.status === 'UP' ? brand.success.main : brand.error.main, fontSize: '0.7rem' }}>{svc.status}</Typography>
+                    </Stack>
+                  </TableCell>
                   <TableCell sx={{ fontFamily: "'DM Mono', monospace", color: muted }}>{svc.pid ?? '—'}</TableCell>
-                  <TableCell sx={{ color: muted, maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{svc.command ?? '—'}</TableCell>
                   <TableCell align="right">
                     <Stack direction="row" spacing={0.5} sx={{ justifyContent: 'flex-end' }}>
                       <Button size="small" variant="outlined" onClick={() => { serviceAction(server.hostname, svc.name.toLowerCase().replace(' ', '-'), 'restart').catch(() => {}); }}
