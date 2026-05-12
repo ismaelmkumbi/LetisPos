@@ -32,4 +32,41 @@ public class InventoryServiceClient {
         log.warn("Inventory service unavailable, returning unknown stock");
         return Map.of("status", "unknown", "quantity", 0);
     }
+
+    @CircuitBreaker(name = "inventory-service", fallbackMethod = "reserveStockFallback")
+    @Retry(name = "inventory-service")
+    public Map<String, Object> reserveStock(UUID productId, UUID warehouseId, int quantity) {
+        var client = restClientBuilder.build();
+        Map<String, Object> body = new java.util.LinkedHashMap<>();
+        body.put("productId", productId.toString());
+        body.put("warehouseId", warehouseId.toString());
+        body.put("quantity", quantity);
+        return client.post()
+            .uri("/api/v1/stock/reserve")
+            .body(body)
+            .retrieve()
+            .body(Map.class);
+    }
+
+    @SuppressWarnings("unused")
+    public Map<String, Object> reserveStockFallback(UUID productId, UUID warehouseId, int quantity, Throwable t) {
+        log.warn("Inventory service unavailable, stock reservation failed for product {}", productId);
+        return Map.of("status", "failed", "error", "Inventory service unavailable");
+    }
+
+    @CircuitBreaker(name = "inventory-service", fallbackMethod = "releaseReservationFallback")
+    @Retry(name = "inventory-service")
+    public Map<String, Object> releaseReservation(UUID reservationId) {
+        var client = restClientBuilder.build();
+        return client.post()
+            .uri("/api/v1/stock/release/{reservationId}", reservationId)
+            .retrieve()
+            .body(Map.class);
+    }
+
+    @SuppressWarnings("unused")
+    public Map<String, Object> releaseReservationFallback(UUID reservationId, Throwable t) {
+        log.warn("Inventory service unavailable, failed to release reservation {}", reservationId);
+        return Map.of("status", "failed", "error", "Inventory service unavailable");
+    }
 }
