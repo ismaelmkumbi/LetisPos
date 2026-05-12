@@ -11,4 +11,5 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     boolean existsByEmailIgnoreCase(String email);
     long count();
     long countByTenantId(UUID tenantId);
+    Optional<User> findFirstByTenantIdOrderByCreatedAtAsc(UUID tenantId);
 }

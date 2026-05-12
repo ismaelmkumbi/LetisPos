@@ -1,5 +1,6 @@
 package io.smartpos.billing.api;
 
+import io.smartpos.billing.application.InvoicePdfService;
 import io.smartpos.billing.domain.model.Invoice;
 import io.smartpos.billing.domain.repository.InvoiceRepository;
 import jakarta.validation.Valid;
@@ -19,6 +20,7 @@ import java.util.UUID;
 public class InvoiceController {
 
     private final InvoiceRepository invoiceRepo;
+    private final InvoicePdfService invoicePdfService;
 
     // List invoices for a tenant (admin or self-service)
     @GetMapping("/tenant/{tenantId}")
@@ -46,7 +48,12 @@ public class InvoiceController {
         invoice.setPaymentMethod(request.paymentMethod());
         invoice.setPaymentReference(request.paymentReference());
         invoice.setPaidAt(Instant.now());
-        return ResponseEntity.ok(invoiceRepo.save(invoice));
+        invoice = invoiceRepo.save(invoice);
+
+        // Generate invoice PDF receipt
+        invoicePdfService.generateInvoicePdf(invoice);
+
+        return ResponseEntity.ok(invoice);
     }
 
     public record MarkPaidRequest(

@@ -38,6 +38,7 @@ import {
   IconArrowUp,
   IconCheck,
   IconCreditCard,
+  IconDeviceMobile,
   IconPlus,
   IconReceipt,
   IconTrash,
@@ -52,6 +53,8 @@ import {
   listInvoices,
   listPaymentMethods,
   listPlans,
+  mpesaQueryStatus,
+  mpesaStkPush,
   upgradeSubscription,
   type Invoice,
   type PaymentMethod,
@@ -122,6 +125,16 @@ export default function TenantBillingPage() {
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [cancelDialogSubmitting, setCancelDialogSubmitting] = useState(false);
   const [cancelDialogError, setCancelDialogError] = useState<string | null>(null);
+
+  // M-Pesa STK Push dialog
+  const [mpesaDialogOpen, setMpesaDialogOpen] = useState(false);
+  const [mpesaPhone, setMpesaPhone] = useState('');
+  const [mpesaAmount, setMpesaAmount] = useState('');
+  const [mpesaSubmitting, setMpesaSubmitting] = useState(false);
+  const [mpesaError, setMpesaError] = useState<string | null>(null);
+  const [mpesaMessage, setMpesaMessage] = useState<string | null>(null);
+  const [mpesaPollingCrid, setMpesaPollingCrid] = useState<string | null>(null);
+  const [mpesaPollingDone, setMpesaPollingDone] = useState(false);
 
   const fetchTenantData = async () => {
     let t: Tenant | null = null;
@@ -239,6 +252,59 @@ export default function TenantBillingPage() {
       setCancelDialogError(detail ?? 'Failed to cancel subscription. Please try again.');
     } finally {
       setCancelDialogSubmitting(false);
+    }
+  };
+
+  // M-Pesa STK Push polling
+  useEffect(() => {
+    if (!mpesaPollingCrid || mpesaPollingDone) return;
+
+    let cancelled = false;
+    const timer = setInterval(async () => {
+      if (cancelled) return;
+      try {
+        const result = await mpesaQueryStatus(mpesaPollingCrid);
+        if (cancelled) return;
+        if (result.ResultCode === '0') {
+          setMpesaMessage('Payment confirmed successfully!');
+          setMpesaPollingDone(true);
+          clearInterval(timer);
+          // Refresh subscription and invoice data
+          fetchTenantData();
+        } else if (result.ResultCode !== '1037' && result.ResultCode !== '1032') {
+          // Not pending — treat as failure
+          setMpesaPollingDone(true);
+          setMpesaError(result.ResultDesc || 'Payment was not successful. Please try again.');
+          clearInterval(timer);
+        }
+      } catch {
+        // Keep polling on network errors
+      }
+    }, 3000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [mpesaPollingCrid, mpesaPollingDone]);
+
+  const handleMpesaPay = async () => {
+    if (!tenant || !subscription) return;
+    setMpesaSubmitting(true);
+    setMpesaError(null);
+    setMpesaMessage(null);
+    setMpesaPollingDone(false);
+    try {
+      const res = await mpesaStkPush(mpesaPhone, mpesaAmount, subscription.id);
+      setMpesaMessage('STK Push sent. Check your phone.');
+      setMpesaPollingCrid(res.CheckoutRequestID);
+    } catch (e) {
+      type AxiosLike = { response?: { status?: number; data?: { detail?: string; title?: string } } };
+      const err = e as AxiosLike;
+      const detail = err?.response?.data?.detail ?? err?.response?.data?.title;
+      setMpesaError(detail ?? 'Failed to initiate M-Pesa payment. Please try again.');
+    } finally {
+      setMpesaSubmitting(false);
     }
   };
 
@@ -369,6 +435,32 @@ export default function TenantBillingPage() {
                     }}
                   >
                     Upgrade Plan
+                  </Button>
+                )}
+
+                {isActive && (
+                  <Button
+                    variant="contained"
+                    startIcon={<IconDeviceMobile size={16} />}
+                    onClick={() => {
+                      setMpesaPhone('');
+                      setMpesaAmount('');
+                      setMpesaError(null);
+                      setMpesaMessage(null);
+                      setMpesaPollingCrid(null);
+                      setMpesaPollingDone(false);
+                      setMpesaDialogOpen(true);
+                    }}
+                    sx={{
+                      borderRadius: '8px',
+                      fontWeight: 600,
+                      fontSize: '0.8125rem',
+                      textTransform: 'none',
+                      bgcolor: '#2E8B57',
+                      '&:hover': { bgcolor: '#246B44' },
+                    }}
+                  >
+                    Pay with M-Pesa
                   </Button>
                 )}
 
@@ -917,6 +1009,133 @@ export default function TenantBillingPage() {
           >
             {cancelDialogSubmitting ? 'Cancelling...' : 'Cancel Subscription'}
           </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* M-Pesa STK Push Dialog */}
+      <Dialog
+        open={mpesaDialogOpen}
+        onClose={() => {
+          if (mpesaSubmitting || mpesaPollingCrid) return;
+          setMpesaDialogOpen(false);
+          setMpesaPollingCrid(null);
+        }}
+        maxWidth="sm"
+        fullWidth
+        slotProps={{
+          paper: {
+            sx: {
+              borderRadius: '14px',
+              border: `1px solid ${brand.neutral[200]}`,
+              boxShadow: '0 24px 48px rgba(15,23,42,0.16)',
+            },
+          },
+        }}
+      >
+        <DialogTitle sx={{ fontWeight: 700, color: brand.neutral[800], fontSize: '1.05rem' }}>
+          Pay with M-Pesa
+        </DialogTitle>
+        <DialogContent sx={{ pt: 1.5 }}>
+          {mpesaError && (
+            <Alert severity="error" sx={{ mb: 2 }} onClose={() => setMpesaError(null)}>
+              {mpesaError}
+            </Alert>
+          )}
+          {mpesaMessage && (
+            <Alert severity={mpesaPollingDone ? 'success' : 'info'} sx={{ mb: 2 }}>
+              {mpesaMessage}
+            </Alert>
+          )}
+
+          {!mpesaPollingCrid ? (
+            <Stack spacing={2}>
+              <Typography variant="body2" sx={{ color: brand.neutral[600], fontSize: '0.8125rem' }}>
+                Enter your M-Pesa phone number and the amount you would like to pay.
+              </Typography>
+
+              <TextField
+                label="Phone Number"
+                placeholder="2547XXXXXXXX"
+                value={mpesaPhone}
+                onChange={(e) => setMpesaPhone(e.target.value)}
+                fullWidth
+                size="small"
+                sx={{
+                  '& .MuiOutlinedInput-root': { borderRadius: '8px' },
+                }}
+              />
+
+              <TextField
+                label="Amount (TZS)"
+                placeholder="e.g. 50000"
+                value={mpesaAmount}
+                onChange={(e) => setMpesaAmount(e.target.value)}
+                fullWidth
+                size="small"
+                type="number"
+                sx={{
+                  '& .MuiOutlinedInput-root': { borderRadius: '8px' },
+                }}
+              />
+
+              {currentPlan && currentPlan.monthlyPriceTzs > 0 && (
+                <Typography variant="caption" sx={{ color: brand.neutral[500], fontSize: '0.7rem' }}>
+                  Your plan is {formatTzs(currentPlan.monthlyPriceTzs)}/month
+                  {subscription?.billingCycle === 'ANNUAL' ? ' (billed annually)' : ''}.
+                </Typography>
+              )}
+            </Stack>
+          ) : (
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 2 }}>
+              {!mpesaPollingDone && (
+                <>
+                  <CircularProgress size={32} sx={{ color: brand.primary[600], mb: 2 }} />
+                  <Typography variant="body2" sx={{ color: brand.neutral[600], fontWeight: 500 }}>
+                    Waiting for payment confirmation...
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: brand.neutral[400], mt: 0.5 }}>
+                    Check your phone and enter your M-Pesa PIN.
+                  </Typography>
+                </>
+              )}
+            </Box>
+          )}
+        </DialogContent>
+        <Divider />
+        <DialogActions sx={{ px: 3, py: 2 }}>
+          <Button
+            onClick={() => {
+              setMpesaDialogOpen(false);
+              setMpesaPollingCrid(null);
+            }}
+            disabled={mpesaSubmitting && !mpesaPollingDone}
+            sx={{
+              borderRadius: '8px',
+              fontWeight: 600,
+              fontSize: '0.8125rem',
+              textTransform: 'none',
+              color: brand.neutral[600],
+            }}
+          >
+            {mpesaPollingDone ? 'Done' : 'Cancel'}
+          </Button>
+          {!mpesaPollingCrid && (
+            <Button
+              variant="contained"
+              onClick={handleMpesaPay}
+              disabled={mpesaSubmitting || !mpesaPhone || !mpesaAmount}
+              sx={{
+                borderRadius: '8px',
+                fontWeight: 700,
+                fontSize: '0.8125rem',
+                textTransform: 'none',
+                bgcolor: '#2E8B57',
+                '&:hover': { bgcolor: '#246B44' },
+              }}
+            >
+              {mpesaSubmitting ? 'Sending...' : 'Send STK Push'}
+            </Button>
+          )}
         </DialogActions>
       </Dialog>
 

@@ -45,6 +45,9 @@ public class Invoice {
     @Column(name = "paid_at")
     private Instant paidAt;
 
+    @Column(name = "document_id", length = 50)
+    private String documentId;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 

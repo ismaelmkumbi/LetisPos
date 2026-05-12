@@ -135,6 +135,9 @@ const SmartPosSessions = Loadable(lazy(() => import('../views/smartpos/admin/Ses
 const SmartPosDataRetention = Loadable(lazy(() => import('../views/smartpos/admin/DataRetentionPage')));
 const SmartPosBackups = Loadable(lazy(() => import('../views/smartpos/admin/BackupsPage')));
 import TenantBillingPage from '../views/smartpos/billing/TenantBillingPage';
+const PaymentHistoryPage = Loadable(
+  lazy(() => import('../views/smartpos/billing/PaymentHistoryPage')),
+);
 const SmartPosI18nAdmin = Loadable(lazy(() => import('../views/smartpos/settings/I18nAdminPage')));
 const SmartPosReceiptSettings = Loadable(
   lazy(() => import('../views/smartpos/settings/ReceiptSettingsPage')),
@@ -583,6 +586,7 @@ const Router = [
       { path: 'integrations/webhooks', element: <PlanGate minPlan="PROFESSIONAL" featureName="Webhooks"><WebhooksPage /></PlanGate> },
       // Billing (tenant self-service)
       { path: 'billing', element: <TenantBillingPage /> },
+      { path: 'billing/history', element: <PaymentHistoryPage /> },
       // Settings
       { path: 'settings/i18n', element: <SmartPosI18nAdmin /> },
       { path: 'settings/receipt', element: <SmartPosReceiptSettings /> },

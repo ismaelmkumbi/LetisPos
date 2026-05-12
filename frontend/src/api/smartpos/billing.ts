@@ -32,8 +32,9 @@ export interface Invoice {
   subscriptionId?: string;
   invoiceNumber: string;
   amountTzs: number;
-  status: 'PENDING' | 'PAID' | 'OVERDUE' | 'CANCELLED';
+  status: 'PENDING' | 'PAID' | 'OVERDUE' | 'CANCELLED' | 'FAILED';
   paymentMethod?: string;
+  documentId?: string;
   dueDate: string;
   paidAt?: string;
   createdAt: string;
@@ -122,5 +123,27 @@ export async function upgradeSubscription(id: string, planCode: string): Promise
 
 export async function cancelSubscription(id: string): Promise<Subscription> {
   const { data } = await api.post<Subscription>(`/api/v1/billing/subscriptions/${id}/cancel`);
+  return data;
+}
+
+// ── M-Pesa ──
+
+export interface MpesaStkPushResponse {
+  MerchantRequestID: string;
+  CheckoutRequestID: string;
+}
+
+export interface MpesaQueryResponse {
+  ResultCode: string;
+  ResultDesc: string;
+}
+
+export async function mpesaStkPush(phone: string, amount: string, subscriptionId: string): Promise<MpesaStkPushResponse> {
+  const { data } = await api.post<MpesaStkPushResponse>('/api/v1/billing/mpesa/stk-push', { phone, amount, subscriptionId });
+  return data;
+}
+
+export async function mpesaQueryStatus(checkoutRequestId: string): Promise<MpesaQueryResponse> {
+  const { data } = await api.get<MpesaQueryResponse>(`/api/v1/billing/mpesa/query/${checkoutRequestId}`);
   return data;
 }

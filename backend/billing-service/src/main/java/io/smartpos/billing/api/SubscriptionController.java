@@ -16,6 +16,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 
@@ -99,7 +100,7 @@ public class SubscriptionController {
 
     @PostMapping("/{id}/upgrade")
     @PreAuthorize("hasAuthority('billing.manage') or @tenantOwnershipCheck.isCurrentTenant(#tenantId)")
-    public ResponseEntity<Subscription> upgrade(@PathVariable UUID id, @RequestBody Map<String, String> body) {
+    public Map<String, Object> upgrade(@PathVariable UUID id, @RequestBody Map<String, String> body) {
         String newPlanCode = body.get("planCode");
         if (newPlanCode == null || newPlanCode.isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "planCode is required");
@@ -107,10 +108,47 @@ public class SubscriptionController {
         Subscription sub = subscriptionRepo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         "Subscription not found: " + id));
+
+        String oldPlanCode = sub.getPlanCode();
+        Instant now = Instant.now();
+
+        // Calculate proration
+        long daysRemaining = java.time.Duration.between(now, sub.getCurrentPeriodEnd()).toDays();
+        long totalDays = 30;
+        double oldDailyRate = getPlanPrice(oldPlanCode) / (double) totalDays;
+        double newDailyRate = getPlanPrice(newPlanCode) / (double) totalDays;
+        double proratedCredit = oldDailyRate * Math.max(0, daysRemaining);
+        double proratedCharge = newDailyRate * Math.max(0, daysRemaining);
+        double amountDue = Math.max(0, proratedCharge - proratedCredit);
+
+        // Apply upgrade immediately
         sub.setPlanCode(newPlanCode);
-        sub.setCurrentPeriodStart(Instant.now());
-        sub.setCurrentPeriodEnd(Instant.now().plus(30, ChronoUnit.DAYS));
-        return ResponseEntity.ok(subscriptionRepo.save(sub));
+        sub.setCurrentPeriodStart(now);
+        sub.setCurrentPeriodEnd(now.plusSeconds(30 * 86400));
+        sub.setUpdatedAt(now);
+        subscriptionRepo.save(sub);
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("subscription", sub);
+        result.put("proration", Map.of(
+            "daysRemaining", daysRemaining,
+            "oldDailyRate", Math.round(oldDailyRate),
+            "newDailyRate", Math.round(newDailyRate),
+            "proratedCredit", Math.round(proratedCredit),
+            "proratedCharge", Math.round(proratedCharge),
+            "amountDue", Math.round(amountDue)
+        ));
+        return result;
+    }
+
+    private long getPlanPrice(String planCode) {
+        return switch (planCode.toLowerCase()) {
+            case "starter" -> 15000;
+            case "business" -> 35000;
+            case "professional" -> 79000;
+            case "enterprise" -> 250000;
+            default -> 0;
+        };
     }
 
     @PostMapping("/{id}/cancel")

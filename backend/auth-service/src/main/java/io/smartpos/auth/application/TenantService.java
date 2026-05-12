@@ -181,13 +181,13 @@ public class TenantService {
     }
 
     @Transactional
-    public int expireTrials() {
+    public List<Tenant> expireTrials() {
         List<Tenant> expiredTrials = tenantRepository
                 .findByStatusAndTrialEndsAtBefore(TenantStatus.TRIAL, Instant.now());
         for (Tenant t : expiredTrials) {
             handleTrialExpiry(t.getId());
         }
-        return expiredTrials.size();
+        return expiredTrials;
     }
 
     @Transactional
