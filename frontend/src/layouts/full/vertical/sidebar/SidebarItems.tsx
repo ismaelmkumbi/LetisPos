@@ -58,7 +58,7 @@ const SidebarItems = () => {
   const lgUp = useMediaQuery((theme: any) => theme.breakpoints.up('lg'));
   const hideMenu: any = lgUp ? isCollapse == "mini-sidebar" : '';
 
-  const billingPlan = tenants[0]?.billingPlan ?? 'FREE';
+  const billingPlan = tenants[0]?.billingPlan ?? 'STARTER';
 
   // Use SmartPOS menu inside /smartpos/*, Modernize demo menu everywhere else.
   // SmartPOS menu is rebuilt on each render so it picks up locale changes.

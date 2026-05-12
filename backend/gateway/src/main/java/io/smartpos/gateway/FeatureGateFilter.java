@@ -61,8 +61,8 @@ public class FeatureGateFilter implements GlobalFilter, Ordered {
 
     /**
      * Report-specific gating for graduated access:
-     * - FREE: only /api/v1/reports/daily-summary, /api/v1/reports/stock-level
-     * - STARTER: + /api/v1/reports/sales, /api/v1/reports/customer
+     * - STARTER: /api/v1/reports/daily-summary, /api/v1/reports/stock-level,
+     *            /api/v1/reports/sales, /api/v1/reports/customer
      * - BUSINESS: + /api/v1/reports/financial, /api/v1/reports/tax, /api/v1/reports/purchase,
      *             /api/v1/reports/supplier, /api/v1/reports/export
      * - PROFESSIONAL: + /api/v1/reports/employee, /api/v1/reports/analytics
@@ -173,12 +173,11 @@ public class FeatureGateFilter implements GlobalFilter, Ordered {
     private static int planOrdinal(String planName) {
         if (planName == null) return 0;
         return switch (planName.toUpperCase()) {
-            case "FREE" -> 0;
             case "STARTER" -> 1;
             case "BUSINESS" -> 2;
             case "PROFESSIONAL" -> 3;
             case "ENTERPRISE" -> 4;
-            default -> 0;
+            default -> 1;
         };
     }
 

@@ -285,7 +285,7 @@ export default function BillingPage() {
                           '&:hover': { bgcolor: brand.primary[700] },
                         }}
                       >
-                        {plan.code === 'FREE' ? 'Upgrade' : 'Subscribe'}
+                        Subscribe
                       </Button>
                     </Stack>
                   </Box>

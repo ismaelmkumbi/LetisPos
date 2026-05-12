@@ -8,7 +8,7 @@ import {
 import { bootstrapAuthSession, tokenStore } from 'src/api/smartpos/client';
 
 export const PLAN_LEVEL: Record<string, number> = {
-  FREE: 0, STARTER: 1, BUSINESS: 2, PROFESSIONAL: 3, ENTERPRISE: 4,
+  STARTER: 1, BUSINESS: 2, PROFESSIONAL: 3, ENTERPRISE: 4,
 };
 
 interface AuthContextValue {

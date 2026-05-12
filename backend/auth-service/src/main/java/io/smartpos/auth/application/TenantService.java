@@ -145,10 +145,9 @@ public class TenantService {
         Tenant tenant = getById(id);
         if (tenant.getStatus() == TenantStatus.TRIAL && tenant.isTrialExpired()) {
             tenant.setStatus(TenantStatus.TRIAL_EXPIRED);
-            tenant.setBillingPlan(BillingPlan.FREE);
-            tenant.deriveLimits();
+            // Keep the original billing plan — user must subscribe to continue
             tenant.setStatusChangedAt(Instant.now());
-            tenant.setStatusReason("Trial period ended");
+            tenant.setStatusReason("Trial period ended — subscribe to continue");
             log.info("Trial expired for tenant: id={}", id);
             return tenantRepository.save(tenant);
         }

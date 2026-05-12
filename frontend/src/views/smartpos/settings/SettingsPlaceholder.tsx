@@ -1583,7 +1583,7 @@ export function TenantsSettings() {
   const [saving, setSaving] = useState(false);
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
-  const [plan, setPlan] = useState('FREE');
+  const [plan, setPlan] = useState('STARTER');
   const [tenantSettings, setTenantSettings] = useState<Record<string, boolean>>({});
   const [dirty, setDirty] = useState(false);
 
@@ -1648,7 +1648,7 @@ export function TenantsSettings() {
         name: user.tenantName || 'Default Workspace',
         slug: user.tenantSlug || 'default',
         status: 'ACTIVE',
-        billingPlan: user.billingPlan || 'FREE',
+        billingPlan: user.billingPlan || 'STARTER',
         maxUsers: 5,
         maxStores: 1,
         settings: '{}',
@@ -1687,14 +1687,13 @@ export function TenantsSettings() {
   };
 
   const planMeta: Record<string, { label: string; users: number; stores: number }> = {
-    FREE: { label: 'Free', users: 1, stores: 1 },
-    STARTER: { label: 'Starter', users: 5, stores: 1 },
-    BUSINESS: { label: 'Business', users: 20, stores: 5 },
-    PROFESSIONAL: { label: 'Professional', users: 100, stores: 25 },
+    STARTER: { label: 'Starter', users: 2, stores: 1 },
+    BUSINESS: { label: 'Business', users: 5, stores: 3 },
+    PROFESSIONAL: { label: 'Professional', users: 25, stores: 10 },
     ENTERPRISE: { label: 'Enterprise', users: -1, stores: -1 },
   };
 
-  const currentPlanMeta = planMeta[plan] || planMeta.FREE;
+  const currentPlanMeta = planMeta[plan] || planMeta.STARTER;
 
   if (loading) return <CardSkeletonGroup count={4} />;
   if (!tenant) {
@@ -1895,25 +1894,23 @@ export function TenantsSettings() {
                 sx={{
                   p: 2,
                   borderRadius: 2,
-                  bgcolor: plan === 'FREE' ? '#FFF7ED' : t_brand.success.light,
-                  border: `1px solid ${plan === 'FREE' ? '#FDBA74' : t_brand.success.main}`,
+                  bgcolor: t_brand.success.light,
+                  border: `1px solid ${t_brand.success.main}`,
                 }}
               >
                 <Typography
                   variant="caption"
                   sx={{
-                    color: plan === 'FREE' ? '#C2410C' : t_brand.success.dark,
+                    color: t_brand.success.dark,
                     fontWeight: 600,
                   }}
                 >
-                  {plan === 'FREE' ? 'Consider upgrading' : 'Your plan includes premium features'}
+                  Your plan includes premium features
                 </Typography>
                 <Typography variant="body2" sx={{ mt: 0.5, color: t_brand.neutral[700] }}>
-                  {plan === 'FREE'
-                    ? 'Free tier is limited to 5 users and 1 store. Upgrade to unlock more capacity and features.'
-                    : plan === 'ENTERPRISE'
-                      ? 'Full access to all features, unlimited users and stores.'
-                      : `The ${currentPlanMeta.label} plan supports up to ${currentPlanMeta.users} users and ${currentPlanMeta.stores} stores.`}
+                  {plan === 'ENTERPRISE'
+                    ? 'Full access to all features, unlimited users and stores.'
+                    : `The ${currentPlanMeta.label} plan supports up to ${currentPlanMeta.users} users and ${currentPlanMeta.stores} stores.`}
                 </Typography>
               </Box>
             </Stack>

@@ -6,7 +6,7 @@ CREATE TABLE tenants (
     name            VARCHAR(120) NOT NULL,
     slug            VARCHAR(80)  NOT NULL,
     status          VARCHAR(20)  NOT NULL DEFAULT 'ACTIVE',
-    billing_plan    VARCHAR(30)  NOT NULL DEFAULT 'FREE',
+    billing_plan    VARCHAR(30)  NOT NULL DEFAULT 'STARTER',
     max_users       INT          NOT NULL DEFAULT 5,
     max_stores      INT          NOT NULL DEFAULT 1,
     settings        JSONB        DEFAULT '{}',

@@ -102,7 +102,7 @@ export interface Tenant {
   name: string;
   slug: string;
   status: 'TRIAL' | 'TRIAL_EXPIRED' | 'ACTIVE' | 'PAST_DUE' | 'SUSPENDED' | 'CLOSED';
-  billingPlan: 'FREE' | 'STARTER' | 'BUSINESS' | 'PROFESSIONAL' | 'ENTERPRISE';
+  billingPlan: 'STARTER' | 'BUSINESS' | 'PROFESSIONAL' | 'ENTERPRISE';
   maxUsers: number;
   maxStores: number;
   settings: string; // JSONB — parsed by caller

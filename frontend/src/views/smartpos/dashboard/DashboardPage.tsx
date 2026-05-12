@@ -334,12 +334,7 @@ export default function DashboardPage() {
         </Alert>
       )}
 
-      {tenants[0]?.billingPlan === 'FREE' && (
-        <Alert severity="warning" sx={{ mb: 3, borderRadius: 2 }}>
-          You're on the Free plan with limited features.{' '}
-          <Link to="/smartpos/billing">Upgrade now</Link> to unlock accounting, reports, and more.
-        </Alert>
-      )}
+
 
       {error && (
         <Alert severity="error" sx={{ mb: 2, borderRadius: '12px' }}>
