@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Box,
@@ -24,79 +24,92 @@ import {
 import { PageHeader } from 'src/components/smartpos/PageHeader';
 import DataTable, { type Column } from 'src/components/smartpos/DataTable';
 import { brand } from 'src/theme/smartpos/brand';
+import {
+  listFollowUps,
+  createFollowUp,
+  completeFollowUp,
+  type FollowUp,
+} from 'src/api/smartpos/crm';
+import { tokenStore } from 'src/api/smartpos/client';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-interface FollowUp {
-  id: string;
-  customer: string;
-  type: string;
-  dueDate: string;
-  priority: string;
-  assignedTo: string;
-  status: string;
-}
-
 type FollowUpFormData = {
-  customer: string;
+  customerName: string;
   type: string;
   dueDate: string;
   priority: string;
   notes: string;
 };
 
-// ─── Mock data ────────────────────────────────────────────────────────────────
-
-const MOCK_FOLLOWUPS: FollowUp[] = [
-  { id: '1', customer: 'Jane Mushi', type: 'Call', dueDate: '2026-05-12', priority: 'High', assignedTo: 'Anna Kimaro', status: 'Pending' },
-  { id: '2', customer: 'David Msangi', type: 'Email', dueDate: '2026-05-13', priority: 'Medium', assignedTo: 'John Banda', status: 'Pending' },
-  { id: '3', customer: 'Moses Mwakibete', type: 'Meeting', dueDate: '2026-05-11', priority: 'High', assignedTo: 'Anna Kimaro', status: 'Completed' },
-  { id: '4', customer: 'Rehema Saleh', type: 'Call', dueDate: '2026-05-14', priority: 'Low', assignedTo: 'John Banda', status: 'Pending' },
-  { id: '5', customer: 'Fatma Omari', type: 'Email', dueDate: '2026-05-10', priority: 'Medium', assignedTo: 'Anna Kimaro', status: 'Missed' },
-  { id: '6', customer: 'Hassan Juma', type: 'Call', dueDate: '2026-05-09', priority: 'High', assignedTo: 'John Banda', status: 'Completed' },
-];
-
-const TYPE_OPTIONS = ['Call', 'Email', 'Meeting'];
-const PRIORITY_OPTIONS = ['High', 'Medium', 'Low'];
-const CUSTOMERS = ['Jane Mushi', 'David Msangi', 'Moses Mwakibete', 'Rehema Saleh', 'Fatma Omari', 'Hassan Juma'];
+const TYPE_OPTIONS = ['call', 'email', 'meeting'];
+const TYPE_LABELS: Record<string, string> = { call: 'Call', email: 'Email', meeting: 'Meeting' };
+const PRIORITY_OPTIONS = ['high', 'medium', 'low'];
+const PRIORITY_LABELS: Record<string, string> = { high: 'High', medium: 'Medium', low: 'Low' };
 
 const priorityColor = (p: string) => {
   switch (p) {
-    case 'High': return { bg: brand.error.light, color: brand.error.dark };
-    case 'Medium': return { bg: brand.warning.light, color: brand.warning.dark };
-    case 'Low': return { bg: brand.success.light, color: brand.success.dark };
+    case 'high': return { bg: brand.error.light, color: brand.error.dark };
+    case 'medium': return { bg: brand.warning.light, color: brand.warning.dark };
+    case 'low': return { bg: brand.success.light, color: brand.success.dark };
     default: return { bg: brand.neutral[100], color: brand.neutral[600] };
   }
 };
 
 const statusChip = (s: string) => {
   switch (s) {
-    case 'Completed': return { bg: brand.success.light, color: brand.success.dark };
-    case 'Missed': return { bg: brand.error.light, color: brand.error.dark };
-    case 'Pending': return { bg: brand.warning.light, color: brand.warning.dark };
+    case 'completed': return { bg: brand.success.light, color: brand.success.dark };
+    case 'missed': return { bg: brand.error.light, color: brand.error.dark };
+    case 'pending': return { bg: brand.warning.light, color: brand.warning.dark };
     default: return { bg: brand.neutral[100], color: brand.neutral[600] };
   }
 };
 
+const STATUS_LABELS: Record<string, string> = {
+  pending: 'Pending',
+  completed: 'Completed',
+  missed: 'Missed',
+};
+
 const emptyForm = (): FollowUpFormData => ({
-  customer: CUSTOMERS[0],
-  type: 'Call',
+  customerName: '',
+  type: 'call',
   dueDate: new Date().toISOString().slice(0, 10),
-  priority: 'Medium',
+  priority: 'medium',
   notes: '',
 });
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function FollowUpsPage() {
-  const [rows, setRows] = useState<FollowUp[]>(MOCK_FOLLOWUPS);
-  const loading = false;
-  const error: string | null = null;
+  const [rows, setRows] = useState<FollowUp[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const [formDialogOpen, setFormDialogOpen] = useState(false);
   const [form, setForm] = useState<FollowUpFormData>(emptyForm());
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+
+  const tenantId = tokenStore.getTenantId();
+
+  const fetchFollowUps = useCallback(async () => {
+    if (!tenantId) return;
+    try {
+      setLoading(true);
+      setError(null);
+      const page = await listFollowUps({ page: 0, size: 100 });
+      setRows(page.content);
+    } catch (e: any) {
+      setError(e?.message || 'Failed to load follow-ups');
+    } finally {
+      setLoading(false);
+    }
+  }, [tenantId]);
+
+  useEffect(() => {
+    fetchFollowUps();
+  }, [fetchFollowUps]);
 
   const openCreate = () => {
     setForm(emptyForm());
@@ -114,35 +127,46 @@ export default function FollowUpsPage() {
     }
     setSubmitting(true);
     setFormError(null);
-    await new Promise((r) => setTimeout(r, 400));
-    const newFU: FollowUp = {
-      id: String(Date.now()),
-      customer: form.customer,
-      type: form.type,
-      dueDate: form.dueDate,
-      priority: form.priority,
-      assignedTo: 'Anna Kimaro',
-      status: 'Pending',
-    };
-    setRows((prev) => [newFU, ...prev]);
-    setSubmitting(false);
-    setFormDialogOpen(false);
+    try {
+      const newFU = await createFollowUp({
+        customerName: form.customerName.trim() || undefined,
+        type: form.type,
+        dueDate: form.dueDate,
+        priority: form.priority,
+        notes: form.notes.trim() || undefined,
+      });
+      setRows((prev) => [newFU, ...prev]);
+      setFormDialogOpen(false);
+    } catch (e: any) {
+      setFormError(e?.response?.data?.message || e?.message || 'Failed to schedule follow-up');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleComplete = async (id: string) => {
+    try {
+      const updated = await completeFollowUp(id);
+      setRows((prev) => prev.map((f) => (f.id === id ? updated : f)));
+    } catch {
+      // silently ignore
+    }
   };
 
   const columns: Column<FollowUp>[] = useMemo(
     () => [
       {
-        key: 'customer',
+        key: 'customerName',
         label: 'Customer',
         sortable: true,
-        exportValue: (f) => f.customer,
+        exportValue: (f) => f.customerName,
         render: (f) => (
           <Typography
             variant="body2"
             sx={{ fontWeight: 600, color: brand.neutral[800], fontSize: '0.8125rem' }}
             noWrap
           >
-            {f.customer}
+            {f.customerName || '—'}
           </Typography>
         ),
       },
@@ -154,7 +178,7 @@ export default function FollowUpsPage() {
         exportValue: (f) => f.type,
         render: (f) => (
           <Chip
-            label={f.type}
+            label={TYPE_LABELS[f.type] || f.type}
             size="small"
             sx={{
               height: 20,
@@ -177,7 +201,7 @@ export default function FollowUpsPage() {
         width: 120,
         exportValue: (f) => f.dueDate,
         render: (f) => {
-          const isOverdue = f.dueDate < new Date().toISOString().slice(0, 10) && f.status === 'Pending';
+          const isOverdue = f.dueDate < new Date().toISOString().slice(0, 10) && f.status === 'pending';
           return (
             <Typography
               variant="body2"
@@ -203,7 +227,7 @@ export default function FollowUpsPage() {
           const c = priorityColor(f.priority);
           return (
             <Chip
-              label={f.priority}
+              label={PRIORITY_LABELS[f.priority] || f.priority}
               size="small"
               sx={{
                 height: 20,
@@ -226,33 +250,58 @@ export default function FollowUpsPage() {
         exportValue: (f) => f.assignedTo,
         render: (f) => (
           <Typography variant="body2" sx={{ color: brand.neutral[600], fontSize: '0.8125rem' }} noWrap>
-            {f.assignedTo}
+            {f.assignedTo || '—'}
           </Typography>
         ),
       },
       {
         key: 'status',
         label: 'Status',
-        width: 110,
+        width: 120,
         sortable: true,
         exportValue: (f) => f.status,
         render: (f) => {
           const c = statusChip(f.status);
           return (
-            <Chip
-              label={f.status}
-              size="small"
-              sx={{
-                height: 20,
-                fontWeight: 700,
-                fontSize: '0.625rem',
-                letterSpacing: '0.04em',
-                borderRadius: '5px',
-                bgcolor: c.bg,
-                color: c.color,
-                '& .MuiChip-label': { px: 0.875 },
-              }}
-            />
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Chip
+                label={STATUS_LABELS[f.status] || f.status}
+                size="small"
+                sx={{
+                  height: 20,
+                  fontWeight: 700,
+                  fontSize: '0.625rem',
+                  letterSpacing: '0.04em',
+                  borderRadius: '5px',
+                  bgcolor: c.bg,
+                  color: c.color,
+                  '& .MuiChip-label': { px: 0.875 },
+                }}
+              />
+              {f.status === 'pending' && (
+                <Button
+                  size="small"
+                  variant="outlined"
+                  sx={{
+                    fontSize: '0.6rem',
+                    fontWeight: 700,
+                    py: 0,
+                    px: 0.75,
+                    minWidth: 'auto',
+                    height: 20,
+                    borderRadius: '5px',
+                    textTransform: 'none',
+                    lineHeight: 1,
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleComplete(f.id);
+                  }}
+                >
+                  Complete
+                </Button>
+              )}
+            </Box>
           );
         },
       },
@@ -318,18 +367,13 @@ export default function FollowUpsPage() {
             </Alert>
           )}
           <Stack spacing={2}>
-            <FormControl fullWidth size="small">
-              <InputLabel>Customer</InputLabel>
-              <Select
-                value={form.customer}
-                label="Customer"
-                onChange={(e) => patch('customer', e.target.value)}
-              >
-                {CUSTOMERS.map((c) => (
-                  <MenuItem key={c} value={c}>{c}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+            <TextField
+              label="Customer Name"
+              fullWidth
+              size="small"
+              value={form.customerName}
+              onChange={(e) => patch('customerName', e.target.value)}
+            />
             <FormControl fullWidth size="small">
               <InputLabel>Type</InputLabel>
               <Select
@@ -338,7 +382,7 @@ export default function FollowUpsPage() {
                 onChange={(e) => patch('type', e.target.value)}
               >
                 {TYPE_OPTIONS.map((t) => (
-                  <MenuItem key={t} value={t}>{t}</MenuItem>
+                  <MenuItem key={t} value={t}>{TYPE_LABELS[t]}</MenuItem>
                 ))}
               </Select>
             </FormControl>
@@ -360,7 +404,7 @@ export default function FollowUpsPage() {
                 onChange={(e) => patch('priority', e.target.value)}
               >
                 {PRIORITY_OPTIONS.map((p) => (
-                  <MenuItem key={p} value={p}>{p}</MenuItem>
+                  <MenuItem key={p} value={p}>{PRIORITY_LABELS[p]}</MenuItem>
                 ))}
               </Select>
             </FormControl>
