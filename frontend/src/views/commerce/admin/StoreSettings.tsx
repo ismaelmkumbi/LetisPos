@@ -8,7 +8,7 @@ interface StoreFormData {
   name: string; contactEmail: string; contactPhone: string;
   addressLine1: string; addressLine2: string; city: string;
   state: string; country: string; postalCode: string;
-  currency: string; timezone: string; taxDisplay: string;
+  currency: string; timezone: string; taxDisplay: 'exclusive' | 'inclusive';
   socialFacebook: string; socialInstagram: string; socialTwitter: string;
   orderPrefix: string;
 }

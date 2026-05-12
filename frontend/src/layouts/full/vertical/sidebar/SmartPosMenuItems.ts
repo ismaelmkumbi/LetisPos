@@ -73,6 +73,9 @@ import {
   IconMessage,
   IconBrandWhatsapp,
   IconWebhook,
+  IconCategory,
+  IconPalette,
+  IconAd,
 } from '@tabler/icons-react';
 
 export interface MenuItem {

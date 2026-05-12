@@ -6,7 +6,6 @@ import {
   Accordion,
   AccordionSummary,
   AccordionDetails,
-  CircularProgress,
 } from '@mui/material';
 import { IconCheck, IconPlus } from '@tabler/icons-react';
 import SectionWrapper from '../components/SectionWrapper';

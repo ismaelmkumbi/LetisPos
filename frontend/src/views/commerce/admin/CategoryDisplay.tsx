@@ -43,13 +43,13 @@ const CategoryDisplay: React.FC = () => {
     newCategories[index].displayOrder = index;
     newCategories[swapIndex].displayOrder = swapIndex;
     setCategories(newCategories);
-    await commerceAdmin.updateCategoryDisplay(newCategories as Record<string, unknown>[]);
+    await commerceAdmin.updateCategoryDisplay(newCategories as unknown as Record<string, unknown>[]);
     fetchCategories();
   };
 
   const handleToggleVisible = async (cat: CategoryItem) => {
     await commerceAdmin.updateCategoryDisplay(
-      categories.map(c => c.categoryId === cat.categoryId ? { ...c, isVisible: !c.isVisible } : c) as Record<string, unknown>[]
+      categories.map(c => c.categoryId === cat.categoryId ? { ...c, isVisible: !c.isVisible } : c) as unknown as Record<string, unknown>[]
     );
     fetchCategories();
   };
@@ -62,7 +62,7 @@ const CategoryDisplay: React.FC = () => {
   const handleSaveEdit = async () => {
     if (!editingId) return;
     await commerceAdmin.updateCategoryDisplay(
-      categories.map(c => c.categoryId === editingId ? { ...c, ...editForm } : c) as Record<string, unknown>[]
+      categories.map(c => c.categoryId === editingId ? { ...c, ...editForm } : c) as unknown as Record<string, unknown>[]
     );
     setEditingId(null);
     fetchCategories();
