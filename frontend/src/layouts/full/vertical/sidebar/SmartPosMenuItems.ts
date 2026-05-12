@@ -135,8 +135,8 @@ export function buildSmartPosMenu(t: TFunction): MenuItem[] {
     { id: uid(), title: 'Stock Transfers', icon: IconArrowsTransferDown, href: '/smartpos/stock/transfers' },
     { id: uid(), title: 'Stock Counts', icon: IconClipboardCheck, href: '/smartpos/stock/counts' },
     { id: uid(), title: 'Reorder Rules', icon: IconAlertTriangle, href: '/smartpos/stock/reorder-rules' },
-    { id: uid(), title: 'Expiry Tracking', icon: IconClock, href: '/smartpos/stock?expiring=30' },
-    { id: uid(), title: 'Batch / Lot Tracking', icon: IconBookmarks, href: '/smartpos/stock?batched=true' },
+    { id: uid(), title: 'Expiry Tracking', icon: IconClock, href: '/smartpos/stock/expiry' },
+    { id: uid(), title: 'Batch / Lot Tracking', icon: IconBookmarks, href: '/smartpos/stock/batches' },
     { id: uid(), title: 'Damage & Waste', icon: IconAlertTriangle, href: '/smartpos/stock/damage' },
 
     // ── Purchases ───────────────────────────────────────────────────────

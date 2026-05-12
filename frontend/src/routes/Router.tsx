@@ -183,6 +183,12 @@ const SmartPosReorderRules = Loadable(
 const SmartPosDamageWaste = Loadable(
   lazy(() => import('../views/smartpos/stock/DamageWastePage')),
 );
+const SmartPosExpiryTracking = Loadable(
+  lazy(() => import('../views/smartpos/stock/ExpiryTrackingPage')),
+);
+const SmartPosBatchTracking = Loadable(
+  lazy(() => import('../views/smartpos/stock/BatchTrackingPage')),
+);
 const SmartPosSales = Loadable(lazy(() => import('../views/smartpos/sales/SalesListPage')));
 const SmartPosSaleBuilder = Loadable(lazy(() => import('../views/smartpos/sales/SaleBuilderPage')));
 const SmartPosQuotations = Loadable(
@@ -543,6 +549,8 @@ const Router = [
       { path: 'stock/counts/:id', element: <SmartPosStockCountDetail /> },
       { path: 'stock/reorder-rules', element: <SmartPosReorderRules /> },
       { path: 'stock/damage', element: <SmartPosDamageWaste /> },
+      { path: 'stock/expiry', element: <SmartPosExpiryTracking /> },
+      { path: 'stock/batches', element: <SmartPosBatchTracking /> },
       // Sales
       { path: 'sales', element: <SmartPosSales /> },
       { path: 'sales/pos', element: <SmartPosPosLaunch /> },
