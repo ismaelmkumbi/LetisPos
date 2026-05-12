@@ -99,14 +99,15 @@ let refreshInFlight: Promise<string | null> | null = null;
 
 async function doRefresh(): Promise<string | null> {
   const run = async (): Promise<string | null> => {
+    // Try cookie-based refresh first (HttpOnly refresh cookie).
+    // Also support legacy localStorage refresh token during migration.
     let legacyRefresh: string | null = null;
     try {
       legacyRefresh = typeof localStorage !== 'undefined' ? localStorage.getItem(REFRESH_KEY) : null;
     } catch {
       legacyRefresh = null;
     }
-    if (!legacyRefresh) return null;
-    const body = { refreshToken: legacyRefresh };
+    const body = legacyRefresh ? { refreshToken: legacyRefresh } : {};
     try {
       const res = await axios.post(`${API_BASE_URL}/api/v1/auth/refresh`, body, {
         withCredentials: true,
