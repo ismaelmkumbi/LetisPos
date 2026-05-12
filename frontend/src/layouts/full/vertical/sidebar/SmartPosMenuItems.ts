@@ -223,11 +223,15 @@ export function buildSmartPosMenu(t: TFunction): MenuItem[] {
     { id: uid(), title: 'Activities', icon: IconClipboardCheck, href: '/smartpos/crm/activities', minPlan: 'PROFESSIONAL' },
 
     // ── E-Commerce ──────────────────────────────────────────────────────
-    { subheader: 'E-Commerce', minPlan: 'BUSINESS' },
-    { id: uid(), title: 'Online Orders', icon: IconShoppingCart, ...soon, minPlan: 'BUSINESS' },
-    { id: uid(), title: 'Delivery Management', icon: IconTruck, ...soon, minPlan: 'BUSINESS' },
-    { id: uid(), title: 'Website Settings', icon: IconWorld, ...soon, minPlan: 'BUSINESS' },
-    { id: uid(), title: 'Marketplace Sync', icon: IconBuildingStore, ...soon, minPlan: 'PROFESSIONAL' },
+    { subheader: 'E-Commerce', minPlan: 'PROFESSIONAL' },
+    { id: uid(), title: 'Dashboard', icon: IconDashboard, href: '/smartpos/admin/commerce', minPlan: 'PROFESSIONAL' },
+    { id: uid(), title: 'Orders', icon: IconShoppingCart, href: '/smartpos/admin/commerce/orders', minPlan: 'PROFESSIONAL' },
+    { id: uid(), title: 'Products', icon: IconPackage, href: '/smartpos/admin/commerce/products', minPlan: 'PROFESSIONAL' },
+    { id: uid(), title: 'Categories', icon: IconCategory, href: '/smartpos/admin/commerce/categories', minPlan: 'PROFESSIONAL' },
+    { id: uid(), title: 'Store Settings', icon: IconSettings, href: '/smartpos/admin/commerce/settings', minPlan: 'PROFESSIONAL' },
+    { id: uid(), title: 'Theme', icon: IconPalette, href: '/smartpos/admin/commerce/theme', minPlan: 'PROFESSIONAL' },
+    { id: uid(), title: 'Shipping', icon: IconTruck, href: '/smartpos/admin/commerce/shipping', minPlan: 'PROFESSIONAL' },
+    { id: uid(), title: 'Banners', icon: IconAd, href: '/smartpos/admin/commerce/banners', minPlan: 'PROFESSIONAL' },
 
     // ── Integrations ────────────────────────────────────────────────────
     { subheader: 'Integrations', minPlan: 'PROFESSIONAL' },
@@ -238,17 +242,6 @@ export function buildSmartPosMenu(t: TFunction): MenuItem[] {
     { id: uid(), title: 'SMS Providers', icon: IconMessage, href: '/smartpos/integrations/sms', minPlan: 'PROFESSIONAL' },
     { id: uid(), title: 'WhatsApp API', icon: IconBrandWhatsapp, href: '/smartpos/integrations/whatsapp', minPlan: 'PROFESSIONAL' },
     { id: uid(), title: 'Webhooks', icon: IconWebhook, href: '/smartpos/integrations/webhooks', minPlan: 'PROFESSIONAL' },
-
-    // ── E-Commerce ──────────────────────────────────────────────────────
-    { subheader: 'E-Commerce', minPlan: 'PROFESSIONAL' },
-    { id: uid(), title: 'Dashboard', icon: IconDashboard, href: '/smartpos/admin/commerce', minPlan: 'PROFESSIONAL' },
-    { id: uid(), title: 'Store Settings', icon: IconSettings, href: '/smartpos/admin/commerce/settings', minPlan: 'PROFESSIONAL' },
-    { id: uid(), title: 'Products', icon: IconPackage, href: '/smartpos/admin/commerce/products', minPlan: 'PROFESSIONAL' },
-    { id: uid(), title: 'Categories', icon: IconCategory, href: '/smartpos/admin/commerce/categories', minPlan: 'PROFESSIONAL' },
-    { id: uid(), title: 'Orders', icon: IconShoppingCart, href: '/smartpos/admin/commerce/orders', minPlan: 'PROFESSIONAL' },
-    { id: uid(), title: 'Theme', icon: IconPalette, href: '/smartpos/admin/commerce/theme', minPlan: 'PROFESSIONAL' },
-    { id: uid(), title: 'Shipping', icon: IconTruck, href: '/smartpos/admin/commerce/shipping', minPlan: 'PROFESSIONAL' },
-    { id: uid(), title: 'Banners', icon: IconAd, href: '/smartpos/admin/commerce/banners', minPlan: 'PROFESSIONAL' },
     { id: uid(), title: 'SEO', icon: IconSearch, href: '/smartpos/admin/commerce/seo', minPlan: 'PROFESSIONAL' },
     { id: uid(), title: 'Domains', icon: IconWorld, href: '/smartpos/admin/commerce/domains', minPlan: 'PROFESSIONAL' },
 
