@@ -3,6 +3,7 @@ package io.smartpos.auth.application;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.smartpos.auth.api.dto.RegisterRequest;
+import io.smartpos.auth.domain.model.BillingPlan;
 import io.smartpos.auth.domain.model.OutboxEvent;
 import io.smartpos.auth.domain.model.Tenant;
 import io.smartpos.auth.domain.model.User;
@@ -42,7 +43,10 @@ public class RegisterUserUseCase {
         UUID tenantId = req.tenantId();
         Tenant tenant = null;
         if (tenantId == null && req.tenantName() != null && !req.tenantName().isBlank()) {
-            tenant = tenantService.create(req.tenantName(), req.tenantSlug(), null);
+            BillingPlan plan = req.billingPlan() != null && !req.billingPlan().isBlank()
+                    ? BillingPlan.valueOf(req.billingPlan().toUpperCase())
+                    : null;
+            tenant = tenantService.create(req.tenantName(), req.tenantSlug(), plan);
             tenantId = tenant.getId();
         }
 
