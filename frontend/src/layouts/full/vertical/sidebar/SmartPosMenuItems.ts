@@ -168,7 +168,7 @@ export function buildSmartPosMenu(t: TFunction): MenuItem[] {
     { id: uid(), title: t('smartpos:nav.suppliers'), icon: IconTruck, href: '/smartpos/suppliers' },
     { id: uid(), title: 'Supplier Groups', icon: IconUsersGroup, ...soon, minPlan: 'BUSINESS' },
 
-    // ── Money ─────────────────────────────────────────────────────────
+    // ── Finance ─────────────────────────────────────────────────────────
     { subheader: 'Money' },
     { id: uid(), title: t('smartpos:nav.accounts'), icon: IconWallet, href: '/smartpos/accounts' },
     { id: uid(), title: t('smartpos:nav.payments'), icon: IconCoin, href: '/smartpos/payments' },
