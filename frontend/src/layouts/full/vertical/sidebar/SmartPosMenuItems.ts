@@ -276,7 +276,14 @@ export function buildSmartPosMenu(t: TFunction): MenuItem[] {
     { id: uid(), title: 'Error Logs', icon: IconBug, href: '/smartpos/admin/error-logs' },
     { id: uid(), title: 'Backups', icon: IconDownload, href: '/smartpos/admin/backups' },
     { id: uid(), title: 'Subscription & Billing', icon: IconCreditCard, href: '/smartpos/admin/billing' },
-    { id: uid(), title: t('smartpos:nav.tenants'), icon: IconBuilding, href: '/smartpos/settings/tenants' },
+    // ── Tenants & Subscriptions ─────────────────────────────────────────
+    {
+      subheader: 'Tenants & Subscriptions',
+    },
+    { id: uid(), title: 'Dashboard', icon: IconDashboard, href: '/smartpos/admin/tenants' },
+    { id: uid(), title: 'All Tenants', icon: IconBuilding, href: '/smartpos/admin/tenants/list' },
+    { id: uid(), title: 'Plans', icon: IconReceipt2, href: '/smartpos/admin/billing/plans' },
+    { id: uid(), title: 'Invoices', icon: IconFileInvoice, href: '/smartpos/admin/billing/invoices' },
     { id: uid(), title: 'Notifications', icon: IconBellRinging, href: '/smartpos/settings/notifications' },
 
     // ── Support ─────────────────────────────────────────────────────────

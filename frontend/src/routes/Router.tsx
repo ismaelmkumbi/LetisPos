@@ -134,6 +134,18 @@ const SmartPosApiKeys = Loadable(lazy(() => import('../views/smartpos/admin/ApiK
 const SmartPosSessions = Loadable(lazy(() => import('../views/smartpos/admin/SessionsPage')));
 const SmartPosDataRetention = Loadable(lazy(() => import('../views/smartpos/admin/DataRetentionPage')));
 const SmartPosBackups = Loadable(lazy(() => import('../views/smartpos/admin/BackupsPage')));
+const TenantDashboardPage = Loadable(
+  lazy(() => import('../views/smartpos/admin/TenantDashboardPage')),
+);
+const TenantListPage = Loadable(
+  lazy(() => import('../views/smartpos/admin/TenantListPage')),
+);
+const TenantDetailPage = Loadable(
+  lazy(() => import('../views/smartpos/admin/TenantDetailPage')),
+);
+const InvoiceListPage = Loadable(
+  lazy(() => import('../views/smartpos/admin/InvoiceListPage')),
+);
 import TenantBillingPage from '../views/smartpos/billing/TenantBillingPage';
 const PaymentHistoryPage = Loadable(
   lazy(() => import('../views/smartpos/billing/PaymentHistoryPage')),
@@ -258,13 +270,6 @@ const SmartPosUsersRoles = Loadable(
   lazy(() =>
     import('../views/smartpos/settings/SettingsPlaceholder').then((m) => ({
       default: m.UsersRolesSettings,
-    })),
-  ),
-);
-const SmartPosTenants = Loadable(
-  lazy(() =>
-    import('../views/smartpos/settings/SettingsPlaceholder').then((m) => ({
-      default: m.TenantsSettings,
     })),
   ),
 );
@@ -660,12 +665,16 @@ const Router = [
       // Settings
       { path: 'settings', element: <SmartPosSettings /> },
       { path: 'settings/users', element: <SmartPosUsersRoles /> },
-      { path: 'settings/tenants', element: <SmartPosTenants /> },
+      { path: 'settings/tenants', element: <Navigate to="/smartpos/admin/tenants/list" replace /> },
       { path: 'settings/locale', element: <SmartPosLocale /> },
       { path: 'settings/onboarding', element: <SmartPosOnboarding /> },
       { path: 'admin/branches', element: <SmartPosBranches /> },
+      { path: 'admin/tenants', element: <TenantDashboardPage /> },
+      { path: 'admin/tenants/list', element: <TenantListPage /> },
+      { path: 'admin/tenants/:id', element: <TenantDetailPage /> },
       { path: 'admin/billing', element: <SmartPosBilling /> },
       { path: 'admin/billing/plans', element: <SmartPosBillingPlans /> },
+      { path: 'admin/billing/invoices', element: <InvoiceListPage /> },
       { path: 'admin/audit-logs', element: <PlanGate minPlan="PROFESSIONAL" featureName="Audit Logs"><SmartPosAuditLogs /></PlanGate> },
       { path: 'admin/sessions', element: <PlanGate minPlan="PROFESSIONAL" featureName="Sessions"><SmartPosSessions /></PlanGate> },
       { path: 'admin/api-keys', element: <PlanGate minPlan="PROFESSIONAL" featureName="API Keys"><SmartPosApiKeys /></PlanGate> },
