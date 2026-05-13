@@ -15,6 +15,27 @@ FAIL=0
 red()  { echo -e "\033[31mFAIL\033[0m $*"; }
 green(){ echo -e "\033[32mPASS\033[0m $*"; }
 
+# Poll health endpoint until it responds (services take time to boot)
+wait_for_health() {
+    local label="$1" url="$2" timeout="${3:-60}"
+    local started=$SECONDS
+    echo -n "Waiting for $label "
+    while true; do
+        local http
+        http=$(curl -s -o /dev/null -w "%{http_code}" -m5 "$url" 2>/dev/null || echo "000")
+        if [[ "$http" == "200" || "$http" == "401" || "$http" == "403" ]]; then
+            echo " — OK ($http after $((SECONDS - started))s)"
+            return 0
+        fi
+        if [[ $((SECONDS - started)) -ge $timeout ]]; then
+            echo " — TIMEOUT (last status: $http)"
+            return 1
+        fi
+        sleep 2
+        echo -n "."
+    done
+}
+
 check() {
     local label="$1" url="$2" expected="${3:-200}"
     local http
@@ -32,16 +53,22 @@ echo "=== Smoke Tests — $(date -u +%Y-%m-%dT%H:%M:%SZ) ==="
 echo "Base URL: $BASE"
 echo ""
 
-# 1. Auth health
-check "Auth health         " "$BASE/actuator/health" 200
-# Actually auth runs on a different port; test via gateway's health
-# which is a composite. Test auth directly if reachable.
-curl -sf -m5 http://localhost:8081/actuator/health >/dev/null 2>&1 \
-    && green "Auth direct health   " \
-    || { red "Auth direct health   — localhost:8081 unreachable"; ((FAIL++)) || true; }
+# 1. Wait for services to be ready (services take ~30s to boot)
+if ! wait_for_health "auth-service" "http://localhost:8081/actuator/health"; then
+    red "Auth health          — failed to start"
+    ((FAIL++)) || true
+else
+    green "Auth health         "
+    ((PASS++)) || true
+fi
 
-# 2. Gateway health
-check "Gateway health      " "$BASE/actuator/health" 200
+if ! wait_for_health "gateway" "$BASE/actuator/health" 90; then
+    red "Gateway health       — failed to start"
+    ((FAIL++)) || true
+else
+    green "Gateway health      "
+    ((PASS++)) || true
+fi
 
 # 3-4. Login + protected endpoint (only if credentials configured)
 if [[ -n "${SMOKE_EMAIL:-}" && -n "${SMOKE_PASSWORD:-}" ]]; then
