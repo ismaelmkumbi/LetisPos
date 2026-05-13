@@ -46,9 +46,9 @@ public class FeatureGateFilter implements GlobalFilter, Ordered {
         PLAN_GATES.put("/api/v1/quotations/", planOrdinal("BUSINESS"));
         PLAN_GATES.put("/api/v1/documents/", planOrdinal("BUSINESS"));
 
-        // Product AI features — BUSINESS+ (same tier as products themselves)
-        PLAN_GATES.put("/api/v1/ai/products/", planOrdinal("BUSINESS"));
-        PLAN_GATES.put("/api/v1/ai/capture-sessions/", planOrdinal("BUSINESS"));
+        // Product AI features — available to all plans (part of product management)
+        PLAN_GATES.put("/api/v1/ai/products/", planOrdinal("STARTER"));
+        PLAN_GATES.put("/api/v1/ai/capture-sessions/", planOrdinal("STARTER"));
 
         // Advanced features — PROFESSIONAL+
         PLAN_GATES.put("/api/v1/hrm/", planOrdinal("PROFESSIONAL"));
