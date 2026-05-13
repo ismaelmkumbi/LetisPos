@@ -10,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -41,7 +42,7 @@ public class SendVerificationUseCase {
     private static final Duration RESEND_COOLDOWN = Duration.ofSeconds(60);
     private static final int MAX_TOKENS = 5;
 
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public String send(User user, VerificationChannel channel) {
         long recentCount = tokenRepo.countByUserIdAndUsedAtIsNullAndCreatedAtAfter(
                 user.getId(), Instant.now().minus(RESEND_COOLDOWN));
