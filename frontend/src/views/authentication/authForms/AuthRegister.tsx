@@ -106,6 +106,18 @@ function formatTzs(amount: number): string {
 
 /* ─── Component ─────────────────────────────────────────────────────────────── */
 
+const FEATURE_LABELS: Record<string, string> = {
+  accounting: 'Accounting Suite',
+  purchases: 'Purchases & Suppliers',
+  reports: 'Advanced Reports',
+  hrm: 'HR & Payroll',
+  api: 'API Access',
+  multi_currency: 'Multi-Currency',
+  multi_company: 'Multi-Company',
+  white_label: 'White-Label',
+  support: 'Priority Support',
+};
+
 const AuthRegister: React.FC<Props> = ({ title, subtitle, subtext }) => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -298,9 +310,22 @@ const AuthRegister: React.FC<Props> = ({ title, subtitle, subtext }) => {
               <Stack spacing={CARD_GAP}>
                 {plans.map((plan) => {
                   const isSelected = selectedPlanCode === plan.code;
-                  const features = plan.features
-                    ? plan.features.split(',').map((f) => f.trim()).filter(Boolean)
-                    : [];
+                  const features = (() => {
+                    try {
+                      const f = JSON.parse(plan.features || '{}');
+                      const out: string[] = [];
+                      for (const [k, v] of Object.entries(f)) {
+                        if (!v || v === 'none') continue;
+                        const label = FEATURE_LABELS[k] || k;
+                        if (k === 'support' && typeof v === 'string') {
+                          out.push(`${label} (${(v as string).replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())})`);
+                        } else {
+                          out.push(label);
+                        }
+                      }
+                      return out;
+                    } catch { return []; }
+                  })();
 
                   return (
                     <Card
