@@ -1,6 +1,7 @@
 #!/bin/bash
 # Post-deploy smoke test — validates auth + gateway + full login flow.
 # Exits 0 on success, 1 on failure. Designed for CI/CD deploy step.
+# Prerequisites: VPS_USER must be a non-root deploy user (see ops/docs/DEPLOY_USER.md).
 #
 # Required env vars (set via GitHub Secrets or CI config):
 #   SMOKE_TEST_URL  — base URL (default: http://localhost:8080)
