@@ -1,25 +1,23 @@
-<!-- Welcome Email Template -->
-<!-- Variables: {{heading}}, {{subheading}}, {{first_name}}, {{workspace_name}}, {{plan_name}}, {{login_url}}, {{footer_text}}, {{legal}} -->
+<!-- Welcome Email Body -->
+<!-- Variables: {{first_name}}, {{workspace_name}}, {{plan_name}}, {{feature_cards}}, {{login_url}} -->
 
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
   <tr>
     <td style="padding:0;">
-      <p style="margin:0 0 16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:15px;color:#334155;line-height:1.6;">
+      <p style="margin:0 0 8px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:15px;color:#0F172A;line-height:1.65;font-weight:600;">
         Hi {{first_name}},
       </p>
-      <p style="margin:0 0 16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:15px;color:#334155;line-height:1.6;">
-        Your account is verified &mdash; welcome to Letis POS. Your workspace <strong style="color:#0F172A;">{{workspace_name}}</strong> is ready on the <span style="color:#16A34A;font-weight:600;">{{plan_name}}</span> plan.
+      <p style="margin:0 0 20px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:15px;color:#334155;line-height:1.65;">
+        Your account is verified and your workspace <strong style="color:#0F172A;">{{workspace_name}}</strong> is live on the <span style="color:#16A34A;font-weight:600;">{{plan_name}}</span> plan.
       </p>
 
-      <!-- Feature cards -->
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 4px;">
-        <tr>
-          {{feature_cards}}
-        </tr>
+      <!-- Feature highlights -->
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 8px;">
+        {{feature_cards}}
       </table>
 
-      <p style="margin:20px 0 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:15px;color:#334155;line-height:1.6;">
-        Get started by logging in and setting up your first products, categories, and sales terminal.
+      <p style="margin:24px 0 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:15px;color:#334155;line-height:1.65;">
+        Jump in and set up your products, categories, and sales terminal to start selling.
       </p>
     </td>
   </tr>

@@ -1,26 +1,26 @@
-<!-- Invoice Ready Email Template -->
-<!-- Variables: {{heading}}, {{subheading}}, {{customer_name}}, {{invoice_number}}, {{invoice_total}}, {{due_date}}, {{invoice_url}}, {{footer_text}}, {{legal}} -->
+<!-- Invoice Ready Email Body -->
+<!-- Variables: {{customer_name}}, {{invoice_number}}, {{invoice_total}}, {{due_date}}, {{invoice_url}} -->
 
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
   <tr>
     <td style="padding:0;">
-      <p style="margin:0 0 4px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:13px;color:#94A3B8;line-height:1.5;text-transform:uppercase;letter-spacing:0.5px;">
+      <p style="margin:0 0 4px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:11px;color:#94A3B8;line-height:1.5;text-transform:uppercase;letter-spacing:0.8px;font-weight:600;">
         {{invoice_number}}
       </p>
 
       <!-- Invoice summary card -->
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 20px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:12px 0 24px;">
         <tr>
-          <td style="background-color:#F8FAFC;border-radius:8px;padding:20px 24px;border:1px solid #E2E8F0;">
+          <td style="background-color:#F8FAFC;border-radius:10px;padding:20px 24px;border:1px solid #E2E8F0;">
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
               <tr>
-                <td style="padding:0 16px 0 0;border-right:1px solid #E2E8F0;vertical-align:top;">
-                  <p style="margin:0 0 2px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:11px;color:#94A3B8;text-transform:uppercase;letter-spacing:0.5px;">Amount Due</p>
-                  <p style="margin:0;font-family:Georgia,'Times New Roman',serif;font-size:22px;font-weight:700;color:#0F172A;">{{invoice_total}}</p>
+                <td style="padding:0 20px 0 0;border-right:1px solid #E2E8F0;vertical-align:top;width:50%;">
+                  <p style="margin:0 0 4px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:10px;color:#94A3B8;text-transform:uppercase;letter-spacing:0.8px;font-weight:600;">Amount Due</p>
+                  <p style="margin:0;font-family:Georgia,'Times New Roman',serif;font-size:26px;font-weight:700;color:#0F172A;">{{invoice_total}}</p>
                 </td>
-                <td style="padding:0 16px;vertical-align:top;">
-                  <p style="margin:0 0 2px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:11px;color:#94A3B8;text-transform:uppercase;letter-spacing:0.5px;">Due Date</p>
-                  <p style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:15px;font-weight:600;color:#334155;">{{due_date}}</p>
+                <td style="padding:0 0 0 20px;vertical-align:top;">
+                  <p style="margin:0 0 4px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:10px;color:#94A3B8;text-transform:uppercase;letter-spacing:0.8px;font-weight:600;">Due Date</p>
+                  <p style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:16px;font-weight:600;color:#334155;">{{due_date}}</p>
                 </td>
               </tr>
             </table>
@@ -28,8 +28,8 @@
         </tr>
       </table>
 
-      <p style="margin:0 0 20px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:15px;color:#334155;line-height:1.6;">
-        Your invoice for {{customer_name}} is ready. Click below to view, download, or pay online.
+      <p style="margin:0 0 20px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:15px;color:#334155;line-height:1.65;">
+        Invoice for <strong style="color:#0F172A;">{{customer_name}}</strong> is ready. View, download, or pay online.
       </p>
     </td>
   </tr>
