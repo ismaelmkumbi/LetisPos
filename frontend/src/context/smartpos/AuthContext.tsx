@@ -72,7 +72,9 @@ export function SmartPosAuthProvider({ children }: { children: React.ReactNode }
 
   const login = useCallback(async (email: string, password: string) => {
     await apiLogin(email, password);
-    await loadMe(); // already fetches profile + tenants in parallel
+    await loadMe();
+    // Reset sidebar to full on fresh login
+    window.dispatchEvent(new CustomEvent('smartpos:auth:login'));
   }, [loadMe]);
 
   const logout = useCallback(async () => {

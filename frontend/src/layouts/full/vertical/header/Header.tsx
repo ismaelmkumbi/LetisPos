@@ -3,7 +3,7 @@ import {
   Tooltip, useMediaQuery, useTheme,
 } from '@mui/material';
 import config from 'src/context/config';
-import { useContext } from 'react';
+import { useContext, useEffect } from 'react';
 import {
   IconMenu2,
   IconMoon,
@@ -32,6 +32,13 @@ const Header = () => {
     useContext(CustomizerContext);
   const isDark = activeMode === 'dark';
   const theme = useTheme();
+
+  // Reset to full sidebar on fresh login
+  useEffect(() => {
+    const handler = () => setIsCollapse('full-sidebar');
+    window.addEventListener('smartpos:auth:login', handler);
+    return () => window.removeEventListener('smartpos:auth:login', handler);
+  }, [setIsCollapse]);
 
   const iconBtnSx = {
     width: 40,
