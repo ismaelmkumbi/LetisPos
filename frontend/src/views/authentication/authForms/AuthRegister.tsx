@@ -33,6 +33,7 @@ import {
   IconEyeOff,
   IconLock,
   IconMail,
+  IconPhone,
   IconUser,
 } from '@tabler/icons-react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
@@ -125,6 +126,8 @@ const AuthRegister: React.FC<Props> = ({ title, subtitle, subtext }) => {
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [channel, setChannel] = useState<'EMAIL' | 'PHONE'>('EMAIL');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -159,7 +162,9 @@ const AuthRegister: React.FC<Props> = ({ title, subtitle, subtext }) => {
 
   const isPlanReady = !!selectedPlanCode;
   const isWorkspaceReady = tenantName.trim().length > 1 && tenantSlug.trim().length > 1;
-  const isAccountReady = email.trim().length > 0 && password.length >= 8;
+  const isAccountReady = channel === 'EMAIL'
+    ? email.trim().length > 0 && password.length >= 8
+    : phoneNumber.trim().length > 0 && password.length >= 8;
 
   const handleTenantNameChange = (val: string) => {
     setTenantName(val);
@@ -173,17 +178,24 @@ const AuthRegister: React.FC<Props> = ({ title, subtitle, subtext }) => {
     setError(null);
     setSubmitting(true);
     try {
-      await register({
-        email: email.trim().toLowerCase(),
+      const { userId } = await register({
+        email: channel === 'EMAIL' ? email.trim().toLowerCase() : undefined,
         password,
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         tenantName: tenantName.trim(),
         tenantSlug: tenantSlug.trim() || undefined,
         billingPlan: selectedPlanCode || 'STARTER',
+        channel,
+        phoneNumber: channel === 'PHONE' ? phoneNumber.trim() : undefined,
       });
-      navigate('/auth/login', { state: { registered: true } });
-      // Pre-seed default data in the background
+      navigate('/auth/verify-sent', {
+        state: {
+          userId,
+          channel,
+          contact: channel === 'EMAIL' ? email.trim().toLowerCase() : phoneNumber.trim(),
+        },
+      });
       seedDefaultUnits().catch(() => {});
       seedDefaultCOA().catch(() => {});
     } catch (err) {
@@ -570,9 +582,38 @@ const AuthRegister: React.FC<Props> = ({ title, subtitle, subtext }) => {
                 Admin account
               </Typography>
               <Typography sx={{ mt: 0.25, fontSize: '0.78rem', color: brand.neutral[500], lineHeight: 1.4 }}>
-                Use the email and password you will sign in with.
+                Choose how you'd like to verify your account.
               </Typography>
             </Box>
+
+            {/* Channel toggle */}
+            <Stack direction="row" spacing={0} sx={{
+              bgcolor: brand.neutral[100],
+              borderRadius: '10px',
+              p: 0.5,
+            }}>
+              {(['EMAIL', 'PHONE'] as const).map((ch) => (
+                <Box
+                  key={ch}
+                  onClick={() => setChannel(ch)}
+                  sx={{
+                    flex: 1,
+                    textAlign: 'center',
+                    py: 1,
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    color: channel === ch ? brand.primary[700] : brand.neutral[500],
+                    bgcolor: channel === ch ? '#FFFFFF' : 'transparent',
+                    boxShadow: channel === ch ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                    transition: 'all 0.2s ease',
+                  }}
+                >
+                  {ch === 'EMAIL' ? 'Email' : 'Phone'}
+                </Box>
+              ))}
+            </Stack>
 
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
               <Box flex={1} minWidth={0}>
@@ -614,29 +655,55 @@ const AuthRegister: React.FC<Props> = ({ title, subtitle, subtext }) => {
               </Box>
             </Stack>
 
-            <Box>
-              <Typography component="label" htmlFor="email" sx={labelSx}>
-                Email address
-              </Typography>
-              <TextField
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
-                placeholder="you@company.com"
-                fullWidth required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                sx={fieldSx}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start" sx={{ color: brand.neutral[400] }}>
-                      <IconMail size={17} stroke={1.6} />
-                    </InputAdornment>
-                  ),
-                }}
-              />
-            </Box>
+            {channel === 'EMAIL' ? (
+              <Box>
+                <Typography component="label" htmlFor="email" sx={labelSx}>
+                  Email address
+                </Typography>
+                <TextField
+                  id="email"
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  placeholder="you@company.com"
+                  fullWidth required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  sx={fieldSx}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start" sx={{ color: brand.neutral[400] }}>
+                        <IconMail size={17} stroke={1.6} />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+              </Box>
+            ) : (
+              <Box>
+                <Typography component="label" htmlFor="phoneNumber" sx={labelSx}>
+                  Phone number
+                </Typography>
+                <TextField
+                  id="phoneNumber"
+                  name="phoneNumber"
+                  type="tel"
+                  autoComplete="tel"
+                  placeholder="+255 712 345 678"
+                  fullWidth required
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  sx={fieldSx}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start" sx={{ color: brand.neutral[400] }}>
+                        <IconPhone size={17} stroke={1.6} />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+              </Box>
+            )}
 
             <Box>
               <Typography component="label" htmlFor="password" sx={labelSx}>
