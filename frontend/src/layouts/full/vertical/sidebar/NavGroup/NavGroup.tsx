@@ -1,5 +1,5 @@
 import { Box, Typography, Collapse } from '@mui/material';
-import { IconChevronDown } from '@tabler/icons-react';
+import { IconChevronDown, IconDots } from '@tabler/icons-react';
 import { useState } from 'react';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
@@ -53,8 +53,16 @@ const NavGroup = ({ item, hideMenu, children }: ItemType) => {
     setCollapsed(nowCollapsed);
   };
 
-  if (hideMenu) return null;
+  // Mini-sidebar — show subtle dot separator (original behavior)
+  if (hideMenu) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', my: 1.5, opacity: 0.35 }}>
+        <IconDots size={14} color={brand.neutral[500]} />
+      </Box>
+    );
+  }
 
+  // Full sidebar — collapsible section with chevron
   return (
     <Box>
       <Box
