@@ -5,6 +5,7 @@ import io.smartpos.auth.domain.model.UserStatus;
 import io.smartpos.auth.domain.model.VerificationChannel;
 import io.smartpos.auth.domain.model.VerificationToken;
 import io.smartpos.auth.domain.repository.VerificationTokenRepository;
+import io.smartpos.auth.infrastructure.email.EmailTemplateService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -28,13 +29,14 @@ class SendVerificationUseCaseTest {
     @Mock private VerificationTokenRepository tokenRepo;
     @Mock private VerificationEmailSender emailSender;
     @Mock private VerificationSmsSender smsSender;
+    private final EmailTemplateService templateService = new EmailTemplateService();
     private SendVerificationUseCase useCase;
 
     private static final String BASE_URL = "https://app.smartpos.local";
 
     @BeforeEach
     void setUp() {
-        useCase = new SendVerificationUseCase(tokenRepo, emailSender, smsSender);
+        useCase = new SendVerificationUseCase(tokenRepo, emailSender, smsSender, templateService);
         ReflectionTestUtils.setField(useCase, "appBaseUrl", BASE_URL);
     }
 

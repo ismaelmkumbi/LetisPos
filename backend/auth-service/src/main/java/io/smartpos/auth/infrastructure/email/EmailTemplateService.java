@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StreamUtils;
 
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -32,22 +33,24 @@ public class EmailTemplateService {
      * @param vars         substitution variables
      */
     public String render(String bodyTemplate, Map<String, String> vars) {
+        // Copy to mutable map so we can add layout vars
+        Map<String, String> ctx = new HashMap<>(vars);
         String body = load(bodyTemplate);
 
         // Compose CTA block if cta_text and cta_url are provided
         String ctaBlock = "";
-        if (vars.containsKey("cta_text") && vars.containsKey("cta_url")) {
-            ctaBlock = replace(ctaButton, vars);
+        if (ctx.containsKey("cta_text") && ctx.containsKey("cta_url")) {
+            ctaBlock = replace(ctaButton, ctx);
         }
 
         // Render body with variables
-        String renderedBody = replace(body, vars);
+        String renderedBody = replace(body, ctx);
 
         // Compose into base layout
-        vars.put("body", renderedBody);
-        vars.put("cta_block", ctaBlock);
+        ctx.put("body", renderedBody);
+        ctx.put("cta_block", ctaBlock);
 
-        return replace(baseTemplate, vars);
+        return replace(baseTemplate, ctx);
     }
 
     static String replace(String template, Map<String, String> vars) {
