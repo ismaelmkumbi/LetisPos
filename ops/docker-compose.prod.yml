@@ -173,6 +173,8 @@ services:
       JWT_ALLOW_EPHEMERAL_KEYS: "false"
       FLYWAY_VALIDATE_ON_MIGRATE: "true"
       SERVER_PORT: "8081"
+      RESEND_API_KEY: ${RESEND_API_KEY:?RESEND_API_KEY is required}
+      APP_BASE_URL: ${APP_BASE_URL:-https://letispos.com}
     volumes:
       - ${JWT_KEYS_DIR:?Set JWT_KEYS_DIR to the directory containing private.pem and public.pem}:/run/secrets/letispos-jwt:ro
     depends_on:
