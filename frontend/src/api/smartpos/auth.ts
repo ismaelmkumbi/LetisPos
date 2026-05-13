@@ -45,17 +45,29 @@ export async function login(email: string, password: string): Promise<LoginRespo
 }
 
 export interface RegisterPayload {
-  email: string;
+  email?: string;
   password: string;
   firstName?: string;
   lastName?: string;
   tenantName?: string;
   tenantSlug?: string;
   billingPlan?: string;
+  channel?: 'EMAIL' | 'PHONE';
+  phoneNumber?: string;
 }
 
 export async function register(payload: RegisterPayload): Promise<{ userId: string }> {
   const { data } = await api.post<{ userId: string }>('/api/v1/auth/register', payload);
+  return data;
+}
+
+export async function verifyAccount(token: string): Promise<{ status: string; contact: string }> {
+  const { data } = await api.post<{ status: string; contact: string }>('/api/v1/auth/verify', { token });
+  return data;
+}
+
+export async function resendVerification(userId: string): Promise<{ message: string }> {
+  const { data } = await api.post<{ message: string }>('/api/v1/auth/resend-verification', { userId });
   return data;
 }
 
