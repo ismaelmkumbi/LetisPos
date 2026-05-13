@@ -4,6 +4,7 @@ import { IconFileTypePdf, IconFileSpreadsheet, IconFileTypeCsv, IconDownload } f
 import { submitExportJob, pollExportJob, type ExportFormat, type ExportReportKey, type ExportJob } from 'src/api/smartpos/reports';
 import type { UUID } from 'src/api/smartpos/types';
 import { brand } from 'src/theme/smartpos/brand';
+import { useAuth } from 'src/context/smartpos/AuthContext';
 
 interface Props {
   reportKey: ExportReportKey;
@@ -21,6 +22,8 @@ const FORMATS: { key: ExportFormat; icon: React.ReactNode; label: string; tone: 
 export default function ReportExportBar({ reportKey, dateFrom, dateTo, warehouseId }: Props) {
   const [exporting, setExporting] = useState<ExportFormat | null>(null);
   const [job, setJob] = useState<ExportJob | null>(null);
+  const { hasPlan } = useAuth();
+  if (!hasPlan('BUSINESS')) return null;
 
   const handleExport = async (format: ExportFormat) => {
     setExporting(format);
