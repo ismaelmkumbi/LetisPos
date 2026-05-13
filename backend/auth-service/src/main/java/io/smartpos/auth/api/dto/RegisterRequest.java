@@ -7,7 +7,7 @@ import jakarta.validation.constraints.Size;
 import java.util.UUID;
 
 public record RegisterRequest(
-        @Email @NotBlank String email,
+        @Email String email,
         String username,
         @NotBlank @Size(min = 8, max = 255) String password,
         String firstName,
@@ -15,5 +15,7 @@ public record RegisterRequest(
         UUID tenantId,
         String tenantName,
         String tenantSlug,
-        String billingPlan
+        String billingPlan,
+        String channel,
+        String phoneNumber
 ) {}
