@@ -17,11 +17,18 @@ public class ResendEmailSender implements VerificationEmailSender {
 
     private final Resend resend;
 
+    @Value("${smartpos.verification.resend.api-key:}")
+    private String apiKey;
+
     @Value("${smartpos.verification.resend.from-address:noreply@send.letispos.com}")
     private String fromAddress;
 
     @Override
     public void sendVerificationEmail(String to, String subject, String htmlBody) {
+        if (apiKey == null || apiKey.isBlank()) {
+            log.info("[DEV] No Resend API key configured. Verification email to={} subject={} would have been sent.", to, subject);
+            return;
+        }
         try {
             resend.emails().send(CreateEmailOptions.builder()
                     .from(fromAddress)

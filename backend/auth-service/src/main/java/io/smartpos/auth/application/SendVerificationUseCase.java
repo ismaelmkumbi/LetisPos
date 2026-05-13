@@ -88,6 +88,7 @@ public class SendVerificationUseCase {
 
     private void sendEmail(String to, String rawToken) {
         String verifyUrl = appBaseUrl + "/auth/verify?token=" + rawToken;
+        log.info("[DEV] Verification URL: {}", verifyUrl);
         String html = templateService.render("verify-email.html", Map.of(
                 "heading", "Verify your account",
                 "subheading", "One click to activate your Letis POS workspace",
