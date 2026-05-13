@@ -1,6 +1,6 @@
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
-import React, { Fragment, useContext, useMemo } from 'react';
+import React, { useContext, useMemo } from 'react';
 import DemoMenuitems from './MenuItems';
 import { buildSmartPosMenu, type MenuItem } from './SmartPosMenuItems';
 import { useLocation } from 'react-router';
@@ -43,29 +43,6 @@ function filterByPlan(items: MenuItem[], billingPlan: string): MenuItem[] {
   return result;
 }
 
-/** Group items into sections delimited by subheaders */
-function groupSections(items: MenuItem[]): { subheader: MenuItem; items: MenuItem[] }[] {
-  const sections: { subheader: MenuItem; items: MenuItem[] }[] = [];
-  let currentItems: MenuItem[] = [];
-
-  for (const item of items) {
-    if (item.subheader) {
-      if (currentItems.length > 0 && sections.length > 0) {
-        sections[sections.length - 1].items = currentItems;
-      }
-      sections.push({ subheader: item, items: [] });
-      currentItems = [];
-    } else {
-      currentItems.push(item);
-    }
-  }
-  if (sections.length > 0 && currentItems.length > 0) {
-    sections[sections.length - 1].items = currentItems;
-  }
-
-  return sections;
-}
-
 const SidebarItems = () => {
   const { pathname } = useLocation();
   const pathDirect = pathname;
@@ -91,49 +68,6 @@ const SidebarItems = () => {
     return rawItems;
   }, [rawItems, billingPlan, isSmartPos]);
 
-  const sections = useMemo(() => {
-    if (isSmartPos) return groupSections(Menuitems as MenuItem[]);
-    return [];
-  }, [Menuitems, isSmartPos]);
-
-  const renderItem = (item: MenuItem) => {
-    if (item.children) {
-      return (
-        <NavCollapse
-          menu={item}
-          pathDirect={pathDirect}
-          hideMenu={hideMenu}
-          pathWithoutLastPart={pathWithoutLastPart}
-          level={1}
-          key={item.id}
-          onClick={() => setIsMobileSidebar(!isMobileSidebar)}
-        />
-      );
-    }
-    return (
-      <NavItem item={item} key={item.id} pathDirect={pathDirect} hideMenu={hideMenu}
-        onClick={() => setIsMobileSidebar(!isMobileSidebar)} />
-    );
-  };
-
-  // SmartPOS: collapsible grouped sections
-  if (isSmartPos && sections.length > 0) {
-    return (
-      <Box sx={{ px: 1, pt: 1, pb: 2 }}>
-        <List sx={{ pt: 0 }} className="sidebarNav">
-          {sections.map((section) => (
-            <Fragment key={section.subheader.id}>
-              <NavGroup item={section.subheader} hideMenu={hideMenu}>
-                {section.items.map(renderItem)}
-              </NavGroup>
-            </Fragment>
-          ))}
-        </List>
-      </Box>
-    );
-  }
-
-  // Modernize: flat (unchanged)
   return (
     <Box sx={{ px: 1, pt: 1, pb: 2 }}>
       <List sx={{ pt: 0 }} className="sidebarNav">
