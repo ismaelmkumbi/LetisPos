@@ -4,6 +4,7 @@ import io.smartpos.auth.domain.model.User;
 import io.smartpos.auth.domain.model.VerificationChannel;
 import io.smartpos.auth.domain.model.VerificationToken;
 import io.smartpos.auth.domain.repository.VerificationTokenRepository;
+import io.smartpos.auth.infrastructure.email.EmailTemplateService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -19,6 +20,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.HexFormat;
+import java.util.Map;
 
 @Slf4j
 @Service
@@ -28,6 +30,7 @@ public class SendVerificationUseCase {
     private final VerificationTokenRepository tokenRepo;
     private final VerificationEmailSender emailSender;
     private final VerificationSmsSender smsSender;
+    private final EmailTemplateService templateService;
 
     @Value("${smartpos.verification.app-base-url:http://localhost:5173}")
     private String appBaseUrl;
@@ -84,12 +87,17 @@ public class SendVerificationUseCase {
 
     private void sendEmail(String to, String rawToken) {
         String verifyUrl = appBaseUrl + "/auth/verify?token=" + rawToken;
-        String html = "<p>Welcome to SmartPOS!</p>"
-                + "<p>Click the link below to verify your account:</p>"
-                + "<p><a href=\"" + verifyUrl + "\">" + verifyUrl + "</a></p>"
-                + "<p>This link expires in 24 hours.</p>";
-
-        emailSender.sendVerificationEmail(to, "Verify your SmartPOS account", html);
+        String html = templateService.render("verify-email.html", Map.of(
+                "heading", "Verify your account",
+                "subheading", "One click to activate your Letis POS workspace",
+                "verify_url", verifyUrl,
+                "expiry_hours", "24",
+                "cta_text", "Verify account",
+                "cta_url", verifyUrl,
+                "footer_text", "This email was sent to " + to,
+                "legal", "Letis POS. You received this email because you created an account. If you didn't, you can safely ignore it."
+        ));
+        emailSender.sendVerificationEmail(to, "Verify your Letis POS account", html);
     }
 
     private void sendSms(String to, String otp) {
