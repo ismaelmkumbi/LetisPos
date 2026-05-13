@@ -488,6 +488,8 @@ const ForgotPassword2 = Loadable(
 );
 const TwoSteps = Loadable(lazy(() => import('../views/authentication/auth1/TwoSteps')));
 const TwoSteps2 = Loadable(lazy(() => import('../views/authentication/auth2/TwoSteps2')));
+const VerificationSent = Loadable(lazy(() => import('../views/authentication/auth1/VerificationSent')));
+const Verify = Loadable(lazy(() => import('../views/authentication/auth1/Verify')));
 const Error = Loadable(lazy(() => import('../views/authentication/Error')));
 const Maintenance = Loadable(lazy(() => import('../views/authentication/Maintenance')));
 
@@ -821,6 +823,8 @@ const Router = [
       { path: '/auth/forgot-password2', element: <ForgotPassword2 /> },
       { path: '/auth/two-steps', element: <TwoSteps /> },
       { path: '/auth/two-steps2', element: <TwoSteps2 /> },
+      { path: '/auth/verify-sent', element: <VerificationSent /> },
+      { path: '/auth/verify', element: <Verify /> },
       { path: '/auth/maintenance', element: <Maintenance /> },
       // Phone camera page — opened by scanning QR code; no auth.
       { path: '/capture/:sessionId', element: <CameraPage /> },
