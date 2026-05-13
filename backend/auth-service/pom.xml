@@ -90,6 +90,20 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- Resend email API -->
+        <dependency>
+            <groupId>com.resend</groupId>
+            <artifactId>resend-java</artifactId>
+            <version>3.2.0</version>
+        </dependency>
+
+        <!-- Twilio SMS API -->
+        <dependency>
+            <groupId>com.twilio.sdk</groupId>
+            <artifactId>twilio</artifactId>
+            <version>10.7.0</version>
+        </dependency>
+
         <!-- Outbox → Kafka relay (auto-configured) -->
         <dependency>
             <groupId>io.smartpos</groupId>
