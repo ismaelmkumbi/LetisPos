@@ -18,6 +18,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.http.HttpStatus;
 
@@ -37,6 +38,7 @@ public class RegisterUserUseCase {
     private final TenantService tenantService;
     private final BillingClient billingClient;
     private final SendVerificationUseCase sendVerificationUseCase;
+    private final TransactionTemplate transactionTemplate;
 
     @Transactional
     public UUID register(RegisterRequest req) {
@@ -74,19 +76,8 @@ public class RegisterUserUseCase {
             tenantId = tenant.getId();
 
             // Create subscription for the new tenant's billing plan
-            try {
-                Instant now = Instant.now();
-                billingClient.createSubscription(Map.of(
-                        "tenantId", tenant.getId().toString(),
-                        "planCode", tenant.getBillingPlan().name().toLowerCase(),
-                        "status", "TRIAL",
-                        "billingCycle", "MONTHLY",
-                        "currentPeriodStart", now.toString(),
-                        "currentPeriodEnd", now.plusSeconds(30 * 86400).toString()
-                ));
-            } catch (Exception e) {
-                log.warn("Failed to create subscription for tenant {}: {}", tenant.getId(), e.getMessage());
-            }
+            // Run in a separate transaction so failure doesn't rollback registration
+            createSubscriptionAsync(tenant);
         }
 
         // Enforce plan maxUsers limit
@@ -120,15 +111,47 @@ public class RegisterUserUseCase {
         // Emit UserRegistered event via outbox so User Service can create a profile.
         publishUserRegistered(user, req);
 
-        // Send verification
-        try {
-            sendVerificationUseCase.send(user, channel);
-        } catch (Exception e) {
-            log.warn("Failed to send verification for user={}: {}", user.getId(), e.getMessage());
-        }
+        // Send verification — run in separate transaction to avoid poisoning registration
+        sendVerificationAsync(user, channel);
 
         log.info("Registered user id={} channel={} tenantId={}", user.getId(), channel, tenantId);
         return user.getId();
+    }
+
+    /**
+     * Creates the billing subscription in a separate transaction.
+     * If billing service is down, the registration still succeeds.
+     */
+    private void createSubscriptionAsync(Tenant tenant) {
+        transactionTemplate.executeWithoutResult(newStatus -> {
+            try {
+                Instant now = Instant.now();
+                billingClient.createSubscription(Map.of(
+                        "tenantId", tenant.getId().toString(),
+                        "planCode", tenant.getBillingPlan().name().toLowerCase(),
+                        "status", "TRIAL",
+                        "billingCycle", "MONTHLY",
+                        "currentPeriodStart", now.toString(),
+                        "currentPeriodEnd", now.plusSeconds(30 * 86400).toString()
+                ));
+            } catch (Exception e) {
+                log.warn("Failed to create subscription for tenant {}: {}", tenant.getId(), e.getMessage());
+            }
+        });
+    }
+
+    /**
+     * Sends verification in a separate transaction.
+     * If email/phone delivery fails, the registration still succeeds.
+     */
+    private void sendVerificationAsync(User user, VerificationChannel channel) {
+        transactionTemplate.executeWithoutResult(newStatus -> {
+            try {
+                sendVerificationUseCase.send(user, channel);
+            } catch (Exception e) {
+                log.warn("Failed to send verification for user={}: {}", user.getId(), e.getMessage());
+            }
+        });
     }
 
     private void publishUserRegistered(User user, RegisterRequest req) {
