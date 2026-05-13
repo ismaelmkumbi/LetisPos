@@ -17,7 +17,7 @@ public class ResendEmailSender implements VerificationEmailSender {
 
     private final Resend resend;
 
-    @Value("${smartpos.verification.resend.from-address:noreply@letispos.com}")
+    @Value("${smartpos.verification.resend.from-address:noreply@send.letispos.com}")
     private String fromAddress;
 
     @Override

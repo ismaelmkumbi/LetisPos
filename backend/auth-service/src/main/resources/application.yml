@@ -93,7 +93,7 @@ smartpos:
   verification:
     resend:
       api-key: ${RESEND_API_KEY:}
-      from-address: ${RESEND_FROM_ADDRESS:noreply@letispos.com}
+      from-address: ${RESEND_FROM_ADDRESS:noreply@send.letispos.com}
     twilio:
       account-sid: ${TWILIO_ACCOUNT_SID:}
       auth-token: ${TWILIO_AUTH_TOKEN:}
