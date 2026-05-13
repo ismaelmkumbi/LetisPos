@@ -94,7 +94,7 @@ mvn -q -DskipTests clean install
 
 ```bash
 cd auth-service
-mvn spring-boot:run
+JWT_ALLOW_EPHEMERAL_KEYS=true mvn spring-boot:run
 ```
 
 Watch the log — on first start it seeds an admin user and prints something like:

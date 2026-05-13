@@ -9,6 +9,7 @@ public record JwtProperties(
         int refreshTokenTtlDays,
         String privateKeyPath,
         String publicKeyPath,
+        boolean allowEphemeralKeys,
         String keyId,
         /** HttpOnly cookie name for browser clients (Path=/api/v1/auth). */
         String refreshCookieName,

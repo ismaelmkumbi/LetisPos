@@ -46,6 +46,7 @@ cd ops/infra && docker compose up -d
 cd backend
 mvn -DskipTests install
 DB_URL='jdbc:postgresql://localhost:5434/auth_db' \
+JWT_ALLOW_EPHEMERAL_KEYS=true \
   mvn -pl auth-service -am spring-boot:run
 # …repeat for each service with its own DB_URL
 

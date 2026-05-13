@@ -41,6 +41,7 @@ backend/.env
 backend/.env.local
 ops/logs/
 ops/**/*.log
+ops/secrets/
 
 # ── Maven / Gradle generic ─────────────────────────────────────────────────
 target/

@@ -39,7 +39,7 @@ spring:
   flyway:
     enabled: true
     baseline-on-migrate: true
-    validate-on-migrate: false
+    validate-on-migrate: ${FLYWAY_VALIDATE_ON_MIGRATE:true}
     locations: classpath:db/migration
 
   data:
@@ -83,6 +83,7 @@ smartpos:
       # Path to PEM keys. If blank, a keypair is generated on startup (DEV ONLY).
       private-key-path: ${JWT_PRIVATE_KEY_PATH:}
       public-key-path: ${JWT_PUBLIC_KEY_PATH:}
+      allow-ephemeral-keys: ${JWT_ALLOW_EPHEMERAL_KEYS:false}
       key-id: smartpos-auth-key-1
       refresh-cookie-name: ${REFRESH_COOKIE_NAME:smartpos_refresh}
       refresh-cookie-secure: ${REFRESH_COOKIE_SECURE:false}

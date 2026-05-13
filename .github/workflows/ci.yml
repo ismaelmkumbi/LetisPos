@@ -253,6 +253,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Validate deploy identity
+        run: |
+          if [ -z "${{ secrets.VPS_USER }}" ]; then
+            echo "::error::VPS_USER is required for production deploy."
+            exit 1
+          fi
+          if [ "${{ secrets.VPS_USER }}" = "root" ]; then
+            echo "::error::Do not deploy over SSH as root. Use a non-root deploy user with scoped sudo for LetisPOS systemd units."
+            exit 1
+          fi
+
       # ── SSH key for rsync ──────────────────────────────────────────────
       - name: Set up SSH key
         run: |
@@ -290,6 +301,25 @@ jobs:
             set -euo pipefail
             PROJECT_DIR="${{ secrets.VPS_PROJECT_PATH || '/var/www/LetisPos' }}"
             cd "$PROJECT_DIR"
+
+            if [ "$(id -un)" = "root" ]; then
+              echo "ERROR: Refusing to deploy as root. Configure the VPS_USER secret to a non-root deploy user."
+              exit 1
+            fi
+
+            if ! command -v sudo >/dev/null 2>&1; then
+              echo "ERROR: sudo is required for the non-root deploy user."
+              exit 1
+            fi
+            SUDO="sudo -n"
+
+            for key_file in /etc/letispos/jwt/private.pem /etc/letispos/jwt/public.pem; do
+              if ! $SUDO test -r "$key_file"; then
+                echo "ERROR: Missing readable JWT key file: $key_file"
+                echo "Auth-service must use stable JWT keys in production; ephemeral keys break tokens after restart."
+                exit 1
+              fi
+            done
 
             echo "==> git fetch + reset to origin/main"
             git fetch origin main
@@ -333,15 +363,26 @@ jobs:
             for svc in $CHANGED; do
               UNIT="letispos-${svc%-service}"
               echo "==> Restarting $UNIT"
-              systemctl restart "$UNIT"
+              $SUDO systemctl restart "$UNIT"
               sleep 4
               # Fail fast if the service didn't come up
-              if ! systemctl is-active --quiet "$UNIT"; then
+              if ! $SUDO systemctl is-active --quiet "$UNIT"; then
                 echo "ERROR: $UNIT failed to start. Last 30 log lines:"
-                journalctl -u "$UNIT" -n 30 --no-pager
+                $SUDO journalctl -u "$UNIT" -n 30 --no-pager
                 exit 1
               fi
               echo "    ✓ $UNIT active"
             done
+
+            # ── Smoke test ────────────────────────────────────────────
+            echo "==> Smoke test"
+            if [[ -x /var/www/LetisPos/ops/scripts/smoke-test.sh ]]; then
+              SMOKE_TEST_URL="http://localhost:8080" \
+              SMOKE_EMAIL="${{ secrets.SMOKE_EMAIL }}" \
+              SMOKE_PASSWORD="${{ secrets.SMOKE_PASSWORD }}" \
+              bash /var/www/LetisPos/ops/scripts/smoke-test.sh
+            else
+              echo "WARNING: smoke-test.sh not found — skipping"
+            fi
 
             echo "==> Deploy complete — $(date -u)"

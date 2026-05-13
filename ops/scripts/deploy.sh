@@ -12,6 +12,7 @@
 #   COMPOSE_FILE  — path to production compose file (default: ops/docker-compose.prod.yml)
 #   IMAGE_TAG     — image tag to deploy (default: latest)
 #   HEALTH_WAIT   — seconds to wait for health checks (default: 90)
+#   JWT_KEYS_DIR  — directory containing auth JWT private.pem and public.pem
 
 set -euo pipefail
 
@@ -21,6 +22,7 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 COMPOSE_FILE="${COMPOSE_FILE:-$PROJECT_ROOT/ops/docker-compose.prod.yml}"
 IMAGE_TAG="${IMAGE_TAG:-latest}"
 HEALTH_WAIT="${HEALTH_WAIT:-90}"
+JWT_KEYS_DIR="${JWT_KEYS_DIR:-$PROJECT_ROOT/ops/secrets/jwt}"
 
 # ── Pre-flight checks ──────────────────────────────────────────────────────────
 
@@ -37,6 +39,16 @@ if [ ! -f "$COMPOSE_FILE" ]; then
     echo "ERROR: Compose file not found: $COMPOSE_FILE"
     exit 1
 fi
+
+for key_file in "$JWT_KEYS_DIR/private.pem" "$JWT_KEYS_DIR/public.pem"; do
+    if [ ! -r "$key_file" ]; then
+        echo "ERROR: Missing readable JWT key file: $key_file"
+        echo "Generate or mount stable auth keys before deploying. Ephemeral JWT keys are disabled in production."
+        exit 1
+    fi
+done
+
+export JWT_KEYS_DIR
 
 # ── Pull latest images ──────────────────────────────────────────────────────────
 
