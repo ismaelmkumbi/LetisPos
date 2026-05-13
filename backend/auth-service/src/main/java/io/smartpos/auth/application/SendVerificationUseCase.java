@@ -32,7 +32,7 @@ public class SendVerificationUseCase {
     private final VerificationSmsSender smsSender;
     private final EmailTemplateService templateService;
 
-    @Value("${smartpos.verification.app-base-url:http://localhost:5173}")
+    @Value("${smartpos.verification.app-base-url:https://letispos.com}")
     private String appBaseUrl;
 
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
