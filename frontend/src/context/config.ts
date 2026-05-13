@@ -5,7 +5,7 @@ const config = {
   activeLayout: 'vertical',
   isLayout: 'boxed',
 
-  isCollapse: 'full-sidebar',
+  isCollapse: 'full-sidebar', // always start expanded; user can toggle hamburger for mini
   isLanguage: 'en',
   isCardShadow: true,
   isMobileSidebar: false,
