@@ -8,6 +8,7 @@ import io.smartpos.auth.domain.model.OutboxEvent;
 import io.smartpos.auth.domain.model.Tenant;
 import io.smartpos.auth.domain.model.User;
 import io.smartpos.auth.domain.model.UserStatus;
+import io.smartpos.auth.domain.model.VerificationChannel;
 import io.smartpos.auth.domain.repository.OutboxRepository;
 import io.smartpos.auth.domain.repository.UserRepository;
 import io.smartpos.auth.infrastructure.feign.BillingClient;
@@ -35,11 +36,31 @@ public class RegisterUserUseCase {
     private final ObjectMapper objectMapper;
     private final TenantService tenantService;
     private final BillingClient billingClient;
+    private final SendVerificationUseCase sendVerificationUseCase;
 
     @Transactional
     public UUID register(RegisterRequest req) {
-        if (userRepository.existsByEmailIgnoreCase(req.email())) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already registered");
+        // Validate channel
+        String channelStr = req.channel() != null ? req.channel().toUpperCase() : "EMAIL";
+        VerificationChannel channel;
+        try {
+            channel = VerificationChannel.valueOf(channelStr);
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Invalid channel. Must be EMAIL or PHONE.");
+        }
+
+        if (channel == VerificationChannel.EMAIL) {
+            if (req.email() == null || req.email().isBlank()) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email is required for EMAIL channel.");
+            }
+            if (userRepository.existsByEmailIgnoreCase(req.email())) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already registered");
+            }
+        } else {
+            if (req.phoneNumber() == null || req.phoneNumber().isBlank()) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Phone number is required for PHONE channel.");
+            }
         }
 
         // Resolve tenant: explicit tenantId, auto-create from tenantName, or leave null
@@ -81,11 +102,13 @@ public class RegisterUserUseCase {
             }
         }
 
+        // Create user as PENDING
         User user = User.builder()
-                .email(req.email().toLowerCase())
-                .username(req.username())
+                .email(channel == VerificationChannel.EMAIL ? req.email().toLowerCase() : null)
+                .phoneNumber(channel == VerificationChannel.PHONE ? req.phoneNumber() : null)
+                .username(channel == VerificationChannel.EMAIL ? req.email().toLowerCase() : req.phoneNumber())
                 .passwordHash(passwordEncoder.encode(req.password()))
-                .status(UserStatus.ACTIVE)
+                .status(UserStatus.PENDING)
                 .tenantId(tenantId)
                 .build();
         try {
@@ -97,7 +120,14 @@ public class RegisterUserUseCase {
         // Emit UserRegistered event via outbox so User Service can create a profile.
         publishUserRegistered(user, req);
 
-        log.info("Registered user id={} email={} tenantId={}", user.getId(), user.getEmail(), tenantId);
+        // Send verification
+        try {
+            sendVerificationUseCase.send(user, channel);
+        } catch (Exception e) {
+            log.warn("Failed to send verification for user={}: {}", user.getId(), e.getMessage());
+        }
+
+        log.info("Registered user id={} channel={} tenantId={}", user.getId(), channel, tenantId);
         return user.getId();
     }
 

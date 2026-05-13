@@ -4,6 +4,12 @@ import io.smartpos.auth.api.dto.*;
 import io.smartpos.auth.application.ChangePasswordUseCase;
 import io.smartpos.auth.application.LoginUseCase;
 import io.smartpos.auth.application.RegisterUserUseCase;
+import io.smartpos.auth.application.SendVerificationUseCase;
+import io.smartpos.auth.application.VerifyUserUseCase;
+import io.smartpos.auth.domain.model.User;
+import io.smartpos.auth.domain.model.UserStatus;
+import io.smartpos.auth.domain.model.VerificationChannel;
+import io.smartpos.auth.domain.repository.UserRepository;
 import io.smartpos.auth.infrastructure.security.RefreshTokenCookies;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -25,6 +31,9 @@ public class AuthController {
     private final LoginUseCase loginUseCase;
     private final RegisterUserUseCase registerUseCase;
     private final ChangePasswordUseCase changePasswordUseCase;
+    private final VerifyUserUseCase verifyUserUseCase;
+    private final SendVerificationUseCase sendVerificationUseCase;
+    private final UserRepository userRepository;
     private final RefreshTokenCookies refreshCookies;
 
     @PostMapping("/login")
@@ -70,6 +79,29 @@ public class AuthController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void changePassword(@Valid @RequestBody ChangePasswordRequest req) {
         changePasswordUseCase.change(req.userId(), req.currentPassword(), req.newPassword());
+    }
+
+    @PostMapping("/verify")
+    public ResponseEntity<Map<String, String>> verify(@Valid @RequestBody VerifyRequest req) {
+        String contact = verifyUserUseCase.verify(req.token());
+        return ResponseEntity.ok(Map.of(
+                "status", "verified",
+                "contact", contact
+        ));
+    }
+
+    @PostMapping("/resend-verification")
+    public ResponseEntity<Map<String, String>> resendVerification(@Valid @RequestBody ResendVerificationRequest req) {
+        User user = userRepository.findById(req.userId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+
+        if (user.getStatus() != UserStatus.PENDING) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Account is already verified. Please log in.");
+        }
+
+        VerificationChannel channel = user.getEmail() != null ? VerificationChannel.EMAIL : VerificationChannel.PHONE;
+        sendVerificationUseCase.send(user, channel);
+        return ResponseEntity.ok(Map.of("message", "Verification sent"));
     }
 
     private static String readCookie(HttpServletRequest req, String name) {
