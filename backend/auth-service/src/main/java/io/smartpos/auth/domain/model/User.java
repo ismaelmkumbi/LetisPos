@@ -22,6 +22,9 @@ public class User {
     @Column(name = "email", nullable = false, columnDefinition = "citext")
     private String email;
 
+    @Column(name = "phone_number", length = 20)
+    private String phoneNumber;
+
     @Column(name = "username")
     private String username;
 
