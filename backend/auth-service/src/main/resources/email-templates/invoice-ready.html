@@ -1,38 +1,34 @@
-<!-- Invoice Ready Email Body -->
-<!-- Variables: {{customer_name}}, {{invoice_number}}, {{invoice_total}}, {{due_date}}, {{invoice_url}} -->
-
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-  <tr>
-    <td style="padding:0;">
-      <p style="margin:0 0 4px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:11px;color:#94A3B8;line-height:1.5;text-transform:uppercase;letter-spacing:0.8px;font-weight:600;">
-        {{invoice_number}}
-      </p>
-
-      <!-- Invoice summary card -->
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:12px 0 24px;">
-        <tr>
-          <td style="background-color:#F8FAFC;border-radius:10px;padding:20px 24px;border:1px solid #E2E8F0;">
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-              <tr>
-                <td style="padding:0 20px 0 0;border-right:1px solid #E2E8F0;vertical-align:top;width:50%;">
-                  <p style="margin:0 0 4px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:10px;color:#94A3B8;text-transform:uppercase;letter-spacing:0.8px;font-weight:600;">Amount Due</p>
-                  <p style="margin:0;font-family:Georgia,'Times New Roman',serif;font-size:26px;font-weight:700;color:#0F172A;">{{invoice_total}}</p>
-                </td>
-                <td style="padding:0 0 0 20px;vertical-align:top;">
-                  <p style="margin:0 0 4px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:10px;color:#94A3B8;text-transform:uppercase;letter-spacing:0.8px;font-weight:600;">Due Date</p>
-                  <p style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:16px;font-weight:600;color:#334155;">{{due_date}}</p>
-                </td>
-              </tr>
-            </table>
-          </td>
-        </tr>
-      </table>
-
-      <p style="margin:0 0 20px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:15px;color:#334155;line-height:1.65;">
-        Invoice for <strong style="color:#0F172A;">{{customer_name}}</strong> is ready. View, download, or pay online.
-      </p>
-    </td>
-  </tr>
+<tr>
+<td style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:11px;color:#94A3B8;text-transform:uppercase;letter-spacing:0.8px;font-weight:600;padding-bottom:16px;">
+{{invoice_number}}
+</td>
+</tr>
+<tr>
+<td style="background-color:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:20px 24px;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+<tr>
+<td style="width:50%;padding-right:20px;border-right:1px solid #E2E8F0;vertical-align:top;">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0">
+<tr><td style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:10px;color:#94A3B8;text-transform:uppercase;letter-spacing:0.8px;font-weight:600;padding-bottom:4px;">Amount Due</td></tr>
+<tr><td style="font-family:Georgia,'Times New Roman',serif;font-size:28px;font-weight:700;color:#0F172A;">{{invoice_total}}</td></tr>
+</table>
+</td>
+<td style="padding-left:20px;vertical-align:top;">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0">
+<tr><td style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:10px;color:#94A3B8;text-transform:uppercase;letter-spacing:0.8px;font-weight:600;padding-bottom:4px;">Due Date</td></tr>
+<tr><td style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:17px;font-weight:600;color:#334155;">{{due_date}}</td></tr>
+</table>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+<tr>
+<td style="padding-top:20px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:16px;color:#334155;line-height:1.6;">
+Invoice for <strong style="color:#0F172A;">{{customer_name}}</strong> is ready. View, download, or pay online.
+</td>
+</tr>
 </table>
 
 {{cta_block}}
