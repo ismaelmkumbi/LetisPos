@@ -90,6 +90,15 @@ smartpos:
       # Creates an initial admin user on first startup if no users exist.
       admin-email: ${BOOTSTRAP_ADMIN_EMAIL:admin@smartpos.local}
       admin-password: ${BOOTSTRAP_ADMIN_PASSWORD:Admin@12345}
+  verification:
+    resend:
+      api-key: ${RESEND_API_KEY:}
+      from-address: ${RESEND_FROM_ADDRESS:onboarding@resend.dev}
+    twilio:
+      account-sid: ${TWILIO_ACCOUNT_SID:}
+      auth-token: ${TWILIO_AUTH_TOKEN:}
+      phone-number: ${TWILIO_PHONE_NUMBER:}
+    app-base-url: ${APP_BASE_URL:http://localhost:5173}
   internal:
     # Shared secret used when calling other services' /api/internal/** endpoints
     # (e.g. user-service for JWT claim hydration at login). Must match value on the server.
