@@ -77,9 +77,13 @@ export default function SalesReportPage() {
     legend: { position: 'top', fontSize: '12px' },
   }), [sales]);
 
-  // Resolve product names for any products missing them
+  const looksLikeUuid = (s?: string) => s && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
+
+  // Resolve product names for any products missing them or showing a UUID
   useEffect(() => {
-    const missing = topProducts.filter(tp => !tp.productName).map(tp => tp.productId);
+    const missing = topProducts
+      .filter(tp => !tp.productName || looksLikeUuid(tp.productName))
+      .map(tp => tp.productId);
     if (missing.length === 0) return;
     let cancelled = false;
     import('src/api/smartpos/products').then(({ listProducts }) => {

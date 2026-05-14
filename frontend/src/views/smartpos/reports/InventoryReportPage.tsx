@@ -46,7 +46,8 @@ export default function InventoryReportPage() {
   // Resolve product names for any products missing them
   useEffect(() => {
     const rows = [...(valuation?.rows ?? []), ...(deadStock?.rows ?? []), ...turnover];
-    const missing = rows.filter(r => !r.productName).map(r => r.productId);
+    const looksLikeUuid = (s?: string) => s && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);\
+    const missing = rows.filter(r => !r.productName || looksLikeUuid(r.productName)).map(r => r.productId);
     if (missing.length === 0) return;
     let cancelled = false;
     import('src/api/smartpos/products').then(({ listProducts }) => {
