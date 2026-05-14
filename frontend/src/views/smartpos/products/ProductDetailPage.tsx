@@ -731,8 +731,8 @@ export default function ProductDetailPage() {
                         if (!file) return;
                         try {
                           const { uploadProductImage } = await import('src/api/smartpos/products');
-                          const url = await uploadProductImage(file);
-                          setField('imageUrl', url);
+                          const result = await uploadProductImage(file);
+                          setField('imageUrl', result.url);
                         } catch {
                           // silently fail, user can retry
                         }

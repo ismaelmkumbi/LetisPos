@@ -364,11 +364,11 @@ export async function searchBarcodes(params: BarcodeSearchParams = {}): Promise<
 
 // ---------- Image upload ----------
 
-export async function uploadProductImage(file: File): Promise<string> {
+export async function uploadProductImage(file: File): Promise<{ url: string }> {
   const form = new FormData();
   form.append('file', file);
   const { data } = await api.post<{ url: string }>('/api/v1/products/images', form, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
-  return data.url;
+  return data;
 }
