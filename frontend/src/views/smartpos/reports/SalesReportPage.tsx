@@ -123,7 +123,7 @@ export default function SalesReportPage() {
       }).catch(() => {});
     });
     return () => { cancelled = true; };
-  }, [topCustomers]);
+  }, [topCustomers, customerNames]);
 
   const customerColumns: Column<TopCustomer>[] = [
     { id: 'customer', label: 'Customer', render: (r) => customerNames[r.customerId] ?? r.customerId.slice(0, 8) },
