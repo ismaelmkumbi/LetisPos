@@ -135,7 +135,19 @@ export default function SalesReportPage() {
     { id: 'spent', label: 'Total Spent', align: 'right', render: (r) => formatMoney(r.totalSpent) },
   ];
 
-  const factsJson = JSON.stringify({ sales, topProducts: topProducts.slice(0, 10), topCustomers: topCustomers.slice(0, 10) });
+  const factsJson = JSON.stringify({
+    sales,
+    topProducts: topProducts.slice(0, 10).map(p => ({
+      ...p,
+      productName: (!p.productName || looksLikeUuid(p.productName))
+        ? (productNames[p.productId] ?? p.productName ?? p.productId.slice(0, 8))
+        : p.productName,
+    })),
+    topCustomers: topCustomers.slice(0, 10).map(c => ({
+      ...c,
+      customerName: customerNames[c.customerId] ?? c.customerId.slice(0, 8),
+    })),
+  });
 
   return (
     <ReportPageShell title="Sales Report" subtitle="Revenue trends, top products, customers, and category breakdown">

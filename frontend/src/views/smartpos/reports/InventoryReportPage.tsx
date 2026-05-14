@@ -89,7 +89,11 @@ export default function InventoryReportPage() {
     { id: 'lastSold', label: 'Last Sold', render: (r) => r.lastSoldDate ?? 'Never' },
   ];
 
-  const factsJson = JSON.stringify({ summary, valuation, deadStock });
+  const factsJson = JSON.stringify({
+    summary,
+    valuation: valuation ? { ...valuation, rows: valuation.rows?.map(r => ({ ...r, productName: productNames[r.productId] ?? r.productName ?? r.productId?.slice(0, 8) })) } : null,
+    deadStock: deadStock ? { ...deadStock, rows: deadStock.rows?.map(r => ({ ...r, productName: productNames[r.productId] ?? r.productName ?? r.productId?.slice(0, 8) })) } : null,
+  });
   const valBarOptions: ApexOptions = {
     chart: { type: 'bar', toolbar: { show: false }, fontFamily: chartFont },
     colors: [brand.primary[600]],
