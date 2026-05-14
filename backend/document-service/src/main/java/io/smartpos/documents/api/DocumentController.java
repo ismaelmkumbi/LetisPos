@@ -92,7 +92,7 @@ public class DocumentController {
     @GetMapping("/{id}")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<DocumentDto> get(@PathVariable UUID id) throws Exception {
-        Document doc = documentRepo.findByIdAndTenantId(id, TenantContext.require())
+        Document doc = documentRepo.findByIdAndTenantId(id, TenantContext.get().orElse(null))
                 .orElseThrow(() -> new IllegalArgumentException("Document not found: " + id));
         String url = documentService.getPresignedUrl(doc);
         return ResponseEntity.ok(DocumentDto.from(doc, url));
@@ -101,7 +101,7 @@ public class DocumentController {
     @GetMapping("/{id}/pdf")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Void> downloadPdf(@PathVariable UUID id) throws Exception {
-        Document doc = documentRepo.findByIdAndTenantId(id, TenantContext.require())
+        Document doc = documentRepo.findByIdAndTenantId(id, TenantContext.get().orElse(null))
                 .orElseThrow(() -> new IllegalArgumentException("Document not found: " + id));
         String url = documentService.getPresignedUrl(doc);
         return ResponseEntity.status(HttpStatus.FOUND)
@@ -114,7 +114,7 @@ public class DocumentController {
     public ResponseEntity<Map<String, String>> email(@PathVariable UUID id,
                                                       @Valid @RequestBody EmailRequest req)
             throws Exception {
-        Document doc = documentRepo.findByIdAndTenantId(id, TenantContext.require())
+        Document doc = documentRepo.findByIdAndTenantId(id, TenantContext.get().orElse(null))
                 .orElseThrow(() -> new IllegalArgumentException("Document not found: " + id));
         deliveryService.sendEmail(doc, req.getTo(), req.getSubject(),
                 req.getMessage() != null ? req.getMessage() : "");
