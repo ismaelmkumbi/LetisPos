@@ -8,16 +8,29 @@
  * Typography: Newsreader (serif headlines) + DM Sans (ui body).
  */
 
+const _ink = '#1a1a16';
+const _gold = '#c2843a';
+const _clay = '#c4724a';
+const _green = '#1b5e2f';
+
+/** Convert hex to rgba CSS value. */
+const rgba = (hex: string, a: number): string => {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r},${g},${b},${a})`;
+};
+
 export const wb = {
-  ink: '#1a1a16',
+  ink: _ink,
   inkLight: '#3d3d36',
   paper: '#fafaf7',
   paperMuted: '#f3f2ee',
-  gold: '#c2843a',
+  gold: _gold,
   goldLight: '#f5e6d3',
-  clay: '#c4724a',
+  clay: _clay,
   clayLight: '#faf0e9',
-  green: '#1b5e2f',
+  green: _green,
   greenLight: '#e8f5e9',
   greenMid: '#2e7d3a',
   border: '#e6e4dd',
@@ -42,14 +55,16 @@ export const wb = {
 
   /** Dark column background with grain texture via CSS */
   darkBg: `
-    radial-gradient(ellipse at 25% 30%, rgba(194,132,58,0.12) 0%, transparent 55%),
-    radial-gradient(ellipse at 70% 75%, rgba(27,94,47,0.08) 0%, transparent 50%),
-    linear-gradient(165deg, #1a1a16 0%, #2a2820 40%, #1f221b 100%)
+    radial-gradient(ellipse at 25% 30%, ${rgba(_gold, 0.12)} 0%, transparent 55%),
+    radial-gradient(ellipse at 70% 75%, ${rgba(_green, 0.08)} 0%, transparent 50%),
+    linear-gradient(165deg, ${_ink} 0%, #2a2820 40%, #1f221b 100%)
   `,
 
   /** Light page background */
   lightBg: `
-    radial-gradient(ellipse at 15% 20%, rgba(196,114,74,0.04) 0%, transparent 60%),
-    radial-gradient(ellipse at 85% 80%, rgba(27,94,47,0.03) 0%, transparent 60%)
+    radial-gradient(ellipse at 15% 20%, ${rgba(_clay, 0.04)} 0%, transparent 60%),
+    radial-gradient(ellipse at 85% 80%, ${rgba(_green, 0.03)} 0%, transparent 60%)
   `,
 } as const;
+
+export type WarmBrutalismTokens = typeof wb;
