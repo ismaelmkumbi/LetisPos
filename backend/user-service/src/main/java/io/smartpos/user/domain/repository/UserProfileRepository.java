@@ -17,7 +17,7 @@ public interface UserProfileRepository extends JpaRepository<UserProfile, UUID> 
 
     @Query("""
            SELECT u FROM UserProfile u
-           WHERE u.tenantId = :tenantId
+           WHERE (:tenantId IS NULL OR u.tenantId = :tenantId)
              AND (:search IS NULL OR
                   u.email           LIKE CONCAT('%', :search, '%') OR
                   LOWER(u.firstName) LIKE LOWER(CONCAT('%', :search, '%')) OR
@@ -28,16 +28,4 @@ public interface UserProfileRepository extends JpaRepository<UserProfile, UUID> 
                              @Param("active") Boolean active,
                              @Param("tenantId") UUID tenantId,
                              Pageable pageable);
-
-    @Query(value = """
-           SELECT * FROM user_profiles u
-           WHERE (:search IS NULL OR
-                  u.email           LIKE CONCAT('%', CAST(:search AS text), '%') OR
-                  LOWER(u.first_name) LIKE LOWER(CONCAT('%', CAST(:search AS text), '%')) OR
-                  LOWER(u.last_name)  LIKE LOWER(CONCAT('%', CAST(:search AS text), '%')))
-             AND (:active IS NULL OR u.is_active = :active)
-           """, nativeQuery = true)
-    Page<UserProfile> searchAll(@Param("search") String search,
-                                @Param("active") Boolean active,
-                                Pageable pageable);
 }
