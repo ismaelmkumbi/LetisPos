@@ -9,6 +9,8 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.server.ResponseStatusException;
 
+import io.smartpos.common.context.TenantNotInContextException;
+
 import java.util.stream.Collectors;
 
 @RestControllerAdvice
@@ -39,8 +41,8 @@ public class GlobalExceptionHandler {
         return pd;
     }
 
-    @ExceptionHandler(IllegalStateException.class)
-    public ProblemDetail illegalState(IllegalStateException ex) {
+    @ExceptionHandler(TenantNotInContextException.class)
+    public ProblemDetail tenantNotInContext(TenantNotInContextException ex) {
         ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
         pd.setTitle("Bad request");
         return pd;

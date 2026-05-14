@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router';
 import {
+  Alert,
   Box,
   Button,
   Card,
@@ -206,10 +207,12 @@ export default function TenantDashboardPage() {
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [plans, setPlans] = useState<PlanDefinition[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
+    setError(null);
     Promise.all([listAllTenants(), listAllPlans()])
       .then(([t, p]) => {
         if (!cancelled) {
@@ -217,7 +220,9 @@ export default function TenantDashboardPage() {
           setPlans(p);
         }
       })
-      .catch(() => {})
+      .catch((e) => {
+        if (!cancelled) setError(e instanceof Error ? e.message : 'Failed to load dashboard data');
+      })
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
@@ -378,6 +383,18 @@ export default function TenantDashboardPage() {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
         <CircularProgress size={36} sx={{ color: brand.primary[600] }} />
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box>
+        <PageHeader
+          title="Tenant 360"
+          subtitle="Unified administration hub for all tenant operations"
+        />
+        <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>
       </Box>
     );
   }

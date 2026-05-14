@@ -31,7 +31,7 @@ public final class TenantContext {
     public static UUID require() {
         UUID id = CURRENT.get();
         if (id == null) {
-            throw new IllegalStateException("No tenant in context — request is not tenant-scoped");
+            throw new TenantNotInContextException();
         }
         return id;
     }

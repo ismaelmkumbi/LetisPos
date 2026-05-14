@@ -36,8 +36,13 @@ public class WarehouseService {
 
     @Transactional(readOnly = true)
     public WarehouseDto get(UUID id) {
-        return repo.findById(id).map(WarehouseDto::from)
+        Warehouse w = repo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Warehouse not found"));
+        UUID tenantId = TenantContext.get().orElse(null);
+        if (tenantId != null && !tenantId.equals(w.getTenantId())) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Warehouse not found");
+        }
+        return WarehouseDto.from(w);
     }
 
     @Transactional

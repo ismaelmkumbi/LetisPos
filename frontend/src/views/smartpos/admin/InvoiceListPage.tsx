@@ -66,37 +66,29 @@ export default function InvoiceListPage() {
     return map;
   }, [tenants]);
 
-  const fetch = useCallback(() => {
+  const fetch = useCallback(async () => {
     setLoading(true);
-    // Fetch invoices for each tenant (admin view)
-    Promise.all([
-      listAllTenants(),
-      // We'll gather invoices from all tenants
-      (async () => {
-        const allTenants = await listAllTenants();
-        setTenants(allTenants);
-        const results = await Promise.allSettled(
-          allTenants.map((t) => listInvoices(t.id).catch(() => []))
-        );
-        const allInvoices: Invoice[] = [];
-        results.forEach((r) => {
-          if (r.status === 'fulfilled') {
-            allInvoices.push(...r.value);
-          }
-        });
-        return allInvoices.sort(
-          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-        );
-      })(),
-    ])
-      .then(([, invoiceList]) => {
-        setInvoices(invoiceList);
-        setError(null);
-      })
-      .catch((e) => {
-        setError(e instanceof Error ? e.message : 'Failed to load invoices');
-      })
-      .finally(() => setLoading(false));
+    try {
+      const allTenants = await listAllTenants();
+      setTenants(allTenants);
+      const results = await Promise.allSettled(
+        allTenants.map((t) => listInvoices(t.id).catch(() => []))
+      );
+      const allInvoices: Invoice[] = [];
+      results.forEach((r) => {
+        if (r.status === 'fulfilled') {
+          allInvoices.push(...r.value);
+        }
+      });
+      setInvoices(allInvoices.sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      ));
+      setError(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to load invoices');
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
