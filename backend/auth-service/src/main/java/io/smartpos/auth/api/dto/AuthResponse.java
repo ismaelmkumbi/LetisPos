@@ -7,7 +7,8 @@ public record AuthResponse(
         String refreshToken,
         String tokenType,
         long expiresIn,         // seconds
-        UserSummary user
+        UserSummary user,
+        String warning
 ) {
     public record UserSummary(UUID id, String email, UUID tenantId) {}
 }

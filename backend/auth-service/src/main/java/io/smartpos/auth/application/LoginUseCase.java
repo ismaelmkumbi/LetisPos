@@ -89,12 +89,23 @@ public class LoginUseCase {
                 .build();
         refreshTokenRepository.save(rt);
 
+        // Determine warning based on tenant status
+        String warning = null;
+        if (claims.tenantStatus() != null) {
+            if ("TRIAL_EXPIRED".equals(claims.tenantStatus())) {
+                warning = "Your trial has ended. Subscribe to restore access.";
+            } else if ("PAST_DUE".equals(claims.tenantStatus())) {
+                warning = "Payment is past due. Update your payment method to avoid suspension.";
+            }
+        }
+
         return new AuthResponse(
                 accessToken,
                 refreshTokenRaw,
                 "Bearer",
                 jwtProperties.accessTokenTtlMinutes() * 60L,
-                new AuthResponse.UserSummary(user.getId(), user.getEmail(), user.getTenantId())
+                new AuthResponse.UserSummary(user.getId(), user.getEmail(), user.getTenantId()),
+                warning
         );
     }
 
@@ -137,7 +148,8 @@ public class LoginUseCase {
                 newRaw,
                 "Bearer",
                 jwtProperties.accessTokenTtlMinutes() * 60L,
-                new AuthResponse.UserSummary(user.getId(), user.getEmail(), claims.tenantId())
+                new AuthResponse.UserSummary(user.getId(), user.getEmail(), claims.tenantId()),
+                null
         );
     }
 
