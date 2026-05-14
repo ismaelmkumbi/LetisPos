@@ -62,7 +62,7 @@ const AuthLoginForm: React.FC<Props> = ({ title, subtitle, subtext }) => {
     '/smartpos/dashboard';
   const justRegistered = (location.state as { registered?: boolean } | null)?.registered;
 
-  const [email, setEmail] = useState<string>('admin@smartpos.local');
+  const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [remember, setRemember] = useState<boolean>(true);
   const [showPassword, setShowPassword] = useState<boolean>(false);
