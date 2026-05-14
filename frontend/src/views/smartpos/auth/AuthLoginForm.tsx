@@ -10,7 +10,6 @@ import {
   Button,
   Checkbox,
   CircularProgress,
-  Divider,
   FormControlLabel,
   IconButton,
   InputAdornment,
@@ -29,28 +28,6 @@ interface Props {
   subtitle?: React.ReactNode;
   subtext?: React.ReactNode;
 }
-
-/** Inline Google "G" */
-const GoogleG: React.FC<{ size?: number }> = ({ size = 18 }) => (
-  <svg width={size} height={size} viewBox="0 0 48 48" aria-hidden="true">
-    <path
-      fill="#FFC107"
-      d="M43.6 20.5H42V20H24v8h11.3C33.7 32.3 29.2 35.5 24 35.5c-6.4 0-11.5-5.1-11.5-11.5S17.6 12.5 24 12.5c2.9 0 5.6 1.1 7.7 2.9l5.7-5.7C33.6 6.3 29 4.5 24 4.5 13.2 4.5 4.5 13.2 4.5 24S13.2 43.5 24 43.5 43.5 34.8 43.5 24c0-1.2-.1-2.3-.4-3.5z"
-    />
-    <path
-      fill="#FF3D00"
-      d="M6.3 14.7l6.6 4.8C14.7 16 19 12.5 24 12.5c2.9 0 5.6 1.1 7.7 2.9l5.7-5.7C33.6 6.3 29 4.5 24 4.5 16.3 4.5 9.7 8.9 6.3 14.7z"
-    />
-    <path
-      fill="#4CAF50"
-      d="M24 43.5c5 0 9.5-1.7 13-4.7l-6-5.1c-2 1.4-4.5 2.3-7 2.3-5.2 0-9.6-3.2-11.3-7.6l-6.5 5C9.5 39 16.2 43.5 24 43.5z"
-    />
-    <path
-      fill="#1976D2"
-      d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.3-4.3 5.7l6 5.1c-.4.4 6.5-4.7 6.5-14.8 0-1.2-.1-2.3-.4-3.5z"
-    />
-  </svg>
-);
 
 const fieldSx = {
   '& .MuiOutlinedInput-root': {
@@ -264,39 +241,6 @@ const AuthLoginForm: React.FC<Props> = ({ title, subtitle, subtext }) => {
         }}
       >
         {submitting ? 'Signing in…' : 'Sign in'}
-      </Button>
-
-      <Divider
-        sx={{
-          my: { xs: 1.25, sm: 2.25 },
-          color: brand.neutral[400],
-          fontSize: '0.75rem',
-          '&::before, &::after': { borderColor: brand.neutral[200] },
-        }}
-      >
-        or continue with
-      </Divider>
-
-      <Button
-        variant="outlined"
-        fullWidth
-        startIcon={<GoogleG size={16} />}
-        sx={{
-          py: { xs: 1.15, sm: 1.3 },
-          fontSize: '0.85rem',
-          fontWeight: 600,
-          textTransform: 'none',
-          borderRadius: '10px',
-          color: brand.neutral[700],
-          borderColor: brand.neutral[200],
-          bgcolor: '#FFFFFF',
-          '&:hover': {
-            borderColor: brand.neutral[300],
-            bgcolor: brand.neutral[50],
-          },
-        }}
-      >
-        Continue with Google
       </Button>
 
       <Stack

@@ -19,6 +19,7 @@ import { useOnboarding } from 'src/context/smartpos/OnboardingContext';
 import { CustomizerContext } from 'src/context/CustomizerContext';
 import type { UUID } from 'src/api/smartpos/types';
 import { usePolling } from 'src/hooks/usePolling';
+import { wb } from 'src/theme/smartpos/warmBrutalism';
 import OnboardingBanner from './OnboardingBanner';
 import CelebrationModal from 'src/views/smartpos/onboarding/CelebrationModal';
 
@@ -312,29 +313,97 @@ export default function DashboardPage() {
 
       <OnboardingBanner />
 
-      {/* Trial / Plan Banner */}
-      {isTrialing() && (
-        <Alert
-          severity="info"
-          sx={{ mb: 3, borderRadius: 2 }}
-          action={
-            <Button color="inherit" size="small" component={Link} to="/smartpos/billing">
-              Subscribe Now
-            </Button>
-          }
-        >
-          <Typography variant="body2" fontWeight={600}>
-            {getTrialDaysLeft() !== null && getTrialDaysLeft()! > 0
-              ? `${getTrialDaysLeft()} days left in your free trial.`
-              : 'Your trial is ending soon.'}
-          </Typography>
-          <Typography variant="caption" color="text.secondary">
-            You're on the {tenants[0]?.billingPlan ?? 'STARTER'} plan. Subscribe to keep your data and unlock all features.
-          </Typography>
-        </Alert>
+      {/* Tiered trial messaging */}
+      {isTrialing() && (() => {
+        const daysLeft = getTrialDaysLeft();
+        if (daysLeft === null) return null;
+        if (daysLeft > 21) return null; // Days 1-21: no urgency
+        if (daysLeft > 7) {
+          // Days 22-27: gentle reminder
+          return (
+            <Alert
+              severity="info"
+              sx={{ mb: 3, borderRadius: wb.radius.md }}
+              action={
+                <Button color="inherit" size="small" component={Link} to="/smartpos/billing">
+                  Subscribe Now
+                </Button>
+              }
+            >
+              <Typography variant="body2" fontWeight={600}>
+                {daysLeft} days left in your free trial.
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                Subscribe to keep your data and unlock all features on the {tenants[0]?.billingPlan ?? 'STARTER'} plan.
+              </Typography>
+            </Alert>
+          );
+        }
+        // Days 28-30: urgency
+        return (
+          <Alert
+            severity="warning"
+            sx={{ mb: 3, borderRadius: wb.radius.md }}
+            action={
+              <Button color="inherit" size="small" component={Link} to="/smartpos/billing">
+                Subscribe Now
+              </Button>
+            }
+          >
+            <Typography variant="body2" fontWeight={600}>
+              {daysLeft} {daysLeft === 1 ? 'day' : 'days'} left — subscribe now to avoid interruption.
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              Your {tenants[0]?.billingPlan ?? 'STARTER'} plan trial is ending soon. Your data will be preserved.
+            </Typography>
+          </Alert>
+        );
+      })()}
+
+      {/* Empty state — shown when dashboard has no sales data yet */}
+      {data && data.sales.net === 0 && data.sales.count === 0 && (
+        <Grid container spacing={1.5} sx={{ mb: 1.5 }}>
+          {[
+            { icon: '📊', title: "Today's sales", desc: 'Data appears after your first sale' },
+            { icon: '📦', title: 'Inventory overview', desc: 'Import products to see stock levels' },
+            { icon: '💰', title: 'Cash in hand', desc: 'Open a cash register to begin' },
+          ].map((card) => (
+            <Grid key={card.title} size={{ xs: 12, md: 4 }}>
+              <Box
+                sx={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  textAlign: 'center',
+                  minHeight: 180,
+                  bgcolor: wb.paper,
+                  border: `1px dashed ${wb.border}`,
+                  borderRadius: wb.radius.lg,
+                  p: 3,
+                }}
+              >
+                <Typography sx={{ fontSize: '2rem', mb: 1, opacity: 0.5 }}>{card.icon}</Typography>
+                <Typography
+                  sx={{
+                    fontFamily: wb.font.display,
+                    fontSize: '1rem',
+                    fontWeight: 500,
+                    color: wb.ink,
+                    opacity: 0.5,
+                    mb: 0.5,
+                  }}
+                >
+                  {card.title}
+                </Typography>
+                <Typography sx={{ fontSize: '0.72rem', color: wb.inkLight, opacity: 0.35 }}>
+                  {card.desc}
+                </Typography>
+              </Box>
+            </Grid>
+          ))}
+        </Grid>
       )}
-
-
 
       {error && (
         <Alert severity="error" sx={{ mb: 2, borderRadius: '12px' }}>

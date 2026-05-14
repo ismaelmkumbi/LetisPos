@@ -3,7 +3,6 @@ import { Box, Stack, Typography, keyframes } from '@mui/material';
 import {
   IconBrain,
   IconChartBar,
-  IconCloudUpload,
   IconLock,
   IconPackages,
   IconShieldCheck,
@@ -13,6 +12,7 @@ import {
 import PageContainer from 'src/components/container/PageContainer';
 import BrandLogo, { LetisMark } from 'src/components/smartpos/BrandLogo';
 import { brand } from 'src/theme/smartpos/brand';
+import { wb } from 'src/theme/smartpos/warmBrutalism';
 
 type AuthMode = 'login' | 'register' | 'forgot';
 
@@ -459,101 +459,196 @@ export default function LetisAuthLayout({
             display: { xs: 'none', lg: 'flex' },
             alignItems: 'center',
             background:
-              'radial-gradient(circle at 6% 8%, rgba(22,163,74,0.16), transparent 30%), linear-gradient(150deg, #FFFFFF 0%, #F8FAFC 42%, #ECFDF3 100%)',
-            '&:before': {
-              content: '""',
-              position: 'absolute',
-              width: { xs: 260, sm: 360, xl: 430 },
-              height: { xs: 260, sm: 360, xl: 430 },
-              borderRadius: '50%',
-              right: { xs: -150, sm: -170, xl: -210 },
-              top: { xs: 70, sm: -140, xl: -170 },
-              bgcolor: 'rgba(22,163,74,0.075)',
-            },
-            '&:after': {
-              content: '""',
-              position: 'absolute',
-              inset: 0,
-              background:
-                'linear-gradient(90deg, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0) 62%)',
-              pointerEvents: 'none',
-            },
+              mode === 'register'
+                ? wb.darkBg
+                : 'radial-gradient(circle at 6% 8%, rgba(22,163,74,0.16), transparent 30%), linear-gradient(150deg, #FFFFFF 0%, #F8FAFC 42%, #ECFDF3 100%)',
+            '&::before': mode === 'register'
+              ? undefined
+              : {
+                  content: '""',
+                  position: 'absolute',
+                  width: { xs: 260, sm: 360, xl: 430 },
+                  height: { xs: 260, sm: 360, xl: 430 },
+                  borderRadius: '50%',
+                  right: { xs: -150, sm: -170, xl: -210 },
+                  top: { xs: 70, sm: -140, xl: -170 },
+                  bgcolor: 'rgba(22,163,74,0.075)',
+                },
+            '&::after': mode === 'register'
+              ? {
+                  content: '""',
+                  position: 'absolute',
+                  inset: 0,
+                  backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise' x='0' y='0'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.72' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E")`,
+                  opacity: 0.4,
+                  pointerEvents: 'none',
+                }
+              : {
+                  content: '""',
+                  position: 'absolute',
+                  inset: 0,
+                  background: 'linear-gradient(90deg, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0) 62%)',
+                  pointerEvents: 'none',
+                },
           }}
         >
-          <Box sx={{ position: 'relative', zIndex: 1, width: '100%', maxWidth: 610 }}>
-            <Box sx={{ animation: anim(0) }}>
-              <BrandLogo size="lg" />
-            </Box>
-
-            <Stack
-              direction="row"
-              spacing={0.75}
-              alignItems="center"
+          {/* Gold vertical accent line — register mode only */}
+          {mode === 'register' && (
+            <Box
               sx={{
-                mt: { xs: 3, sm: 4.5, lg: 2.5, xl: 3.5 },
-                width: 'fit-content',
-                px: 1.1,
-                py: 0.55,
-                borderRadius: '999px',
-                bgcolor: 'rgba(22,163,74,0.1)',
-                color: brand.primary[700],
-                animation: anim(70),
+                position: 'absolute',
+                left: 0,
+                top: '12%',
+                bottom: '12%',
+                width: 3,
+                background: `linear-gradient(180deg, transparent 0%, ${wb.gold} 20%, ${wb.gold} 80%, transparent 100%)`,
+                borderRadius: '0 2px 2px 0',
+              }}
+            />
+          )}
+          <Box sx={{ position: 'relative', zIndex: 1, width: '100%', maxWidth: 610 }}>
+            {/* Brand mark — gold/clay gradient square */}
+            <Box
+              sx={{
+                width: 48,
+                height: 48,
+                borderRadius: wb.radius.md,
+                background: `linear-gradient(135deg, ${wb.gold} 0%, ${wb.clay} 100%)`,
+                display: 'grid',
+                placeItems: 'center',
+                mb: 6,
+                boxShadow: `0 0 0 8px rgba(194,132,58,0.12)`,
+                position: 'relative',
+                animation: anim(0),
+                '&::after': {
+                  content: '""',
+                  position: 'absolute',
+                  inset: -2,
+                  borderRadius: '12px',
+                  border: '1px solid rgba(255,255,255,0.15)',
+                },
               }}
             >
-              <IconCloudUpload size={15} stroke={1.9} />
-              <Typography
-                sx={{
-                  fontSize: '0.72rem',
-                  fontWeight: 900,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.04em',
-                }}
-              >
-                System status: Online
-              </Typography>
-            </Stack>
+              <LetisMark size={22} color="onDark" />
+            </Box>
 
+            {/* Headline */}
             <Typography
               component="h1"
               sx={{
-                mt: 2.2,
-                fontWeight: 950,
-                letterSpacing: 0,
-                lineHeight: 1.05,
-                fontSize: { xs: '2.1rem', sm: '3rem', lg: '3rem', xl: '3.45rem' },
-                color: brand.neutral[900],
+                fontFamily: wb.font.display,
+                fontSize: { xs: '2.1rem', sm: '3rem', lg: '3rem', xl: '3.2rem' },
+                fontWeight: 500,
+                lineHeight: 1.08,
+                letterSpacing: '-0.02em',
+                color: mode === 'register' ? wb.paper : brand.neutral[900],
+                mb: 2,
                 animation: anim(130),
               }}
             >
-              {headline}
-              <Box component="span" sx={{ display: 'block', color: brand.primary[600] }}>
-                {accent}
-              </Box>
+              {mode === 'register' ? (
+                <>
+                  Run your store{' '}
+                  <Box component="em" sx={{ fontStyle: 'italic', color: wb.gold }}>
+                    with confidence.
+                  </Box>
+                </>
+              ) : (
+                <>
+                  {headline}
+                  <Box component="span" sx={{ display: 'block', color: brand.primary[600] }}>
+                    {accent}
+                  </Box>
+                </>
+              )}
             </Typography>
 
+            {/* Supporting text */}
             <Typography
               sx={{
-                mt: { xs: 1.5, lg: 1.1, xl: 1.35 },
-                maxWidth: 470,
-                fontSize: { xs: '0.95rem', sm: '1.04rem', lg: '0.94rem', xl: '1rem' },
-                lineHeight: { xs: 1.65, lg: 1.5, xl: 1.6 },
-                color: brand.neutral[600],
+                mb: 6,
+                maxWidth: 380,
+                fontSize: { xs: '0.95rem', sm: '1.04rem', lg: '0.94rem', xl: '0.95rem' },
+                lineHeight: 1.6,
+                color: mode === 'register' ? 'rgba(250,250,247,0.65)' : brand.neutral[600],
                 animation: anim(190),
               }}
             >
-              {supportingText}
+              {mode === 'register'
+                ? 'Full-featured POS, inventory, and analytics. Built for Tanzanian businesses ready to grow.'
+                : supportingText}
             </Typography>
 
-            <Stack
-              spacing={{ xs: 1.7, lg: 1.2, xl: 1.5 }}
-              sx={{ mt: { xs: 2.5, sm: 3.5, lg: 2, xl: 2.6 }, maxWidth: 450 }}
-            >
-              {benefits.map((item, index) => (
-                <BenefitRow key={item.title} {...item} delay={250 + index * 70} />
-              ))}
-            </Stack>
+            {/* Trust rows (register mode) or benefits + ProductShowcase (login mode) */}
+            {mode === 'register' ? (
+              <Stack spacing={2} sx={{ animation: anim(250) }}>
+                {[
+                  { icon: '30', title: '30-day full access trial', desc: 'Every feature unlocked. No credit card. No commitment.' },
+                  { icon: '✦', title: 'Free local onboarding', desc: 'Our Dar es Salaam team helps you get set up in hours, not weeks.' },
+                  { icon: 'M', title: 'Pay with M-Pesa', desc: 'Monthly or annual billing in Tanzanian shillings via mobile money.' },
+                ].map((row, i) => (
+                  <Stack key={row.title} direction="row" spacing={1.75} sx={{ animation: anim(250 + i * 70) }}>
+                    <Box
+                      sx={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: wb.radius.sm,
+                        background: 'rgba(255,255,255,0.06)',
+                        border: '1px solid rgba(255,255,255,0.08)',
+                        display: 'grid',
+                        placeItems: 'center',
+                        flexShrink: 0,
+                        color: wb.gold,
+                        fontSize: '0.85rem',
+                        fontWeight: 700,
+                      }}
+                    >
+                      {row.icon}
+                    </Box>
+                    <Box>
+                      <Typography sx={{ fontSize: '0.82rem', fontWeight: 600, color: 'rgba(250,250,247,0.9)' }}>
+                        {row.title}
+                      </Typography>
+                      <Typography sx={{ fontSize: '0.75rem', color: 'rgba(250,250,247,0.5)', lineHeight: 1.4 }}>
+                        {row.desc}
+                      </Typography>
+                    </Box>
+                  </Stack>
+                ))}
+              </Stack>
+            ) : (
+              <>
+                <Stack spacing={{ xs: 1.7, lg: 1.2, xl: 1.5 }} sx={{ mt: { xs: 2.5, sm: 3.5, lg: 2, xl: 2.6 }, maxWidth: 450 }}>
+                  {benefits.map((item, index) => (
+                    <BenefitRow key={item.title} {...item} delay={250 + index * 70} />
+                  ))}
+                </Stack>
+                <ProductShowcase mode={mode} />
+              </>
+            )}
 
-            <ProductShowcase mode={mode} />
+            {/* Plan chip (register mode only) */}
+            {mode === 'register' && (
+              <Box
+                sx={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 1,
+                  mt: 5,
+                  px: 2,
+                  py: 1.25,
+                  borderRadius: '99px',
+                  background: 'rgba(255,255,255,0.05)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  fontSize: '0.75rem',
+                  color: 'rgba(250,250,247,0.6)',
+                  animation: anim(500),
+                }}
+              >
+                <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: wb.gold }} />
+                You&apos;ll start on <Box component="strong" sx={{ color: wb.gold, fontWeight: 600, mx: 0.5 }}>Starter</Box> — upgrade anytime
+              </Box>
+            )}
           </Box>
         </Box>
 

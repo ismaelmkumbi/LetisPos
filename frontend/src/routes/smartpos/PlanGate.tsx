@@ -11,7 +11,7 @@ interface PlanGateProps {
 }
 
 export default function PlanGate({ minPlan, featureName, children }: PlanGateProps) {
-  const { tenants } = useAuth();
+  const { tenants, isTrialing } = useAuth();
   const currentPlan = tenants[0]?.billingPlan ?? 'STARTER';
   const hasAccess = (PLAN_LEVEL[currentPlan] ?? 0) >= (PLAN_LEVEL[minPlan] ?? 0);
 
@@ -29,6 +29,14 @@ export default function PlanGate({ minPlan, featureName, children }: PlanGatePro
         <Button variant="contained" component={Link} to="/smartpos/billing">
           Upgrade Plan
         </Button>
+        {isTrialing() && (
+          <Typography
+            variant="caption"
+            sx={{ display: 'block', mt: 1.5, color: 'text.disabled' }}
+          >
+            Still in your 30-day trial. You won&apos;t be charged until it ends.
+          </Typography>
+        )}
       </Box>
     );
   }
