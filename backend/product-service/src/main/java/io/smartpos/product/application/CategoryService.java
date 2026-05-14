@@ -33,7 +33,7 @@ public class CategoryService {
 
     @Transactional(readOnly = true)
     public Page<CategoryDto> search(String search, Pageable pageable) {
-        return repo.search(search, TenantContext.require(), pageable).map(CategoryDto::from);
+        return repo.search(search, TenantContext.get().orElse(null), pageable).map(CategoryDto::from);
     }
 
     @Transactional(readOnly = true)

@@ -24,7 +24,7 @@ public class CustomerService {
 
     @Transactional(readOnly = true)
     public Page<CustomerDto> search(String q, Boolean active, Pageable pageable) {
-        return repo.search(q, active, TenantContext.require(), pageable).map(CustomerDto::from);
+        return repo.search(q, active, TenantContext.get().orElse(null), pageable).map(CustomerDto::from);
     }
 
     @Transactional(readOnly = true)

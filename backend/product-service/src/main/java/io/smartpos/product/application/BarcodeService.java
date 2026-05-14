@@ -26,7 +26,7 @@ public class BarcodeService {
 
     @Transactional(readOnly = true)
     public Page<BarcodeWithProductDto> search(String search, Pageable pageable) {
-        var barcodePage = barcodeRepo.search(search, TenantContext.require(), pageable);
+        var barcodePage = barcodeRepo.search(search, TenantContext.get().orElse(null), pageable);
 
         // Batch-load product names for all barcodes on this page
         var productIds = barcodePage.getContent().stream()

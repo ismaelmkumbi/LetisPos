@@ -33,7 +33,7 @@ public class BrandService {
 
     @Transactional(readOnly = true)
     public Page<BrandDto> search(String search, Pageable pageable) {
-        return repo.search(search, TenantContext.require(), pageable).map(BrandDto::from);
+        return repo.search(search, TenantContext.get().orElse(null), pageable).map(BrandDto::from);
     }
 
     @Transactional(readOnly = true)

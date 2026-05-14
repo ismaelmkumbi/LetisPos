@@ -38,7 +38,7 @@ public class ProductSerialService {
     @Transactional(readOnly = true)
     public Page<SerialDto> search(UUID productId, UUID warehouseId, SerialStatus status,
                                   String search, Pageable pageable) {
-        return repo.search(productId, warehouseId, status, search, TenantContext.require(), pageable).map(SerialDto::from);
+        return repo.search(productId, warehouseId, status, search, TenantContext.get().orElse(null), pageable).map(SerialDto::from);
     }
 
     @Transactional(readOnly = true)

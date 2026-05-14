@@ -51,7 +51,7 @@ public class ProductService {
     public Page<ProductDto> search(String search, UUID categoryId, UUID brandId,
                                    Boolean status, Boolean featured, Pageable pageable) {
         return productRepo.search(search, categoryId, brandId, status, featured,
-                TenantContext.require(), pageable).map(ProductDto::from);
+                TenantContext.get().orElse(null), pageable).map(ProductDto::from);
     }
 
     /**

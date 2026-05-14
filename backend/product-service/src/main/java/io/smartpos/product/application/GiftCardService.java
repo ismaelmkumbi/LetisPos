@@ -25,7 +25,7 @@ public class GiftCardService {
 
     @Transactional(readOnly = true)
     public Page<GiftCardDto> list(Pageable pageable) {
-        UUID tenantId = TenantContext.require();
+        UUID tenantId = TenantContext.get().orElse(null);
         return repo.findAllByTenant(tenantId, pageable).map(GiftCardDto::from);
     }
 

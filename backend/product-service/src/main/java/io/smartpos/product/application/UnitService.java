@@ -35,7 +35,7 @@ public class UnitService {
 
     @Transactional(readOnly = true)
     public Page<UnitDto> search(String search, Pageable pageable) {
-        return repo.search(search, TenantContext.require(), pageable).map(UnitDto::from);
+        return repo.search(search, TenantContext.get().orElse(null), pageable).map(UnitDto::from);
     }
 
     @Transactional
