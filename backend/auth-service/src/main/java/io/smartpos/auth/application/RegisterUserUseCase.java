@@ -141,17 +141,15 @@ public class RegisterUserUseCase {
     }
 
     /**
-     * Sends verification in a separate transaction.
-     * If email/phone delivery fails, the registration still succeeds.
+     * Sends verification. Email delivery is non-blocking — failures are
+     * caught and logged, so registration always succeeds.
      */
     private void sendVerificationAsync(User user, VerificationChannel channel) {
-        transactionTemplate.executeWithoutResult(newStatus -> {
-            try {
-                sendVerificationUseCase.send(user, channel);
-            } catch (Exception e) {
-                log.warn("Failed to send verification for user={}: {}", user.getId(), e.getMessage());
-            }
-        });
+        try {
+            sendVerificationUseCase.send(user, channel);
+        } catch (Exception e) {
+            log.warn("Failed to send verification for user={}: {}", user.getId(), e.getMessage());
+        }
     }
 
     private void publishUserRegistered(User user, RegisterRequest req) {

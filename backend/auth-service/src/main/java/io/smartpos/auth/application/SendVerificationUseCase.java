@@ -42,7 +42,7 @@ public class SendVerificationUseCase {
     private static final Duration RESEND_COOLDOWN = Duration.ofSeconds(60);
     private static final int MAX_TOKENS = 5;
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Transactional(propagation = Propagation.REQUIRED)
     public String send(User user, VerificationChannel channel) {
         long recentCount = tokenRepo.countByUserIdAndUsedAtIsNullAndCreatedAtAfter(
                 user.getId(), Instant.now().minus(RESEND_COOLDOWN));
