@@ -135,18 +135,23 @@ export default function SalesReportPage() {
     { id: 'spent', label: 'Total Spent', align: 'right', render: (r) => formatMoney(r.totalSpent) },
   ];
 
+  const cleanTop = useMemo(() => topProducts.slice(0, 10).map(p => ({
+    ...p,
+    productName: (!p.productName || looksLikeUuid(p.productName))
+      ? (productNames[p.productId] ?? p.productName ?? p.productId.slice(0, 8))
+      : p.productName,
+  })), [topProducts, productNames]);
+
+  const cleanCust = useMemo(() => topCustomers.slice(0, 10).map(c => ({
+    ...c,
+    customerName: customerNames[c.customerId] ?? c.customerId.slice(0, 8),
+  })), [topCustomers, customerNames]);
+
   const factsJson = JSON.stringify({
+    _instruction: "Respond in the same language as the data labels (English or Swahili only). Do not mix languages.",
     sales,
-    topProducts: topProducts.slice(0, 10).map(p => ({
-      ...p,
-      productName: (!p.productName || looksLikeUuid(p.productName))
-        ? (productNames[p.productId] ?? p.productName ?? p.productId.slice(0, 8))
-        : p.productName,
-    })),
-    topCustomers: topCustomers.slice(0, 10).map(c => ({
-      ...c,
-      customerName: customerNames[c.customerId] ?? c.customerId.slice(0, 8),
-    })),
+    topProducts: cleanTop,
+    topCustomers: cleanCust,
   });
 
   return (
