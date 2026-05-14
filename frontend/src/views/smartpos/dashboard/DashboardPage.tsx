@@ -120,13 +120,9 @@ export default function DashboardPage() {
     setSearchParams(next, { replace: true });
   };
 
-  const isSuperAdmin = user && !user.tenantId;
-
   const fetchDashboardData = useCallback(async () => {
     if (!user?.tenantId) {
-      if (isSuperAdmin) {
-        setLoading(false);
-      }
+      setLoading(false);
       return;
     }
 
@@ -382,7 +378,7 @@ export default function DashboardPage() {
         <LinearProgress sx={{ mb: 2, borderRadius: '4px', height: 3 }} />
       )}
 
-      {isSuperAdmin ? (
+      {user && !user.tenantId ? (
         <Box sx={{ textAlign: 'center', py: 10 }}>
           <Typography variant="h5" sx={{ fontWeight: 700, mb: 1, color: 'text.primary' }}>
             Admin Dashboard
