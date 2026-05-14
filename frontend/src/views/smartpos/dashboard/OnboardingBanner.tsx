@@ -35,6 +35,7 @@ export default function OnboardingBanner() {
 
   const currentStepIndex = SETUP_STEPS.findIndex((s) => !state[s.key]);
   const nextStep = Object.entries(STEP_INFO).find(([key]) => !state[key as keyof typeof state]);
+  if (!nextStep) return null;
 
   return (
     <>
