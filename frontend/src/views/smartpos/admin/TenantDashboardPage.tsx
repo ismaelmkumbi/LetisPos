@@ -22,7 +22,7 @@ import {
   IconUsers,
 } from '@tabler/icons-react';
 
-import { fetchTenants, type Tenant } from 'src/api/smartpos/auth';
+import { listAllTenants, type Tenant } from 'src/api/smartpos/auth';
 import { listAllPlans, type PlanDefinition } from 'src/api/smartpos/billing';
 import { PageHeader } from 'src/components/smartpos/PageHeader';
 import DataTable, { type Column } from 'src/components/smartpos/DataTable';
@@ -210,7 +210,7 @@ export default function TenantDashboardPage() {
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    Promise.all([fetchTenants(), listAllPlans()])
+    Promise.all([listAllTenants(), listAllPlans()])
       .then(([t, p]) => {
         if (!cancelled) {
           setTenants(t);

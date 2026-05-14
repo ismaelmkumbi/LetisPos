@@ -15,7 +15,7 @@ import {
 } from '@mui/material';
 import { IconCheck, IconFileInvoice } from '@tabler/icons-react';
 
-import { fetchTenants, type Tenant } from 'src/api/smartpos/auth';
+import { listAllTenants, type Tenant } from 'src/api/smartpos/auth';
 import { listInvoices, type Invoice } from 'src/api/smartpos/billing';
 import { PageHeader } from 'src/components/smartpos/PageHeader';
 import DataTable, { type Column, StatusBadge } from 'src/components/smartpos/DataTable';
@@ -70,10 +70,10 @@ export default function InvoiceListPage() {
     setLoading(true);
     // Fetch invoices for each tenant (admin view)
     Promise.all([
-      fetchTenants(),
+      listAllTenants(),
       // We'll gather invoices from all tenants
       (async () => {
-        const allTenants = await fetchTenants();
+        const allTenants = await listAllTenants();
         setTenants(allTenants);
         const results = await Promise.allSettled(
           allTenants.map((t) => listInvoices(t.id).catch(() => []))
