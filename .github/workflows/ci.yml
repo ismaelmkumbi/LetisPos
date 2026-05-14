@@ -283,6 +283,9 @@ jobs:
       - name: Sync frontend → server
         if: needs.frontend.result == 'success'
         run: |
+          ssh -i ~/.ssh/id_deploy -o StrictHostKeyChecking=no \
+            "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
+            "sudo chown -R ${{ secrets.VPS_USER }}:${{ secrets.VPS_USER }} ${{ secrets.VPS_PROJECT_PATH || '/var/www/LetisPos' }}/frontend/dist/ 2>/dev/null || true"
           rsync -az --delete \
             -e "ssh -i ~/.ssh/id_deploy -o StrictHostKeyChecking=no" \
             frontend/dist/ \
