@@ -458,29 +458,54 @@ export default function LetisAuthLayout({
             minHeight: { xs: 'auto', lg: '100dvh' },
             display: { xs: 'none', lg: 'flex' },
             alignItems: 'center',
-            background: wb.darkBg,
-            '&::after': {
-              content: '""',
-              position: 'absolute',
-              inset: 0,
-              backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise' x='0' y='0'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.72' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E")`,
-              opacity: 0.4,
-              pointerEvents: 'none',
-            },
+            background:
+              mode === 'register'
+                ? wb.darkBg
+                : 'radial-gradient(circle at 6% 8%, rgba(22,163,74,0.16), transparent 30%), linear-gradient(150deg, #FFFFFF 0%, #F8FAFC 42%, #ECFDF3 100%)',
+            '&::before': mode === 'register'
+              ? undefined
+              : {
+                  content: '""',
+                  position: 'absolute',
+                  width: { xs: 260, sm: 360, xl: 430 },
+                  height: { xs: 260, sm: 360, xl: 430 },
+                  borderRadius: '50%',
+                  right: { xs: -150, sm: -170, xl: -210 },
+                  top: { xs: 70, sm: -140, xl: -170 },
+                  bgcolor: 'rgba(22,163,74,0.075)',
+                },
+            '&::after': mode === 'register'
+              ? {
+                  content: '""',
+                  position: 'absolute',
+                  inset: 0,
+                  backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise' x='0' y='0'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.72' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E")`,
+                  opacity: 0.4,
+                  pointerEvents: 'none',
+                }
+              : {
+                  content: '""',
+                  position: 'absolute',
+                  inset: 0,
+                  background: 'linear-gradient(90deg, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0) 62%)',
+                  pointerEvents: 'none',
+                },
           }}
         >
-          {/* Gold vertical accent line */}
-          <Box
-            sx={{
-              position: 'absolute',
-              left: 0,
-              top: '12%',
-              bottom: '12%',
-              width: 3,
-              background: `linear-gradient(180deg, transparent 0%, ${wb.gold} 20%, ${wb.gold} 80%, transparent 100%)`,
-              borderRadius: '0 2px 2px 0',
-            }}
-          />
+          {/* Gold vertical accent line — register mode only */}
+          {mode === 'register' && (
+            <Box
+              sx={{
+                position: 'absolute',
+                left: 0,
+                top: '12%',
+                bottom: '12%',
+                width: 3,
+                background: `linear-gradient(180deg, transparent 0%, ${wb.gold} 20%, ${wb.gold} 80%, transparent 100%)`,
+                borderRadius: '0 2px 2px 0',
+              }}
+            />
+          )}
           <Box sx={{ position: 'relative', zIndex: 1, width: '100%', maxWidth: 610 }}>
             {/* Brand mark — gold/clay gradient square */}
             <Box
@@ -504,7 +529,7 @@ export default function LetisAuthLayout({
                 },
               }}
             >
-              <BrandLogo size="sm" color="onDark" />
+              <LetisMark size={22} color="onDark" />
             </Box>
 
             {/* Headline */}
