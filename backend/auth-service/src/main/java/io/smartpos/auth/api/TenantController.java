@@ -1,6 +1,8 @@
 package io.smartpos.auth.api;
 
 import io.smartpos.auth.api.dto.CloseRequest;
+import io.smartpos.auth.api.dto.DeleteRequest;
+import io.smartpos.auth.api.dto.DisableRequest;
 import io.smartpos.auth.api.dto.SuspendRequest;
 import io.smartpos.auth.application.TenantService;
 import io.smartpos.auth.domain.model.Tenant;
@@ -108,6 +110,23 @@ public class TenantController {
             @PathVariable UUID id,
             @RequestBody @Valid CloseRequest request) {
         return ResponseEntity.ok(tenantService.close(id, request.reason()));
+    }
+
+    @PostMapping("/{id}/disable")
+    @PreAuthorize("hasAuthority('tenant.suspend')")
+    public ResponseEntity<Tenant> disable(
+            @PathVariable UUID id,
+            @RequestBody @Valid DisableRequest request) {
+        return ResponseEntity.ok(tenantService.disable(id, request.reason()));
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('admin')")
+    public ResponseEntity<Void> deleteTenant(
+            @PathVariable UUID id,
+            @RequestBody @Valid DeleteRequest request) {
+        tenantService.softDelete(id, request.reason());
+        return ResponseEntity.noContent().build();
     }
 
     private User currentUser(String authHeader) {

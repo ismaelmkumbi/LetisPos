@@ -141,6 +141,30 @@ public class TenantService {
     }
 
     @Transactional
+    public Tenant disable(UUID id, String reason) {
+        Tenant t = getById(id);
+        t.disable();
+        t.setStatusReason(reason);
+        log.warn("Tenant disabled: id={}, reason={}", id, reason);
+        auditClient.send("auth-service", null, "admin", "ADMIN",
+                "tenant.disabled", "tenant", id.toString(), t.getName(),
+                t.getId(), null);
+        return tenantRepository.save(t);
+    }
+
+    @Transactional
+    public Tenant softDelete(UUID id, String reason) {
+        Tenant t = getById(id);
+        t.softDelete();
+        t.setStatusReason(reason);
+        log.warn("Tenant soft-deleted: id={}, reason={}", id, reason);
+        auditClient.send("auth-service", null, "admin", "ADMIN",
+                "tenant.deleted", "tenant", id.toString(), t.getName(),
+                t.getId(), null);
+        return tenantRepository.save(t);
+    }
+
+    @Transactional
     public Tenant handleTrialExpiry(UUID id) {
         Tenant tenant = getById(id);
         if (tenant.getStatus() == TenantStatus.TRIAL && tenant.isTrialExpired()) {

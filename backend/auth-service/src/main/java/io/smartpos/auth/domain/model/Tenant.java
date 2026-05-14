@@ -99,6 +99,23 @@ public class Tenant {
         return status == TenantStatus.SUSPENDED || status == TenantStatus.CLOSED;
     }
 
+    public boolean isLoginBlocked() {
+        return status == TenantStatus.SUSPENDED
+            || status == TenantStatus.CLOSED
+            || status == TenantStatus.DISABLED
+            || status == TenantStatus.DELETED;
+    }
+
+    public void disable() {
+        this.status = TenantStatus.DISABLED;
+        this.statusChangedAt = Instant.now();
+    }
+
+    public void softDelete() {
+        this.status = TenantStatus.DELETED;
+        this.statusChangedAt = Instant.now();
+    }
+
     public void deriveLimits() {
         switch (billingPlan) {
             case STARTER -> { maxUsers = 2; maxStores = 1; }

@@ -6,5 +6,7 @@ public enum TenantStatus {
     ACTIVE,        // Paid and current
     PAST_DUE,      // Payment failed — 7-day grace period, services still work
     SUSPENDED,     // Account locked — all access blocked, data preserved
-    CLOSED         // Permanently closed — data retained 90 days then purged
+    CLOSED,        // Permanently closed — data retained 90 days then purged
+    DISABLED,      // admin-initiated deactivation (not payment-related), reversible
+    DELETED        // soft-deleted, data retained 30 days before hard deletion
 }
