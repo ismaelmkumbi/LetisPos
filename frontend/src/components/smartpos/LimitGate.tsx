@@ -11,7 +11,8 @@ import { useState } from 'react';
 import { Box, Button, Stack, Typography } from '@mui/material';
 import { IconX } from '@tabler/icons-react';
 import { Link } from 'react-router';
-import { wb } from 'src/theme/smartpos/warmBrutalism';
+import { brand } from 'src/theme/smartpos/brand';
+import { authTheme as at } from 'src/theme/smartpos/authTheme';
 
 interface LimitGateProps {
   current: number;
@@ -45,9 +46,9 @@ export default function LimitGate({ current, max, resource, warnAt = 1.0 }: Limi
     <Box
       sx={{
         p: 2,
-        borderRadius: wb.radius.lg,
-        border: `1px solid ${isReached ? 'rgba(194,132,58,0.2)' : '#bfdbfe'}`,
-        bgcolor: isReached ? wb.goldLight : '#eff6ff',
+        borderRadius: at.radius.lg,
+        border: `1px solid ${isReached ? brand.warning.main : brand.info.main}`,
+        bgcolor: isReached ? brand.warning.light : brand.info.light,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -58,12 +59,12 @@ export default function LimitGate({ current, max, resource, warnAt = 1.0 }: Limi
       <Stack direction="row" alignItems="center" spacing={1.5} sx={{ flex: 1, minWidth: 200 }}>
         <Typography sx={{ fontSize: '1.3rem' }}>{isReached ? '⚠' : 'ℹ'}</Typography>
         <Box>
-          <Typography sx={{ fontWeight: 600, fontSize: '0.82rem', color: isReached ? '#92400e' : '#1e40af' }}>
+          <Typography sx={{ fontWeight: 600, fontSize: '0.82rem', color: isReached ? brand.warning.dark : brand.info.dark }}>
             {isReached
               ? `${label.charAt(0).toUpperCase() + label.slice(1)} limit reached — ${current} of ${max}`
               : `Adding more ${label}?`}
           </Typography>
-          <Typography sx={{ fontSize: '0.72rem', color: isReached ? '#a16207' : '#3b82f6', lineHeight: 1.4 }}>
+          <Typography sx={{ fontSize: '0.72rem', color: isReached ? brand.warning.dark : brand.info.dark, lineHeight: 1.4, opacity: 0.8 }}>
             {isReached
               ? `Upgrade to a higher plan to add more ${label}.`
               : `Your current plan supports ${max} ${label}. Upgrade to add more.`}
@@ -77,15 +78,15 @@ export default function LimitGate({ current, max, resource, warnAt = 1.0 }: Limi
           to="/smartpos/billing"
           size="small"
           sx={{
-            bgcolor: isReached ? wb.gold : '#2563eb',
+            bgcolor: isReached ? brand.warning.main : brand.primary[600],
             color: '#fff',
             textTransform: 'none',
             fontWeight: 600,
             fontSize: '0.75rem',
-            borderRadius: wb.radius.md,
+            borderRadius: at.radius.md,
             px: 2,
             whiteSpace: 'nowrap',
-            '&:hover': { bgcolor: isReached ? '#d4953f' : '#1d4ed8' },
+            '&:hover': { bgcolor: isReached ? brand.warning.dark : brand.primary[700] },
           }}
         >
           {isReached ? 'Upgrade →' : 'See plans →'}
@@ -96,7 +97,7 @@ export default function LimitGate({ current, max, resource, warnAt = 1.0 }: Limi
           sx={{
             minWidth: 0,
             p: 0.5,
-            color: isReached ? '#a16207' : '#64748b',
+            color: isReached ? brand.warning.dark : brand.neutral[500],
             '&:hover': { bgcolor: 'transparent', opacity: 0.7 },
           }}
         >

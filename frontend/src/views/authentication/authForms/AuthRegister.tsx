@@ -2,7 +2,7 @@
  * Letis POS — Quick signup form.
  *
  * Single-page signup. Defaults to STARTER trial.
- * Warm Brutalism aesthetic. ~30 second completion.
+ * Botanical Precision aesthetic — brand green, clean, confident.
  */
 import React, { useState } from 'react';
 import {
@@ -15,6 +15,7 @@ import {
   Stack,
   TextField,
   Typography,
+  keyframes,
 } from '@mui/material';
 import {
   IconBuilding,
@@ -29,7 +30,7 @@ import { Link, useNavigate } from 'react-router';
 import { register } from 'src/api/smartpos/auth';
 import { seedDefaultUnits } from 'src/api/smartpos/products';
 import { seedDefaultCOA } from 'src/api/smartpos/accounting';
-import { wb } from 'src/theme/smartpos/warmBrutalism';
+import { brand } from 'src/theme/smartpos/brand';
 
 interface Props {
   title?: React.ReactNode;
@@ -37,16 +38,25 @@ interface Props {
   subtext?: React.ReactNode;
 }
 
+/* ── Animations ── */
+
+const pulse = keyframes`
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.5; transform: scale(0.85); }
+`;
+
+/* ── Shared field styles ── */
+
 const fieldSx = {
   '& .MuiOutlinedInput-root': {
-    borderRadius: wb.radius.md,
-    bgcolor: wb.paper,
+    borderRadius: '10px',
+    bgcolor: '#FFFFFF',
     fontSize: '0.875rem',
     height: { xs: 44, sm: 46 },
-    '& fieldset': { borderColor: wb.border },
-    '&:hover fieldset': { borderColor: wb.borderStrong },
+    '& fieldset': { borderColor: brand.neutral[200] },
+    '&:hover fieldset': { borderColor: brand.neutral[300] },
     '&.Mui-focused fieldset': {
-      borderColor: wb.greenMid,
+      borderColor: brand.primary[500],
       borderWidth: 1.5,
     },
   },
@@ -59,9 +69,8 @@ const labelSx = {
   fontWeight: 600,
   textTransform: 'uppercase',
   letterSpacing: '0.05em',
-  color: wb.inkLight,
+  color: brand.neutral[600],
   mb: 0.75,
-  opacity: 0.7,
 };
 
 function slugify(value: string): string {
@@ -73,6 +82,30 @@ function slugify(value: string): string {
     .replace(/-{2,}/g, '-')
     .replace(/^-+|-+$/g, '');
 }
+
+/* ── Password strength ── */
+
+function getStrength(pw: string): 0 | 1 | 2 | 3 | 4 {
+  if (!pw) return 0;
+  let s = 0;
+  if (pw.length >= 8) s++;
+  if (/[A-Z]/.test(pw)) s++;
+  if (/[0-9]/.test(pw)) s++;
+  if (/[^A-Za-z0-9]/.test(pw)) s++;
+  return s as 0 | 1 | 2 | 3 | 4;
+}
+
+const STRENGTH_COLORS = [
+  brand.neutral[200],       // 0 — empty
+  brand.error.main,          // 1 — weak
+  brand.warning.main,        // 2 — fair
+  brand.primary[400],        // 3 — good
+  brand.primary[600],        // 4 — strong
+];
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Component
+   ═══════════════════════════════════════════════════════════════════════════ */
 
 const AuthRegister: React.FC<Props> = ({ title, subtitle, subtext }) => {
   const navigate = useNavigate();
@@ -94,18 +127,7 @@ const AuthRegister: React.FC<Props> = ({ title, subtitle, subtext }) => {
     }
   };
 
-  const passwordStrength = ((): 0 | 1 | 2 | 3 | 4 => {
-    if (!password) return 0;
-    let score = 0;
-    if (password.length >= 8) score++;
-    if (/[A-Z]/.test(password)) score++;
-    if (/[0-9]/.test(password)) score++;
-    if (/[^A-Za-z0-9]/.test(password)) score++;
-    return score as 0 | 1 | 2 | 3 | 4;
-  })();
-
-  const strengthColors = [wb.border, wb.clay, wb.clay, wb.gold, wb.greenMid];
-
+  const strength = getStrength(password);
   const isFormReady =
     tenantName.trim().length > 1 &&
     email.trim().length > 0 && email.includes('@') &&
@@ -158,35 +180,30 @@ const AuthRegister: React.FC<Props> = ({ title, subtitle, subtext }) => {
           display: 'inline-flex',
           alignItems: 'center',
           gap: 0.75,
-          bgcolor: wb.greenLight,
-          border: `1px solid rgba(46,125,58,0.15)`,
-          color: wb.green,
+          bgcolor: brand.primary[50],
+          border: `1px solid ${brand.primary[100]}`,
+          color: brand.primary[700],
           px: 1.5,
           py: 0.75,
           borderRadius: '99px',
           fontSize: '0.7rem',
-          fontWeight: 600,
+          fontWeight: 700,
           mb: 3,
         }}
       >
         <Box
           sx={{
-            width: 7,
-            height: 7,
+            width: 7, height: 7,
             borderRadius: '50%',
-            bgcolor: wb.greenMid,
-            animation: 'pulse 2s ease-in-out infinite',
-            '@keyframes pulse': {
-              '0%, 100%': { opacity: 1, transform: 'scale(1)' },
-              '50%': { opacity: 0.5, transform: 'scale(0.85)' },
-            },
+            bgcolor: brand.primary[500],
+            animation: `${pulse} 2s ease-in-out infinite`,
           }}
         />
         30-day free trial · No credit card
       </Box>
 
       {error && (
-        <Alert severity="error" sx={{ mb: 2.5, borderRadius: wb.radius.md }}>
+        <Alert severity="error" sx={{ mb: 2.5, borderRadius: '10px' }}>
           {error}
         </Alert>
       )}
@@ -201,15 +218,14 @@ const AuthRegister: React.FC<Props> = ({ title, subtitle, subtext }) => {
             id="tenantName"
             name="tenantName"
             placeholder="e.g. Mwanza General Stores"
-            fullWidth
-            required
+            fullWidth required
             value={tenantName}
             autoComplete="organization"
             onChange={(e) => handleTenantNameChange(e.target.value)}
             sx={fieldSx}
             InputProps={{
               startAdornment: (
-                <InputAdornment position="start" sx={{ color: wb.borderStrong }}>
+                <InputAdornment position="start" sx={{ color: brand.neutral[400] }}>
                   <IconBuilding size={17} stroke={1.6} />
                 </InputAdornment>
               ),
@@ -231,9 +247,9 @@ const AuthRegister: React.FC<Props> = ({ title, subtitle, subtext }) => {
             onChange={(e) => setTenantSlug(slugify(e.target.value))}
             sx={fieldSx}
           />
-          <Typography sx={{ fontSize: '0.7rem', color: wb.borderStrong, mt: 0.5, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+          <Typography sx={{ fontSize: '0.7rem', color: brand.neutral[400], mt: 0.5, display: 'flex', alignItems: 'center', gap: 0.5 }}>
             Your workspace:{' '}
-            <Box component="span" sx={{ fontWeight: 600, color: wb.inkLight, opacity: 0.5 }}>
+            <Box component="span" sx={{ fontWeight: 600, color: brand.neutral[500] }}>
               {tenantSlug || 'workspace'}.letispos.app
             </Box>
           </Typography>
@@ -246,8 +262,7 @@ const AuthRegister: React.FC<Props> = ({ title, subtitle, subtext }) => {
               First name
             </Typography>
             <TextField
-              id="firstName"
-              name="firstName"
+              id="firstName" name="firstName"
               placeholder="Juma"
               fullWidth
               value={firstName}
@@ -256,7 +271,7 @@ const AuthRegister: React.FC<Props> = ({ title, subtitle, subtext }) => {
               sx={fieldSx}
               InputProps={{
                 startAdornment: (
-                  <InputAdornment position="start" sx={{ color: wb.borderStrong }}>
+                  <InputAdornment position="start" sx={{ color: brand.neutral[400] }}>
                     <IconUser size={17} stroke={1.6} />
                   </InputAdornment>
                 ),
@@ -268,8 +283,7 @@ const AuthRegister: React.FC<Props> = ({ title, subtitle, subtext }) => {
               Last name
             </Typography>
             <TextField
-              id="lastName"
-              name="lastName"
+              id="lastName" name="lastName"
               placeholder="Mwangi"
               fullWidth
               value={lastName}
@@ -286,19 +300,17 @@ const AuthRegister: React.FC<Props> = ({ title, subtitle, subtext }) => {
             Email address
           </Typography>
           <TextField
-            id="email"
-            name="email"
+            id="email" name="email"
             type="email"
             autoComplete="email"
             placeholder="jumam@example.com"
-            fullWidth
-            required
+            fullWidth required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             sx={fieldSx}
             InputProps={{
               startAdornment: (
-                <InputAdornment position="start" sx={{ color: wb.borderStrong }}>
+                <InputAdornment position="start" sx={{ color: brand.neutral[400] }}>
                   <IconMail size={17} stroke={1.6} />
                 </InputAdornment>
               ),
@@ -312,19 +324,17 @@ const AuthRegister: React.FC<Props> = ({ title, subtitle, subtext }) => {
             Password
           </Typography>
           <TextField
-            id="password"
-            name="password"
+            id="password" name="password"
             type={showPassword ? 'text' : 'password'}
             autoComplete="new-password"
             placeholder="At least 8 characters"
-            fullWidth
-            required
+            fullWidth required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             sx={fieldSx}
             InputProps={{
               startAdornment: (
-                <InputAdornment position="start" sx={{ color: wb.borderStrong }}>
+                <InputAdornment position="start" sx={{ color: brand.neutral[400] }}>
                   <IconLock size={17} stroke={1.6} />
                 </InputAdornment>
               ),
@@ -335,7 +345,7 @@ const AuthRegister: React.FC<Props> = ({ title, subtitle, subtext }) => {
                     onClick={() => setShowPassword((v) => !v)}
                     edge="end"
                     aria-label={showPassword ? 'Hide password' : 'Show password'}
-                    sx={{ color: wb.borderStrong }}
+                    sx={{ color: brand.neutral[400] }}
                   >
                     {showPassword ? <IconEye size={17} /> : <IconEyeOff size={17} />}
                   </IconButton>
@@ -343,25 +353,43 @@ const AuthRegister: React.FC<Props> = ({ title, subtitle, subtext }) => {
               ),
             }}
           />
+
+          {/* Strength bar */}
           {password.length > 0 && (
-            <Stack direction="row" spacing={0.5} sx={{ mt: 0.75 }}>
-              {[1, 2, 3, 4].map((seg) => (
-                <Box
-                  key={seg}
-                  sx={{
-                    height: 3,
-                    flex: 1,
-                    borderRadius: '3px',
-                    bgcolor: passwordStrength >= seg ? strengthColors[passwordStrength] : wb.border,
-                    transition: 'background 0.2s ease',
-                  }}
-                />
-              ))}
-            </Stack>
+            <>
+              <Stack direction="row" spacing={0.5} sx={{ mt: 0.75 }}>
+                {[1, 2, 3, 4].map((seg) => (
+                  <Box
+                    key={seg}
+                    sx={{
+                      height: 3,
+                      flex: 1,
+                      borderRadius: '3px',
+                      bgcolor: strength >= seg ? STRENGTH_COLORS[strength] : brand.neutral[200],
+                      transition: 'background 0.25s ease',
+                    }}
+                  />
+                ))}
+              </Stack>
+              <Typography
+                sx={{
+                  fontSize: '0.68rem',
+                  mt: 0.5,
+                  color: strength < 2 ? brand.error.main : strength < 3 ? brand.warning.dark : brand.primary[600],
+                  fontWeight: 500,
+                }}
+              >
+                {strength === 0 && ' '}
+                {strength === 1 && 'Weak — add uppercase, numbers, or symbols'}
+                {strength === 2 && 'Fair — keep going'}
+                {strength === 3 && 'Good — almost there'}
+                {strength === 4 && 'Strong password'}
+              </Typography>
+            </>
           )}
           {password.length > 0 && password.length < 8 && (
-            <Typography sx={{ fontSize: '0.7rem', color: wb.clay, mt: 0.5 }}>
-              Password must be at least 8 characters
+            <Typography sx={{ fontSize: '0.68rem', color: brand.error.main, mt: 0.5, fontWeight: 500 }}>
+              Must be at least 8 characters
             </Typography>
           )}
         </Box>
@@ -373,36 +401,28 @@ const AuthRegister: React.FC<Props> = ({ title, subtitle, subtext }) => {
         variant="contained"
         fullWidth
         disabled={submitting || !isFormReady}
-        startIcon={
-          submitting ? (
-            <CircularProgress size={16} color="inherit" />
-          ) : undefined
-        }
+        startIcon={submitting ? <CircularProgress size={16} color="inherit" /> : undefined}
         sx={{
           mt: 3.5,
           py: 1.5,
           fontSize: '0.9rem',
-          fontWeight: 600,
+          fontWeight: 700,
           textTransform: 'none',
           letterSpacing: '-0.01em',
-          borderRadius: wb.radius.md,
-          bgcolor: wb.ink,
-          position: 'relative',
-          overflow: 'hidden',
-          '&::after': {
-            content: '""',
-            position: 'absolute',
-            inset: 0,
-            background: 'linear-gradient(135deg, transparent 0%, rgba(255,255,255,0.04) 50%, transparent 100%)',
-          },
+          borderRadius: '10px',
+          background: `linear-gradient(135deg, ${brand.primary[500]} 0%, ${brand.primary[700]} 100%)`,
+          boxShadow: `0 10px 22px -12px ${brand.primary[600]}`,
+          transition: 'all 0.2s ease',
           '&:hover': {
-            bgcolor: '#2a2a24',
+            background: `linear-gradient(135deg, ${brand.primary[600]} 0%, ${brand.primary[800]} 100%)`,
+            boxShadow: `0 12px 26px -10px ${brand.primary[700]}`,
             transform: 'translateY(-1px)',
-            boxShadow: '0 4px 20px rgba(26,26,22,0.15)',
           },
+          '&:active': { transform: 'translateY(0)' },
           '&.Mui-disabled': {
-            bgcolor: wb.border,
-            color: wb.borderStrong,
+            background: brand.neutral[200],
+            boxShadow: 'none',
+            color: brand.neutral[400],
           },
         }}
       >
@@ -410,13 +430,8 @@ const AuthRegister: React.FC<Props> = ({ title, subtitle, subtext }) => {
       </Button>
 
       {/* Footer */}
-      <Stack
-        direction="row"
-        spacing={0.5}
-        justifyContent="center"
-        sx={{ mt: 2.5 }}
-      >
-        <Typography sx={{ fontSize: '0.8rem', color: wb.inkLight, opacity: 0.6 }}>
+      <Stack direction="row" spacing={0.5} justifyContent="center" sx={{ mt: 2.5 }}>
+        <Typography sx={{ fontSize: '0.8rem', color: brand.neutral[500] }}>
           Already have an account?
         </Typography>
         <Typography
@@ -424,10 +439,10 @@ const AuthRegister: React.FC<Props> = ({ title, subtitle, subtext }) => {
           to="/auth/login"
           sx={{
             fontSize: '0.8rem',
-            fontWeight: 600,
-            color: wb.greenMid,
+            fontWeight: 700,
+            color: brand.primary[600],
             textDecoration: 'none',
-            '&:hover': { color: wb.green },
+            '&:hover': { color: brand.primary[700], textDecoration: 'underline' },
           }}
         >
           Sign in

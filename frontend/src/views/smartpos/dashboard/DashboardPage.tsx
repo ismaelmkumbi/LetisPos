@@ -19,7 +19,8 @@ import { useOnboarding } from 'src/context/smartpos/OnboardingContext';
 import { CustomizerContext } from 'src/context/CustomizerContext';
 import type { UUID } from 'src/api/smartpos/types';
 import { usePolling } from 'src/hooks/usePolling';
-import { wb } from 'src/theme/smartpos/warmBrutalism';
+import { brand } from 'src/theme/smartpos/brand';
+import { authTheme as at } from 'src/theme/smartpos/authTheme';
 import OnboardingBanner from './OnboardingBanner';
 import CelebrationModal from 'src/views/smartpos/onboarding/CelebrationModal';
 
@@ -323,7 +324,7 @@ export default function DashboardPage() {
           return (
             <Alert
               severity="info"
-              sx={{ mb: 3, borderRadius: wb.radius.md }}
+              sx={{ mb: 3, borderRadius: at.radius.md }}
               action={
                 <Button color="inherit" size="small" component={Link} to="/smartpos/billing">
                   Subscribe Now
@@ -343,7 +344,7 @@ export default function DashboardPage() {
         return (
           <Alert
             severity="warning"
-            sx={{ mb: 3, borderRadius: wb.radius.md }}
+            sx={{ mb: 3, borderRadius: at.radius.md }}
             action={
               <Button color="inherit" size="small" component={Link} to="/smartpos/billing">
                 Subscribe Now
@@ -377,26 +378,26 @@ export default function DashboardPage() {
                   justifyContent: 'center',
                   textAlign: 'center',
                   minHeight: 180,
-                  bgcolor: wb.paper,
-                  border: `1px dashed ${wb.border}`,
-                  borderRadius: wb.radius.lg,
+                  bgcolor: '#FFFFFF',
+                  border: `1px dashed ${brand.neutral[200]}`,
+                  borderRadius: at.radius.lg,
                   p: 3,
                 }}
               >
                 <Typography sx={{ fontSize: '2rem', mb: 1, opacity: 0.5 }}>{card.icon}</Typography>
                 <Typography
                   sx={{
-                    fontFamily: wb.font.display,
+                    fontFamily: at.fontDisplay,
                     fontSize: '1rem',
                     fontWeight: 500,
-                    color: wb.ink,
+                    color: brand.neutral[900],
                     opacity: 0.5,
                     mb: 0.5,
                   }}
                 >
                   {card.title}
                 </Typography>
-                <Typography sx={{ fontSize: '0.72rem', color: wb.inkLight, opacity: 0.35 }}>
+                <Typography sx={{ fontSize: '0.72rem', color: brand.neutral[500], opacity: 0.6 }}>
                   {card.desc}
                 </Typography>
               </Box>

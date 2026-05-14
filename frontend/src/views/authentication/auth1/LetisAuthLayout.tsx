@@ -3,6 +3,7 @@ import { Box, Stack, Typography, keyframes } from '@mui/material';
 import {
   IconBrain,
   IconChartBar,
+  IconCloudUpload,
   IconLock,
   IconPackages,
   IconShieldCheck,
@@ -12,7 +13,7 @@ import {
 import PageContainer from 'src/components/container/PageContainer';
 import BrandLogo, { LetisMark } from 'src/components/smartpos/BrandLogo';
 import { brand } from 'src/theme/smartpos/brand';
-import { wb } from 'src/theme/smartpos/warmBrutalism';
+import { authTheme as at } from 'src/theme/smartpos/authTheme';
 
 type AuthMode = 'login' | 'register' | 'forgot';
 
@@ -28,53 +29,56 @@ type LetisAuthLayoutProps = {
   formDescription: string;
 };
 
+/* ── Animations ── */
+
 const fadeInUp = keyframes`
   from { opacity: 0; transform: translateY(18px); }
-  to { opacity: 1; transform: translateY(0); }
+  to   { opacity: 1; transform: translateY(0); }
 `;
 
 const softFloat = keyframes`
   0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-7px); }
+  50%      { transform: translateY(-7px); }
 `;
 
-const anim = (delay = 0) => `${fadeInUp} 0.55s cubic-bezier(0.16, 1, 0.3, 1) ${delay}ms both`;
+const anim = (delay = 0) =>
+  `${fadeInUp} 0.55s cubic-bezier(0.16, 1, 0.3, 1) ${delay}ms both`;
+
+/* ── Mode metadata (login / forgot) ── */
 
 const modeMeta: Record<AuthMode, { label: string; figureTitle: string; figureMetric: string }> = {
-  login: {
-    label: 'Secure access',
-    figureTitle: 'Today sales',
-    figureMetric: 'TSh 3.6M',
-  },
-  register: {
-    label: 'Workspace setup',
-    figureTitle: 'New tenant',
-    figureMetric: '3 steps',
-  },
-  forgot: {
-    label: 'Account recovery',
-    figureTitle: 'Reset link',
-    figureMetric: 'Ready',
-  },
+  login:    { label: 'Secure access', figureTitle: 'Today sales', figureMetric: 'TSh 3.6M' },
+  register: { label: 'Workspace setup', figureTitle: 'New tenant', figureMetric: '3 steps' },
+  forgot:   { label: 'Account recovery', figureTitle: 'Reset link', figureMetric: 'Ready' },
 };
 
 const benefits = [
+  { icon: <IconBrain size={18} stroke={1.8} />,       title: 'AI insights',   text: 'Profit, sales, and stock signals in one command center.' },
+  { icon: <IconPackages size={18} stroke={1.8} />,     title: 'Inventory aware', text: 'Every sale updates stock, cost, and warehouse movement.' },
+  { icon: <IconShieldCheck size={18} stroke={1.8} />,  title: 'Cloud secure',  text: 'Built for teams, branches, and protected business data.' },
+];
+
+/* ── Trust rows (register mode) ── */
+
+const TRUST_ROWS = [
   {
-    icon: <IconBrain size={18} stroke={1.8} />,
-    title: 'AI insights',
-    text: 'Profit, sales, and stock signals in one command center.',
+    icon: <IconCloudUpload size={18} stroke={1.7} />,
+    title: '30-day full access trial',
+    desc: 'Every feature unlocked. No credit card. No commitment.',
   },
   {
-    icon: <IconPackages size={18} stroke={1.8} />,
-    title: 'Inventory aware',
-    text: 'Every sale updates stock, cost, and warehouse movement.',
+    icon: <IconShieldCheck size={18} stroke={1.7} />,
+    title: 'Free local onboarding',
+    desc: 'Our Dar es Salaam team helps you get set up in hours.',
   },
   {
-    icon: <IconShieldCheck size={18} stroke={1.8} />,
-    title: 'Cloud secure',
-    text: 'Built for teams, branches, and protected business data.',
+    icon: <IconBrain size={18} stroke={1.7} />,
+    title: 'Pay with M-Pesa',
+    desc: 'Monthly or annual billing in Tanzanian shillings.',
   },
 ];
+
+/* ── Sub-components ── */
 
 function ProductShowcase({ mode }: { mode: AuthMode }) {
   const meta = modeMeta[mode];
@@ -89,16 +93,18 @@ function ProductShowcase({ mode }: { mode: AuthMode }) {
         animation: `${anim(260)}, ${softFloat} 6s ease-in-out 1s infinite`,
       }}
     >
+      {/* Device frame */}
       <Box
         sx={{
           position: 'absolute',
           inset: { xs: '16px 10px 36px 22px', sm: '10px 20px 48px 36px' },
           borderRadius: { xs: '28px', sm: '34px' },
           background: 'linear-gradient(145deg, #111827 0%, #1F2937 100%)',
-          boxShadow: '0 42px 86px rgba(15,23,42,0.25), 0 18px 34px rgba(15,23,42,0.14)',
+          boxShadow:
+            '0 42px 86px rgba(15,23,42,0.25), 0 18px 34px rgba(15,23,42,0.14)',
         }}
       />
-
+      {/* Screen */}
       <Box
         sx={{
           position: 'absolute',
@@ -110,6 +116,7 @@ function ProductShowcase({ mode }: { mode: AuthMode }) {
           boxShadow: 'inset 0 0 0 1px rgba(15,23,42,0.03)',
         }}
       >
+        {/* Title bar */}
         <Stack
           direction="row"
           alignItems="center"
@@ -128,29 +135,27 @@ function ProductShowcase({ mode }: { mode: AuthMode }) {
             </Typography>
           </Stack>
           <Stack direction="row" spacing={0.5}>
-            {[brand.primary[500], brand.neutral[200], brand.neutral[200]].map((color, index) => (
-              <Box key={index} sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: color }} />
+            {[brand.primary[500], brand.neutral[200], brand.neutral[200]].map((c, i) => (
+              <Box key={i} sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: c }} />
             ))}
           </Stack>
         </Stack>
 
         <Box sx={{ p: { xs: 1.5, sm: 2 } }}>
           <Stack direction="row" spacing={1.2}>
+            {/* Metric card */}
             <Box
               sx={{
                 width: '44%',
                 minHeight: { xs: 86, sm: 116 },
                 borderRadius: '16px',
                 p: 1.4,
-                background:
-                  'linear-gradient(145deg, rgba(22,163,74,0.12) 0%, rgba(255,255,255,0.96) 72%)',
+                background: `linear-gradient(145deg, ${brand.primary[50]} 0%, rgba(255,255,255,0.96) 72%)`,
                 border: `1px solid ${brand.primary[100]}`,
               }}
             >
               <Stack direction="row" justifyContent="space-between" alignItems="center">
-                <Typography
-                  sx={{ fontSize: '0.58rem', fontWeight: 900, color: brand.neutral[500] }}
-                >
+                <Typography sx={{ fontSize: '0.58rem', fontWeight: 900, color: brand.neutral[500] }}>
                   {meta.figureTitle}
                 </Typography>
                 <IconChartBar size={15} color={brand.primary[600]} />
@@ -171,12 +176,12 @@ function ProductShowcase({ mode }: { mode: AuthMode }) {
                   mt: 1.2,
                   height: 22,
                   borderRadius: '999px',
-                  background:
-                    'linear-gradient(90deg, transparent 0%, rgba(22,163,74,0.2) 12%, rgba(22,163,74,0.65) 52%, rgba(22,163,74,0.12) 100%)',
+                  background: `linear-gradient(90deg, transparent 0%, ${brand.primary[200]} 12%, ${brand.primary[400]} 52%, ${brand.primary[100]} 100%)`,
                 }}
               />
             </Box>
 
+            {/* Side stats */}
             <Stack spacing={1} sx={{ flex: 1, minWidth: 0 }}>
               {['Cash in hand', 'Orders', 'Low stock'].map((label, index) => (
                 <Stack
@@ -185,21 +190,16 @@ function ProductShowcase({ mode }: { mode: AuthMode }) {
                   justifyContent="space-between"
                   alignItems="center"
                   sx={{
-                    px: 1.1,
-                    py: 0.85,
+                    px: 1.1, py: 0.85,
                     borderRadius: '12px',
                     bgcolor: index === 1 ? brand.primary[50] : brand.neutral[50],
                     border: `1px solid ${index === 1 ? brand.primary[100] : brand.neutral[100]}`,
                   }}
                 >
-                  <Typography
-                    sx={{ fontSize: '0.62rem', fontWeight: 800, color: brand.neutral[600] }}
-                  >
+                  <Typography sx={{ fontSize: '0.62rem', fontWeight: 800, color: brand.neutral[600] }}>
                     {label}
                   </Typography>
-                  <Typography
-                    sx={{ fontSize: '0.62rem', fontWeight: 950, color: brand.neutral[900] }}
-                  >
+                  <Typography sx={{ fontSize: '0.62rem', fontWeight: 950, color: brand.neutral[900] }}>
                     {index === 0 ? 'TSh 0' : index === 1 ? '37' : '5'}
                   </Typography>
                 </Stack>
@@ -209,6 +209,7 @@ function ProductShowcase({ mode }: { mode: AuthMode }) {
         </Box>
       </Box>
 
+      {/* Receipt / invoice card */}
       <Box
         sx={{
           position: 'absolute',
@@ -220,6 +221,7 @@ function ProductShowcase({ mode }: { mode: AuthMode }) {
           pointerEvents: 'none',
         }}
       >
+        {/* Terminal device */}
         <Box
           sx={{
             position: 'absolute',
@@ -229,15 +231,15 @@ function ProductShowcase({ mode }: { mode: AuthMode }) {
             height: { xs: 74, sm: 90, lg: 86, xl: 100 },
             borderRadius: '18px 18px 14px 14px',
             background: 'linear-gradient(135deg, #111827 0%, #28313C 56%, #05070A 100%)',
-            boxShadow: '0 26px 44px rgba(15,23,42,0.28), inset 12px 0 18px rgba(255,255,255,0.04)',
+            boxShadow:
+              '0 26px 44px rgba(15,23,42,0.28), inset 12px 0 18px rgba(255,255,255,0.04)',
             zIndex: 2,
           }}
         >
           <Box
             sx={{
               position: 'absolute',
-              left: '14%',
-              right: '14%',
+              left: '14%', right: '14%',
               top: { xs: 24, sm: 28, lg: 27, xl: 31 },
               height: { xs: 8, sm: 9 },
               borderRadius: '999px',
@@ -257,6 +259,7 @@ function ProductShowcase({ mode }: { mode: AuthMode }) {
           </Box>
         </Box>
 
+        {/* Receipt */}
         <Box
           sx={{
             position: 'absolute',
@@ -268,13 +271,14 @@ function ProductShowcase({ mode }: { mode: AuthMode }) {
             bgcolor: '#FFFFFF',
             color: brand.neutral[900],
             border: `1px solid ${brand.neutral[100]}`,
-            boxShadow: '0 26px 48px rgba(15,23,42,0.20), inset 6px 0 10px rgba(15,23,42,0.04)',
+            boxShadow:
+              '0 26px 48px rgba(15,23,42,0.20), inset 6px 0 10px rgba(15,23,42,0.04)',
             transform: 'rotate(7deg)',
             transformOrigin: 'center top',
             zIndex: 3,
             overflow: 'hidden',
             p: { xs: 0.75, sm: 0.9, xl: 1.05 },
-            '&:before': {
+            '&::before': {
               content: '""',
               position: 'absolute',
               inset: 0,
@@ -289,19 +293,13 @@ function ProductShowcase({ mode }: { mode: AuthMode }) {
             <Typography sx={{ fontSize: { xs: '0.42rem', sm: '0.5rem' }, fontWeight: 950 }}>
               Letis POS
             </Typography>
-            <Typography
-              sx={{
-                fontSize: { xs: '0.3rem', sm: '0.36rem' },
-                fontWeight: 800,
-                color: brand.neutral[500],
-              }}
-            >
+            <Typography sx={{ fontSize: { xs: '0.3rem', sm: '0.36rem' }, fontWeight: 800, color: brand.neutral[500] }}>
               INV-2026-000433
             </Typography>
           </Stack>
 
           <Stack spacing={0.5} sx={{ position: 'relative', mt: 1 }}>
-            {['Sukari Kilo', 'Mchele Mbeya', 'Unga Ngano', 'Mafuta 1L'].map((name, index) => (
+            {['Sukari Kilo', 'Mchele Mbeya', 'Unga Ngano', 'Mafuta 1L'].map((name, i) => (
               <Stack
                 key={name}
                 direction="row"
@@ -315,7 +313,7 @@ function ProductShowcase({ mode }: { mode: AuthMode }) {
                 }}
               >
                 <Box component="span">{name}</Box>
-                <Box component="span">{['22.4K', '68.4K', '25K', '18.6K'][index]}</Box>
+                <Box component="span">{['22.4K', '68.4K', '25K', '18.6K'][i]}</Box>
               </Stack>
             ))}
           </Stack>
@@ -324,9 +322,7 @@ function ProductShowcase({ mode }: { mode: AuthMode }) {
             direction="row"
             justifyContent="space-between"
             sx={{
-              position: 'relative',
-              mt: 1,
-              pt: 0.6,
+              position: 'relative', mt: 1, pt: 0.6,
               borderTop: '1px dotted rgba(15,23,42,0.8)',
               fontSize: { xs: '0.42rem', sm: '0.48rem' },
               fontWeight: 950,
@@ -338,6 +334,7 @@ function ProductShowcase({ mode }: { mode: AuthMode }) {
         </Box>
       </Box>
 
+      {/* Status badge */}
       <Box
         sx={{
           position: 'absolute',
@@ -356,8 +353,7 @@ function ProductShowcase({ mode }: { mode: AuthMode }) {
         <Stack direction="row" spacing={0.8} alignItems="center">
           <Box
             sx={{
-              width: 30,
-              height: 30,
+              width: 30, height: 30,
               borderRadius: '10px',
               bgcolor: brand.primary[50],
               color: brand.primary[600],
@@ -382,30 +378,15 @@ function ProductShowcase({ mode }: { mode: AuthMode }) {
 }
 
 function BenefitRow({
-  icon,
-  title,
-  text,
-  delay,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  text: string;
-  delay: number;
-}) {
+  icon, title, text, delay,
+}: { icon: React.ReactNode; title: string; text: string; delay: number }) {
   return (
-    <Stack
-      direction="row"
-      spacing={1.25}
-      sx={{
-        animation: anim(delay),
-      }}
-    >
+    <Stack direction="row" spacing={1.25} sx={{ animation: anim(delay) }}>
       <Box
         sx={{
-          width: 38,
-          height: 38,
+          width: 38, height: 38,
           borderRadius: '14px',
-          bgcolor: 'rgba(22,163,74,0.1)',
+          bgcolor: brand.primary[50],
           color: brand.primary[600],
           display: 'grid',
           placeItems: 'center',
@@ -415,12 +396,10 @@ function BenefitRow({
         {icon}
       </Box>
       <Box>
-        <Typography sx={{ fontSize: '0.82rem', fontWeight: 900, color: brand.neutral[900] }}>
+        <Typography sx={{ fontSize: '0.82rem', fontWeight: 800, color: brand.neutral[900] }}>
           {title}
         </Typography>
-        <Typography
-          sx={{ mt: 0.2, fontSize: '0.76rem', lineHeight: 1.45, color: brand.neutral[500] }}
-        >
+        <Typography sx={{ mt: 0.2, fontSize: '0.76rem', lineHeight: 1.45, color: brand.neutral[500] }}>
           {text}
         </Typography>
       </Box>
@@ -428,17 +407,16 @@ function BenefitRow({
   );
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   Main layout
+   ═══════════════════════════════════════════════════════════════════════════ */
+
 export default function LetisAuthLayout({
-  children,
-  mode,
-  pageTitle,
-  pageDescription,
-  headline,
-  accent,
-  supportingText,
-  formTitle,
-  formDescription,
+  children, mode, pageTitle, pageDescription,
+  headline, accent, supportingText, formTitle, formDescription,
 }: LetisAuthLayoutProps) {
+  const isRegister = mode === 'register';
+
   return (
     <PageContainer title={pageTitle} description={pageDescription}>
       <Box
@@ -449,6 +427,7 @@ export default function LetisAuthLayout({
           bgcolor: '#FFFFFF',
         }}
       >
+        {/* ═══ LEFT: Brand column ═══ */}
         <Box
           sx={{
             position: 'relative',
@@ -458,13 +437,14 @@ export default function LetisAuthLayout({
             minHeight: { xs: 'auto', lg: '100dvh' },
             display: { xs: 'none', lg: 'flex' },
             alignItems: 'center',
-            background:
-              mode === 'register'
-                ? wb.darkBg
-                : 'radial-gradient(circle at 6% 8%, rgba(22,163,74,0.16), transparent 30%), linear-gradient(150deg, #FFFFFF 0%, #F8FAFC 42%, #ECFDF3 100%)',
-            '&::before': mode === 'register'
-              ? undefined
-              : {
+            /* ── Green brand background for register, light green for login ── */
+            background: isRegister
+              ? at.surfaces.brandColumn
+              : `radial-gradient(circle at 6% 8%, ${brand.primary[100]}, transparent 30%),
+                 linear-gradient(150deg, #FFFFFF 0%, #F8FAFC 42%, ${brand.primary[50]} 100%)`,
+            /* ── Decorative circle (login only) ── */
+            '&::before': !isRegister
+              ? {
                   content: '""',
                   position: 'absolute',
                   width: { xs: 260, sm: 360, xl: 430 },
@@ -472,85 +452,87 @@ export default function LetisAuthLayout({
                   borderRadius: '50%',
                   right: { xs: -150, sm: -170, xl: -210 },
                   top: { xs: 70, sm: -140, xl: -170 },
-                  bgcolor: 'rgba(22,163,74,0.075)',
-                },
-            '&::after': mode === 'register'
+                  bgcolor: brand.primary[100],
+                  opacity: 0.5,
+                }
+              : undefined,
+            /* ── Gradient overlay (login) / subtle grain (register) ── */
+            '&::after': !isRegister
               ? {
                   content: '""',
                   position: 'absolute',
                   inset: 0,
-                  backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise' x='0' y='0'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.72' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E")`,
-                  opacity: 0.4,
+                  background: 'linear-gradient(90deg, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0) 62%)',
                   pointerEvents: 'none',
                 }
               : {
                   content: '""',
                   position: 'absolute',
                   inset: 0,
-                  background: 'linear-gradient(90deg, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0) 62%)',
+                  background: `radial-gradient(ellipse at 50% 0%, ${brand.primary[400]}20 0%, transparent 40%)`,
                   pointerEvents: 'none',
                 },
           }}
         >
-          {/* Gold vertical accent line — register mode only */}
-          {mode === 'register' && (
+          {/* Green vertical accent line — register only */}
+          {isRegister && (
             <Box
               sx={{
                 position: 'absolute',
-                left: 0,
-                top: '12%',
-                bottom: '12%',
+                left: 0, top: '10%', bottom: '10%',
                 width: 3,
-                background: `linear-gradient(180deg, transparent 0%, ${wb.gold} 20%, ${wb.gold} 80%, transparent 100%)`,
+                background: `linear-gradient(180deg, transparent 0%, ${brand.primary[400]} 20%, ${brand.primary[400]}80 80%, transparent 100%)`,
                 borderRadius: '0 2px 2px 0',
               }}
             />
           )}
+
           <Box sx={{ position: 'relative', zIndex: 1, width: '100%', maxWidth: 610 }}>
-            {/* Brand mark — gold/clay gradient square */}
-            <Box
-              sx={{
-                width: 48,
-                height: 48,
-                borderRadius: wb.radius.md,
-                background: `linear-gradient(135deg, ${wb.gold} 0%, ${wb.clay} 100%)`,
-                display: 'grid',
-                placeItems: 'center',
-                mb: 6,
-                boxShadow: `0 0 0 8px rgba(194,132,58,0.12)`,
-                position: 'relative',
-                animation: anim(0),
-                '&::after': {
-                  content: '""',
-                  position: 'absolute',
-                  inset: -2,
-                  borderRadius: '12px',
-                  border: '1px solid rgba(255,255,255,0.15)',
-                },
-              }}
-            >
-              <LetisMark size={22} color="onDark" />
+            {/* Brand logo */}
+            <Box sx={{ animation: anim(0), mb: isRegister ? 5 : 0 }}>
+              <BrandLogo size={isRegister ? 'sm' : 'lg'} color={isRegister ? 'onDark' : undefined} />
             </Box>
+
+            {/* Status chip (login only) */}
+            {!isRegister && (
+              <Stack
+                direction="row" spacing={0.75} alignItems="center"
+                sx={{
+                  mt: { xs: 3, sm: 4.5, lg: 2.5, xl: 3.5 },
+                  width: 'fit-content',
+                  px: 1.1, py: 0.55,
+                  borderRadius: '999px',
+                  bgcolor: brand.primary[50],
+                  color: brand.primary[700],
+                  animation: anim(70),
+                }}
+              >
+                <IconCloudUpload size={15} stroke={1.9} />
+                <Typography sx={{ fontSize: '0.72rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  System status: Online
+                </Typography>
+              </Stack>
+            )}
 
             {/* Headline */}
             <Typography
               component="h1"
               sx={{
-                fontFamily: wb.font.display,
-                fontSize: { xs: '2.1rem', sm: '3rem', lg: '3rem', xl: '3.2rem' },
-                fontWeight: 500,
+                mt: isRegister ? 0 : 2.2,
+                fontFamily: isRegister ? at.fontDisplay : undefined,
+                fontWeight: isRegister ? 600 : 950,
+                letterSpacing: isRegister ? '-0.015em' : 0,
                 lineHeight: 1.08,
-                letterSpacing: '-0.02em',
-                color: mode === 'register' ? wb.paper : brand.neutral[900],
-                mb: 2,
+                fontSize: { xs: '2.1rem', sm: '3rem', lg: '3rem', xl: '3.45rem' },
+                color: isRegister ? '#FFFFFF' : brand.neutral[900],
                 animation: anim(130),
               }}
             >
-              {mode === 'register' ? (
+              {isRegister ? (
                 <>
-                  Run your store{' '}
-                  <Box component="em" sx={{ fontStyle: 'italic', color: wb.gold }}>
-                    with confidence.
+                  Launch your POS.
+                  <Box component="span" sx={{ display: 'block', color: brand.primary[300] }}>
+                    Grow your business.
                   </Box>
                 </>
               ) : (
@@ -566,56 +548,75 @@ export default function LetisAuthLayout({
             {/* Supporting text */}
             <Typography
               sx={{
-                mb: 6,
-                maxWidth: 380,
-                fontSize: { xs: '0.95rem', sm: '1.04rem', lg: '0.94rem', xl: '0.95rem' },
+                mt: { xs: 1.5, lg: 1.1, xl: 1.35 },
+                mb: isRegister ? 5 : 0,
+                maxWidth: 470,
+                fontSize: { xs: '0.95rem', sm: '1.04rem', lg: '0.94rem', xl: '1rem' },
                 lineHeight: 1.6,
-                color: mode === 'register' ? 'rgba(250,250,247,0.65)' : brand.neutral[600],
+                color: isRegister ? 'rgba(255,255,255,0.72)' : brand.neutral[600],
                 animation: anim(190),
               }}
             >
-              {mode === 'register'
-                ? 'Full-featured POS, inventory, and analytics. Built for Tanzanian businesses ready to grow.'
+              {isRegister
+                ? 'Full-featured POS for Tanzanian businesses. Inventory, sales, customers, and analytics — all in one place.'
                 : supportingText}
             </Typography>
 
-            {/* Trust rows (register mode) or benefits + ProductShowcase (login mode) */}
-            {mode === 'register' ? (
-              <Stack spacing={2} sx={{ animation: anim(250) }}>
-                {[
-                  { icon: '30', title: '30-day full access trial', desc: 'Every feature unlocked. No credit card. No commitment.' },
-                  { icon: '✦', title: 'Free local onboarding', desc: 'Our Dar es Salaam team helps you get set up in hours, not weeks.' },
-                  { icon: 'M', title: 'Pay with M-Pesa', desc: 'Monthly or annual billing in Tanzanian shillings via mobile money.' },
-                ].map((row, i) => (
-                  <Stack key={row.title} direction="row" spacing={1.75} sx={{ animation: anim(250 + i * 70) }}>
-                    <Box
-                      sx={{
-                        width: 36,
-                        height: 36,
-                        borderRadius: wb.radius.sm,
-                        background: 'rgba(255,255,255,0.06)',
-                        border: '1px solid rgba(255,255,255,0.08)',
-                        display: 'grid',
-                        placeItems: 'center',
-                        flexShrink: 0,
-                        color: wb.gold,
-                        fontSize: '0.85rem',
-                        fontWeight: 700,
-                      }}
-                    >
-                      {row.icon}
-                    </Box>
-                    <Box>
-                      <Typography sx={{ fontSize: '0.82rem', fontWeight: 600, color: 'rgba(250,250,247,0.9)' }}>
-                        {row.title}
-                      </Typography>
-                      <Typography sx={{ fontSize: '0.75rem', color: 'rgba(250,250,247,0.5)', lineHeight: 1.4 }}>
-                        {row.desc}
-                      </Typography>
-                    </Box>
-                  </Stack>
-                ))}
-              </Stack>
+            {/* Content area: trust rows (register) or benefits+showcase (login) */}
+            {isRegister ? (
+              <>
+                {/* Trust rows */}
+                <Stack spacing={2} sx={{ animation: anim(250), maxWidth: 420 }}>
+                  {TRUST_ROWS.map((row, i) => (
+                    <Stack key={row.title} direction="row" spacing={1.75} sx={{ animation: anim(250 + i * 70) }}>
+                      <Box
+                        sx={{
+                          width: 38, height: 38,
+                          borderRadius: '12px',
+                          bgcolor: 'rgba(255,255,255,0.1)',
+                          backdropFilter: 'blur(4px)',
+                          border: '1px solid rgba(255,255,255,0.12)',
+                          color: brand.primary[300],
+                          display: 'grid', placeItems: 'center',
+                          flexShrink: 0,
+                        }}
+                      >
+                        {row.icon}
+                      </Box>
+                      <Box>
+                        <Typography sx={{ fontSize: '0.84rem', fontWeight: 700, color: '#FFFFFF' }}>
+                          {row.title}
+                        </Typography>
+                        <Typography sx={{ fontSize: '0.76rem', color: 'rgba(255,255,255,0.6)', lineHeight: 1.45 }}>
+                          {row.desc}
+                        </Typography>
+                      </Box>
+                    </Stack>
+                  ))}
+                </Stack>
+
+                {/* Plan chip */}
+                <Box
+                  sx={{
+                    display: 'inline-flex', alignItems: 'center', gap: 1,
+                    mt: 5, px: 2, py: 1.25,
+                    borderRadius: '99px',
+                    bgcolor: 'rgba(255,255,255,0.1)',
+                    backdropFilter: 'blur(4px)',
+                    border: '1px solid rgba(255,255,255,0.12)',
+                    fontSize: '0.76rem',
+                    color: 'rgba(255,255,255,0.7)',
+                    animation: anim(500),
+                  }}
+                >
+                  <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: brand.primary[400] }} />
+                  Starts with{' '}
+                  <Box component="strong" sx={{ color: '#FFFFFF', fontWeight: 700, mx: 0.5 }}>
+                    Starter
+                  </Box>{' '}
+                  — upgrade anytime
+                </Box>
+              </>
             ) : (
               <>
                 <Stack spacing={{ xs: 1.7, lg: 1.2, xl: 1.5 }} sx={{ mt: { xs: 2.5, sm: 3.5, lg: 2, xl: 2.6 }, maxWidth: 450 }}>
@@ -626,32 +627,10 @@ export default function LetisAuthLayout({
                 <ProductShowcase mode={mode} />
               </>
             )}
-
-            {/* Plan chip (register mode only) */}
-            {mode === 'register' && (
-              <Box
-                sx={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 1,
-                  mt: 5,
-                  px: 2,
-                  py: 1.25,
-                  borderRadius: '99px',
-                  background: 'rgba(255,255,255,0.05)',
-                  border: '1px solid rgba(255,255,255,0.08)',
-                  fontSize: '0.75rem',
-                  color: 'rgba(250,250,247,0.6)',
-                  animation: anim(500),
-                }}
-              >
-                <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: wb.gold }} />
-                You&apos;ll start on <Box component="strong" sx={{ color: wb.gold, fontWeight: 600, mx: 0.5 }}>Starter</Box> — upgrade anytime
-              </Box>
-            )}
           </Box>
         </Box>
 
+        {/* ═══ RIGHT: Form column ═══ */}
         <Box
           sx={{
             position: 'relative',
@@ -662,9 +641,8 @@ export default function LetisAuthLayout({
             alignItems: 'center',
             justifyContent: 'center',
             overflow: 'hidden',
-            background:
-              'radial-gradient(circle at 78% 18%, rgba(22,163,74,0.12), transparent 32%), radial-gradient(circle at 15% 82%, rgba(59,130,246,0.07), transparent 28%), #FFFFFF',
-            '&:before': {
+            background: at.surfaces.page,
+            '&::before': {
               content: '""',
               position: 'absolute',
               width: { sm: 460, xl: 560 },
@@ -672,22 +650,21 @@ export default function LetisAuthLayout({
               borderRadius: '50%',
               right: { sm: -260, xl: -300 },
               bottom: { sm: -280, xl: -340 },
-              bgcolor: 'rgba(22,163,74,0.045)',
+              bgcolor: brand.primary[50],
+              opacity: 0.6,
               pointerEvents: 'none',
             },
           }}
         >
+          {/* Security badge */}
           <Stack
-            direction="row"
-            spacing={0.8}
-            alignItems="center"
+            direction="row" spacing={0.8} alignItems="center"
             sx={{
               display: { xs: 'none', sm: 'flex' },
               position: 'absolute',
               top: 24,
               right: { sm: 28, xl: 44 },
-              px: 1.2,
-              py: 0.65,
+              px: 1.2, py: 0.65,
               borderRadius: '999px',
               bgcolor: 'rgba(255,255,255,0.78)',
               border: `1px solid ${brand.neutral[100]}`,
@@ -701,24 +678,23 @@ export default function LetisAuthLayout({
             </Typography>
           </Stack>
 
+          {/* Form card */}
           <Box
             sx={{
               width: '100%',
               maxWidth: { xs: 440, lg: 470, xl: 500 },
               borderRadius: { xs: 0, sm: '32px' },
               p: { xs: 0.75, sm: 4.2 },
-              bgcolor: { xs: 'transparent', sm: 'rgba(255,255,255,0.92)' },
-              border: { xs: 'none', sm: '1px solid rgba(226,232,240,0.92)' },
-              boxShadow: {
-                xs: 'none',
-                sm: '0 44px 110px rgba(15,23,42,0.13), 0 18px 44px rgba(15,23,42,0.08)',
-              },
+              bgcolor: { xs: 'transparent', sm: at.surfaces.formCard },
+              border: { xs: 'none', sm: `1px solid ${brand.neutral[100]}` },
+              boxShadow: { xs: 'none', sm: at.shadow.form },
               backdropFilter: { xs: 'none', sm: 'blur(16px)' },
               animation: anim(170),
               position: 'relative',
               zIndex: 1,
             }}
           >
+            {/* LetisMark in green circle */}
             <Box
               sx={{
                 width: { xs: 38, sm: 70 },
@@ -733,7 +709,7 @@ export default function LetisAuthLayout({
                 boxShadow: `inset 0 0 0 1px ${brand.primary[100]}`,
               }}
             >
-              <LetisMark size={mode === 'register' ? 30 : 42} />
+              <LetisMark size={isRegister ? 30 : 42} />
             </Box>
 
             <Typography
