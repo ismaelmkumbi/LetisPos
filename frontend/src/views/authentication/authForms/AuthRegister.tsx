@@ -208,7 +208,7 @@ const AuthRegister: React.FC<Props> = ({ title, subtitle, subtext }) => {
         </Alert>
       )}
 
-      <Stack spacing={2.5}>
+      <Stack spacing={2}>
         {/* Business name */}
         <Box>
           <Typography component="label" htmlFor="tenantName" sx={labelSx}>
@@ -403,7 +403,7 @@ const AuthRegister: React.FC<Props> = ({ title, subtitle, subtext }) => {
         disabled={submitting || !isFormReady}
         startIcon={submitting ? <CircularProgress size={16} color="inherit" /> : undefined}
         sx={{
-          mt: 3.5,
+          mt: 2.5,
           py: 1.5,
           fontSize: '0.9rem',
           fontWeight: 700,
@@ -448,6 +448,58 @@ const AuthRegister: React.FC<Props> = ({ title, subtitle, subtext }) => {
           Sign in
         </Typography>
       </Stack>
+
+      {/* What you get — fills vertical space + reinforces value */}
+      <Box
+        sx={{
+          mt: 3,
+          pt: 3,
+          borderTop: `1px solid ${brand.neutral[100]}`,
+        }}
+      >
+        <Typography
+          sx={{
+            fontSize: '0.68rem',
+            fontWeight: 700,
+            textTransform: 'uppercase',
+            letterSpacing: '0.06em',
+            color: brand.neutral[400],
+            mb: 2,
+          }}
+        >
+          Your free trial includes
+        </Typography>
+
+        <Stack spacing={1.25}>
+          {[
+            { icon: '📦', label: 'Point of Sale terminal — sell in-person fast' },
+            { icon: '📊', label: 'Inventory & stock management' },
+            { icon: '👥', label: 'Customer & supplier tracking' },
+            { icon: '📋', label: 'Daily sales reports & analytics' },
+            { icon: '🔒', label: 'Secure cloud backup — your data, safe' },
+            { icon: '💬', label: 'Local support in Tanzania via WhatsApp' },
+          ].map((item) => (
+            <Stack key={item.label} direction="row" spacing={1.25} alignItems="center">
+              <Typography sx={{ fontSize: '0.85rem', lineHeight: 1 }}>{item.icon}</Typography>
+              <Typography sx={{ fontSize: '0.76rem', color: brand.neutral[600], lineHeight: 1.5 }}>
+                {item.label}
+              </Typography>
+            </Stack>
+          ))}
+        </Stack>
+
+        <Typography
+          sx={{
+            mt: 2,
+            fontSize: '0.7rem',
+            color: brand.neutral[400],
+            lineHeight: 1.5,
+            fontStyle: 'italic',
+          }}
+        >
+          No credit card required · Cancel anytime · 30 days full access
+        </Typography>
+      </Box>
 
       {subtitle}
     </Box>
