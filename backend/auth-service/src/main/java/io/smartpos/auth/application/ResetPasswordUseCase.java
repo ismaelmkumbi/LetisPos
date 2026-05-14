@@ -2,6 +2,7 @@ package io.smartpos.auth.application;
 
 import io.smartpos.auth.domain.model.PasswordResetToken;
 import io.smartpos.auth.domain.model.User;
+import io.smartpos.auth.domain.model.UserStatus;
 import io.smartpos.auth.domain.repository.PasswordResetTokenRepository;
 import io.smartpos.auth.domain.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -40,6 +41,13 @@ public class ResetPasswordUseCase {
         }
 
         user.setPasswordHash(passwordEncoder.encode(newPassword));
+
+        // Auto-verify: clicking the reset link proves email ownership
+        if (user.getStatus() == UserStatus.PENDING) {
+            user.setStatus(UserStatus.ACTIVE);
+            log.info("User {} auto-verified via password reset", user.getId());
+        }
+
         userRepository.save(user);
 
         token.setUsedAt(Instant.now());
