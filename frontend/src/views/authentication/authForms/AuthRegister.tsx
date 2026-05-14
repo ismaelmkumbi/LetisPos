@@ -1,8 +1,8 @@
 /**
  * Letis POS — Quick signup form.
  *
- * Single-page signup. Defaults to STARTER trial.
- * Botanical Precision aesthetic — brand green, clean, confident.
+ * Single-page. Defaults to STARTER trial. Brand-aligned green aesthetic.
+ * Horizontal 2-column field grid — compact, premium, no wasted space.
  */
 import React, { useState } from 'react';
 import {
@@ -45,7 +45,7 @@ const pulse = keyframes`
   50%      { opacity: 0.5; transform: scale(0.85); }
 `;
 
-/* ── Shared field styles ── */
+/* ── Shared styles ── */
 
 const fieldSx = {
   '& .MuiOutlinedInput-root': {
@@ -65,12 +65,12 @@ const fieldSx = {
 
 const labelSx = {
   display: 'block',
-  fontSize: '0.72rem',
+  fontSize: '0.7rem',
   fontWeight: 600,
   textTransform: 'uppercase',
   letterSpacing: '0.05em',
   color: brand.neutral[600],
-  mb: 0.75,
+  mb: 0.6,
 };
 
 function slugify(value: string): string {
@@ -96,12 +96,14 @@ function getStrength(pw: string): 0 | 1 | 2 | 3 | 4 {
 }
 
 const STRENGTH_COLORS = [
-  brand.neutral[200],       // 0 — empty
-  brand.error.main,          // 1 — weak
-  brand.warning.main,        // 2 — fair
-  brand.primary[400],        // 3 — good
-  brand.primary[600],        // 4 — strong
+  brand.neutral[200],
+  brand.error.main,
+  brand.warning.main,
+  brand.primary[400],
+  brand.primary[600],
 ];
+
+const STRENGTH_LABELS = ['', 'Weak', 'Fair', 'Good', 'Strong'];
 
 /* ═══════════════════════════════════════════════════════════════════════════
    Component
@@ -149,11 +151,7 @@ const AuthRegister: React.FC<Props> = ({ title, subtitle, subtext }) => {
         channel: 'EMAIL',
       });
       navigate('/auth/verify-sent', {
-        state: {
-          userId,
-          channel: 'EMAIL' as const,
-          contact: email.trim().toLowerCase(),
-        },
+        state: { userId, channel: 'EMAIL' as const, contact: email.trim().toLowerCase() },
       });
       seedDefaultUnits().catch(() => {});
       seedDefaultCOA().catch(() => {});
@@ -177,24 +175,19 @@ const AuthRegister: React.FC<Props> = ({ title, subtitle, subtext }) => {
       {/* Trial badge */}
       <Box
         sx={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: 0.75,
+          display: 'inline-flex', alignItems: 'center', gap: 0.75,
           bgcolor: brand.primary[50],
           border: `1px solid ${brand.primary[100]}`,
           color: brand.primary[700],
-          px: 1.5,
-          py: 0.75,
+          px: 1.5, py: 0.65,
           borderRadius: '99px',
-          fontSize: '0.7rem',
-          fontWeight: 700,
+          fontSize: '0.68rem', fontWeight: 700,
           mb: 3,
         }}
       >
         <Box
           sx={{
-            width: 7, height: 7,
-            borderRadius: '50%',
+            width: 7, height: 7, borderRadius: '50%',
             bgcolor: brand.primary[500],
             animation: `${pulse} 2s ease-in-out infinite`,
           }}
@@ -208,15 +201,21 @@ const AuthRegister: React.FC<Props> = ({ title, subtitle, subtext }) => {
         </Alert>
       )}
 
-      <Stack spacing={2}>
-        {/* Business name */}
-        <Box>
+      {/* ── 2-column field grid ── */}
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
+          gap: 2,
+        }}
+      >
+        {/* Row 1: Business name (full width) */}
+        <Box sx={{ gridColumn: { sm: '1 / -1' } }}>
           <Typography component="label" htmlFor="tenantName" sx={labelSx}>
             Business name
           </Typography>
           <TextField
-            id="tenantName"
-            name="tenantName"
+            id="tenantName" name="tenantName"
             placeholder="e.g. Mwanza General Stores"
             fullWidth required
             value={tenantName}
@@ -233,68 +232,62 @@ const AuthRegister: React.FC<Props> = ({ title, subtitle, subtext }) => {
           />
         </Box>
 
-        {/* Workspace slug */}
-        <Box>
+        {/* Row 2: Workspace URL (full width) */}
+        <Box sx={{ gridColumn: { sm: '1 / -1' } }}>
           <Typography component="label" htmlFor="tenantSlug" sx={labelSx}>
             Workspace URL
           </Typography>
           <TextField
-            id="tenantSlug"
-            name="tenantSlug"
+            id="tenantSlug" name="tenantSlug"
             placeholder="mwanza-stores"
             fullWidth
             value={tenantSlug}
             onChange={(e) => setTenantSlug(slugify(e.target.value))}
             sx={fieldSx}
           />
-          <Typography sx={{ fontSize: '0.7rem', color: brand.neutral[400], mt: 0.5, display: 'flex', alignItems: 'center', gap: 0.5 }}>
-            Your workspace:{' '}
-            <Box component="span" sx={{ fontWeight: 600, color: brand.neutral[500] }}>
-              {tenantSlug || 'workspace'}.letispos.app
-            </Box>
+          <Typography sx={{ fontSize: '0.66rem', color: brand.neutral[400], mt: 0.4 }}>
+            {tenantSlug || 'workspace'}.letispos.app
           </Typography>
         </Box>
 
-        {/* First / Last name */}
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.75}>
-          <Box flex={1} minWidth={0}>
-            <Typography component="label" htmlFor="firstName" sx={labelSx}>
-              First name
-            </Typography>
-            <TextField
-              id="firstName" name="firstName"
-              placeholder="Juma"
-              fullWidth
-              value={firstName}
-              autoComplete="given-name"
-              onChange={(e) => setFirstName(e.target.value)}
-              sx={fieldSx}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start" sx={{ color: brand.neutral[400] }}>
-                    <IconUser size={17} stroke={1.6} />
-                  </InputAdornment>
-                ),
-              }}
-            />
-          </Box>
-          <Box flex={1} minWidth={0}>
-            <Typography component="label" htmlFor="lastName" sx={labelSx}>
-              Last name
-            </Typography>
-            <TextField
-              id="lastName" name="lastName"
-              placeholder="Mwangi"
-              fullWidth
-              value={lastName}
-              autoComplete="family-name"
-              onChange={(e) => setLastName(e.target.value)}
-              sx={fieldSx}
-            />
-          </Box>
-        </Stack>
+        {/* Row 3: First name | Last name */}
+        <Box>
+          <Typography component="label" htmlFor="firstName" sx={labelSx}>
+            First name
+          </Typography>
+          <TextField
+            id="firstName" name="firstName"
+            placeholder="Juma"
+            fullWidth
+            value={firstName}
+            autoComplete="given-name"
+            onChange={(e) => setFirstName(e.target.value)}
+            sx={fieldSx}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start" sx={{ color: brand.neutral[400] }}>
+                  <IconUser size={17} stroke={1.6} />
+                </InputAdornment>
+              ),
+            }}
+          />
+        </Box>
+        <Box>
+          <Typography component="label" htmlFor="lastName" sx={labelSx}>
+            Last name
+          </Typography>
+          <TextField
+            id="lastName" name="lastName"
+            placeholder="Mwangi"
+            fullWidth
+            value={lastName}
+            autoComplete="family-name"
+            onChange={(e) => setLastName(e.target.value)}
+            sx={fieldSx}
+          />
+        </Box>
 
-        {/* Email */}
+        {/* Row 4: Email | Password */}
         <Box>
           <Typography component="label" htmlFor="email" sx={labelSx}>
             Email address
@@ -303,7 +296,7 @@ const AuthRegister: React.FC<Props> = ({ title, subtitle, subtext }) => {
             id="email" name="email"
             type="email"
             autoComplete="email"
-            placeholder="jumam@example.com"
+            placeholder="you@company.com"
             fullWidth required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -317,8 +310,6 @@ const AuthRegister: React.FC<Props> = ({ title, subtitle, subtext }) => {
             }}
           />
         </Box>
-
-        {/* Password + strength bar */}
         <Box>
           <Typography component="label" htmlFor="password" sx={labelSx}>
             Password
@@ -327,7 +318,7 @@ const AuthRegister: React.FC<Props> = ({ title, subtitle, subtext }) => {
             id="password" name="password"
             type={showPassword ? 'text' : 'password'}
             autoComplete="new-password"
-            placeholder="At least 8 characters"
+            placeholder="Min 8 characters"
             fullWidth required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
@@ -353,47 +344,36 @@ const AuthRegister: React.FC<Props> = ({ title, subtitle, subtext }) => {
               ),
             }}
           />
-
-          {/* Strength bar */}
-          {password.length > 0 && (
-            <>
-              <Stack direction="row" spacing={0.5} sx={{ mt: 0.75 }}>
-                {[1, 2, 3, 4].map((seg) => (
-                  <Box
-                    key={seg}
-                    sx={{
-                      height: 3,
-                      flex: 1,
-                      borderRadius: '3px',
-                      bgcolor: strength >= seg ? STRENGTH_COLORS[strength] : brand.neutral[200],
-                      transition: 'background 0.25s ease',
-                    }}
-                  />
-                ))}
-              </Stack>
-              <Typography
-                sx={{
-                  fontSize: '0.68rem',
-                  mt: 0.5,
-                  color: strength < 2 ? brand.error.main : strength < 3 ? brand.warning.dark : brand.primary[600],
-                  fontWeight: 500,
-                }}
-              >
-                {strength === 0 && ' '}
-                {strength === 1 && 'Weak — add uppercase, numbers, or symbols'}
-                {strength === 2 && 'Fair — keep going'}
-                {strength === 3 && 'Good — almost there'}
-                {strength === 4 && 'Strong password'}
-              </Typography>
-            </>
-          )}
-          {password.length > 0 && password.length < 8 && (
-            <Typography sx={{ fontSize: '0.68rem', color: brand.error.main, mt: 0.5, fontWeight: 500 }}>
-              Must be at least 8 characters
-            </Typography>
-          )}
         </Box>
-      </Stack>
+
+        {/* Strength bar spans both columns below password */}
+        {password.length > 0 && (
+          <Box sx={{ gridColumn: { sm: '1 / -1' } }}>
+            <Stack direction="row" spacing={0.5}>
+              {[1, 2, 3, 4].map((seg) => (
+                <Box
+                  key={seg}
+                  sx={{
+                    height: 3, flex: 1, borderRadius: '3px',
+                    bgcolor: strength >= seg ? STRENGTH_COLORS[strength] : brand.neutral[200],
+                    transition: 'background 0.25s ease',
+                  }}
+                />
+              ))}
+            </Stack>
+            <Typography
+              sx={{
+                fontSize: '0.65rem', mt: 0.4,
+                color: strength < 2 ? brand.error.main : strength < 3 ? brand.warning.dark : brand.primary[600],
+                fontWeight: 500,
+              }}
+            >
+              {STRENGTH_LABELS[strength]}
+              {password.length > 0 && password.length < 8 && ' — min 8 characters'}
+            </Typography>
+          </Box>
+        )}
+      </Box>
 
       {/* Submit */}
       <Button
@@ -403,9 +383,9 @@ const AuthRegister: React.FC<Props> = ({ title, subtitle, subtext }) => {
         disabled={submitting || !isFormReady}
         startIcon={submitting ? <CircularProgress size={16} color="inherit" /> : undefined}
         sx={{
-          mt: 2.5,
-          py: 1.5,
-          fontSize: '0.9rem',
+          mt: 3,
+          py: 1.4,
+          fontSize: '0.88rem',
           fontWeight: 700,
           textTransform: 'none',
           letterSpacing: '-0.01em',
@@ -448,58 +428,6 @@ const AuthRegister: React.FC<Props> = ({ title, subtitle, subtext }) => {
           Sign in
         </Typography>
       </Stack>
-
-      {/* What you get — fills vertical space + reinforces value */}
-      <Box
-        sx={{
-          mt: 3,
-          pt: 3,
-          borderTop: `1px solid ${brand.neutral[100]}`,
-        }}
-      >
-        <Typography
-          sx={{
-            fontSize: '0.68rem',
-            fontWeight: 700,
-            textTransform: 'uppercase',
-            letterSpacing: '0.06em',
-            color: brand.neutral[400],
-            mb: 2,
-          }}
-        >
-          Your free trial includes
-        </Typography>
-
-        <Stack spacing={1.25}>
-          {[
-            { icon: '📦', label: 'Point of Sale terminal — sell in-person fast' },
-            { icon: '📊', label: 'Inventory & stock management' },
-            { icon: '👥', label: 'Customer & supplier tracking' },
-            { icon: '📋', label: 'Daily sales reports & analytics' },
-            { icon: '🔒', label: 'Secure cloud backup — your data, safe' },
-            { icon: '💬', label: 'Local support in Tanzania via WhatsApp' },
-          ].map((item) => (
-            <Stack key={item.label} direction="row" spacing={1.25} alignItems="center">
-              <Typography sx={{ fontSize: '0.85rem', lineHeight: 1 }}>{item.icon}</Typography>
-              <Typography sx={{ fontSize: '0.76rem', color: brand.neutral[600], lineHeight: 1.5 }}>
-                {item.label}
-              </Typography>
-            </Stack>
-          ))}
-        </Stack>
-
-        <Typography
-          sx={{
-            mt: 2,
-            fontSize: '0.7rem',
-            color: brand.neutral[400],
-            lineHeight: 1.5,
-            fontStyle: 'italic',
-          }}
-        >
-          No credit card required · Cancel anytime · 30 days full access
-        </Typography>
-      </Box>
 
       {subtitle}
     </Box>

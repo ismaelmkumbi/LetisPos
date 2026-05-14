@@ -683,9 +683,9 @@ export default function LetisAuthLayout({
           <Box
             sx={{
               width: '100%',
-              maxWidth: { xs: 440, lg: 470, xl: 500 },
+              maxWidth: { xs: 440, lg: 560, xl: 600 },
               borderRadius: { xs: 0, sm: '32px' },
-              p: { xs: 0.75, sm: 4.2 },
+              p: { xs: 0.75, sm: 3.5 },
               bgcolor: { xs: 'transparent', sm: at.surfaces.formCard },
               border: { xs: 'none', sm: `1px solid ${brand.neutral[100]}` },
               boxShadow: { xs: 'none', sm: at.shadow.form },
