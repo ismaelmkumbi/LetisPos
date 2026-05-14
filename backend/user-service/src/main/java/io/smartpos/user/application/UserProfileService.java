@@ -90,11 +90,9 @@ public class UserProfileService {
         if (firstName != null && !firstName.isBlank()) profile.setFirstName(firstName);
         if (lastName != null && !lastName.isBlank()) profile.setLastName(lastName);
 
-        // Assign default role to new registrations: ADMIN for the tenant creator,
-        // CASHIER for everyone else in that workspace.
         if (isNew && profile.getRoles().isEmpty()) {
             boolean isFirstInTenant = tenantId != null && userRepo.countByTenantId(tenantId) == 0;
-            String roleName = isFirstInTenant ? "ADMIN" : "CASHIER";
+            String roleName = isFirstInTenant ? "TENANT_ADMIN" : "CASHIER";
             roleRepo.findByNameIgnoreCase(roleName).ifPresent(role -> {
                 profile.getRoles().add(role);
             });
