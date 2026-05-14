@@ -325,6 +325,9 @@ jobs:
             git fetch origin main
             git reset --hard origin/main
 
+            # Fix target/ ownership — previous root deploys may leave root-owned files
+            chown -R deploy:deploy backend/ 2>/dev/null || true
+
             # ── Work out which services changed ────────────────────────
             CHANGED=""
             [ "${{ needs.changes.outputs.gateway }}"              = "true" ] && CHANGED="$CHANGED gateway"
