@@ -135,7 +135,7 @@ public class RegisterUserUseCase {
                         "currentPeriodEnd", now.plusSeconds(30 * 86400).toString()
                 ));
             } catch (Exception e) {
-                log.warn("Failed to create subscription for tenant {}: {}", tenant.getId(), e.getMessage());
+                log.info("Billing subscription deferred for tenant {} (billing service unavailable or auth pending): {}", tenant.getId(), e.getMessage());
             }
         });
     }

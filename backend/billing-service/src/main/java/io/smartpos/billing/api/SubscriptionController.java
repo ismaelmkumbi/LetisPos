@@ -40,7 +40,22 @@ public class SubscriptionController {
     public ResponseEntity<Subscription> getByTenant(@PathVariable UUID tenantId) {
         return subscriptionRepo.findByTenantId(tenantId)
                 .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+                .orElseGet(() -> {
+                    // Auto-create a trial subscription if none exists
+                    PlanDefinition defaultPlan = planRepo.findByCode("STARTER")
+                            .orElse(planRepo.findAll().stream().findFirst().orElse(null));
+                    if (defaultPlan == null) return ResponseEntity.notFound().build();
+                    Instant now = Instant.now();
+                    Subscription sub = Subscription.builder()
+                            .tenantId(tenantId)
+                            .planCode(defaultPlan.getCode())
+                            .status("TRIAL")
+                            .billingCycle("MONTHLY")
+                            .currentPeriodStart(now)
+                            .currentPeriodEnd(now.plus(30, ChronoUnit.DAYS))
+                            .build();
+                    return ResponseEntity.ok(subscriptionRepo.save(sub));
+                });
     }
 
     /**
