@@ -24,6 +24,7 @@ export default function InventoryReportPage() {
   const [turnover, setTurnover] = useState<TurnoverRow[]>([]);
   const [movers, setMovers] = useState<MoversReport | null>(null);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+  const [productNames, setProductNames] = useState<Record<string, string>>({});
 
   useEffect(() => {
     listWarehouses().then((w) => setWarehouses(w.filter((r) => r.active))).catch(() => {});
@@ -42,6 +43,26 @@ export default function InventoryReportPage() {
     return () => { cancelled = true; };
   }, [filters.warehouseId]);
 
+  // Resolve product names for any products missing them
+  useEffect(() => {
+    const rows = [...(valuation?.rows ?? []), ...(deadStock?.rows ?? []), ...turnover];
+    const missing = rows.filter(r => !r.productName).map(r => r.productId);
+    if (missing.length === 0) return;
+    let cancelled = false;
+    import('src/api/smartpos/products').then(({ listProducts }) => {
+      listProducts({ size: 200 }).then(p => {
+        if (cancelled) return;
+        setProductNames(prev => {
+          const next = { ...prev };
+          for (const prod of p.content) next[prod.id] = prod.name;
+          for (const id of missing) { if (!next[id]) next[id] = id.slice(0, 8) + '…'; }
+          return next;
+        });
+      }).catch(() => {});
+    });
+    return () => { cancelled = true; };
+  }, [valuation, deadStock, turnover]);
+
   const kpis: KpiCard[] = useMemo(() => [
     { label: 'Total SKUs', value: formatNumber(summary?.distinctProducts ?? 0), color: brand.primary[600] },
     { label: 'Total On Hand', value: formatNumber(summary?.totalOnHand ?? 0), color: brand.info.main },
@@ -52,7 +73,7 @@ export default function InventoryReportPage() {
   ], [summary, valuation, deadStock]);
 
   const valColumns: Column<InventoryValuationReport['rows'][number]>[] = [
-    { id: 'code', label: 'Code', render: (r) => r.productCode ?? r.productId.slice(0, 8) },
+    { id: 'code', label: 'Code', render: (r) => r.productCode ?? r.productName ?? productNames[r.productId] ?? r.productId.slice(0, 8) },
     { id: 'name', label: 'Product', render: (r) => r.productName ?? '—' },
     { id: 'onHand', label: 'On Hand', align: 'right', render: (r) => formatNumber(r.onHand) },
     { id: 'unitCost', label: 'Unit Cost', align: 'right', render: (r) => formatMoney(r.unitCost) },
@@ -61,7 +82,7 @@ export default function InventoryReportPage() {
 
   const deadColumns: Column<DeadStockReport['rows'][number]>[] = [
     { id: 'code', label: 'Code', render: (r) => r.productCode ?? '—' },
-    { id: 'name', label: 'Product', render: (r) => r.productName ?? r.productId.slice(0, 8) },
+    { id: 'name', label: 'Product', render: (r) => r.productName ?? productNames[r.productId] ?? r.productId.slice(0, 8) },
     { id: 'onHand', label: 'On Hand', align: 'right', render: (r) => formatNumber(r.onHand) },
     { id: 'value', label: 'Value', align: 'right', render: (r) => formatMoney(r.valuationAtCost) },
     { id: 'lastSold', label: 'Last Sold', render: (r) => r.lastSoldDate ?? 'Never' },
@@ -98,7 +119,7 @@ export default function InventoryReportPage() {
       <ReportDataTable
         title="Inventory Turnover"
         columns={[
-          { id: 'product', label: 'Product', render: (r: TurnoverRow) => r.productName ?? r.productId.slice(0, 8) },
+          { id: 'product', label: 'Product', render: (r: TurnoverRow) => r.productName ?? productNames[r.productId] ?? r.productId.slice(0, 8) },
           { id: 'avgInv', label: 'Avg Inventory', align: 'right', render: (r: TurnoverRow) => formatNumber(r.avgInventory) },
           { id: 'cogs', label: 'COGS', align: 'right', render: (r: TurnoverRow) => formatMoney(r.costOfGoodsSold) },
           { id: 'ratio', label: 'Turnover Ratio', align: 'right', render: (r: TurnoverRow) => r.turnoverRatio.toFixed(1) },
