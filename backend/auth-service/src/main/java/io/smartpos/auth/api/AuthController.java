@@ -4,6 +4,8 @@ import io.smartpos.auth.api.dto.*;
 import io.smartpos.auth.application.ChangePasswordUseCase;
 import io.smartpos.auth.application.LoginUseCase;
 import io.smartpos.auth.application.RegisterUserUseCase;
+import io.smartpos.auth.application.ResetPasswordUseCase;
+import io.smartpos.auth.application.SendPasswordResetUseCase;
 import io.smartpos.auth.application.SendVerificationUseCase;
 import io.smartpos.auth.application.VerifyUserUseCase;
 import io.smartpos.auth.domain.model.User;
@@ -33,6 +35,8 @@ public class AuthController {
     private final ChangePasswordUseCase changePasswordUseCase;
     private final VerifyUserUseCase verifyUserUseCase;
     private final SendVerificationUseCase sendVerificationUseCase;
+    private final SendPasswordResetUseCase sendPasswordResetUseCase;
+    private final ResetPasswordUseCase resetPasswordUseCase;
     private final UserRepository userRepository;
     private final RefreshTokenCookies refreshCookies;
 
@@ -92,8 +96,16 @@ public class AuthController {
 
     @PostMapping("/resend-verification")
     public ResponseEntity<Map<String, String>> resendVerification(@Valid @RequestBody ResendVerificationRequest req) {
-        User user = userRepository.findById(req.userId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+        User user;
+        if (req.email() != null && !req.email().isBlank()) {
+            user = userRepository.findByEmailIgnoreCase(req.email())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No account found with this email"));
+        } else if (req.userId() != null) {
+            user = userRepository.findById(req.userId())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+        } else {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Either userId or email is required");
+        }
 
         if (user.getStatus() != UserStatus.PENDING) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Account is already verified. Please log in.");
@@ -102,6 +114,18 @@ public class AuthController {
         VerificationChannel channel = user.getEmail() != null ? VerificationChannel.EMAIL : VerificationChannel.PHONE;
         sendVerificationUseCase.send(user, channel);
         return ResponseEntity.ok(Map.of("message", "Verification sent"));
+    }
+
+    @PostMapping("/password/forgot")
+    public ResponseEntity<Map<String, String>> forgotPassword(@Valid @RequestBody ForgotPasswordRequest req) {
+        sendPasswordResetUseCase.send(req.email());
+        return ResponseEntity.ok(Map.of("message", "If an account exists, a reset link has been sent."));
+    }
+
+    @PostMapping("/password/reset")
+    public ResponseEntity<Map<String, String>> resetPassword(@Valid @RequestBody ResetPasswordRequest req) {
+        resetPasswordUseCase.reset(req.token(), req.password());
+        return ResponseEntity.ok(Map.of("message", "Password has been reset. You can now log in."));
     }
 
     private static String readCookie(HttpServletRequest req, String name) {

@@ -5,6 +5,7 @@ import io.smartpos.auth.api.dto.LoginRequest;
 import io.smartpos.auth.domain.model.RefreshToken;
 import io.smartpos.auth.domain.model.Tenant;
 import io.smartpos.auth.domain.model.User;
+import io.smartpos.auth.domain.model.UserStatus;
 import io.smartpos.auth.domain.repository.RefreshTokenRepository;
 import io.smartpos.auth.domain.repository.TenantRepository;
 import io.smartpos.auth.domain.repository.UserRepository;
@@ -56,6 +57,9 @@ public class LoginUseCase {
                 .orElseThrow(() -> new BadCredentialsException("Invalid credentials"));
 
         if (!user.isActive()) {
+            if (user.getStatus() == UserStatus.PENDING) {
+                throw new LockedException("Please verify your email before logging in. Check your inbox or request a new verification email.");
+            }
             throw new LockedException("Account is " + user.getStatus());
         }
 
