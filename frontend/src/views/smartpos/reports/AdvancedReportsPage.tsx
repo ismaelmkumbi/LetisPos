@@ -51,6 +51,7 @@ function WarrantyTab() {
   const [data, setData] = useState<WarrantyReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [productNames, setProductNames] = useState<Record<string, string>>({});
 
   useEffect(() => {
     let cancelled = false;
@@ -61,6 +62,25 @@ function WarrantyTab() {
       .finally(() => !cancelled && setLoading(false));
     return () => { cancelled = true; };
   }, [from, to]);
+
+  // Resolve product names for any products missing them
+  useEffect(() => {
+    const missing = (data?.rows ?? []).filter(r => !r.productName).map(r => r.productId);
+    if (missing.length === 0) return;
+    let cancelled = false;
+    import('src/api/smartpos/products').then(({ listProducts }) => {
+      listProducts({ size: 200 }).then(p => {
+        if (cancelled) return;
+        setProductNames(prev => {
+          const next = { ...prev };
+          for (const prod of p.content) next[prod.id] = prod.name;
+          for (const id of missing) { if (!next[id]) next[id] = id.slice(0, 8) + '…'; }
+          return next;
+        });
+      }).catch(() => {});
+    });
+    return () => { cancelled = true; };
+  }, [data]);
 
   return (
     <>
@@ -90,7 +110,7 @@ function WarrantyTab() {
                 {data.rows.map((r) => (
                   <TableRow key={r.serialId}>
                     <TableCell sx={{ fontFamily: 'monospace' }}>{r.serialNumber}</TableCell>
-                    <TableCell>{r.productName ?? r.productId.slice(0, 8) + '…'}</TableCell>
+                    <TableCell>{r.productName ?? productNames[r.productId] ?? r.productId.slice(0, 8) + '…'}</TableCell>
                     <TableCell>{r.saleRef ?? '—'}</TableCell>
                     <TableCell>{r.warrantyStart ?? '—'}</TableCell>
                     <TableCell>{r.warrantyEnd ?? '—'}</TableCell>
@@ -124,6 +144,7 @@ function DeadStockTab() {
   const [data, setData] = useState<DeadStockReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [productNames, setProductNames] = useState<Record<string, string>>({});
 
   useEffect(() => {
     let cancelled = false;
@@ -134,6 +155,25 @@ function DeadStockTab() {
       .finally(() => !cancelled && setLoading(false));
     return () => { cancelled = true; };
   }, [lookback]);
+
+  // Resolve product names for any products missing them
+  useEffect(() => {
+    const missing = (data?.rows ?? []).filter(r => !r.productName).map(r => r.productId);
+    if (missing.length === 0) return;
+    let cancelled = false;
+    import('src/api/smartpos/products').then(({ listProducts }) => {
+      listProducts({ size: 200 }).then(p => {
+        if (cancelled) return;
+        setProductNames(prev => {
+          const next = { ...prev };
+          for (const prod of p.content) next[prod.id] = prod.name;
+          for (const id of missing) { if (!next[id]) next[id] = id.slice(0, 8) + '…'; }
+          return next;
+        });
+      }).catch(() => {});
+    });
+    return () => { cancelled = true; };
+  }, [data]);
 
   return (
     <>
@@ -163,7 +203,7 @@ function DeadStockTab() {
                 {data.rows.map((r) => (
                   <TableRow key={`${r.productId}-${r.warehouseId}`}>
                     <TableCell sx={{ fontFamily: 'monospace' }}>{r.productCode ?? '—'}</TableCell>
-                    <TableCell>{r.productName ?? r.productId.slice(0, 8) + '…'}</TableCell>
+                    <TableCell>{r.productName ?? productNames[r.productId] ?? r.productId.slice(0, 8) + '…'}</TableCell>
                     <TableCell align="right">{r.onHand}</TableCell>
                     <TableCell align="right">{fmt(r.unitCost)}</TableCell>
                     <TableCell align="right" sx={{ fontWeight: 600 }}>{fmt(r.valuationAtCost)}</TableCell>
@@ -192,6 +232,7 @@ function ValuationTab() {
   const [data, setData] = useState<InventoryValuationReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [productNames, setProductNames] = useState<Record<string, string>>({});
 
   useEffect(() => {
     let cancelled = false;
@@ -202,6 +243,25 @@ function ValuationTab() {
       .finally(() => !cancelled && setLoading(false));
     return () => { cancelled = true; };
   }, [asOf, method]);
+
+  // Resolve product names for any products missing them
+  useEffect(() => {
+    const missing = (data?.rows ?? []).filter(r => !r.productName).map(r => r.productId);
+    if (missing.length === 0) return;
+    let cancelled = false;
+    import('src/api/smartpos/products').then(({ listProducts }) => {
+      listProducts({ size: 200 }).then(p => {
+        if (cancelled) return;
+        setProductNames(prev => {
+          const next = { ...prev };
+          for (const prod of p.content) next[prod.id] = prod.name;
+          for (const id of missing) { if (!next[id]) next[id] = id.slice(0, 8) + '…'; }
+          return next;
+        });
+      }).catch(() => {});
+    });
+    return () => { cancelled = true; };
+  }, [data]);
 
   return (
     <>
@@ -232,7 +292,7 @@ function ValuationTab() {
                 {data.rows.map((r) => (
                   <TableRow key={`${r.productId}-${r.warehouseId}`}>
                     <TableCell sx={{ fontFamily: 'monospace' }}>{r.productCode ?? '—'}</TableCell>
-                    <TableCell>{r.productName ?? r.productId.slice(0, 8) + '…'}</TableCell>
+                    <TableCell>{r.productName ?? productNames[r.productId] ?? r.productId.slice(0, 8) + '…'}</TableCell>
                     <TableCell align="right">{r.onHand}</TableCell>
                     <TableCell align="right">{fmt(r.unitCost)}</TableCell>
                     <TableCell align="right" sx={{ fontWeight: 600 }}>{fmt(r.valuation)}</TableCell>
