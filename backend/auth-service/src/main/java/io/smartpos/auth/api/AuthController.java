@@ -16,6 +16,7 @@ import io.smartpos.auth.infrastructure.security.RefreshTokenCookies;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -28,6 +29,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
+@Slf4j
 public class AuthController {
 
     private final LoginUseCase loginUseCase;
@@ -107,9 +109,16 @@ public class AuthController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Either userId or email is required");
         }
 
-        if (user.getStatus() != UserStatus.PENDING) {
+        if (user.getStatus() == UserStatus.ACTIVE) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Account is already verified. Please log in.");
         }
+        if (user.getStatus() == UserStatus.LOCKED) {
+            throw new ResponseStatusException(HttpStatus.LOCKED, "Account is locked. Contact support.");
+        }
+        if (user.getStatus() == UserStatus.DISABLED) {
+            throw new ResponseStatusException(HttpStatus.LOCKED, "Account is disabled. Contact your administrator.");
+        }
+        // PENDING — proceed with resend
 
         VerificationChannel channel = user.getEmail() != null ? VerificationChannel.EMAIL : VerificationChannel.PHONE;
         sendVerificationUseCase.send(user, channel);
@@ -118,14 +127,19 @@ public class AuthController {
 
     @PostMapping("/password/forgot")
     public ResponseEntity<Map<String, String>> forgotPassword(@Valid @RequestBody ForgotPasswordRequest req) {
-        sendPasswordResetUseCase.send(req.email());
+        try {
+            sendPasswordResetUseCase.send(req.email());
+        } catch (Exception e) {
+            // Silently ignore — don't reveal whether the email exists
+            log.info("Password reset requested for non-existent or blocked email: {}", req.email());
+        }
         return ResponseEntity.ok(Map.of("message", "If an account exists, a reset link has been sent."));
     }
 
     @PostMapping("/password/reset")
     public ResponseEntity<Map<String, String>> resetPassword(@Valid @RequestBody ResetPasswordRequest req) {
-        resetPasswordUseCase.reset(req.token(), req.password());
-        return ResponseEntity.ok(Map.of("message", "Password has been reset. You can now log in."));
+        String message = resetPasswordUseCase.reset(req.token(), req.password());
+        return ResponseEntity.ok(Map.of("message", message));
     }
 
     private static String readCookie(HttpServletRequest req, String name) {

@@ -25,7 +25,7 @@ public class ResetPasswordUseCase {
     private final PasswordEncoder passwordEncoder;
 
     @Transactional
-    public void reset(String rawToken, String newPassword) {
+    public String reset(String rawToken, String newPassword) {
         String tokenHash = SendPasswordResetUseCase.sha256(rawToken);
         PasswordResetToken token = tokenRepo
                 .findByTokenHashAndUsedAtIsNullAndExpiresAtAfter(tokenHash, Instant.now())
@@ -54,5 +54,13 @@ public class ResetPasswordUseCase {
         tokenRepo.save(token);
 
         log.info("Password reset for user {}", user.getId());
+
+        if (user.getStatus() == UserStatus.DISABLED) {
+            return "Password has been reset, but your account is disabled. Contact your administrator.";
+        }
+        if (user.getStatus() == UserStatus.LOCKED) {
+            return "Password has been reset, but your account is locked. Contact support.";
+        }
+        return "Password has been reset. You can now log in.";
     }
 }
