@@ -27,7 +27,7 @@ import { useNavigate } from 'react-router';
 
 import {
   createTenant,
-  fetchTenants,
+  listAllTenants,
   suspendTenant,
   reactivateTenant,
   updateTenant,
@@ -124,7 +124,7 @@ export default function TenantListPage() {
 
   const fetch = useCallback(() => {
     setLoading(true);
-    fetchTenants()
+    listAllTenants()
       .then((data) => {
         setTenants(data);
         setError(null);
