@@ -27,7 +27,10 @@ public class WarehouseService {
 
     @Transactional(readOnly = true)
     public List<WarehouseDto> list() {
-        return repo.findByTenantId(TenantContext.require()).stream()
+        return TenantContext.get()
+                .map(repo::findByTenantId)
+                .orElseGet(repo::findAll)
+                .stream()
                 .map(WarehouseDto::from).collect(Collectors.toList());
     }
 

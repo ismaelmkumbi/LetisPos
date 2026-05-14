@@ -39,6 +39,13 @@ public class GlobalExceptionHandler {
         return pd;
     }
 
+    @ExceptionHandler(IllegalStateException.class)
+    public ProblemDetail illegalState(IllegalStateException ex) {
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+        pd.setTitle("Bad request");
+        return pd;
+    }
+
     @ExceptionHandler(AccessDeniedException.class)
     public ProblemDetail accessDenied(AccessDeniedException ex) {
         ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, ex.getMessage());
