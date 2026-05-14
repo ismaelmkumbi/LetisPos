@@ -25,7 +25,7 @@ public class BackupController {
     @GetMapping
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<Backup>> list() {
-        UUID tenantId = TenantContext.require();
+        UUID tenantId = TenantContext.get().orElse(null);
         return ResponseEntity.ok(backupRepository.findByTenantIdOrderByCreatedAtDesc(tenantId));
     }
 

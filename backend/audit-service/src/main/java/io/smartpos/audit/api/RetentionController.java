@@ -30,7 +30,7 @@ public class RetentionController {
     @GetMapping
     @PreAuthorize("hasAuthority('retention.manage') or hasAuthority('admin')")
     public ResponseEntity<RetentionConfig> getConfig() {
-        UUID tenantId = TenantContext.require();
+        UUID tenantId = TenantContext.get().orElse(null);
         return ResponseEntity.ok(
             retentionConfigRepo.findByTenantId(tenantId)
                 .orElseGet(() -> createDefault(tenantId))
@@ -41,7 +41,7 @@ public class RetentionController {
     @PreAuthorize("hasAuthority('retention.manage') or hasAuthority('admin')")
     public ResponseEntity<RetentionConfig> updateConfig(
             @RequestBody Map<String, Integer> config) {
-        UUID tenantId = TenantContext.require();
+        UUID tenantId = TenantContext.get().orElse(null);
         RetentionConfig rc = retentionConfigRepo.findByTenantId(tenantId)
             .orElseGet(() -> createDefault(tenantId));
 
