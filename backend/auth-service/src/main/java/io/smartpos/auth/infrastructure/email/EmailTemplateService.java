@@ -1,6 +1,7 @@
 package io.smartpos.auth.infrastructure.email;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StreamUtils;
@@ -16,10 +17,14 @@ import java.util.regex.Pattern;
 public class EmailTemplateService {
 
     private static final String BASE_PATH = "email-templates/";
+    private static final String DEFAULT_EMAIL_LOGO_URL = "https://letispos.com/email-logo.png";
     private static final Pattern VAR_PATTERN = Pattern.compile("\\{\\{(\\w+)\\}\\}");
 
     private final String baseTemplate;
     private final String ctaButton;
+
+    @Value("${smartpos.verification.email-logo-url:" + DEFAULT_EMAIL_LOGO_URL + "}")
+    private String emailLogoUrl = DEFAULT_EMAIL_LOGO_URL;
 
     public EmailTemplateService() {
         this.baseTemplate = load("base.html");
@@ -49,8 +54,13 @@ public class EmailTemplateService {
         // Compose into base layout
         ctx.put("body", renderedBody);
         ctx.put("cta_block", ctaBlock);
+        ctx.putIfAbsent("logo_url", hasText(emailLogoUrl) ? emailLogoUrl : DEFAULT_EMAIL_LOGO_URL);
 
         return replace(baseTemplate, ctx);
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.isBlank();
     }
 
     static String replace(String template, Map<String, String> vars) {

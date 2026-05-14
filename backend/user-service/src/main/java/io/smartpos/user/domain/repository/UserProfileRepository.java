@@ -19,7 +19,7 @@ public interface UserProfileRepository extends JpaRepository<UserProfile, UUID> 
            SELECT u FROM UserProfile u
            WHERE u.tenantId = :tenantId
              AND (:search IS NULL OR
-                  LOWER(u.email)     LIKE LOWER(CONCAT('%', :search, '%')) OR
+                  u.email           LIKE CONCAT('%', :search, '%') OR
                   LOWER(u.firstName) LIKE LOWER(CONCAT('%', :search, '%')) OR
                   LOWER(u.lastName)  LIKE LOWER(CONCAT('%', :search, '%')))
              AND (:active IS NULL OR u.active = :active)
