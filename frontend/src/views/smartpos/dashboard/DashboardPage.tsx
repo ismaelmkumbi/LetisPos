@@ -120,8 +120,15 @@ export default function DashboardPage() {
     setSearchParams(next, { replace: true });
   };
 
+  const isSuperAdmin = user && !user.tenantId;
+
   const fetchDashboardData = useCallback(async () => {
-    if (!user?.tenantId) return;
+    if (!user?.tenantId) {
+      if (isSuperAdmin) {
+        setLoading(false);
+      }
+      return;
+    }
 
     const isInitialLoad = !loadedRef.current;
     if (isInitialLoad) {
@@ -375,7 +382,24 @@ export default function DashboardPage() {
         <LinearProgress sx={{ mb: 2, borderRadius: '4px', height: 3 }} />
       )}
 
-      {loading && !data ? (
+      {isSuperAdmin ? (
+        <Box sx={{ textAlign: 'center', py: 10 }}>
+          <Typography variant="h5" sx={{ fontWeight: 700, mb: 1, color: 'text.primary' }}>
+            Admin Dashboard
+          </Typography>
+          <Typography variant="body1" sx={{ mb: 3, color: 'text.secondary', maxWidth: 480, mx: 'auto' }}>
+            The operational dashboard is for tenant users. As a super admin, use the Tenant 360 hub to manage all tenants and monitor platform health.
+          </Typography>
+          <Button
+            variant="contained"
+            component={Link}
+            to="/smartpos/admin/tenants"
+            sx={{ borderRadius: '8px', textTransform: 'none', fontWeight: 600 }}
+          >
+            Go to Tenant 360
+          </Button>
+        </Box>
+      ) : loading && !data ? (
         <DashboardSkeleton />
       ) : (
         <>
