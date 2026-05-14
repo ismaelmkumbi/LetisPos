@@ -22,7 +22,7 @@ public class PosTerminalService {
 
     @Transactional(readOnly = true)
     public List<PosTerminalDto> list(UUID warehouseId) {
-        return (warehouseId == null ? repo.findAll() : repo.findByWarehouseId(warehouseId, TenantContext.require()))
+        return (warehouseId == null ? repo.findAll() : repo.findByWarehouseId(warehouseId, TenantContext.get().orElse(null)))
                 .stream().map(PosTerminalDto::from).toList();
     }
 

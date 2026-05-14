@@ -32,7 +32,7 @@ public class QuotationService {
     @Transactional(readOnly = true)
     public Page<QuotationDto> search(LocalDate from, LocalDate to, UUID customerId,
                                      QuotationStatus status, Pageable p) {
-        return repo.search(from, to, customerId, status, TenantContext.require(), p)
+        return repo.search(from, to, customerId, status, TenantContext.get().orElse(null), p)
                 .map(QuotationDto::from);
     }
 
@@ -134,7 +134,7 @@ public class QuotationService {
 
     private String nextRef() {
         String prefix = "QUO-" + Year.now().getValue() + "-";
-        long n = repo.countByRefStartingWith(prefix, TenantContext.require()) + 1;
+        long n = repo.countByRefStartingWith(prefix, TenantContext.get().orElse(null)) + 1;
         return prefix + String.format("%06d", n);
     }
 

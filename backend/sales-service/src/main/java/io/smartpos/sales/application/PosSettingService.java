@@ -38,7 +38,7 @@ public class PosSettingService {
     // ── Reset to factory defaults ─────────────────────────────────────────────
 
     public PosSettingDto reset(UUID warehouseId) {
-        UUID tenantId = TenantContext.require();
+        UUID tenantId = TenantContext.get().orElse(null);
         PosSetting existing = repo.findByWarehouseId(warehouseId, tenantId).orElse(null);
         PosSetting defaults = PosSetting.builder().warehouseId(warehouseId).tenantId(tenantId).build();
         if (existing != null) {
@@ -52,7 +52,7 @@ public class PosSettingService {
     // ── Internal helpers ──────────────────────────────────────────────────────
 
     private PosSetting findOrCreate(UUID warehouseId) {
-        UUID tenantId = TenantContext.require();
+        UUID tenantId = TenantContext.get().orElse(null);
         return repo.findByWarehouseId(warehouseId, tenantId)
                    .orElseGet(() -> repo.save(
                        PosSetting.builder().warehouseId(warehouseId).tenantId(tenantId).build()));

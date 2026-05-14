@@ -29,7 +29,7 @@ public class CouponService {
     private final CouponUsageRepository usageRepo;
 
     public Page<CouponDto> list(Pageable pageable, Boolean active) {
-        UUID tenantId = TenantContext.require();
+        UUID tenantId = TenantContext.get().orElse(null);
         if (active != null) {
             return repo.findByTenantIdAndActive(tenantId, active, pageable).map(CouponDto::from);
         }
@@ -43,7 +43,7 @@ public class CouponService {
 
     @Transactional
     public CouponDto create(CreateCouponRequest req) {
-        UUID tenantId = TenantContext.require();
+        UUID tenantId = TenantContext.get().orElse(null);
         // Check unique code
         if (repo.findByCode(req.code()).isPresent()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Coupon code already exists: " + req.code());
@@ -65,7 +65,7 @@ public class CouponService {
 
     @Transactional
     public List<CouponDto> generateCodes(UUID templateId, GenerateCouponCodesRequest req) {
-        UUID tenantId = TenantContext.require();
+        UUID tenantId = TenantContext.get().orElse(null);
         Coupon template = repo.findById(templateId)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Template coupon not found"));
 

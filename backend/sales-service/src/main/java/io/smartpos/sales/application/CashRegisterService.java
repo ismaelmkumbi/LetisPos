@@ -32,7 +32,7 @@ public class CashRegisterService {
     private final SaleRepository saleRepo;
 
     public CashRegisterSessionDto open(UUID warehouseId, UUID userId, BigDecimal openingBalance) {
-        UUID tenantId = TenantContext.require();
+        UUID tenantId = TenantContext.get().orElse(null);
         sessionRepo.findTopByWarehouseIdAndStatus(warehouseId, CashRegisterStatus.OPEN, tenantId)
             .ifPresent(s -> {
                 throw new ResponseStatusException(HttpStatus.CONFLICT,
@@ -55,7 +55,7 @@ public class CashRegisterService {
     @Transactional(readOnly = true)
     public CashRegisterSessionDto getCurrent(UUID warehouseId) {
         CashRegisterSession session = sessionRepo
-            .findTopByWarehouseIdAndStatus(warehouseId, CashRegisterStatus.OPEN, TenantContext.require())
+            .findTopByWarehouseIdAndStatus(warehouseId, CashRegisterStatus.OPEN, TenantContext.get().orElse(null))
             .orElse(null);
 
         if (session == null) return null;
@@ -67,7 +67,7 @@ public class CashRegisterService {
 
     public CashRegisterSessionDto close(UUID warehouseId, UUID userId, BigDecimal countedCash, String notes) {
         CashRegisterSession session = sessionRepo
-            .findTopByWarehouseIdAndStatus(warehouseId, CashRegisterStatus.OPEN, TenantContext.require())
+            .findTopByWarehouseIdAndStatus(warehouseId, CashRegisterStatus.OPEN, TenantContext.get().orElse(null))
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                 "No open register found for this warehouse"));
 
@@ -83,14 +83,14 @@ public class CashRegisterService {
 
     @Transactional(readOnly = true)
     public List<CashRegisterSessionDto> history(UUID warehouseId) {
-        return sessionRepo.findByWarehouseId(warehouseId, TenantContext.require()).stream()
+        return sessionRepo.findByWarehouseId(warehouseId, TenantContext.get().orElse(null)).stream()
             .map(CashRegisterSessionDto::from)
             .toList();
     }
 
     private BigDecimal computeExpectedCash(UUID warehouseId, Instant from, Instant to) {
         List<Sale> sales = saleRepo.findByWarehouseIdAndStatusAndConfirmedAtBetween(
-            warehouseId, SaleStatus.CONFIRMED, from, to, TenantContext.require(),
+            warehouseId, SaleStatus.CONFIRMED, from, to, TenantContext.get().orElse(null),
             PageRequest.of(0, 500, Sort.by("confirmedAt").ascending()));
         return sales.stream()
             .filter(Sale::isPos)

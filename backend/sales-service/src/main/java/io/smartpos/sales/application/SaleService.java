@@ -75,7 +75,7 @@ public class SaleService {
     @Transactional(readOnly = true)
     public Page<SaleDto> search(LocalDate from, LocalDate to, UUID customerId,
                                 UUID warehouseId, SaleStatus status, Pageable p) {
-        UUID tenantId = TenantContext.require();
+        UUID tenantId = TenantContext.get().orElse(null);
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("tenantId", tenantId);
 
@@ -163,7 +163,7 @@ public class SaleService {
 
     @Transactional(readOnly = true)
     public SaleDto get(UUID id) {
-        UUID tenantId = TenantContext.require();
+        UUID tenantId = TenantContext.get().orElse(null);
         return saleRepo.findByIdWithLines(id)
                 .filter(s -> tenantId.equals(s.getTenantId()))
                 .map(SaleDto::from)
@@ -172,7 +172,7 @@ public class SaleService {
 
     @Transactional(readOnly = true)
     public List<SalesByUserDto> salesByUser(LocalDate from, LocalDate to) {
-        var stats = saleRepo.findSalesByUser(TenantContext.require(), from, to);
+        var stats = saleRepo.findSalesByUser(TenantContext.get().orElse(null), from, to);
         if (stats.isEmpty()) return List.of();
 
         // Resolve user names via user-service
@@ -394,7 +394,7 @@ public class SaleService {
 
     String nextRef() {
         String prefix = "INV-" + Year.now().getValue() + "-";
-        long n = saleRepo.countByRefStartingWith(prefix, TenantContext.require()) + 1;
+        long n = saleRepo.countByRefStartingWith(prefix, TenantContext.get().orElse(null)) + 1;
         return prefix + String.format("%06d", n);
     }
 

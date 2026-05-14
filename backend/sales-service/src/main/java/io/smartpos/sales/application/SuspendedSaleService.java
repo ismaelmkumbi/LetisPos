@@ -25,7 +25,7 @@ public class SuspendedSaleService {
 
     @Transactional(readOnly = true)
     public Page<SuspendedSaleDto> search(String search, SuspendedSaleStatus status, Pageable pageable) {
-        return repo.search(TenantContext.require(), status, search, pageable)
+        return repo.search(TenantContext.get().orElse(null), status, search, pageable)
                 .map(SuspendedSaleDto::from);
     }
 

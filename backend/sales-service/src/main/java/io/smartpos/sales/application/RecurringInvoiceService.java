@@ -48,7 +48,7 @@ public class RecurringInvoiceService {
     @Transactional(readOnly = true)
     public Page<RecurringInvoiceDto> search(RecurringStatus status, UUID customerId,
                                             UUID warehouseId, Pageable pageable) {
-        return repo.search(status, customerId, warehouseId, TenantContext.require(), pageable)
+        return repo.search(status, customerId, warehouseId, TenantContext.get().orElse(null), pageable)
                 .map(RecurringInvoiceDto::from);
     }
 

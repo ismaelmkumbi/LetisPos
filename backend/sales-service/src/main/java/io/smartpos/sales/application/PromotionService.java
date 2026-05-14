@@ -22,7 +22,7 @@ public class PromotionService {
     private final PromotionRepository repo;
 
     public Page<PromotionDto> list(Pageable pageable) {
-        UUID tenantId = TenantContext.require();
+        UUID tenantId = TenantContext.get().orElse(null);
         return repo.findByTenantId(tenantId, pageable).map(PromotionDto::from);
     }
 
@@ -33,7 +33,7 @@ public class PromotionService {
 
     @Transactional
     public PromotionDto create(CreatePromotionRequest req) {
-        UUID tenantId = TenantContext.require();
+        UUID tenantId = TenantContext.get().orElse(null);
         Promotion p = Promotion.builder()
             .tenantId(tenantId)
             .name(req.name())

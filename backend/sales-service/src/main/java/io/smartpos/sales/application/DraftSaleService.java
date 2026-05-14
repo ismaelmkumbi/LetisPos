@@ -25,7 +25,7 @@ public class DraftSaleService {
 
     @Transactional(readOnly = true)
     public List<DraftSaleDto> listMine(UUID userId) {
-        return repo.findByUserIdOrderByUpdatedAtDesc(userId, TenantContext.require()).stream()
+        return repo.findByUserIdOrderByUpdatedAtDesc(userId, TenantContext.get().orElse(null)).stream()
                 .map(d -> DraftSaleDto.from(d, parse(d.getData())))
                 .collect(Collectors.toList());
     }

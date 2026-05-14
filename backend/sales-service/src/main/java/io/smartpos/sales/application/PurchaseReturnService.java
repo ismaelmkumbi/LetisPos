@@ -54,7 +54,7 @@ public class PurchaseReturnService {
     @Transactional(readOnly = true)
     public Page<PurchaseReturnDto> listForPurchase(UUID purchaseId, Pageable pageable) {
         return repo.findByPurchaseIdOrderByDateDesc(
-                purchaseId, TenantContext.require(), pageable
+                purchaseId, TenantContext.get().orElse(null), pageable
         ).map(PurchaseReturnDto::from);
     }
 
@@ -129,7 +129,7 @@ public class PurchaseReturnService {
     @Transactional(readOnly = true)
     public Page<PurchaseReturnDto> search(String search, ReturnStatus status, UUID supplierId,
                                            LocalDate dateFrom, LocalDate dateTo, Pageable pageable) {
-        return repo.search(TenantContext.require(), search, status, supplierId, dateFrom, dateTo, pageable)
+        return repo.search(TenantContext.get().orElse(null), search, status, supplierId, dateFrom, dateTo, pageable)
                 .map(PurchaseReturnDto::from);
     }
 
@@ -148,7 +148,7 @@ public class PurchaseReturnService {
 
     private String nextRef() {
         String prefix = "PRT-" + Year.now().getValue() + "-";
-        long n = repo.countByRefStartingWith(prefix, TenantContext.require()) + 1;
+        long n = repo.countByRefStartingWith(prefix, TenantContext.get().orElse(null)) + 1;
         return prefix + String.format("%06d", n);
     }
 }

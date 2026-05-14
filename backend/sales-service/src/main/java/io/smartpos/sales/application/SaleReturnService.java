@@ -52,7 +52,7 @@ public class SaleReturnService {
             UUID customerId, UUID warehouseId, ReturnStatus status,
             org.springframework.data.domain.Pageable pageable) {
         return returnRepo.search(from, to, customerId, warehouseId, status,
-                TenantContext.require(), pageable)
+                TenantContext.get().orElse(null), pageable)
                 .map(SaleReturnDto::from);
     }
 
@@ -119,7 +119,7 @@ public class SaleReturnService {
 
     private String nextRef() {
         String prefix = "SRT-" + Year.now().getValue() + "-";
-        long n = returnRepo.countByRefStartingWith(prefix, TenantContext.require()) + 1;
+        long n = returnRepo.countByRefStartingWith(prefix, TenantContext.get().orElse(null)) + 1;
         return prefix + String.format("%06d", n);
     }
 }
