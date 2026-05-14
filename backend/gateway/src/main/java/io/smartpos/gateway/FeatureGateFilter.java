@@ -34,31 +34,31 @@ public class FeatureGateFilter implements GlobalFilter, Ordered {
      */
     private static final LinkedHashMap<String, Integer> PLAN_GATES = new LinkedHashMap<>();
     static {
-        // Financial features — BUSINESS+
-        PLAN_GATES.put("/api/v1/accounting/", planOrdinal("BUSINESS"));
+        // Business features — STARTER+
+        PLAN_GATES.put("/api/v1/accounting/", planOrdinal("STARTER"));
         PLAN_GATES.put("/api/v1/purchases/", planOrdinal("STARTER"));
-        PLAN_GATES.put("/api/v1/taxes/", planOrdinal("BUSINESS"));
-        PLAN_GATES.put("/api/v1/deposits/", planOrdinal("BUSINESS"));
-        PLAN_GATES.put("/api/v1/cash-management/", planOrdinal("BUSINESS"));
-        PLAN_GATES.put("/api/v1/promotions/", planOrdinal("BUSINESS"));
-        PLAN_GATES.put("/api/v1/coupons/", planOrdinal("BUSINESS"));
-        PLAN_GATES.put("/api/v1/branches/", planOrdinal("BUSINESS"));
-        PLAN_GATES.put("/api/v1/quotations/", planOrdinal("BUSINESS"));
-        PLAN_GATES.put("/api/v1/documents/", planOrdinal("BUSINESS"));
+        PLAN_GATES.put("/api/v1/taxes/", planOrdinal("STARTER"));
+        PLAN_GATES.put("/api/v1/deposits/", planOrdinal("STARTER"));
+        PLAN_GATES.put("/api/v1/cash-management/", planOrdinal("STARTER"));
+        PLAN_GATES.put("/api/v1/promotions/", planOrdinal("STARTER"));
+        PLAN_GATES.put("/api/v1/coupons/", planOrdinal("STARTER"));
+        PLAN_GATES.put("/api/v1/branches/", planOrdinal("STARTER"));
+        PLAN_GATES.put("/api/v1/quotations/", planOrdinal("STARTER"));
+        PLAN_GATES.put("/api/v1/documents/", planOrdinal("STARTER"));
 
-        // Product AI features — available to all plans (part of product management)
+        // AI features — STARTER+
         PLAN_GATES.put("/api/v1/ai/products/", planOrdinal("STARTER"));
         PLAN_GATES.put("/api/v1/ai/capture-sessions/", planOrdinal("STARTER"));
+        PLAN_GATES.put("/api/v1/ai/reports/", planOrdinal("STARTER"));
+        PLAN_GATES.put("/api/v1/ai/forecasting", planOrdinal("STARTER"));
+        PLAN_GATES.put("/api/v1/ai/customer-analytics", planOrdinal("STARTER"));
+        PLAN_GATES.put("/api/v1/ai/fraud-detection", planOrdinal("STARTER"));
+        PLAN_GATES.put("/api/v1/ai/", planOrdinal("STARTER"));
 
         // Advanced features — PROFESSIONAL+
         PLAN_GATES.put("/api/v1/hrm/", planOrdinal("PROFESSIONAL"));
         PLAN_GATES.put("/api/v1/crm/", planOrdinal("PROFESSIONAL"));
         PLAN_GATES.put("/api/v1/integrations/", planOrdinal("PROFESSIONAL"));
-        PLAN_GATES.put("/api/v1/ai/reports/", planOrdinal("PROFESSIONAL"));
-        PLAN_GATES.put("/api/v1/ai/forecasting", planOrdinal("PROFESSIONAL"));
-        PLAN_GATES.put("/api/v1/ai/customer-analytics", planOrdinal("PROFESSIONAL"));
-        PLAN_GATES.put("/api/v1/ai/fraud-detection", planOrdinal("PROFESSIONAL"));
-        PLAN_GATES.put("/api/v1/ai/", planOrdinal("PROFESSIONAL"));
         PLAN_GATES.put("/api/v1/admin/audit", planOrdinal("PROFESSIONAL"));
         PLAN_GATES.put("/api/v1/admin/api-keys", planOrdinal("PROFESSIONAL"));
 
@@ -80,13 +80,13 @@ public class FeatureGateFilter implements GlobalFilter, Ordered {
      */
     private static final LinkedHashMap<String, Integer> REPORT_GATES = new LinkedHashMap<>();
     static {
-        REPORT_GATES.put("/api/v1/reports/financial", planOrdinal("BUSINESS"));
-        REPORT_GATES.put("/api/v1/reports/tax", planOrdinal("BUSINESS"));
-        REPORT_GATES.put("/api/v1/reports/purchase", planOrdinal("BUSINESS"));
-        REPORT_GATES.put("/api/v1/reports/supplier", planOrdinal("BUSINESS"));
-        REPORT_GATES.put("/api/v1/reports/export", planOrdinal("BUSINESS"));
-        REPORT_GATES.put("/api/v1/reports/employee", planOrdinal("PROFESSIONAL"));
-        REPORT_GATES.put("/api/v1/reports/analytics", planOrdinal("PROFESSIONAL"));
+        REPORT_GATES.put("/api/v1/reports/financial", planOrdinal("STARTER"));
+        REPORT_GATES.put("/api/v1/reports/tax", planOrdinal("STARTER"));
+        REPORT_GATES.put("/api/v1/reports/purchase", planOrdinal("STARTER"));
+        REPORT_GATES.put("/api/v1/reports/supplier", planOrdinal("STARTER"));
+        REPORT_GATES.put("/api/v1/reports/export", planOrdinal("STARTER"));
+        REPORT_GATES.put("/api/v1/reports/employee", planOrdinal("STARTER"));
+        REPORT_GATES.put("/api/v1/reports/analytics", planOrdinal("STARTER"));
         REPORT_GATES.put("/api/v1/reports/custom", planOrdinal("ENTERPRISE"));
         REPORT_GATES.put("/api/v1/reports/scheduled", planOrdinal("ENTERPRISE"));
     }

@@ -112,7 +112,7 @@ export function buildSmartPosMenu(t: TFunction): MenuItem[] {
       chip: 'LIVE', chipColor: 'secondary',
     },
     { id: uid(), title: t('smartpos:nav.sales'), icon: IconReceipt, href: '/smartpos/sales' },
-    { id: uid(), title: t('smartpos:nav.quotations'), icon: IconFileInvoice, href: '/smartpos/quotations', minPlan: 'BUSINESS' },
+    { id: uid(), title: t('smartpos:nav.quotations'), icon: IconFileInvoice, href: '/smartpos/quotations', minPlan: 'STARTER' },
     { id: uid(), title: t('smartpos:nav.returns'), icon: IconArrowBackUp, href: '/smartpos/returns' },
     { id: uid(), title: 'Suspended Sales', icon: IconClock, href: '/smartpos/sales/suspended' },
     { id: uid(), title: t('smartpos:nav.recurring_invoices'), icon: IconRepeat, href: '/smartpos/recurring-invoices' },
@@ -153,7 +153,7 @@ export function buildSmartPosMenu(t: TFunction): MenuItem[] {
 
     // ── Documents ────────────────────────────────────────────────────────
     { subheader: 'Documents' },
-    { id: uid(), title: 'Document Search', icon: IconSearch, href: '/smartpos/documents/search', minPlan: 'BUSINESS' },
+    { id: uid(), title: 'Document Search', icon: IconSearch, href: '/smartpos/documents/search', minPlan: 'STARTER' },
 
     // ── Customers ───────────────────────────────────────────────────────
     { subheader: 'Customers' },
@@ -166,7 +166,7 @@ export function buildSmartPosMenu(t: TFunction): MenuItem[] {
     // ── Suppliers ───────────────────────────────────────────────────────
     { subheader: 'Suppliers' },
     { id: uid(), title: t('smartpos:nav.suppliers'), icon: IconTruck, href: '/smartpos/suppliers' },
-    { id: uid(), title: 'Supplier Groups', icon: IconUsersGroup, ...soon, minPlan: 'BUSINESS' },
+    { id: uid(), title: 'Supplier Groups', icon: IconUsersGroup, ...soon, minPlan: 'STARTER' },
 
     // ── Finance ─────────────────────────────────────────────────────────
     { subheader: 'Money' },
@@ -178,28 +178,28 @@ export function buildSmartPosMenu(t: TFunction): MenuItem[] {
     { id: uid(), title: t('smartpos:nav.transfers'), icon: IconArrowsTransferDown, href: '/smartpos/transfers' },
     {
       id: uid(), title: t('smartpos:nav.accounting'), icon: IconCalculator,
-      minPlan: 'BUSINESS',
+      minPlan: 'STARTER',
       children: [
-        { id: uid(), title: t('smartpos:nav.chart_of_accounts'), icon: IconCalculator, href: '/smartpos/accounting/chart-of-accounts', minPlan: 'BUSINESS' },
-        { id: uid(), title: t('smartpos:nav.journal_entries'), icon: IconReceipt2, href: '/smartpos/accounting/journal-entries', minPlan: 'BUSINESS' },
-        { id: uid(), title: 'General Ledger', icon: IconBook, href: '/smartpos/accounting/ledger', minPlan: 'BUSINESS' },
-        { id: uid(), title: 'Financial Statements', icon: IconChartInfographic, href: '/smartpos/accounting/financials', minPlan: 'BUSINESS' },
-        { id: uid(), title: 'Taxes', icon: IconPercentage, href: '/smartpos/taxes', minPlan: 'BUSINESS' },
+        { id: uid(), title: t('smartpos:nav.chart_of_accounts'), icon: IconCalculator, href: '/smartpos/accounting/chart-of-accounts', minPlan: 'STARTER' },
+        { id: uid(), title: t('smartpos:nav.journal_entries'), icon: IconReceipt2, href: '/smartpos/accounting/journal-entries', minPlan: 'STARTER' },
+        { id: uid(), title: 'General Ledger', icon: IconBook, href: '/smartpos/accounting/ledger', minPlan: 'STARTER' },
+        { id: uid(), title: 'Financial Statements', icon: IconChartInfographic, href: '/smartpos/accounting/financials', minPlan: 'STARTER' },
+        { id: uid(), title: 'Taxes', icon: IconPercentage, href: '/smartpos/taxes', minPlan: 'STARTER' },
       ],
     },
     // ── Reports ─────────────────────────────────────────────────────────
     { subheader: 'Reports' },
     { id: uid(), title: 'Reports Hub', icon: IconChartBar, href: '/smartpos/reports' },
-    { id: uid(), title: 'Sales Reports', icon: IconChartBar, href: '/smartpos/reports/sales', minPlan: 'BUSINESS' },
-    { id: uid(), title: 'Purchase Reports', icon: IconShoppingCart, href: '/smartpos/reports/purchases', minPlan: 'BUSINESS' },
-    { id: uid(), title: 'Inventory Reports', icon: IconPackage, href: '/smartpos/reports/inventory', minPlan: 'BUSINESS' },
-    { id: uid(), title: 'Financial Reports', icon: IconChartInfographic, href: '/smartpos/reports/financial', minPlan: 'BUSINESS' },
-    { id: uid(), title: 'Tax Reports', icon: IconPercentage, href: '/smartpos/reports/tax', minPlan: 'BUSINESS' },
-    { id: uid(), title: 'Customer Reports', icon: IconUsers, href: '/smartpos/reports/customers', minPlan: 'BUSINESS' },
-    { id: uid(), title: 'Supplier Reports', icon: IconTruck, href: '/smartpos/reports/suppliers', minPlan: 'BUSINESS' },
-    { id: uid(), title: 'Employee Reports', icon: IconUsersGroup, href: '/smartpos/reports/employees', minPlan: 'BUSINESS' },
-    { id: uid(), title: 'Operations Report', icon: IconClipboardCheck, href: '/smartpos/reports/operations', minPlan: 'BUSINESS' },
-    { id: uid(), title: 'Export Center', icon: IconDownload, href: '/smartpos/reports/exports', minPlan: 'BUSINESS' },
+    { id: uid(), title: 'Sales Reports', icon: IconChartBar, href: '/smartpos/reports/sales', minPlan: 'STARTER' },
+    { id: uid(), title: 'Purchase Reports', icon: IconShoppingCart, href: '/smartpos/reports/purchases', minPlan: 'STARTER' },
+    { id: uid(), title: 'Inventory Reports', icon: IconPackage, href: '/smartpos/reports/inventory', minPlan: 'STARTER' },
+    { id: uid(), title: 'Financial Reports', icon: IconChartInfographic, href: '/smartpos/reports/financial', minPlan: 'STARTER' },
+    { id: uid(), title: 'Tax Reports', icon: IconPercentage, href: '/smartpos/reports/tax', minPlan: 'STARTER' },
+    { id: uid(), title: 'Customer Reports', icon: IconUsers, href: '/smartpos/reports/customers', minPlan: 'STARTER' },
+    { id: uid(), title: 'Supplier Reports', icon: IconTruck, href: '/smartpos/reports/suppliers', minPlan: 'STARTER' },
+    { id: uid(), title: 'Employee Reports', icon: IconUsersGroup, href: '/smartpos/reports/employees', minPlan: 'STARTER' },
+    { id: uid(), title: 'Operations Report', icon: IconClipboardCheck, href: '/smartpos/reports/operations', minPlan: 'STARTER' },
+    { id: uid(), title: 'Export Center', icon: IconDownload, href: '/smartpos/reports/exports', minPlan: 'STARTER' },
 
     // ── People ──────────────────────────────────────────────────────────
     { subheader: 'People', minPlan: 'PROFESSIONAL' },
@@ -208,12 +208,12 @@ export function buildSmartPosMenu(t: TFunction): MenuItem[] {
     { id: uid(), title: t('smartpos:nav.leave_requests'), icon: IconBeach, href: '/smartpos/hrm/leave', minPlan: 'PROFESSIONAL' },
     { id: uid(), title: t('smartpos:nav.payroll'), icon: IconWallet, href: '/smartpos/hrm/payroll', minPlan: 'PROFESSIONAL' },
     // ── Marketing ───────────────────────────────────────────────────────
-    { subheader: 'Marketing', minPlan: 'BUSINESS' },
-    { id: uid(), title: 'Promotions', icon: IconGift, href: '/smartpos/marketing/promotions', minPlan: 'BUSINESS' },
-    { id: uid(), title: 'Coupons', icon: IconPercentage, href: '/smartpos/marketing/coupons', minPlan: 'BUSINESS' },
-    { id: uid(), title: 'SMS Campaigns', icon: IconSend, href: '/smartpos/marketing/sms-campaigns', minPlan: 'BUSINESS' },
-    { id: uid(), title: 'Email Campaigns', icon: IconMail, href: '/smartpos/marketing/email-campaigns', minPlan: 'BUSINESS' },
-    { id: uid(), title: 'WhatsApp Campaigns', icon: IconBrandWhatsapp, href: '/smartpos/marketing/whatsapp-campaigns', minPlan: 'BUSINESS' },
+    { subheader: 'Marketing', minPlan: 'STARTER' },
+    { id: uid(), title: 'Promotions', icon: IconGift, href: '/smartpos/marketing/promotions', minPlan: 'STARTER' },
+    { id: uid(), title: 'Coupons', icon: IconPercentage, href: '/smartpos/marketing/coupons', minPlan: 'STARTER' },
+    { id: uid(), title: 'SMS Campaigns', icon: IconSend, href: '/smartpos/marketing/sms-campaigns', minPlan: 'STARTER' },
+    { id: uid(), title: 'Email Campaigns', icon: IconMail, href: '/smartpos/marketing/email-campaigns', minPlan: 'STARTER' },
+    { id: uid(), title: 'WhatsApp Campaigns', icon: IconBrandWhatsapp, href: '/smartpos/marketing/whatsapp-campaigns', minPlan: 'STARTER' },
 
     // ── CRM ─────────────────────────────────────────────────────────────
     { subheader: 'CRM', minPlan: 'PROFESSIONAL' },
@@ -232,9 +232,9 @@ export function buildSmartPosMenu(t: TFunction): MenuItem[] {
     { id: uid(), title: 'Theme', icon: IconPalette, href: '/smartpos/admin/commerce/theme', minPlan: 'PROFESSIONAL' },
     { id: uid(), title: 'Shipping', icon: IconTruck, href: '/smartpos/admin/commerce/shipping', minPlan: 'PROFESSIONAL' },
     { id: uid(), title: 'Banners', icon: IconAd, href: '/smartpos/admin/commerce/banners', minPlan: 'PROFESSIONAL' },
-    { id: uid(), title: 'Online Orders', icon: IconShoppingCart, ...soon, minPlan: 'BUSINESS' },
-    { id: uid(), title: 'Delivery Management', icon: IconTruck, ...soon, minPlan: 'BUSINESS' },
-    { id: uid(), title: 'Website Settings', icon: IconWorld, ...soon, minPlan: 'BUSINESS' },
+    { id: uid(), title: 'Online Orders', icon: IconShoppingCart, ...soon, minPlan: 'STARTER' },
+    { id: uid(), title: 'Delivery Management', icon: IconTruck, ...soon, minPlan: 'STARTER' },
+    { id: uid(), title: 'Website Settings', icon: IconWorld, ...soon, minPlan: 'STARTER' },
     { id: uid(), title: 'Marketplace Sync', icon: IconBuildingStore, ...soon, minPlan: 'PROFESSIONAL' },
 
     // ── Integrations ────────────────────────────────────────────────────
