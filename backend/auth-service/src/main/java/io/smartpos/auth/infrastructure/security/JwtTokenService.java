@@ -75,6 +75,22 @@ public class JwtTokenService {
                 .getSubject();
     }
 
+    /** Returns true if the token contains the given permission. */
+    @SuppressWarnings("unchecked")
+    public boolean hasPermission(String token, String permission) {
+        try {
+            List<String> permissions = (List<String>) Jwts.parser()
+                    .verifyWith(keyPair.getPublic())
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload()
+                    .get("permissions");
+            return permissions != null && permissions.contains(permission);
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     public KeyPair keyPair() { return keyPair; }
     public String keyId()    { return props.keyId(); }
 }

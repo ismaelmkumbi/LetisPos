@@ -58,6 +58,10 @@ public class TenantController {
                       @RequestHeader(value = "Authorization", required = false) String authHeader) {
         User user = currentUser(authHeader);
         if (user.getTenantId() == null || !user.getTenantId().equals(id)) {
+            if (authHeader != null && authHeader.startsWith("Bearer ")
+                    && jwtTokenService.hasPermission(authHeader.substring(7), "admin")) {
+                return tenantService.getById(id);
+            }
             throw new org.springframework.web.server.ResponseStatusException(
                     HttpStatus.FORBIDDEN, "Tenant is not related to this user");
         }
