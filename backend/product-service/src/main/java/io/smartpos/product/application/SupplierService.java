@@ -32,7 +32,7 @@ public class SupplierService {
 
     @Transactional(readOnly = true)
     public Page<SupplierDto> search(String q, Boolean active, Pageable pageable) {
-        return repo.search(q, active, TenantContext.require(), pageable).map(SupplierDto::from);
+        return repo.search(q, active, TenantContext.get().orElse(null), pageable).map(SupplierDto::from);
     }
 
     @Transactional(readOnly = true)

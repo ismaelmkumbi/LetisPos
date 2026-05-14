@@ -10,6 +10,8 @@ import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.multipart.MultipartException;
 import org.springframework.web.server.ResponseStatusException;
 
+import io.smartpos.common.context.TenantNotInContextException;
+
 import java.util.stream.Collectors;
 
 @RestControllerAdvice
@@ -45,6 +47,13 @@ public class GlobalExceptionHandler {
         ProblemDetail pd = ProblemDetail.forStatusAndDetail(
                 HttpStatus.BAD_REQUEST, "Invalid upload request: " + ex.getMessage());
         pd.setTitle("Upload error");
+        return pd;
+    }
+
+    @ExceptionHandler(TenantNotInContextException.class)
+    public ProblemDetail tenantNotInContext(TenantNotInContextException ex) {
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+        pd.setTitle("Bad request");
         return pd;
     }
 

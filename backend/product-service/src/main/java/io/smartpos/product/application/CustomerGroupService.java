@@ -28,14 +28,14 @@ public class CustomerGroupService {
 
     @Transactional(readOnly = true)
     public Page<CustomerGroupDto> list(Pageable pageable) {
-        UUID tenantId = TenantContext.require();
+        UUID tenantId = TenantContext.get().orElse(null);
         return repo.findAllByTenant(tenantId, pageable)
                 .map(g -> CustomerGroupDto.from(g, customerRepo.countByGroupId(g.getId())));
     }
 
     @Transactional(readOnly = true)
     public List<CustomerGroupDto> listAll() {
-        UUID tenantId = TenantContext.require();
+        UUID tenantId = TenantContext.get().orElse(null);
         return repo.findAllByTenant(tenantId).stream()
                 .map(g -> CustomerGroupDto.from(g, customerRepo.countByGroupId(g.getId())))
                 .collect(Collectors.toList());
