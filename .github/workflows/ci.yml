@@ -311,6 +311,7 @@ jobs:
               echo "ERROR: sudo is required for the non-root deploy user."
               exit 1
             fi
+            SUDO="sudo"
             for key_file in /etc/letispos/jwt/private.pem /etc/letispos/jwt/public.pem; do
               if test -r "$key_file" 2>/dev/null || sudo -n test -r "$key_file" 2>/dev/null; then
                 true
