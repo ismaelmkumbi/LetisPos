@@ -35,8 +35,10 @@ public class UserProfileService {
 
     @Transactional(readOnly = true)
     public Page<UserDto> list(String search, Boolean active, Pageable pageable) {
-        UUID tenantId = TenantContext.require();
-        return userRepo.search(search, active, tenantId, pageable).map(UserDto::from);
+        return TenantContext.<Page<UserDto>>get()
+                .map(tid -> userRepo.search(search, active, tid, pageable))
+                .orElseGet(() -> userRepo.searchAll(search, active, pageable))
+                .map(UserDto::from);
     }
 
     @Transactional(readOnly = true)
@@ -152,7 +154,8 @@ public class UserProfileService {
     }
 
     private void validateTenant(UserProfile user) {
-        UUID currentTenant = TenantContext.require();
+        UUID currentTenant = TenantContext.get().orElse(null);
+        if (currentTenant == null) return; // admin — no tenant scoping
         if (user.getTenantId() != null && !currentTenant.equals(user.getTenantId())) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found");
         }

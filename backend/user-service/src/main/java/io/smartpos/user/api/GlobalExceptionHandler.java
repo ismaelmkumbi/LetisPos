@@ -8,6 +8,8 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.server.ResponseStatusException;
 
+import io.smartpos.common.context.TenantNotInContextException;
+
 import java.util.stream.Collectors;
 
 @RestControllerAdvice
@@ -20,6 +22,13 @@ public class GlobalExceptionHandler {
                 .collect(Collectors.joining("; "));
         ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, message);
         pd.setTitle("Validation failed");
+        return pd;
+    }
+
+    @ExceptionHandler(TenantNotInContextException.class)
+    public ProblemDetail tenantNotInContext(TenantNotInContextException ex) {
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+        pd.setTitle("Bad request");
         return pd;
     }
 

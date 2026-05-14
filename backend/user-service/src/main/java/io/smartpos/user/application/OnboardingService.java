@@ -85,7 +85,8 @@ public class OnboardingService {
     }
 
     private void validateTenant(UserProfile profile) {
-        UUID currentTenant = TenantContext.require();
+        UUID currentTenant = TenantContext.get().orElse(null);
+        if (currentTenant == null) return; // admin — no tenant scoping
         if (profile.getTenantId() != null && !currentTenant.equals(profile.getTenantId())) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found");
         }
