@@ -37,13 +37,13 @@ public class AttendanceService {
 
     @Transactional(readOnly = true)
     public List<AttendanceDto> listForEmployee(UUID employeeId, LocalDate from, LocalDate to) {
-        return repo.findByEmployeeIdAndWorkDateBetween(employeeId, from, to, TenantContext.require())
+        return repo.findByEmployeeIdAndWorkDateBetween(employeeId, from, to, TenantContext.get().orElse(null))
                 .stream().map(AttendanceDto::from).toList();
     }
 
     @Transactional(readOnly = true)
     public List<AttendanceDto> listByDate(LocalDate from, LocalDate to) {
-        return repo.findByWorkDateBetween(from, to, TenantContext.require()).stream().map(AttendanceDto::from).toList();
+        return repo.findByWorkDateBetween(from, to, TenantContext.get().orElse(null)).stream().map(AttendanceDto::from).toList();
     }
 
     @Transactional
@@ -51,7 +51,7 @@ public class AttendanceService {
         Instant when = Optional.ofNullable(req.timestamp()).orElseGet(Instant::now);
         LocalDate day = when.atZone(ZoneId.systemDefault()).toLocalDate();
 
-        Attendance a = repo.findByEmployeeIdAndWorkDate(req.employeeId(), day, TenantContext.require())
+        Attendance a = repo.findByEmployeeIdAndWorkDate(req.employeeId(), day, TenantContext.get().orElse(null))
                 .orElseGet(() -> Attendance.builder()
                         .employeeId(req.employeeId())
                         .workDate(day)
