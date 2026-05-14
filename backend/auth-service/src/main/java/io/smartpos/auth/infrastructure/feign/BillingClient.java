@@ -6,8 +6,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 
 import java.util.Map;
 
-@FeignClient(name = "billing-service", url = "${billing-service.url:http://localhost:8094}",
-        configuration = InternalAuthRequestInterceptor.Config.class)
+@FeignClient(name = "billing-service", url = "${billing-service.url:http://localhost:8094}")
 public interface BillingClient {
 
     @PostMapping("/api/v1/billing/subscriptions/admin")
