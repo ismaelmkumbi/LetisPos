@@ -240,7 +240,7 @@ public class SaleService {
             SaleLine line = SaleLine.builder()
                     .sale(sale)
                     .productId(in.productId()).variantId(in.variantId())
-                    .productNameSnapshot(in.productName() != null ? in.productName() : in.productId().toString())
+                    .productNameSnapshot(in.productName() != null && !in.productName().isBlank() ? in.productName() : "Unknown Product")
                     .productCodeSnapshot(in.productCode())
                     .unitPrice(in.unitPrice()).qty(in.qty())
                     .discount(nz(in.discount())).discountType(dt)

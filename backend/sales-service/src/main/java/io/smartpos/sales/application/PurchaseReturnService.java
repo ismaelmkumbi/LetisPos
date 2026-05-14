@@ -88,7 +88,7 @@ public class PurchaseReturnService {
             PurchaseReturnLine line = PurchaseReturnLine.builder()
                     .purchaseReturn(ret)
                     .productId(in.productId()).variantId(in.variantId())
-                    .productNameSnapshot(in.productName() != null ? in.productName() : in.productId().toString())
+                    .productNameSnapshot(in.productName() != null && !in.productName().isBlank() ? in.productName() : "Unknown Product")
                     .unitPrice(in.unitPrice()).qty(in.qty())
                     .lineTotal(lineTotal)
                     .build();

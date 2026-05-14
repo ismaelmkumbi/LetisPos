@@ -82,7 +82,7 @@ public class PurchaseService {
             PurchaseLine line = PurchaseLine.builder()
                     .purchase(p)
                     .productId(in.productId()).variantId(in.variantId())
-                    .productNameSnapshot(in.productName() != null ? in.productName() : in.productId().toString())
+                    .productNameSnapshot(in.productName() != null && !in.productName().isBlank() ? in.productName() : "Unknown Product")
                     .productCodeSnapshot(in.productCode())
                     .unitCost(in.unitPrice()).qty(in.qty())
                     .discount(nz(in.discount())).discountType(dt)
