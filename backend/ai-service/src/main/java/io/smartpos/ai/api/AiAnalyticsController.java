@@ -33,7 +33,7 @@ public class AiAnalyticsController {
     @PreAuthorize("isAuthenticated()")
     public List<AiAnalyticsDtos.ForecastItem> forecasting(@AuthenticationPrincipal Jwt jwt) {
         log.debug("GET /api/v1/ai/forecasting called by user={}", jwt != null ? jwt.getSubject() : "anonymous");
-        return forecastingService.generateForecast(TenantContext.require());
+        return forecastingService.generateForecast(TenantContext.get().orElse(null));
     }
 
     /**
@@ -44,7 +44,7 @@ public class AiAnalyticsController {
     @PreAuthorize("isAuthenticated()")
     public AiAnalyticsDtos.CustomerAnalyticsResponse customerAnalytics(@AuthenticationPrincipal Jwt jwt) {
         log.debug("GET /api/v1/ai/customer-analytics called by user={}", jwt != null ? jwt.getSubject() : "anonymous");
-        return customerAnalyticsService.analyze(TenantContext.require());
+        return customerAnalyticsService.analyze(TenantContext.get().orElse(null));
     }
 
     /**
@@ -55,6 +55,6 @@ public class AiAnalyticsController {
     @PreAuthorize("isAuthenticated()")
     public List<AiAnalyticsDtos.FlaggedTransaction> fraudDetection(@AuthenticationPrincipal Jwt jwt) {
         log.debug("GET /api/v1/ai/fraud-detection called by user={}", jwt != null ? jwt.getSubject() : "anonymous");
-        return fraudDetectionService.detectFraud(TenantContext.require());
+        return fraudDetectionService.detectFraud(TenantContext.get().orElse(null));
     }
 }
