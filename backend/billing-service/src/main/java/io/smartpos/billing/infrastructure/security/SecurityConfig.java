@@ -25,6 +25,12 @@ import java.util.*;
 @EnableMethodSecurity
 public class SecurityConfig {
 
+    private final InternalAuthFilter internalAuthFilter;
+
+    public SecurityConfig(InternalAuthFilter internalAuthFilter) {
+        this.internalAuthFilter = internalAuthFilter;
+    }
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         return http
@@ -37,6 +43,7 @@ public class SecurityConfig {
                         .requestMatchers("/actuator/**", "/v3/api-docs/**", "/swagger-ui/**").permitAll()
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(o -> o.jwt(j -> j.jwtAuthenticationConverter(jwtConverter())))
+                .addFilterBefore(internalAuthFilter, BearerTokenAuthenticationFilter.class)
                 .addFilterAfter(new TenantContextFilter(), BearerTokenAuthenticationFilter.class)
                 .build();
     }

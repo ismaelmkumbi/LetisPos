@@ -635,12 +635,11 @@ export default function LetisAuthLayout({
           sx={{
             position: 'relative',
             px: { xs: 1.25, sm: 4, md: 7, xl: 9 },
-            py: { xs: 1, sm: 3 },
+            py: { xs: 1, sm: 5 },
             minHeight: '100dvh',
             display: 'flex',
-            alignItems: { xs: 'center', sm: 'flex-start' },
+            alignItems: 'center',
             justifyContent: 'center',
-            pt: { xs: 1, sm: 6 },
             overflow: 'hidden',
             background: at.surfaces.page,
             '&::before': {
