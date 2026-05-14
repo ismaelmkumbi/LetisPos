@@ -76,7 +76,6 @@ if [[ -n "${SMOKE_EMAIL:-}" && -n "${SMOKE_PASSWORD:-}" ]]; then
     echo ""
     echo "--- Auth flow ---"
 
-    local TOKEN
     TOKEN=$(curl -sf -m10 -X POST "$BASE/api/v1/auth/login" \
         -H "Content-Type: application/json" \
         -d "{\"email\":\"$SMOKE_EMAIL\",\"password\":\"$SMOKE_PASSWORD\"}" \
