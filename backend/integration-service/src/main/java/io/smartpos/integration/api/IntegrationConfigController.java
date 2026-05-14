@@ -31,7 +31,7 @@ public class IntegrationConfigController {
     @GetMapping
     @PreAuthorize("hasAuthority('integration.view')")
     public ResponseEntity<List<IntegrationConfig>> getConfigs() {
-        UUID tenantId = TenantContext.require();
+        UUID tenantId = TenantContext.get().orElse(null);
         List<IntegrationConfig> configs = configRepo.findByTenantId(tenantId);
 
         // Ensure all known providers have a row

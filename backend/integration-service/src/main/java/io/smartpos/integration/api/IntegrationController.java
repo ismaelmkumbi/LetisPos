@@ -31,7 +31,7 @@ public class IntegrationController {
     public Page<IntegrationSync> listSyncs(@RequestParam(required = false) String provider,
                                            @RequestParam(required = false) String status,
                                            Pageable pageable) {
-        return syncRepo.search(provider, status, TenantContext.require(), pageable);
+        return syncRepo.search(provider, status, TenantContext.get().orElse(null), pageable);
     }
 
     // ----- ZATCA -----
