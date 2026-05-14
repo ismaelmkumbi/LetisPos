@@ -108,7 +108,7 @@ const AuthRegister: React.FC<Props> = ({ title, subtitle, subtext }) => {
 
   const isFormReady =
     tenantName.trim().length > 1 &&
-    email.trim().length > 0 &&
+    email.trim().length > 0 && email.includes('@') &&
     password.length >= 8;
 
   const handleSubmit = async (e: React.FormEvent) => {
