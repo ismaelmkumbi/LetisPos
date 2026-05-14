@@ -35,7 +35,10 @@ public class UserProfileService {
 
     @Transactional(readOnly = true)
     public Page<UserDto> list(String search, Boolean active, Pageable pageable) {
-        UUID tenantId = TenantContext.get().orElse(null);
+        boolean isSuperAdmin = SecurityContextHolder.getContext().getAuthentication()
+            .getAuthorities().stream()
+            .anyMatch(a -> a.getAuthority().equals("ROLE_SUPER_ADMIN"));
+        UUID tenantId = isSuperAdmin ? null : TenantContext.get().orElse(null);
         var spec = UserProfileRepository.searchSpec(search, active, tenantId);
         return userRepo.findAll(spec, pageable).map(UserDto::from);
     }
