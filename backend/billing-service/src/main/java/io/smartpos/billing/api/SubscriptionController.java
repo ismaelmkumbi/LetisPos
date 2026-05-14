@@ -7,8 +7,10 @@ import io.smartpos.billing.domain.model.Subscription;
 import io.smartpos.billing.domain.repository.InvoiceRepository;
 import io.smartpos.billing.domain.repository.PlanDefinitionRepository;
 import io.smartpos.billing.domain.repository.SubscriptionRepository;
+import io.smartpos.billing.infrastructure.feign.AuthServiceClient;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -25,12 +27,14 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/billing/subscriptions")
 @RequiredArgsConstructor
+@Slf4j
 public class SubscriptionController {
 
     private final SubscriptionRepository subscriptionRepo;
     private final PlanDefinitionRepository planRepo;
     private final InvoiceRepository invoiceRepo;
     private final StripeBillingService stripeBillingService;
+    private final AuthServiceClient authServiceClient;
 
     @Value("${smartpos.internal.shared-secret:dev-internal-token-change-me}")
     private String sharedSecret;
@@ -117,7 +121,19 @@ public class SubscriptionController {
         if (body.containsKey("billingCycle")) {
             sub.setBillingCycle(body.get("billingCycle"));
         }
-        return ResponseEntity.ok(subscriptionRepo.save(sub));
+        Subscription saved = subscriptionRepo.save(sub);
+
+        // Sync tenant billing plan in auth-service
+        try {
+            Map<String, Object> updateBody = new java.util.HashMap<>();
+            updateBody.put("billingPlan", planCode);
+            authServiceClient.updateTenant(saved.getTenantId(), updateBody);
+        } catch (Exception e) {
+            log.warn("Failed to sync billing plan to auth-service for tenant {}: {}",
+                    saved.getTenantId(), e.getMessage());
+        }
+
+        return ResponseEntity.ok(saved);
     }
 
     @PostMapping("/{id}/checkout")
