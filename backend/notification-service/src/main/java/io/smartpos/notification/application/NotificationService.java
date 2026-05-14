@@ -61,14 +61,14 @@ public class NotificationService {
 
     @Transactional(readOnly = true)
     public Page<DeliveryDto> search(Channel channel, DeliveryStatus status, String recipient, Pageable pageable) {
-        return deliveryRepo.search(channel, status, recipient, TenantContext.require(), pageable).map(DeliveryDto::from);
+        return deliveryRepo.search(channel, status, recipient, TenantContext.get().orElse(null), pageable).map(DeliveryDto::from);
     }
 
     @Transactional(readOnly = true)
     public DeliveryDto get(UUID id) {
         NotificationDelivery d = deliveryRepo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Delivery not found"));
-        UUID currentTenant = TenantContext.require();
+        UUID currentTenant = TenantContext.get().orElse(null);
         if (d.getTenantId() != null && !currentTenant.equals(d.getTenantId())) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Delivery not found");
         }
