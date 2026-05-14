@@ -373,3 +373,14 @@ export async function searchBarcodes(params: BarcodeSearchParams = {}): Promise<
   const { data } = await api.get<Page<BarcodeWithProduct>>('/api/v1/barcodes/search', { params });
   return data;
 }
+
+// ---------- Image upload ----------
+
+export async function uploadProductImage(file: File): Promise<string> {
+  const form = new FormData();
+  form.append('file', file);
+  const { data } = await api.post<{ url: string }>('/api/v1/products/images', form, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return data.url;
+}

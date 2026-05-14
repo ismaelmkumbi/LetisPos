@@ -708,17 +708,46 @@ export default function ProductDetailPage() {
             </Stack>
 
             {isEdit && (
-              <TextField
-                label="Image URL"
-                size="small"
-                value={form.imageUrl ?? ''}
-                onChange={(e) => setField('imageUrl', e.target.value)}
-                fullWidth
-                sx={{ mt: 1.5 }}
-                InputProps={{
-                  startAdornment: <IconPhoto size={16} color={brand.neutral[400]} style={{ marginRight: 6 }} />,
-                }}
-              />
+              <Stack spacing={1} sx={{ mt: 1.5 }}>
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <Typography variant="caption" sx={{ fontWeight: 600, color: brand.neutral[500], flex: 1 }}>
+                    Image URL
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: brand.neutral[400] }}>or</Typography>
+                  <Button
+                    component="label"
+                    size="small"
+                    variant="outlined"
+                    startIcon={<IconPhoto size={14} />}
+                    sx={{ borderRadius: '8px', textTransform: 'none', fontWeight: 600, fontSize: '0.75rem', flexShrink: 0 }}
+                  >
+                    Upload
+                    <input
+                      type="file"
+                      accept="image/*"
+                      hidden
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        try {
+                          const { uploadProductImage } = await import('src/api/smartpos/products');
+                          const url = await uploadProductImage(file);
+                          setField('imageUrl', url);
+                        } catch {
+                          // silently fail, user can retry
+                        }
+                      }}
+                    />
+                  </Button>
+                </Stack>
+                <TextField
+                  size="small"
+                  value={form.imageUrl ?? ''}
+                  onChange={(e) => setField('imageUrl', e.target.value)}
+                  placeholder="https://example.com/image.jpg"
+                  fullWidth
+                />
+              </Stack>
             )}
           </CardContent>
         </Card>
