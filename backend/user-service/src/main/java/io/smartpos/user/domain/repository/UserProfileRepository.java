@@ -3,29 +3,37 @@ package io.smartpos.user.domain.repository;
 import io.smartpos.user.domain.model.UserProfile;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 import java.util.Optional;
 import java.util.UUID;
 
-public interface UserProfileRepository extends JpaRepository<UserProfile, UUID> {
+public interface UserProfileRepository extends JpaRepository<UserProfile, UUID>,
+                                               JpaSpecificationExecutor<UserProfile> {
     Optional<UserProfile> findByEmailIgnoreCase(String email);
 
     long countByTenantId(UUID tenantId);
 
-    @Query("""
-           SELECT u FROM UserProfile u
-           WHERE (:tenantId IS NULL OR u.tenantId = :tenantId)
-             AND (:search IS NULL OR
-                  u.email           LIKE CONCAT('%', :search, '%') OR
-                  LOWER(u.firstName) LIKE LOWER(CONCAT('%', :search, '%')) OR
-                  LOWER(u.lastName)  LIKE LOWER(CONCAT('%', :search, '%')))
-             AND (:active IS NULL OR u.active = :active)
-           """)
-    Page<UserProfile> search(@Param("search") String search,
-                             @Param("active") Boolean active,
-                             @Param("tenantId") UUID tenantId,
-                             Pageable pageable);
+    static Specification<UserProfile> searchSpec(String search, Boolean active, UUID tenantId) {
+        Specification<UserProfile> spec = Specification.where(null);
+        if (tenantId != null) {
+            spec = spec.and((root, query, cb) ->
+                    cb.equal(root.get("tenantId"), tenantId));
+        }
+        if (search != null && !search.isBlank()) {
+            String pattern = "%" + search.toLowerCase() + "%";
+            spec = spec.and((root, query, cb) -> cb.or(
+                    cb.like(root.get("email"), pattern),
+                    cb.like(cb.lower(root.get("firstName")), pattern),
+                    cb.like(cb.lower(root.get("lastName")), pattern)
+            ));
+        }
+        if (active != null) {
+            spec = spec.and((root, query, cb) ->
+                    cb.equal(root.get("active"), active));
+        }
+        return spec;
+    }
 }

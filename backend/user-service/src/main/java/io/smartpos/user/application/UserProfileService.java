@@ -36,7 +36,8 @@ public class UserProfileService {
     @Transactional(readOnly = true)
     public Page<UserDto> list(String search, Boolean active, Pageable pageable) {
         UUID tenantId = TenantContext.get().orElse(null);
-        return userRepo.search(search, active, tenantId, pageable).map(UserDto::from);
+        var spec = UserProfileRepository.searchSpec(search, active, tenantId);
+        return userRepo.findAll(spec, pageable).map(UserDto::from);
     }
 
     @Transactional(readOnly = true)
