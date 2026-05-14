@@ -22,7 +22,7 @@ public class ReportDashboardController {
     @GetMapping
     @PreAuthorize("hasAuthority('report.sales') or hasAuthority('report.financial')")
     public List<ReportDashboardDto> list() {
-        return repo.findByTenantIdOrderByUpdatedAtDesc(TenantContext.require())
+        return repo.findByTenantIdOrderByUpdatedAtDesc(TenantContext.get().orElse(null))
             .stream().map(ReportDashboardDto::from).toList();
     }
 

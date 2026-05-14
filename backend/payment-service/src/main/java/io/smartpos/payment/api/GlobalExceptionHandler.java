@@ -1,6 +1,7 @@
 package io.smartpos.payment.api;
 
 import feign.FeignException;
+import io.smartpos.common.context.TenantNotInContextException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
@@ -47,6 +48,13 @@ public class GlobalExceptionHandler {
         ProblemDetail pd = ProblemDetail.forStatusAndDetail(s,
                 "Downstream call failed: " + ex.contentUTF8());
         pd.setTitle("Downstream error");
+        return pd;
+    }
+
+    @ExceptionHandler(TenantNotInContextException.class)
+    public ProblemDetail tenantNotInContext(TenantNotInContextException ex) {
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+        pd.setTitle("Bad request");
         return pd;
     }
 

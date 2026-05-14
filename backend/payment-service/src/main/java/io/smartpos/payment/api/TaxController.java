@@ -24,7 +24,7 @@ public class TaxController {
     @GetMapping
     @PreAuthorize("hasAuthority('tax.view') or hasAuthority('admin')")
     public List<TaxRate> list() {
-        return taxRepo.findByTenantIdOrderByNameAsc(TenantContext.require());
+        return taxRepo.findByTenantIdOrderByNameAsc(TenantContext.get().orElse(null));
     }
 
     @PostMapping

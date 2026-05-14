@@ -26,14 +26,14 @@ public class PageController {
     @GetMapping
     @PreAuthorize("hasAuthority('commerce.pages')")
     public List<StorePage> list() {
-        Store store = storeService.getByTenant(TenantContext.require());
+        Store store = storeService.getByTenant(TenantContext.get().orElse(null));
         return pageService.listByStore(store.getId());
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAuthority('commerce.pages')")
     public StorePage getById(@PathVariable UUID id) {
-        Store store = storeService.getByTenant(TenantContext.require());
+        Store store = storeService.getByTenant(TenantContext.get().orElse(null));
         return pageService.listByStore(store.getId()).stream()
             .filter(p -> p.getId().equals(id))
             .findFirst()
@@ -43,7 +43,7 @@ public class PageController {
     @PostMapping
     @PreAuthorize("hasAuthority('commerce.pages')")
     public ResponseEntity<StorePage> create(@RequestBody StorePage page) {
-        Store store = storeService.getByTenant(TenantContext.require());
+        Store store = storeService.getByTenant(TenantContext.get().orElse(null));
         StorePage created = pageService.create(store.getId(), page);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }

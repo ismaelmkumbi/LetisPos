@@ -23,7 +23,7 @@ public class StoreSettingsController {
     @GetMapping("/settings")
     @PreAuthorize("hasAuthority('commerce.view')")
     public ResponseEntity<StoreDto> getSettings() {
-        UUID tenantId = TenantContext.require();
+        UUID tenantId = TenantContext.get().orElse(null);
         Store store = storeService.getByTenant(tenantId);
         return ResponseEntity.ok(StoreDto.from(store));
     }

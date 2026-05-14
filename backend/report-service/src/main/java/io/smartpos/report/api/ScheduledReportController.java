@@ -22,7 +22,7 @@ public class ScheduledReportController {
     @GetMapping
     @PreAuthorize("hasAuthority('report.sales') or hasAuthority('report.financial')")
     public List<ScheduledReportDto> list() {
-        return repo.findByTenantIdAndActiveTrue(TenantContext.require())
+        return repo.findByTenantIdAndActiveTrue(TenantContext.get().orElse(null))
             .stream().map(ScheduledReportDto::from).toList();
     }
 

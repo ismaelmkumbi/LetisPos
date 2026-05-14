@@ -33,7 +33,7 @@ public class ForecastService {
                key = "T(io.smartpos.report.infrastructure.config.RedisCacheConfig).tenantKey(#warehouseId, 'forecast-' + #days)",
                unless = "#result == null")
     public ForecastDto forecast(UUID warehouseId, Period period, int days) {
-        TenantContext.require();
+        TenantContext.get().orElse(null);
         LocalDate today = LocalDate.now();
         LocalDate from = period.from(today);
         LocalDate to   = period.to(today);

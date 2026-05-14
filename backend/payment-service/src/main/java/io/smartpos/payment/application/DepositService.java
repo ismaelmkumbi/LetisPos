@@ -34,11 +34,11 @@ public class DepositService {
     @Transactional(readOnly = true)
     public Page<DepositDto> search(UUID accountId, UUID categoryId,
                                    LocalDate from, LocalDate to, Pageable p) {
-        return depositRepo.search(accountId, categoryId, from, to, TenantContext.require(), p).map(DepositDto::from);
+        return depositRepo.search(accountId, categoryId, from, to, TenantContext.get().orElse(null), p).map(DepositDto::from);
     }
 
     @Transactional(readOnly = true)
-    public List<DepositCategory> listCategories() { return catRepo.findByTenantId(TenantContext.require()); }
+    public List<DepositCategory> listCategories() { return catRepo.findByTenantId(TenantContext.get().orElse(null)); }
 
     @Transactional
     public DepositCategory createCategory(DepositDto.CategoryRequest req) {
