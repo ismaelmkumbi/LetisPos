@@ -103,6 +103,18 @@ export async function fetchMyProfile(userId: string): Promise<Partial<CurrentUse
   }
 }
 
+export async function forgotPassword(email: string): Promise<void> {
+  await api.post('/api/v1/auth/password/forgot', { email });
+}
+
+export async function resetPassword(token: string, password: string): Promise<void> {
+  await api.post('/api/v1/auth/password/reset', { token, password });
+}
+
+export async function resendVerificationByEmail(email: string): Promise<void> {
+  await api.post('/api/v1/auth/resend-verification', { email });
+}
+
 export async function changePassword(userId: string, currentPassword: string, newPassword: string): Promise<void> {
   await api.post('/api/v1/auth/password/change', { userId, currentPassword, newPassword });
 }

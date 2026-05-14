@@ -483,6 +483,7 @@ const Login2 = Loadable(lazy(() => import('../views/authentication/auth2/Login2'
 const Register = Loadable(lazy(() => import('../views/authentication/auth1/Register')));
 const Register2 = Loadable(lazy(() => import('../views/authentication/auth2/Register2')));
 const ForgotPassword = Loadable(lazy(() => import('../views/authentication/auth1/ForgotPassword')));
+const ResetPassword = Loadable(lazy(() => import('../views/authentication/auth1/ResetPassword')));
 const ForgotPassword2 = Loadable(
   lazy(() => import('../views/authentication/auth2/ForgotPassword2')),
 );
@@ -821,6 +822,7 @@ const Router = [
       { path: '/auth/register2', element: <Register2 /> },
       { path: '/auth/forgot-password', element: <ForgotPassword /> },
       { path: '/auth/forgot-password2', element: <ForgotPassword2 /> },
+      { path: '/auth/reset-password', element: <ResetPassword /> },
       { path: '/auth/two-steps', element: <TwoSteps /> },
       { path: '/auth/two-steps2', element: <TwoSteps2 /> },
       { path: '/auth/verify-sent', element: <VerificationSent /> },
