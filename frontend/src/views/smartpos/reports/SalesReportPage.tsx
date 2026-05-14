@@ -101,7 +101,11 @@ export default function SalesReportPage() {
   }, [topProducts]);
 
   const productColumns: Column<TopProduct>[] = [
-    { id: 'name', label: 'Product', render: (r) => r.productName ?? productNames[r.productId] ?? r.productId.slice(0, 8) },
+    { id: 'name', label: 'Product', render: (r) => {
+      const name = r.productName;
+      if (name && !looksLikeUuid(name)) return name;
+      return productNames[r.productId] ?? name?.slice(0, 8) ?? r.productId.slice(0, 8);
+    }},
     { id: 'qty', label: 'Qty Sold', align: 'right', render: (r) => formatNumber(r.qty) },
     { id: 'revenue', label: 'Revenue', align: 'right', render: (r) => formatMoney(r.revenue) },
   ];

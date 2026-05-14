@@ -74,7 +74,7 @@ export default function InventoryReportPage() {
   ], [summary, valuation, deadStock]);
 
   const valColumns: Column<InventoryValuationReport['rows'][number]>[] = [
-    { id: 'code', label: 'Code', render: (r) => r.productCode ?? r.productName ?? productNames[r.productId] ?? r.productId.slice(0, 8) },
+    { id: 'code', label: 'Code', render: (r) => r.productCode ?? productNames[r.productId] ?? r.productName ?? r.productId.slice(0, 8) },
     { id: 'name', label: 'Product', render: (r) => r.productName ?? '—' },
     { id: 'onHand', label: 'On Hand', align: 'right', render: (r) => formatNumber(r.onHand) },
     { id: 'unitCost', label: 'Unit Cost', align: 'right', render: (r) => formatMoney(r.unitCost) },
@@ -83,7 +83,7 @@ export default function InventoryReportPage() {
 
   const deadColumns: Column<DeadStockReport['rows'][number]>[] = [
     { id: 'code', label: 'Code', render: (r) => r.productCode ?? '—' },
-    { id: 'name', label: 'Product', render: (r) => r.productName ?? productNames[r.productId] ?? r.productId.slice(0, 8) },
+    { id: 'name', label: 'Product', render: (r) => productNames[r.productId] ?? r.productName ?? r.productId.slice(0, 8) },
     { id: 'onHand', label: 'On Hand', align: 'right', render: (r) => formatNumber(r.onHand) },
     { id: 'value', label: 'Value', align: 'right', render: (r) => formatMoney(r.valuationAtCost) },
     { id: 'lastSold', label: 'Last Sold', render: (r) => r.lastSoldDate ?? 'Never' },
@@ -120,7 +120,7 @@ export default function InventoryReportPage() {
       <ReportDataTable
         title="Inventory Turnover"
         columns={[
-          { id: 'product', label: 'Product', render: (r: TurnoverRow) => r.productName ?? productNames[r.productId] ?? r.productId.slice(0, 8) },
+          { id: 'product', label: 'Product', render: (r: TurnoverRow) => productNames[r.productId] ?? r.productName ?? r.productId.slice(0, 8) },
           { id: 'avgInv', label: 'Avg Inventory', align: 'right', render: (r: TurnoverRow) => formatNumber(r.avgInventory) },
           { id: 'cogs', label: 'COGS', align: 'right', render: (r: TurnoverRow) => formatMoney(r.costOfGoodsSold) },
           { id: 'ratio', label: 'Turnover Ratio', align: 'right', render: (r: TurnoverRow) => r.turnoverRatio.toFixed(1) },

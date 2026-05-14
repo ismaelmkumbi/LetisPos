@@ -111,7 +111,7 @@ function WarrantyTab() {
                 {data.rows.map((r) => (
                   <TableRow key={r.serialId}>
                     <TableCell sx={{ fontFamily: 'monospace' }}>{r.serialNumber}</TableCell>
-                    <TableCell>{r.productName ?? productNames[r.productId] ?? r.productId.slice(0, 8) + '…'}</TableCell>
+                    <TableCell>{productNames[r.productId] ?? r.productName ?? r.productId.slice(0, 8) + '…'}</TableCell>
                     <TableCell>{r.saleRef ?? '—'}</TableCell>
                     <TableCell>{r.warrantyStart ?? '—'}</TableCell>
                     <TableCell>{r.warrantyEnd ?? '—'}</TableCell>
@@ -204,7 +204,7 @@ function DeadStockTab() {
                 {data.rows.map((r) => (
                   <TableRow key={`${r.productId}-${r.warehouseId}`}>
                     <TableCell sx={{ fontFamily: 'monospace' }}>{r.productCode ?? '—'}</TableCell>
-                    <TableCell>{r.productName ?? productNames[r.productId] ?? r.productId.slice(0, 8) + '…'}</TableCell>
+                    <TableCell>{productNames[r.productId] ?? r.productName ?? r.productId.slice(0, 8) + '…'}</TableCell>
                     <TableCell align="right">{r.onHand}</TableCell>
                     <TableCell align="right">{fmt(r.unitCost)}</TableCell>
                     <TableCell align="right" sx={{ fontWeight: 600 }}>{fmt(r.valuationAtCost)}</TableCell>
@@ -293,7 +293,7 @@ function ValuationTab() {
                 {data.rows.map((r) => (
                   <TableRow key={`${r.productId}-${r.warehouseId}`}>
                     <TableCell sx={{ fontFamily: 'monospace' }}>{r.productCode ?? '—'}</TableCell>
-                    <TableCell>{r.productName ?? productNames[r.productId] ?? r.productId.slice(0, 8) + '…'}</TableCell>
+                    <TableCell>{productNames[r.productId] ?? r.productName ?? r.productId.slice(0, 8) + '…'}</TableCell>
                     <TableCell align="right">{r.onHand}</TableCell>
                     <TableCell align="right">{fmt(r.unitCost)}</TableCell>
                     <TableCell align="right" sx={{ fontWeight: 600 }}>{fmt(r.valuation)}</TableCell>
