@@ -631,11 +631,11 @@ const Router = [
       { path: 'returns', element: <SmartPosReturns /> },
       { path: 'documents/search', element: <PlanGate minPlan="BUSINESS" featureName="Document Search"><SmartPosDocumentSearch /></PlanGate> },
       // Procurement
-      { path: 'purchases', element: <PlanGate minPlan="BUSINESS" featureName="Purchases"><SmartPosPurchases /></PlanGate> },
-      { path: 'purchases/new', element: <PlanGate minPlan="BUSINESS" featureName="Purchases"><SmartPosPurchaseBuilder /></PlanGate> },
-      { path: 'purchases/:id/edit', element: <PlanGate minPlan="BUSINESS" featureName="Purchases"><SmartPosPurchaseBuilder /></PlanGate> },
-      { path: 'purchases/received', element: <PlanGate minPlan="BUSINESS" featureName="Goods Received"><SmartPosGoodsReceived /></PlanGate> },
-      { path: 'purchases/returns', element: <PlanGate minPlan="BUSINESS" featureName="Supplier Returns"><SmartPosSupplierReturns /></PlanGate> },
+      { path: 'purchases', element: <PlanGate minPlan="STARTER" featureName="Purchases"><SmartPosPurchases /></PlanGate> },
+      { path: 'purchases/new', element: <PlanGate minPlan="STARTER" featureName="Purchases"><SmartPosPurchaseBuilder /></PlanGate> },
+      { path: 'purchases/:id/edit', element: <PlanGate minPlan="STARTER" featureName="Purchases"><SmartPosPurchaseBuilder /></PlanGate> },
+      { path: 'purchases/received', element: <PlanGate minPlan="STARTER" featureName="Goods Received"><SmartPosGoodsReceived /></PlanGate> },
+      { path: 'purchases/returns', element: <PlanGate minPlan="STARTER" featureName="Supplier Returns"><SmartPosSupplierReturns /></PlanGate> },
       // Money
       { path: 'accounts', element: <PlanGate minPlan="BUSINESS" featureName="Accounts"><SmartPosAccounts /></PlanGate> },
       { path: 'payments', element: <PlanGate minPlan="BUSINESS" featureName="Payments"><SmartPosPayments /></PlanGate> },
@@ -643,7 +643,7 @@ const Router = [
       { path: 'transfers', element: <PlanGate minPlan="BUSINESS" featureName="Transfers"><SmartPosTransfers /></PlanGate> },
       { path: 'deposits', element: <PlanGate minPlan="BUSINESS" featureName="Deposits"><SmartPosDeposits /></PlanGate> },
       { path: 'cash-management', element: <PlanGate minPlan="BUSINESS" featureName="Cash Management"><SmartPosCashManagement /></PlanGate> },
-      { path: 'supplier-payments', element: <PlanGate minPlan="BUSINESS" featureName="Supplier Payments"><SmartPosSupplierPayments /></PlanGate> },
+      { path: 'supplier-payments', element: <PlanGate minPlan="STARTER" featureName="Supplier Payments"><SmartPosSupplierPayments /></PlanGate> },
       // CRM
       { path: 'crm/leads', element: <PlanGate minPlan="PROFESSIONAL" featureName="CRM Leads"><SmartPosLeads /></PlanGate> },
       { path: 'crm/opportunities', element: <PlanGate minPlan="PROFESSIONAL" featureName="CRM Opportunities"><SmartPosOpportunities /></PlanGate> },

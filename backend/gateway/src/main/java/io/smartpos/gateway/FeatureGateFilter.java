@@ -36,7 +36,7 @@ public class FeatureGateFilter implements GlobalFilter, Ordered {
     static {
         // Financial features — BUSINESS+
         PLAN_GATES.put("/api/v1/accounting/", planOrdinal("BUSINESS"));
-        PLAN_GATES.put("/api/v1/purchases/", planOrdinal("BUSINESS"));
+        PLAN_GATES.put("/api/v1/purchases/", planOrdinal("STARTER"));
         PLAN_GATES.put("/api/v1/taxes/", planOrdinal("BUSINESS"));
         PLAN_GATES.put("/api/v1/deposits/", planOrdinal("BUSINESS"));
         PLAN_GATES.put("/api/v1/cash-management/", planOrdinal("BUSINESS"));

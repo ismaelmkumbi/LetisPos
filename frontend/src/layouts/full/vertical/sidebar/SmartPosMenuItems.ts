@@ -145,11 +145,11 @@ export function buildSmartPosMenu(t: TFunction): MenuItem[] {
     { id: uid(), title: 'Damage & Waste', icon: IconAlertTriangle, href: '/smartpos/stock/damage' },
 
     // ── Purchases ───────────────────────────────────────────────────────
-    { subheader: 'Purchases', minPlan: 'BUSINESS' },
-    { id: uid(), title: t('smartpos:nav.purchases'), icon: IconShoppingCart, href: '/smartpos/purchases', minPlan: 'BUSINESS' },
-    { id: uid(), title: 'Goods Received', icon: IconPackage, href: '/smartpos/purchases/received', minPlan: 'BUSINESS' },
-    { id: uid(), title: 'Supplier Returns', icon: IconArrowBackUp, href: '/smartpos/purchases/returns', minPlan: 'BUSINESS' },
-    { id: uid(), title: 'Supplier Payments', icon: IconCoin, href: '/smartpos/supplier-payments', minPlan: 'BUSINESS' },
+    { subheader: 'Purchases', minPlan: 'STARTER' },
+    { id: uid(), title: t('smartpos:nav.purchases'), icon: IconShoppingCart, href: '/smartpos/purchases', minPlan: 'STARTER' },
+    { id: uid(), title: 'Goods Received', icon: IconPackage, href: '/smartpos/purchases/received', minPlan: 'STARTER' },
+    { id: uid(), title: 'Supplier Returns', icon: IconArrowBackUp, href: '/smartpos/purchases/returns', minPlan: 'STARTER' },
+    { id: uid(), title: 'Supplier Payments', icon: IconCoin, href: '/smartpos/supplier-payments', minPlan: 'STARTER' },
 
     // ── Documents ────────────────────────────────────────────────────────
     { subheader: 'Documents' },
