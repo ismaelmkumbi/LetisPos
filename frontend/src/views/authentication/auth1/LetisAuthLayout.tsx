@@ -661,10 +661,9 @@ export default function LetisAuthLayout({
           <Stack
             direction="row" spacing={0.8} alignItems="center"
             sx={{
-              display: { xs: 'none', sm: 'flex' },
               position: 'absolute',
-              top: 24,
-              right: { sm: 28, xl: 44 },
+              top: { xs: 12, sm: 24 },
+              right: { xs: 12, sm: 28, xl: 44 },
               px: 1.2, py: 0.65,
               borderRadius: '999px',
               bgcolor: 'rgba(255,255,255,0.78)',

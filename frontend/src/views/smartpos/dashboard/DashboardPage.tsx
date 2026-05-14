@@ -19,7 +19,6 @@ import { useOnboarding } from 'src/context/smartpos/OnboardingContext';
 import { CustomizerContext } from 'src/context/CustomizerContext';
 import type { UUID } from 'src/api/smartpos/types';
 import { usePolling } from 'src/hooks/usePolling';
-import { brand } from 'src/theme/smartpos/brand';
 import { authTheme as at } from 'src/theme/smartpos/authTheme';
 import OnboardingBanner from './OnboardingBanner';
 import CelebrationModal from 'src/views/smartpos/onboarding/CelebrationModal';
@@ -360,51 +359,6 @@ export default function DashboardPage() {
           </Alert>
         );
       })()}
-
-      {/* Empty state — shown when dashboard has no sales data yet */}
-      {data && data.sales.net === 0 && data.sales.count === 0 && (
-        <Grid container spacing={1.5} sx={{ mb: 1.5 }}>
-          {[
-            { icon: '📊', title: "Today's sales", desc: 'Data appears after your first sale' },
-            { icon: '📦', title: 'Inventory overview', desc: 'Import products to see stock levels' },
-            { icon: '💰', title: 'Cash in hand', desc: 'Open a cash register to begin' },
-          ].map((card) => (
-            <Grid key={card.title} size={{ xs: 12, md: 4 }}>
-              <Box
-                sx={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  textAlign: 'center',
-                  minHeight: 180,
-                  bgcolor: '#FFFFFF',
-                  border: `1px dashed ${brand.neutral[200]}`,
-                  borderRadius: at.radius.lg,
-                  p: 3,
-                }}
-              >
-                <Typography sx={{ fontSize: '2rem', mb: 1, opacity: 0.5 }}>{card.icon}</Typography>
-                <Typography
-                  sx={{
-                    fontFamily: at.fontDisplay,
-                    fontSize: '1rem',
-                    fontWeight: 500,
-                    color: brand.neutral[900],
-                    opacity: 0.5,
-                    mb: 0.5,
-                  }}
-                >
-                  {card.title}
-                </Typography>
-                <Typography sx={{ fontSize: '0.72rem', color: brand.neutral[500], opacity: 0.6 }}>
-                  {card.desc}
-                </Typography>
-              </Box>
-            </Grid>
-          ))}
-        </Grid>
-      )}
 
       {error && (
         <Alert severity="error" sx={{ mb: 2, borderRadius: '12px' }}>
