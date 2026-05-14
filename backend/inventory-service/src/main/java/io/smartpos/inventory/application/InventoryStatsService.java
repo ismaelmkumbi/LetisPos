@@ -43,7 +43,7 @@ public class InventoryStatsService {
             """;
         Object[] row = (Object[]) em.createQuery(jpql)
                 .setParameter("warehouseId", warehouseId)
-                .setParameter("tenantId", TenantContext.require())
+                .setParameter("tenantId", TenantContext.get().orElse(null))
                 .getSingleResult();
         long   distinct  = ((Number) row[0]).longValue();
         BigDecimal onHand    = (BigDecimal) row[1];

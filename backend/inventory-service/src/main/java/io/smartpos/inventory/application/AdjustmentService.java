@@ -34,7 +34,7 @@ public class AdjustmentService {
 
     @Transactional(readOnly = true)
     public Page<AdjustmentDto> search(UUID warehouseId, LocalDate from, LocalDate to, Pageable p) {
-        return adjRepo.search(warehouseId, from, to, TenantContext.require(), p).map(AdjustmentDto::from);
+        return adjRepo.search(warehouseId, from, to, TenantContext.get().orElse(null), p).map(AdjustmentDto::from);
     }
 
     @Transactional(readOnly = true)

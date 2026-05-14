@@ -121,7 +121,7 @@ public class StockCountService {
     @Transactional(readOnly = true)
     public Page<StockCountDto.ListItem> list(String search, Pageable pageable) {
         String s = (search == null || search.isBlank()) ? "" : search;
-        return countRepo.search(s, TenantContext.require(), pageable)
+        return countRepo.search(s, TenantContext.get().orElse(null), pageable)
                 .map(c -> {
                     String whName = warehouseRepo.findById(c.getWarehouseId())
                             .map(Warehouse::getName)

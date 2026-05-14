@@ -65,7 +65,7 @@ public class ReorderRuleService {
         List<ReorderRule> rules = warehouseId != null
             ? repo.findByWarehouseIdAndActiveTrue(warehouseId)
             : repo.findAll().stream().filter(ReorderRule::isActive).toList();
-        UUID tenantId = TenantContext.require();
+        UUID tenantId = TenantContext.get().orElse(null);
         return rules.stream().filter(r -> {
             var opt = stockLevelRepo.find(r.getProductId(), r.getVariantId(), r.getWarehouseId(), tenantId);
             StockLevel sl = opt.orElse(null);

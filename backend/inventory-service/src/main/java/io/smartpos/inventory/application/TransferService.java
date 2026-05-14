@@ -33,7 +33,7 @@ public class TransferService {
 
     @Transactional(readOnly = true)
     public Page<TransferDto> search(TransferStatus status, LocalDate from, LocalDate to, Pageable p) {
-        return transferRepo.search(status, from, to, TenantContext.require(), p).map(TransferDto::from);
+        return transferRepo.search(status, from, to, TenantContext.get().orElse(null), p).map(TransferDto::from);
     }
 
     @Transactional(readOnly = true)

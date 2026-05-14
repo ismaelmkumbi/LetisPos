@@ -26,7 +26,7 @@ public class ReorderSuggestionController {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<ReorderSuggestion>> getSuggestions(
             @RequestHeader(value = "X-Tenant-ID", required = false) UUID tenantId) {
-        UUID resolvedTenantId = tenantId != null ? tenantId : TenantContext.require();
+        UUID resolvedTenantId = tenantId != null ? tenantId : TenantContext.get().orElse(null);
         return ResponseEntity.ok(reorderSuggestionService.generateSuggestions(resolvedTenantId));
     }
 }

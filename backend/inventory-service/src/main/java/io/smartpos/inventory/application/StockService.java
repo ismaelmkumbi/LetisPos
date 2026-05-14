@@ -52,7 +52,7 @@ public class StockService {
 
     @Transactional(readOnly = true)
     public StockLevelDto find(UUID productId, UUID variantId, UUID warehouseId) {
-        return stockRepo.find(productId, variantId, warehouseId, TenantContext.require())
+        return stockRepo.find(productId, variantId, warehouseId, TenantContext.get().orElse(null))
                 .map(StockLevelDto::from)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No stock row"));
     }
@@ -64,12 +64,12 @@ public class StockService {
 
     @Transactional(readOnly = true)
     public Page<StockLevelDto> lowStock(UUID warehouseId, Pageable p) {
-        return stockRepo.findLowStock(warehouseId, TenantContext.require(), p).map(StockLevelDto::from);
+        return stockRepo.findLowStock(warehouseId, TenantContext.get().orElse(null), p).map(StockLevelDto::from);
     }
 
     @Transactional(readOnly = true)
     public Map<UUID, StockLevelDto> batchLevels(UUID warehouseId, List<UUID> productIds) {
-        List<StockLevel> levels = stockRepo.findByWarehouseAndProducts(warehouseId, productIds, TenantContext.require());
+        List<StockLevel> levels = stockRepo.findByWarehouseAndProducts(warehouseId, productIds, TenantContext.get().orElse(null));
         Map<UUID, StockLevelDto> result = new LinkedHashMap<>();
         for (StockLevel s : levels) {
             result.put(s.getProductId(), StockLevelDto.from(s));
@@ -102,7 +102,7 @@ public class StockService {
                 .thenComparing(l -> l.warehouseId().toString())
                 .thenComparing(l -> l.variantId() == null ? "" : l.variantId().toString()));
 
-        UUID tenantId = TenantContext.require();
+        UUID tenantId = TenantContext.get().orElse(null);
         for (ReservationDto.Line line : sorted) {
             StockLevel s = stockRepo.findForUpdate(line.productId(), line.variantId(), line.warehouseId(), tenantId)
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.CONFLICT,
@@ -148,7 +148,7 @@ public class StockService {
         }
 
         List<ReservationLine> lines = fromJson(r.getLinesJson());
-        UUID tenantId = TenantContext.require();
+        UUID tenantId = TenantContext.get().orElse(null);
 
         for (ReservationLine line : lines) {
             StockLevel s = stockRepo.findForUpdate(line.productId(), line.variantId(), line.warehouseId(), tenantId)
@@ -186,7 +186,7 @@ public class StockService {
         StockReservation r = reservationRepo.findBySaleId(saleId).orElse(null);
         if (r == null || r.getStatus() != ReservationStatus.ACTIVE) return;
 
-        UUID tenantId = TenantContext.require();
+        UUID tenantId = TenantContext.get().orElse(null);
         List<ReservationLine> lines = fromJson(r.getLinesJson());
         for (ReservationLine line : lines) {
             StockLevel s = stockRepo.findForUpdate(line.productId(), line.variantId(), line.warehouseId(), tenantId)
@@ -228,7 +228,7 @@ public class StockService {
 
     @Transactional
     public StockLevel upsert(UUID productId, UUID variantId, UUID warehouseId) {
-        UUID tenantId = TenantContext.require();
+        UUID tenantId = TenantContext.get().orElse(null);
         return stockRepo.findForUpdate(productId, variantId, warehouseId, tenantId).orElseGet(() -> {
             log.info("Creating new stock_levels row for product={} variant={} warehouse={}",
                     productId, variantId, warehouseId);
