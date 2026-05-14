@@ -21,6 +21,8 @@ export default function SalesReportPage() {
   const [filters, setFilters] = useState<ReportFilters>({ dateFrom: startOfMonth(), dateTo: todayIso(), warehouseId: '', period: 'MONTH' });
   const [sales, setSales] = useState<SalesSummary | null>(null);
   const [topProducts, setTopProducts] = useState<TopProduct[]>([]);
+  const [productNames, setProductNames] = useState<Record<string, string>>({});
+  const [customerNames, setCustomerNames] = useState<Record<string, string>>({});
   const [topCustomers, setTopCustomers] = useState<TopCustomer[]>([]);
   const [byDimension, setByDimension] = useState<SalesByDimensionReport | null>(null);
   const [hourly, setHourly] = useState<HourlyBucket[]>([]);
@@ -75,14 +77,52 @@ export default function SalesReportPage() {
     legend: { position: 'top', fontSize: '12px' },
   }), [sales]);
 
+  // Resolve product names for any products missing them
+  useEffect(() => {
+    const missing = topProducts.filter(tp => !tp.productName).map(tp => tp.productId);
+    if (missing.length === 0) return;
+    let cancelled = false;
+    import('src/api/smartpos/products').then(({ listProducts }) => {
+      listProducts({ size: 200 }).then(p => {
+        if (cancelled) return;
+        setProductNames(prev => {
+          const next = { ...prev };
+          for (const prod of p.content) next[prod.id] = prod.name;
+          for (const id of missing) { if (!next[id]) next[id] = id.slice(0, 8) + '…'; }
+          return next;
+        });
+      }).catch(() => {});
+    });
+    return () => { cancelled = true; };
+  }, [topProducts]);
+
   const productColumns: Column<TopProduct>[] = [
-    { id: 'name', label: 'Product', render: (r) => r.productName ?? r.productId.slice(0, 8) },
+    { id: 'name', label: 'Product', render: (r) => r.productName ?? productNames[r.productId] ?? r.productId.slice(0, 8) },
     { id: 'qty', label: 'Qty Sold', align: 'right', render: (r) => formatNumber(r.qty) },
     { id: 'revenue', label: 'Revenue', align: 'right', render: (r) => formatMoney(r.revenue) },
   ];
 
+  // Resolve customer names
+  useEffect(() => {
+    const missing = topCustomers.map(tc => tc.customerId).filter(id => !customerNames[id]);
+    if (missing.length === 0) return;
+    let cancelled = false;
+    import('src/api/smartpos/customers').then(({ listCustomers }) => {
+      listCustomers({ size: 200 }).then(p => {
+        if (cancelled) return;
+        setCustomerNames(prev => {
+          const next = { ...prev };
+          for (const c of p.content) next[c.id] = c.name;
+          for (const id of missing) { if (!next[id]) next[id] = id.slice(0, 8) + '…'; }
+          return next;
+        });
+      }).catch(() => {});
+    });
+    return () => { cancelled = true; };
+  }, [topCustomers]);
+
   const customerColumns: Column<TopCustomer>[] = [
-    { id: 'customer', label: 'Customer', render: (r) => r.customerId.slice(0, 8) },
+    { id: 'customer', label: 'Customer', render: (r) => customerNames[r.customerId] ?? r.customerId.slice(0, 8) },
     { id: 'orders', label: 'Orders', align: 'right', render: (r) => formatNumber(r.orderCount) },
     { id: 'spent', label: 'Total Spent', align: 'right', render: (r) => formatMoney(r.totalSpent) },
   ];
