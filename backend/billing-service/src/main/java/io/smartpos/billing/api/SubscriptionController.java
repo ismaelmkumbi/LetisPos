@@ -102,6 +102,24 @@ public class SubscriptionController {
         return ResponseEntity.ok(subscriptionRepo.save(sub));
     }
 
+    @PostMapping("/{id}/upgrade")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Subscription> upgrade(
+            @PathVariable UUID id,
+            @RequestBody Map<String, String> body) {
+        Subscription sub = subscriptionRepo.findById(id)
+            .orElseThrow(() -> new IllegalArgumentException("Subscription not found: " + id));
+        String planCode = body.get("planCode");
+        if (planCode == null || planCode.isBlank()) {
+            throw new IllegalArgumentException("planCode is required");
+        }
+        sub.setPlanCode(planCode);
+        if (body.containsKey("billingCycle")) {
+            sub.setBillingCycle(body.get("billingCycle"));
+        }
+        return ResponseEntity.ok(subscriptionRepo.save(sub));
+    }
+
     @PostMapping("/{id}/checkout")
     @PreAuthorize("hasAuthority('billing.manage') or @tenantOwnershipCheck.isCurrentTenant(#tenantId)")
     public ResponseEntity<Map<String, String>> createCheckout(
