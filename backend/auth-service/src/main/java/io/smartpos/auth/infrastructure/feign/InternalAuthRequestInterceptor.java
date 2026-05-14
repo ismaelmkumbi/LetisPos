@@ -17,8 +17,12 @@ import org.springframework.stereotype.Component;
 @Component
 public class InternalAuthRequestInterceptor implements RequestInterceptor {
 
-    @Value("${smartpos.internal.shared-secret:dev-internal-token-change-me}")
-    private String sharedSecret;
+    private final String sharedSecret;
+
+    public InternalAuthRequestInterceptor(
+            @Value("${smartpos.internal.shared-secret:dev-internal-token-change-me}") String sharedSecret) {
+        this.sharedSecret = sharedSecret;
+    }
 
     @Override
     public void apply(RequestTemplate template) {
@@ -34,8 +38,9 @@ public class InternalAuthRequestInterceptor implements RequestInterceptor {
      */
     public static class Config {
         @Bean
-        public RequestInterceptor smartposInternalTokenInterceptor() {
-            return new InternalAuthRequestInterceptor();
+        public RequestInterceptor smartposInternalTokenInterceptor(
+                @Value("${smartpos.internal.shared-secret:dev-internal-token-change-me}") String secret) {
+            return new InternalAuthRequestInterceptor(secret);
         }
     }
 }
