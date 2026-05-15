@@ -39,6 +39,10 @@ smartpos:
     shared-secret: ${SMARTPOS_INTERNAL_SHARED_SECRET:dev-internal-token-change-me}
   ai:
     sales-service-url: ${SALES_SERVICE_URL:http://localhost:8085}
+    inventory-service-url: ${INVENTORY_SERVICE_URL:http://localhost:8084}
+    product-service-url: ${PRODUCT_SERVICE_URL:http://localhost:8083}
+    payment-service-url: ${PAYMENT_SERVICE_URL:http://localhost:8086}
+    customer-service-url: ${CUSTOMER_SERVICE_URL:http://localhost:8085}
     # Active provider — one of: anthropic | openai | deepseek | stub
     provider: ${AI_PROVIDER:stub}
     anthropic:

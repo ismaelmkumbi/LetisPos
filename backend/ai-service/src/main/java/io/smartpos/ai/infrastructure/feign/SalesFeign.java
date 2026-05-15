@@ -50,4 +50,11 @@ public interface SalesFeign {
                     @RequestParam(required = false) String status,
                     @RequestParam(defaultValue = "0") int page,
                     @RequestParam(defaultValue = "1000") int size);
+
+    // ---- Recent sales (compact) ----
+
+    record RecentSale(UUID id, String ref, LocalDate date, String customerName, BigDecimal total) {}
+
+    @GetMapping("/api/v1/sales/recent")
+    List<RecentSale> recent(@RequestParam(defaultValue = "10") int limit);
 }
