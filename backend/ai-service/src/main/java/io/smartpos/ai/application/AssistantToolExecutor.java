@@ -22,19 +22,21 @@ public class AssistantToolExecutor {
     private final ProductFeign productFeign;
     private final PaymentFeign paymentFeign;
     private final CustomerFeign customerFeign;
+    private final AdminFeign adminFeign;
     private final AssistantDraftRepository draftRepo;
     private final ObjectMapper om = new ObjectMapper();
 
     public AssistantToolExecutor(ReportFeign reportFeign, SalesFeign salesFeign,
                                   InventoryFeign inventoryFeign, ProductFeign productFeign,
                                   PaymentFeign paymentFeign, CustomerFeign customerFeign,
-                                  AssistantDraftRepository draftRepo) {
+                                  AdminFeign adminFeign, AssistantDraftRepository draftRepo) {
         this.reportFeign = reportFeign;
         this.salesFeign = salesFeign;
         this.inventoryFeign = inventoryFeign;
         this.productFeign = productFeign;
         this.paymentFeign = paymentFeign;
         this.customerFeign = customerFeign;
+        this.adminFeign = adminFeign;
         this.draftRepo = draftRepo;
     }
 
@@ -49,6 +51,7 @@ public class AssistantToolExecutor {
             case "getLowStock" -> getLowStock(args);
             case "searchProducts" -> searchProducts(args);
             case "getRecentSales" -> getRecentSales(args);
+            case "listTenants" -> listTenants(args);
             default -> throw new IllegalArgumentException("Unknown tool: " + toolName);
         };
     }
@@ -225,6 +228,29 @@ public class AssistantToolExecutor {
         data.put("rows", sales.stream().map(s -> List.of(
             s.ref(), s.date(), s.customerName(), s.total())).collect(Collectors.toList()));
         return new AssistantDtos.ToolResult("table", "Recent Sales", data);
+    }
+
+    // ── Admin tools ──
+
+    private AssistantDtos.ToolResult listTenants(Map<String, Object> args) {
+        String statusFilter = (String) args.get("status");
+        var tenants = adminFeign.listAllTenants();
+        var filtered = statusFilter != null
+            ? tenants.stream()
+                .filter(t -> statusFilter.equalsIgnoreCase(String.valueOf(t.get("status"))))
+                .toList()
+            : tenants;
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("columns", List.of("Name","Slug","Plan","Status"));
+        data.put("rows", filtered.stream().map(t -> List.of(
+            t.getOrDefault("name", ""),
+            t.getOrDefault("slug", ""),
+            t.getOrDefault("billingPlan", ""),
+            t.getOrDefault("status", "")
+        )).collect(Collectors.toList()));
+        return new AssistantDtos.ToolResult("table",
+            "Tenants" + (statusFilter != null ? " (" + statusFilter + ")" : "")
+            + " — " + filtered.size() + " total", data);
     }
 
     // ── Write tool implementations ──
