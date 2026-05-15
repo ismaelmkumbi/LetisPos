@@ -1,4 +1,4 @@
-import { api } from './client';
+import { api, TOKEN_KEY } from './client';
 
 export interface ChatRequest {
   message: string;
@@ -31,7 +31,7 @@ export async function* streamChat(
   request: ChatRequest,
   signal?: AbortSignal,
 ): AsyncGenerator<StreamEvent> {
-  const token = localStorage.getItem('accessToken') || '';
+  const token = localStorage.getItem(TOKEN_KEY) || '';
 
   const response = await fetch(`/api/v1/ai/assistant/chat`, {
     method: 'POST',
