@@ -222,12 +222,15 @@ public class AssistantToolExecutor {
     private AssistantDtos.ToolResult getRecentSales(Map<String, Object> args) {
         int limit = args.containsKey("limit")
             ? ((Number) args.get("limit")).intValue() : 10;
-        var sales = salesFeign.recent(limit);
+        var page = salesFeign.search(null, null, null, null, null, 0, limit);
+        var sales = page.content();
         Map<String, Object> data = new LinkedHashMap<>();
-        data.put("columns", List.of("Ref","Date","Customer","Total"));
+        data.put("columns", List.of("Ref","Date","Status","Total"));
         data.put("rows", sales.stream().map(s -> List.of(
-            s.ref(), s.date(), s.customerName(), s.total())).collect(Collectors.toList()));
-        return new AssistantDtos.ToolResult("table", "Recent Sales", data);
+            s.ref(), s.date().toString(), s.status(),
+            s.grandTotal())).collect(Collectors.toList()));
+        return new AssistantDtos.ToolResult("table",
+            "Recent Sales (" + sales.size() + ")", data);
     }
 
     // ── Admin tools ──
