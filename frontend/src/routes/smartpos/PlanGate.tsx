@@ -43,3 +43,5 @@ export default function PlanGate({ minPlan, featureName, children }: PlanGatePro
 
   return <>{children}</>;
 }
+
+
