@@ -17,7 +17,7 @@ public interface DepositRepository extends JpaRepository<Deposit, UUID> {
            WHERE (:accountId  IS NULL OR d.accountId  = :accountId)
              AND (:categoryId IS NULL OR d.categoryId = :categoryId)
              AND (:dateFrom   IS NULL OR d.date >= :dateFrom)
-             AND (:dateTo     IS NULL OR d.date <= :dateTo)
+             AND (CAST(:dateTo AS java.time.LocalDate) IS NULL OR d.date <= :dateTo)
              AND d.tenantId = :tenantId
            """)
     Page<Deposit> search(@Param("accountId")  UUID accountId,

@@ -18,8 +18,8 @@ public interface QuotationRepository extends JpaRepository<Quotation, UUID> {
     @EntityGraph(attributePaths = "lines")
     @Query("""
            SELECT q FROM Quotation q
-           WHERE (:dateFrom IS NULL OR q.date >= :dateFrom)
-             AND (:dateTo   IS NULL OR q.date <= :dateTo)
+           WHERE (CAST(:dateFrom AS java.time.LocalDate) IS NULL OR q.date >= :dateFrom)
+             AND (CAST(:dateTo AS java.time.LocalDate) IS NULL OR q.date <= :dateTo)
              AND (:customerId IS NULL OR q.customerId = :customerId)
              AND (:status    IS NULL OR q.status = :status)
              AND q.tenantId = :tenantId

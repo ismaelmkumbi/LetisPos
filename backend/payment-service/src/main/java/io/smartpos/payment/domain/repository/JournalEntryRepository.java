@@ -20,8 +20,8 @@ public interface JournalEntryRepository extends JpaRepository<JournalEntry, UUID
     @Query("""
            SELECT j FROM JournalEntry j
            WHERE (:status IS NULL OR j.status = :status)
-             AND (:from   IS NULL OR j.entryDate >= :from)
-             AND (:to     IS NULL OR j.entryDate <= :to)
+             AND (CAST(:from AS java.time.LocalDate) IS NULL OR j.entryDate >= :from)
+             AND (CAST(:to   AS java.time.LocalDate) IS NULL OR j.entryDate <= :to)
              AND (:source IS NULL OR j.source = :source)
              AND j.tenantId = :tenantId
            ORDER BY j.entryDate DESC, j.createdAt DESC
@@ -44,8 +44,8 @@ public interface JournalEntryRepository extends JpaRepository<JournalEntry, UUID
                   COALESCE(SUM(l.credit), 0)
            FROM JournalEntry j JOIN j.lines l
            WHERE j.status = io.smartpos.payment.domain.model.JournalStatus.POSTED
-             AND (:from IS NULL OR j.entryDate >= :from)
-             AND (:to   IS NULL OR j.entryDate <= :to)
+             AND (CAST(:from AS java.time.LocalDate) IS NULL OR j.entryDate >= :from)
+             AND (CAST(:to   AS java.time.LocalDate) IS NULL OR j.entryDate <= :to)
              AND j.tenantId = :tenantId
            GROUP BY l.accountId
            """)

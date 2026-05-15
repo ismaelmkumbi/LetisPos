@@ -15,8 +15,8 @@ public interface LedgerRepository extends JpaRepository<LedgerEntry, UUID> {
     @Query("""
            SELECT l FROM LedgerEntry l
            WHERE l.accountId = :accountId
-             AND (:dateFrom IS NULL OR l.txnDate >= :dateFrom)
-             AND (:dateTo   IS NULL OR l.txnDate <= :dateTo)
+             AND (CAST(:dateFrom AS java.time.LocalDate) IS NULL OR l.txnDate >= :dateFrom)
+             AND (CAST(:dateTo AS java.time.LocalDate) IS NULL OR l.txnDate <= :dateTo)
              AND l.tenantId = :tenantId
            ORDER BY l.txnDate DESC, l.createdAt DESC
            """)

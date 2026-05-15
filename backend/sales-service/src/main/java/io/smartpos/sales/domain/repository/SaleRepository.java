@@ -21,8 +21,8 @@ public interface SaleRepository extends JpaRepository<Sale, UUID> {
     @EntityGraph(attributePaths = "lines")
     @Query("""
            SELECT s FROM Sale s
-           WHERE (:dateFrom IS NULL OR s.date >= :dateFrom)
-             AND (:dateTo   IS NULL OR s.date <= :dateTo)
+           WHERE (CAST(:dateFrom AS java.time.LocalDate) IS NULL OR s.date >= :dateFrom)
+             AND (CAST(:dateTo AS java.time.LocalDate) IS NULL OR s.date <= :dateTo)
              AND (:customerId IS NULL OR s.customerId = :customerId)
              AND (:warehouseId IS NULL OR s.warehouseId = :warehouseId)
              AND (:status    IS NULL OR s.status = :status)
@@ -64,8 +64,8 @@ public interface SaleRepository extends JpaRepository<Sale, UUID> {
         FROM Sale s
         WHERE s.tenantId = :tenantId
           AND s.status = 'CONFIRMED'
-          AND (:dateFrom IS NULL OR s.date >= :dateFrom)
-          AND (:dateTo IS NULL OR s.date <= :dateTo)
+          AND (CAST(:dateFrom AS java.time.LocalDate) IS NULL OR s.date >= :dateFrom)
+          AND (CAST(:dateTo AS java.time.LocalDate) IS NULL OR s.date <= :dateTo)
         GROUP BY s.userId
         ORDER BY SUM(s.grandTotal) DESC
         """)

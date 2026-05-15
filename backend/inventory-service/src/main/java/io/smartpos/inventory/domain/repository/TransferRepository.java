@@ -17,8 +17,8 @@ public interface TransferRepository extends JpaRepository<Transfer, UUID> {
     @Query("""
            SELECT t FROM Transfer t
            WHERE (:status IS NULL OR t.status = :status)
-             AND (:dateFrom IS NULL OR t.date >= :dateFrom)
-             AND (:dateTo   IS NULL OR t.date <= :dateTo)
+             AND (CAST(:dateFrom AS java.time.LocalDate) IS NULL OR t.date >= :dateFrom)
+             AND (CAST(:dateTo AS java.time.LocalDate) IS NULL OR t.date <= :dateTo)
              AND t.tenantId = :tenantId
            """)
     Page<Transfer> search(@Param("status") TransferStatus status,

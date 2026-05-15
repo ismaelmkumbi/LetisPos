@@ -20,7 +20,7 @@ public interface PaymentRepository extends JpaRepository<Payment, UUID> {
              AND (:referenceId   IS NULL OR p.referenceId   = :referenceId)
              AND (:accountId     IS NULL OR p.accountId     = :accountId)
              AND (:dateFrom      IS NULL OR p.date >= :dateFrom)
-             AND (:dateTo        IS NULL OR p.date <= :dateTo)
+             AND (CAST(:dateTo AS java.time.LocalDate) IS NULL OR p.date <= :dateTo)
              AND p.tenantId = :tenantId
            """)
     Page<Payment> search(@Param("referenceType") ReferenceType referenceType,
@@ -47,8 +47,8 @@ public interface PaymentRepository extends JpaRepository<Payment, UUID> {
         WHERE p.reference_type = 'PURCHASE'
           AND p.tenant_id = :tenantId\s
           AND (:method IS NULL OR p.method = :method)
-          AND (:dateFrom IS NULL OR p.date >= CAST(:dateFrom AS date))
-          AND (:dateTo IS NULL OR p.date <= CAST(:dateTo AS date))
+          AND (CAST(:dateFrom AS java.time.LocalDate) IS NULL OR p.date >= CAST(:dateFrom AS date))
+          AND (CAST(:dateTo AS java.time.LocalDate) IS NULL OR p.date <= CAST(:dateTo AS date))
         ORDER BY p.date DESC
         """, nativeQuery = true)
     Page<Object[]> findSupplierPaymentsRaw(@Param("tenantId") UUID tenantId,

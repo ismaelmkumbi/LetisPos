@@ -18,8 +18,8 @@ public interface PurchaseRepository extends JpaRepository<Purchase, UUID> {
     @EntityGraph(attributePaths = "lines")
     @Query("""
            SELECT p FROM Purchase p
-           WHERE (:dateFrom IS NULL OR p.date >= :dateFrom)
-             AND (:dateTo   IS NULL OR p.date <= :dateTo)
+           WHERE (CAST(:dateFrom AS java.time.LocalDate) IS NULL OR p.date >= :dateFrom)
+             AND (CAST(:dateTo AS java.time.LocalDate) IS NULL OR p.date <= :dateTo)
              AND (:supplierId IS NULL OR p.supplierId = :supplierId)
              AND (:warehouseId IS NULL OR p.warehouseId = :warehouseId)
              AND (:status    IS NULL OR p.status = :status)
@@ -39,8 +39,8 @@ public interface PurchaseRepository extends JpaRepository<Purchase, UUID> {
            WHERE p.tenantId = :tenantId
              AND p.status IN ('ORDERED', 'RECEIVED')
              AND (:supplierId IS NULL OR p.supplierId = :supplierId)
-             AND (:dateFrom IS NULL OR p.date >= :dateFrom)
-             AND (:dateTo IS NULL OR p.date <= :dateTo)
+             AND (CAST(:dateFrom AS java.time.LocalDate) IS NULL OR p.date >= :dateFrom)
+             AND (CAST(:dateTo AS java.time.LocalDate) IS NULL OR p.date <= :dateTo)
            ORDER BY p.date DESC
            """)
     Page<Purchase> findReceived(@Param("tenantId") UUID tenantId,

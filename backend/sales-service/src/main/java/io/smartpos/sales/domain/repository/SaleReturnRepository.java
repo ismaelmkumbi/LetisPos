@@ -39,8 +39,8 @@ public interface SaleReturnRepository extends JpaRepository<SaleReturn, UUID> {
      */
     @Query("""
            SELECT r FROM SaleReturn r
-           WHERE (:from IS NULL OR r.date >= :from)
-             AND (:to   IS NULL OR r.date <= :to)
+           WHERE (CAST(:from AS java.time.LocalDate) IS NULL OR r.date >= :from)
+             AND (CAST(:to AS java.time.LocalDate) IS NULL OR r.date <= :to)
              AND (:customerId  IS NULL OR r.customerId  = :customerId)
              AND (:warehouseId IS NULL OR r.warehouseId = :warehouseId)
              AND (:status      IS NULL OR r.status      = :status)

@@ -39,8 +39,8 @@ public interface PurchaseReturnRepository extends JpaRepository<PurchaseReturn, 
           AND (:search IS NULL OR LOWER(r.ref) LIKE LOWER(CONCAT('%', :search, '%')))
           AND (:status IS NULL OR r.status = :status)
           AND (:supplierId IS NULL OR r.supplierId = :supplierId)
-          AND (:dateFrom IS NULL OR r.date >= :dateFrom)
-          AND (:dateTo IS NULL OR r.date <= :dateTo)
+          AND (CAST(:dateFrom AS java.time.LocalDate) IS NULL OR r.date >= :dateFrom)
+          AND (CAST(:dateTo AS java.time.LocalDate) IS NULL OR r.date <= :dateTo)
         ORDER BY r.date DESC
         """)
     Page<PurchaseReturn> search(@Param("tenantId") UUID tenantId,

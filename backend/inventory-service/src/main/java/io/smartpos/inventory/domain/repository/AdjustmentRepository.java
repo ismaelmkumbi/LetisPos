@@ -18,8 +18,8 @@ public interface AdjustmentRepository extends JpaRepository<Adjustment, UUID> {
     @Query("""
            SELECT a FROM Adjustment a
            WHERE (:warehouseId IS NULL OR a.warehouseId = :warehouseId)
-             AND (:dateFrom IS NULL OR a.date >= :dateFrom)
-             AND (:dateTo   IS NULL OR a.date <= :dateTo)
+             AND (CAST(:dateFrom AS java.time.LocalDate) IS NULL OR a.date >= :dateFrom)
+             AND (CAST(:dateTo AS java.time.LocalDate) IS NULL OR a.date <= :dateTo)
              AND a.tenantId = :tenantId
            """)
     Page<Adjustment> search(@Param("warehouseId") UUID warehouseId,

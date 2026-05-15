@@ -17,7 +17,7 @@ public interface ExpenseRepository extends JpaRepository<Expense, UUID> {
            WHERE (:accountId  IS NULL OR e.accountId  = :accountId)
              AND (:categoryId IS NULL OR e.categoryId = :categoryId)
              AND (:dateFrom   IS NULL OR e.date >= :dateFrom)
-             AND (:dateTo     IS NULL OR e.date <= :dateTo)
+             AND (CAST(:dateTo AS java.time.LocalDate) IS NULL OR e.date <= :dateTo)
              AND e.tenantId = :tenantId
            """)
     Page<Expense> search(@Param("accountId")  UUID accountId,
