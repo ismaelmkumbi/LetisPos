@@ -49,12 +49,12 @@ const SidebarItems = () => {
   const pathWithoutLastPart = pathname.slice(0, pathname.lastIndexOf('/'));
   const { isCollapse, isMobileSidebar, setIsMobileSidebar } = useContext(CustomizerContext);
   const { t } = useTranslation('smartpos');
-  const { tenants, hasPermission } = useAuth();
+  const { tenants, hasPermission, hasRole } = useAuth();
 
   const lgUp = useMediaQuery((theme: any) => theme.breakpoints.up('lg'));
   const hideMenu: any = lgUp ? isCollapse == "mini-sidebar" : '';
 
-  const isAdmin = hasPermission('admin');
+  const isAdmin = hasPermission('admin') || hasRole('SUPER_ADMIN');
   const billingPlan = isAdmin ? 'ENTERPRISE' : (tenants[0]?.billingPlan ?? 'STARTER');
 
   const isSmartPos = pathname.startsWith('/smartpos');

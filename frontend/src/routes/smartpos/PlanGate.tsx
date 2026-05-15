@@ -11,9 +11,10 @@ interface PlanGateProps {
 }
 
 export default function PlanGate({ minPlan, featureName, children }: PlanGateProps) {
-  const { tenants, isTrialing } = useAuth();
+  const { tenants, isTrialing, hasRole } = useAuth();
   const currentPlan = tenants[0]?.billingPlan ?? 'STARTER';
-  const hasAccess = (PLAN_LEVEL[currentPlan] ?? 0) >= (PLAN_LEVEL[minPlan] ?? 0);
+  const hasAccess = hasRole('SUPER_ADMIN') ||
+    (PLAN_LEVEL[currentPlan] ?? 0) >= (PLAN_LEVEL[minPlan] ?? 0);
 
   if (!hasAccess) {
     return (

@@ -97,12 +97,13 @@ export function SmartPosAuthProvider({ children }: { children: React.ReactNode }
   }, [user]);
 
   const hasPlan = useCallback((minPlan: string): boolean => {
+    if (user?.roles?.includes('SUPER_ADMIN')) return true;
     const tenant = tenants[0];
     if (!tenant) return false;
     const current = PLAN_LEVEL[tenant.billingPlan] ?? 0;
     const required = PLAN_LEVEL[minPlan] ?? 0;
     return current >= required;
-  }, [tenants]);
+  }, [tenants, user?.roles]);
 
   const isTrialing = useCallback((): boolean => {
     const tenant = tenants[0];

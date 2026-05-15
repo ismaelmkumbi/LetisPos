@@ -140,6 +140,12 @@ public class FeatureGateFilter implements GlobalFilter, Ordered {
                 .filter(principal -> principal instanceof Jwt)
                 .cast(Jwt.class)
                 .flatMap(jwt -> {
+                    @SuppressWarnings("unchecked")
+                    var roles = (java.util.List<String>) jwt.getClaims().get("roles");
+                    if (roles != null && roles.contains("SUPER_ADMIN")) {
+                        return chain.filter(exchange);
+                    }
+
                     String billingPlanClaim = jwt.getClaimAsString("billingPlan");
 
                     if (billingPlanClaim == null) {
