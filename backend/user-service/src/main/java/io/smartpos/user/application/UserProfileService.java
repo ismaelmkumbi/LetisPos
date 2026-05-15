@@ -97,7 +97,9 @@ public class UserProfileService {
             boolean isFirstInTenant = tenantId != null && userRepo.countByTenantId(tenantId) == 0;
             String roleName = isFirstInTenant ? "TENANT_ADMIN" : "CASHIER";
             roleRepo.findByNameIgnoreCase(roleName).ifPresent(role -> {
-                profile.getRoles().add(role);
+                if (!profile.getRoles().contains(role)) {
+                    profile.getRoles().add(role);
+                }
             });
         }
 
