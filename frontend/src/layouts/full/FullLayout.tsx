@@ -13,6 +13,9 @@ import config from 'src/context/config';
 import { CommandPalette } from 'src/components/smartpos/CommandPalette';
 import { KeyboardShortcutsHelp } from 'src/components/smartpos/KeyboardShortcuts';
 import { FloatingActions } from 'src/components/smartpos/FloatingActions';
+import { AssistantProvider } from 'src/context/smartpos/AssistantContext';
+import ChatFAB from 'src/components/smartpos/assistant/ChatFAB';
+import ChatOverlay from 'src/components/smartpos/assistant/ChatOverlay';
 import { BreadcrumbNav } from 'src/components/smartpos/BreadcrumbNav';
 import MobileBottomNav from 'src/components/smartpos/MobileBottomNav';
 import MoreMenuSheet from 'src/components/smartpos/MoreMenuSheet';
@@ -140,6 +143,12 @@ const FullLayout: FC = () => {
 
           {/* Floating Action Button for quick actions */}
           <FloatingActions />
+
+          {/* AI Assistant — chat overlay across all SmartPOS pages */}
+          <AssistantProvider>
+            <ChatFAB />
+            <ChatOverlay />
+          </AssistantProvider>
 
           {/* Mobile bottom nav + more menu sheet */}
           <MobileBottomNav />
