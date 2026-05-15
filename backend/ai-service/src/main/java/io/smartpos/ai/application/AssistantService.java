@@ -53,10 +53,17 @@ public class AssistantService {
         var roles = (List<String>) jwt.getClaims().get("roles");
         boolean isSuperAdmin = roles != null && roles.contains("SUPER_ADMIN");
 
+        // Capture auth for background thread
+        String jwtToken = jwt.getTokenValue();
+        var securityCtx = org.springframework.security.core.context.SecurityContextHolder.getContext();
+
         SseEmitter emitter = new SseEmitter(120_000L); // 2 minute timeout
 
         new Thread(() -> {
             try {
+                // Propagate security context to background thread for Feign calls
+                org.springframework.security.core.context.SecurityContextHolder.setContext(securityCtx);
+                TenantContext.set(tenantId);
                 processConversation(emitter, systemPrompt, userMessage, tools, userId, tenantId, 0, isSuperAdmin);
                 emitter.complete();
             } catch (Exception e) {
@@ -69,6 +76,9 @@ public class AssistantService {
                 } catch (IOException ignored) {
                     // client disconnected
                 }
+            } finally {
+                TenantContext.clear();
+                SecurityContextHolder.clearContext();
             }
         }).start();
 
