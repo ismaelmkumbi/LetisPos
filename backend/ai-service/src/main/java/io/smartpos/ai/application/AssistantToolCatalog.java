@@ -126,10 +126,29 @@ public class AssistantToolCatalog {
 
     private List<ToolDef> adminTools() {
         return List.of(
-            new ToolDef("listTenants", "List all tenants on the platform",
+            new ToolDef("getTenantList", "List platform tenants. Filter by status (TRIAL, ACTIVE, SUSPENDED, PAST_DUE), plan (STARTER, BUSINESS, PROFESSIONAL, ENTERPRISE, FREE), or both.",
                 Map.of("type","object","properties", Map.of(
-                    "status", Map.of("type","string","enum",List.of("TRIAL","ACTIVE","SUSPENDED","PAST_DUE"))
-                ),"required",List.of()), false, null)
+                    "status", Map.of("type","string","enum",
+                        List.of("TRIAL","ACTIVE","SUSPENDED","PAST_DUE")),
+                    "plan", Map.of("type","string","enum",
+                        List.of("STARTER","BUSINESS","PROFESSIONAL","ENTERPRISE","FREE"))
+                ),"required",List.of()), false, null),
+
+            new ToolDef("getPlatformStats", "Get platform-wide stats: total tenants, counts by status and plan",
+                Map.of("type","object","properties", Map.of()), false, null),
+
+            new ToolDef("getPlatformSales", "Get total sales across all tenants for a date range",
+                Map.of("type","object","properties", Map.of(
+                    "dateFrom", Map.of("type","string","description","Start date YYYY-MM-DD, default 7 days ago"),
+                    "dateTo", Map.of("type","string","description","End date YYYY-MM-DD, default today")
+                ),"required",List.of()), false, null),
+
+            new ToolDef("getTenantDetail", "Get sales, stock, and product summary for a specific tenant",
+                Map.of("type","object","properties", Map.of(
+                    "tenantId", Map.of("type","string","description","Tenant UUID or name to look up"),
+                    "dateFrom", Map.of("type","string","description","Start date YYYY-MM-DD"),
+                    "dateTo", Map.of("type","string","description","End date YYYY-MM-DD")
+                ),"required",List.of("tenantId")), false, null)
         );
     }
 }

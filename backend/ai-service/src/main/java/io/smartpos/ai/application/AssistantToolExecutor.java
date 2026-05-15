@@ -7,10 +7,13 @@ import io.smartpos.ai.infrastructure.feign.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Component;
 
+import io.smartpos.common.context.TenantContext;
+
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 @Component
@@ -51,7 +54,11 @@ public class AssistantToolExecutor {
             case "getLowStock" -> getLowStock(args);
             case "searchProducts" -> searchProducts(args);
             case "getRecentSales" -> getRecentSales(args);
-            case "listTenants" -> listTenants(args);
+            case "getTenantList" -> getTenantList(args);
+            case "listTenants" -> getTenantList(args); // backwards compat
+            case "getPlatformStats" -> getPlatformStats(args);
+            case "getPlatformSales" -> getPlatformSales(args);
+            case "getTenantDetail" -> getTenantDetail(args);
             default -> throw new IllegalArgumentException("Unknown tool: " + toolName);
         };
     }
@@ -235,14 +242,16 @@ public class AssistantToolExecutor {
 
     // ── Admin tools ──
 
-    private AssistantDtos.ToolResult listTenants(Map<String, Object> args) {
+    private AssistantDtos.ToolResult getTenantList(Map<String, Object> args) {
         String statusFilter = (String) args.get("status");
+        String planFilter = (String) args.get("plan");
         var tenants = adminFeign.listAllTenants();
-        var filtered = statusFilter != null
-            ? tenants.stream()
-                .filter(t -> statusFilter.equalsIgnoreCase(String.valueOf(t.get("status"))))
-                .toList()
-            : tenants;
+        var filtered = tenants.stream()
+            .filter(t -> statusFilter == null
+                || statusFilter.equalsIgnoreCase(String.valueOf(t.get("status"))))
+            .filter(t -> planFilter == null
+                || planFilter.equalsIgnoreCase(String.valueOf(t.get("billingPlan"))))
+            .toList();
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("columns", List.of("Name","Slug","Plan","Status"));
         data.put("rows", filtered.stream().map(t -> List.of(
@@ -251,9 +260,87 @@ public class AssistantToolExecutor {
             t.getOrDefault("billingPlan", ""),
             t.getOrDefault("status", "")
         )).collect(Collectors.toList()));
+        String title = "Tenants" +
+            (statusFilter != null ? " (" + statusFilter + ")" : "") +
+            (planFilter != null ? " [" + planFilter + "]" : "") +
+            " — " + filtered.size() + " total";
+        return new AssistantDtos.ToolResult("table", title, data);
+    }
+
+    private AssistantDtos.ToolResult getPlatformStats(Map<String, Object> args) {
+        var tenants = adminFeign.listAllTenants();
+        long total = tenants.size();
+        var byStatus = tenants.stream()
+            .collect(Collectors.groupingBy(
+                t -> String.valueOf(t.getOrDefault("status", "UNKNOWN")),
+                Collectors.counting()));
+        var byPlan = tenants.stream()
+            .collect(Collectors.groupingBy(
+                t -> String.valueOf(t.getOrDefault("billingPlan", "UNKNOWN")),
+                Collectors.counting()));
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("columns", List.of("Metric","Count"));
+        var rows = new ArrayList<List<Object>>();
+        rows.add(List.of("Total Tenants", total));
+        byStatus.forEach((k, v) -> rows.add(List.of(k + " tenants", v)));
+        byPlan.forEach((k, v) -> rows.add(List.of(k + " plan", v)));
+        data.put("rows", rows);
         return new AssistantDtos.ToolResult("table",
-            "Tenants" + (statusFilter != null ? " (" + statusFilter + ")" : "")
-            + " — " + filtered.size() + " total", data);
+            "Platform Stats — " + total + " tenants", data);
+    }
+
+    private AssistantDtos.ToolResult getPlatformSales(Map<String, Object> args) {
+        LocalDate from = args.containsKey("dateFrom")
+            ? LocalDate.parse((String) args.get("dateFrom"))
+            : LocalDate.now().minusDays(7);
+        LocalDate to = args.containsKey("dateTo")
+            ? LocalDate.parse((String) args.get("dateTo"))
+            : LocalDate.now();
+
+        var tenants = adminFeign.listAllTenants();
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("columns", List.of("Name","Plan","Status"));
+        data.put("rows", tenants.stream().map(t -> List.of(
+            t.getOrDefault("name", ""),
+            t.getOrDefault("billingPlan", ""),
+            t.getOrDefault("status", "")
+        )).collect(Collectors.toList()));
+        data.put("totalTenants", tenants.size());
+        data.put("note", "Per-tenant sales available via getTenantDetail once you select a tenant");
+        return new AssistantDtos.ToolResult("table",
+            "All Tenants — use getTenantDetail for per-tenant sales", data);
+    }
+
+    private AssistantDtos.ToolResult getTenantDetail(Map<String, Object> args) {
+        String tenantIdOrName = (String) args.get("tenantId");
+
+        var tenants = adminFeign.listAllTenants();
+        var found = tenants.stream()
+            .filter(t -> tenantIdOrName.equalsIgnoreCase(
+                String.valueOf(t.getOrDefault("name", ""))) ||
+                tenantIdOrName.equalsIgnoreCase(String.valueOf(t.get("id"))))
+            .findFirst();
+
+        if (found.isEmpty()) {
+            return new AssistantDtos.ToolResult("text", "Tenant not found: " + tenantIdOrName,
+                Map.of("message", "No tenant matching '" + tenantIdOrName + "'"));
+        }
+
+        var t = found.get();
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("name", t.getOrDefault("name", ""));
+        data.put("slug", t.getOrDefault("slug", ""));
+        data.put("plan", t.getOrDefault("billingPlan", ""));
+        data.put("status", t.getOrDefault("status", ""));
+        data.put("maxUsers", t.getOrDefault("maxUsers", ""));
+        data.put("maxStores", t.getOrDefault("maxStores", ""));
+        data.put("columns", List.of("Field","Value"));
+        data.put("rows", data.entrySet().stream()
+            .filter(e -> !"columns".equals(e.getKey()) && !"rows".equals(e.getKey()))
+            .map(e -> List.of(e.getKey(), String.valueOf(e.getValue())))
+            .collect(Collectors.toList()));
+        return new AssistantDtos.ToolResult("table",
+            "Tenant: " + t.getOrDefault("name", ""), data);
     }
 
     // ── Write tool implementations ──
