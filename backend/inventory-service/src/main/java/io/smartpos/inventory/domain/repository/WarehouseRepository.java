@@ -9,6 +9,7 @@ import java.util.UUID;
 
 public interface WarehouseRepository extends JpaRepository<Warehouse, UUID> {
     Optional<Warehouse> findByCodeIgnoreCase(String code);
+    Optional<Warehouse> findByTenantIdAndCodeIgnoreCase(UUID tenantId, String code);
     List<Warehouse> findByTenantId(UUID tenantId);
     long count();
     long countByTenantIdAndActiveTrue(UUID tenantId);

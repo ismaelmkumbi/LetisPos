@@ -57,7 +57,7 @@ public class WarehouseService {
                     + " stores. Upgrade to add more.");
         }
 
-        if (req.code() != null && repo.findByCodeIgnoreCase(req.code()).isPresent()) {
+        if (req.code() != null && repo.findByTenantIdAndCodeIgnoreCase(tenantId, req.code()).isPresent()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Warehouse code already exists");
         }
         Warehouse w = Warehouse.builder()
