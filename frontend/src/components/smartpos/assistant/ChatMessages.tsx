@@ -1,15 +1,88 @@
-import { Box } from '@mui/material';
+import { Box, Typography, Chip } from '@mui/material';
+import { IconSparkles, IconChartBar, IconPackage, IconReceipt } from '@tabler/icons-react';
 import { useAssistant } from 'src/context/smartpos/AssistantContext';
-import { TextBlock, ChartBlock, MetricBlock, TableBlock, DraftBlock, ErrorBlock } from './ChatBlocks';
+import { TextBlock, StreamingBlock, ChartBlock, MetricBlock, TableBlock, DraftBlock, ErrorBlock } from './ChatBlocks';
+import { useEffect, useRef } from 'react';
 
 export default function ChatMessages() {
-  const { messages, error, confirmDraftAction, rejectDraftAction } = useAssistant();
+  const { messages, streaming, error, send, confirmDraftAction, rejectDraftAction } = useAssistant();
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, streaming]);
+
+  if (messages.length === 0) {
+    return (
+      <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', px: 3 }}>
+        <Box
+          sx={{
+            width: 64, height: 64, borderRadius: '50%',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: 'radial-gradient(circle, rgba(244,183,49,0.15) 0%, transparent 70%)',
+            mb: 2.5,
+          }}
+        >
+          <IconSparkles size={28} style={{ color: '#f4b731' }} />
+        </Box>
+        <Typography
+          sx={{
+            fontFamily: '"DM Serif Display", Georgia, serif',
+            fontSize: '1.3rem', color: '#f0efe9', mb: 1,
+          }}
+        >
+          How can I help?
+        </Typography>
+        <Typography sx={{ fontSize: '0.84rem', color: '#8b8b96', textAlign: 'center', mb: 3, lineHeight: 1.6 }}>
+          Ask me about sales, inventory, customers,<br />or anything about your store.
+        </Typography>
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, justifyContent: 'center', maxWidth: 300 }}>
+          {[
+            { icon: IconChartBar, label: 'Today\'s sales' },
+            { icon: IconPackage, label: 'Low stock items' },
+            { icon: IconReceipt, label: 'Recent orders' },
+          ].map(({ icon: Icon, label }) => (
+            <Chip
+              key={label}
+              icon={<Icon size={14} style={{ color: '#8b8b96' }} />}
+              label={label}
+              onClick={() => send(label)}
+              sx={{
+                border: '1px solid rgba(255,255,255,0.06)',
+                background: 'rgba(255,255,255,0.02)',
+                color: '#8b8b96',
+                fontSize: '0.8rem',
+                fontFamily: '"DM Sans", Inter, sans-serif',
+                borderRadius: 2.5,
+                py: 0.3,
+                '&:hover': {
+                  background: 'rgba(244,183,49,0.08)',
+                  borderColor: 'rgba(244,183,49,0.2)',
+                  color: '#f4b731',
+                },
+              }}
+            />
+          ))}
+        </Box>
+      </Box>
+    );
+  }
 
   return (
-    <Box sx={{ flex: 1, overflowY: 'auto', px: 1, pt: 2 }}>
+    <Box
+      sx={{
+        flex: 1, overflowY: 'auto', pt: 2, pb: 1,
+        '&::-webkit-scrollbar': { width: 4 },
+        '&::-webkit-scrollbar-track': { background: 'transparent' },
+        '&::-webkit-scrollbar-thumb': { background: 'rgba(255,255,255,0.06)', borderRadius: 4 },
+      }}
+    >
       {messages.map(msg => {
         if (msg.role === 'user') return <TextBlock key={msg.id} content={msg.content} isUser />;
-        if (msg.role === 'assistant') return <TextBlock key={msg.id} content={msg.content} />;
+        if (msg.role === 'assistant') {
+          if (msg.streaming && !msg.content) return <StreamingBlock key={msg.id} />;
+          return <TextBlock key={msg.id} content={msg.content} />;
+        }
         if (msg.role === 'tool' && msg.toolResult) {
           const r = msg.toolResult;
           if (r.type === 'metric') return <MetricBlock key={msg.id} result={r} />;
@@ -28,7 +101,9 @@ export default function ChatMessages() {
         }
         return null;
       })}
+      {streaming && messages[messages.length - 1]?.role === 'user' && <StreamingBlock />}
       {error && <ErrorBlock message={error} />}
+      <div ref={bottomRef} />
     </Box>
   );
 }
