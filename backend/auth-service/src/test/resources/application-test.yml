@@ -1,0 +1,38 @@
+server:
+  port: 0
+
+spring:
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
+
+  cloud:
+    openfeign:
+      client:
+        config:
+          billing-service:
+            url: http://localhost:9999
+          user-service:
+            url: http://localhost:9999
+          audit-service:
+            url: http://localhost:9999
+
+  flyway:
+    enabled: false
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+
+smartpos:
+  outbox:
+    enabled: false
+  auth:
+    jwt:
+      allow-ephemeral-keys: true
+  user-service:
+    base-url: http://localhost:9999
+  audit-service:
+    base-url: http://localhost:9999
