@@ -49,12 +49,15 @@ public class AssistantService {
         String systemPrompt = promptBuilder.build(jwt, request.language());
         List<AssistantToolCatalog.ToolDef> tools = toolCatalog.scopedTools(jwt);
         String userMessage = request.message();
+        @SuppressWarnings("unchecked")
+        var roles = (List<String>) jwt.getClaims().get("roles");
+        boolean isSuperAdmin = roles != null && roles.contains("SUPER_ADMIN");
 
         SseEmitter emitter = new SseEmitter(120_000L); // 2 minute timeout
 
         new Thread(() -> {
             try {
-                processConversation(emitter, systemPrompt, userMessage, tools, userId, tenantId, 0);
+                processConversation(emitter, systemPrompt, userMessage, tools, userId, tenantId, 0, isSuperAdmin);
                 emitter.complete();
             } catch (Exception e) {
                 log.error("Assistant chat error", e);
@@ -75,7 +78,8 @@ public class AssistantService {
     private void processConversation(SseEmitter emitter, String systemPrompt,
                                       String userMessage,
                                       List<AssistantToolCatalog.ToolDef> tools,
-                                      UUID userId, UUID tenantId, int round) throws IOException {
+                                      UUID userId, UUID tenantId, int round,
+                                      boolean isSuperAdmin) throws IOException {
         if (round >= MAX_TOOL_ROUNDS) {
             emitter.send(SseEmitter.event().name("done").data("{}"));
             return;
@@ -133,15 +137,28 @@ public class AssistantService {
                 .filter(t -> t.name().equals(parsed.name)).findFirst().orElse(null);
 
             if (tool != null && tool.write()) {
-                // Write tool — create draft
-                String summary = "Execute " + parsed.name + " with " + parsed.arguments;
-                var draft = toolExecutor.createDraft(parsed.name, parsed.arguments,
-                    summary, userId, tenantId);
-                emitter.send(SseEmitter.event().name("draft").data(Map.of(
-                    "draftId", draft.getId().toString(),
-                    "toolName", draft.getToolName(),
-                    "summary", draft.getSummary(),
-                    "toolInput", parsed.arguments)));
+                if (isSuperAdmin) {
+                    // SUPER_ADMIN → execute immediately, no draft
+                    try {
+                        ToolResult toolResult = toolExecutor.execute(parsed.name, parsed.arguments, userId);
+                        emitter.send(SseEmitter.event().name("tool_result")
+                            .data(Map.of("type", toolResult.type(), "title", toolResult.title(),
+                                         "data", toolResult.data())));
+                    } catch (Exception e) {
+                        emitter.send(SseEmitter.event().name("error")
+                            .data(Map.of("message", e.getMessage(), "code", "TOOL_ERROR")));
+                    }
+                } else {
+                    // Normal user → create draft for confirmation
+                    String summary = "Execute " + parsed.name + " with " + parsed.arguments;
+                    var draft = toolExecutor.createDraft(parsed.name, parsed.arguments,
+                        summary, userId, tenantId);
+                    emitter.send(SseEmitter.event().name("draft").data(Map.of(
+                        "draftId", draft.getId().toString(),
+                        "toolName", draft.getToolName(),
+                        "summary", draft.getSummary(),
+                        "toolInput", parsed.arguments)));
+                }
             } else if (tool != null) {
                 // Read tool — execute immediately
                 try {
