@@ -329,8 +329,10 @@ jobs:
             git fetch origin main
             git reset --hard origin/main
 
-            # Fix root-owned files from manual deploys before Maven runs
+            # Fix root-owned files from manual deploys before git/Maven operations
             $SUDO chown -R deploy:deploy backend/ 2>/dev/null || true
+            $SUDO chown -R deploy:deploy frontend/ 2>/dev/null || true
+            $SUDO chown -R deploy:deploy ops/ 2>/dev/null || true
 
             # ── Work out which services changed ────────────────────────
             CHANGED=""
