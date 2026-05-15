@@ -1,6 +1,7 @@
 import { keyframes } from '@emotion/react';
 import { Box, Typography, Button } from '@mui/material';
 import { IconCheck, IconX, IconSparkles, IconAlertTriangle } from '@tabler/icons-react';
+import React from 'react';
 import type { ToolResult, DraftResponse } from 'src/api/smartpos/assistant';
 import { useChatTheme } from './useChatTheme';
 
@@ -13,6 +14,77 @@ const shimmer = keyframes`
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
 `;
+
+/** Lightweight markdown → JSX for AI responses. Handles bold, lists, paragraphs. */
+function FormattedText({ text, c }: { text: string; c: ReturnType<typeof useChatTheme> }) {
+  const lines = text.split('\n');
+  const elements: React.ReactNode[] = [];
+  let inList: 'ol' | 'ul' | null = null;
+  let listItems: React.ReactNode[] = [];
+  let listIndex = 0;
+
+  const flushList = () => {
+    if (listItems.length > 0 && inList) {
+      const Tag = inList === 'ol' ? 'ol' : 'ul';
+      elements.push(
+        <Box component={Tag} key={`list-${listIndex++}`} sx={{ m: 0, pl: 2.5, '& li': { mb: 0.3 } }}>
+          {listItems}
+        </Box>
+      );
+      listItems = [];
+      inList = null;
+    }
+  };
+
+  const renderBold = (t: string): React.ReactNode => {
+    const parts = t.split(/(\*\*[^*]+\*\*)/g);
+    return parts.map((part, i) => {
+      if (part.startsWith('**') && part.endsWith('**')) {
+        return <Box component="strong" key={i} sx={{ fontWeight: 600, color: c.accent }}>{part.slice(2, -2)}</Box>;
+      }
+      return part;
+    });
+  };
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+
+    // Empty line → flush list
+    if (!trimmed) {
+      flushList();
+      elements.push(<Box key={`br-${i}`} sx={{ height: 8 }} />);
+      continue;
+    }
+
+    // Numbered list: "1. " or "1) "
+    const olMatch = trimmed.match(/^(\d+)[.)]\s+(.*)/);
+    if (olMatch) {
+      if (inList !== 'ol') { flushList(); inList = 'ol'; }
+      listItems.push(<li key={i}>{renderBold(olMatch[2])}</li>);
+      continue;
+    }
+
+    // Bullet list: "- " or "* "
+    const ulMatch = trimmed.match(/^[-*]\s+(.*)/);
+    if (ulMatch) {
+      if (inList !== 'ul') { flushList(); inList = 'ul'; }
+      listItems.push(<li key={i}>{renderBold(ulMatch[1])}</li>);
+      continue;
+    }
+
+    // Regular paragraph
+    flushList();
+    elements.push(
+      <Typography key={i} sx={{ fontSize: '0.9rem', lineHeight: 1.6 }}>
+        {renderBold(trimmed)}
+      </Typography>
+    );
+  }
+  flushList();
+
+  return <>{elements}</>;
+}
 
 export function TextBlock({ content, isUser }: { content: string; isUser?: boolean }) {
   const c = useChatTheme();
@@ -37,10 +109,16 @@ export function TextBlock({ content, isUser }: { content: string; isUser?: boole
           color: isUser ? c.userText : c.text,
           fontFamily: '"DM Sans", Inter, sans-serif',
           fontSize: '0.9rem', lineHeight: 1.55,
-          whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+          wordBreak: 'break-word',
         }}
       >
-        {content}
+        {isUser ? (
+          <Typography sx={{ fontSize: '0.9rem', lineHeight: 1.55, whiteSpace: 'pre-wrap' }}>
+            {content}
+          </Typography>
+        ) : (
+          <FormattedText text={content} c={c} />
+        )}
       </Box>
     </Box>
   );
