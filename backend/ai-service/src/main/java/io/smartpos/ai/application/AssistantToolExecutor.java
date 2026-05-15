@@ -132,17 +132,16 @@ public class AssistantToolExecutor {
     }
 
     private AssistantDtos.ToolResult checkStock(Map<String, Object> args) {
-        @SuppressWarnings("unchecked")
-        List<String> productIds = (List<String>) args.get("productIds");
-        String warehouseId = (String) args.get("warehouseId");
-        var stock = inventoryFeign.stockLevels(
-            productIds.stream().map(UUID::fromString).collect(Collectors.toList()),
-            warehouseId != null ? UUID.fromString(warehouseId) : null);
+        UUID productId = UUID.fromString((String) args.get("productId"));
+        UUID warehouseId = args.containsKey("warehouseId")
+            ? UUID.fromString((String) args.get("warehouseId")) : null;
+        var stock = inventoryFeign.stockLevel(productId, warehouseId);
         Map<String, Object> data = new LinkedHashMap<>();
-        data.put("columns", List.of("Product","Stock","Warehouse"));
-        data.put("rows", stock.stream().map(s -> List.of(
-            s.productName(), s.quantity(), s.warehouseName())).collect(Collectors.toList()));
-        return new AssistantDtos.ToolResult("table", "Stock Levels", data);
+        data.put("columns", List.of("Field","Value"));
+        data.put("rows", stock.entrySet().stream()
+            .map(e -> List.of(e.getKey(), String.valueOf(e.getValue())))
+            .collect(Collectors.toList()));
+        return new AssistantDtos.ToolResult("table", "Stock Level", data);
     }
 
     private AssistantDtos.ToolResult getTopCustomers(Map<String, Object> args) {
@@ -181,30 +180,40 @@ public class AssistantToolExecutor {
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("columns", List.of("Product","Expiry Date","Quantity"));
         data.put("rows", items.stream().map(i -> List.of(
-            i.productName(), i.expiryDate(), i.quantity())).collect(Collectors.toList()));
+            i.productName(), i.expiryDate().toString(), i.quantity()))
+            .collect(Collectors.toList()));
         return new AssistantDtos.ToolResult("table",
             "Expiring Within " + days + " Days", data);
     }
 
     private AssistantDtos.ToolResult getLowStock(Map<String, Object> args) {
-        var items = inventoryFeign.lowStock();
+        UUID warehouseId = args.containsKey("warehouseId")
+            ? UUID.fromString((String) args.get("warehouseId")) : null;
+        var page = inventoryFeign.lowStockAlerts(warehouseId,
+            org.springframework.data.domain.Pageable.ofSize(20));
+        var items = page.getContent();
         Map<String, Object> data = new LinkedHashMap<>();
-        data.put("columns", List.of("Product","Current","Reorder Level"));
+        data.put("columns", List.of("Product ID","On Hand","Available","Alert Threshold"));
         data.put("rows", items.stream().map(i -> List.of(
-            i.productName(), i.quantity(), i.reorderLevel())).collect(Collectors.toList()));
-        return new AssistantDtos.ToolResult("table", "Low Stock Items", data);
+            i.productId().toString(), i.onHand(), i.available(),
+            i.stockAlertThreshold())).collect(Collectors.toList()));
+        return new AssistantDtos.ToolResult("table",
+            "Low Stock (" + items.size() + " items)", data);
     }
 
     private AssistantDtos.ToolResult searchProducts(Map<String, Object> args) {
         String query = (String) args.get("query");
         int limit = args.containsKey("limit")
             ? ((Number) args.get("limit")).intValue() : 10;
-        var products = productFeign.search(query, limit);
+        var page = productFeign.search(query, null, null, null,
+            org.springframework.data.domain.Pageable.ofSize(limit));
+        var products = page.getContent();
         Map<String, Object> data = new LinkedHashMap<>();
-        data.put("columns", List.of("Name","SKU","Price","Stock"));
+        data.put("columns", List.of("Name","SKU","Price"));
         data.put("rows", products.stream().map(p -> List.of(
-            p.name(), p.sku(), p.price(), p.stock())).collect(Collectors.toList()));
-        return new AssistantDtos.ToolResult("table", "Search: " + query, data);
+            p.name(), p.sku(), p.price())).collect(Collectors.toList()));
+        return new AssistantDtos.ToolResult("table",
+            "Search: " + query + " (" + products.size() + " results)", data);
     }
 
     private AssistantDtos.ToolResult getRecentSales(Map<String, Object> args) {
@@ -228,12 +237,9 @@ public class AssistantToolExecutor {
     }
 
     private AssistantDtos.ToolResult adjustStock(Map<String, Object> args) {
-        UUID productId = UUID.fromString((String) args.get("productId"));
-        int quantity = ((Number) args.get("quantity")).intValue();
-        String reason = (String) args.get("reason");
-        inventoryFeign.adjustStock(productId, quantity, reason);
-        Map<String, Object> data = Map.of("status", "adjusted", "newQuantity", quantity);
-        return new AssistantDtos.ToolResult("text", "Stock Adjusted", data);
+        Map<String, Object> data = Map.of("status", "not_implemented",
+            "message", "Stock adjustment via assistant coming soon. Use the Inventory page.");
+        return new AssistantDtos.ToolResult("text", "Stock Adjustment", data);
     }
 
     private AssistantDtos.ToolResult createExpense(Map<String, Object> args, UUID userId) {
