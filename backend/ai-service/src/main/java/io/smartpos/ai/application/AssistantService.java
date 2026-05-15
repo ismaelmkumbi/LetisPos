@@ -78,7 +78,7 @@ public class AssistantService {
                 }
             } finally {
                 TenantContext.clear();
-                SecurityContextHolder.clearContext();
+                org.springframework.security.core.context.SecurityContextHolder.clearContext();
             }
         }).start();
 
