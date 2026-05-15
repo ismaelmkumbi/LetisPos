@@ -1,12 +1,14 @@
 import { useState, useRef, useEffect } from 'react';
 import { Box, IconButton } from '@mui/material';
 import { IconPlayerStop, IconArrowUp } from '@tabler/icons-react';
+import { useChatTheme } from './useChatTheme';
 
 interface Props { onSend: (msg: string) => void; onStop: () => void; streaming: boolean; }
 
 export default function ChatInput({ onSend, onStop, streaming }: Props) {
   const [value, setValue] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const c = useChatTheme();
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -27,14 +29,14 @@ export default function ChatInput({ onSend, onStop, streaming }: Props) {
       <Box
         sx={{
           display: 'flex', alignItems: 'flex-end', gap: 1,
-          background: 'rgba(255,255,255,0.04)',
+          background: c.inputBg,
           borderRadius: 3,
-          border: '1px solid rgba(255,255,255,0.08)',
+          border: `1px solid ${c.inputBorder}`,
           px: 0.5, py: 0.5,
           transition: 'border-color 0.25s ease, box-shadow 0.25s ease',
           '&:focus-within': {
-            borderColor: 'rgba(244,183,49,0.35)',
-            boxShadow: '0 0 20px rgba(244,183,49,0.08), 0 0 0 1px rgba(244,183,49,0.1)',
+            borderColor: c.inputFocusBorder,
+            boxShadow: c.inputFocusGlow,
           },
         }}
       >
@@ -54,9 +56,9 @@ export default function ChatInput({ onSend, onStop, streaming }: Props) {
             background: 'transparent',
             fontFamily: '"DM Sans", Inter, sans-serif',
             fontSize: '0.92rem', lineHeight: 1.5,
-            color: '#f0efe9',
+            color: c.text,
             px: 1.5, py: 1,
-            '&::placeholder': { color: 'rgba(255,255,255,0.25)' },
+            '&::placeholder': { color: c.textMuted },
           }}
         />
         {streaming ? (
@@ -64,9 +66,9 @@ export default function ChatInput({ onSend, onStop, streaming }: Props) {
             onClick={onStop}
             sx={{
               width: 38, height: 38, mb: 0.2,
-              background: 'rgba(239,68,68,0.15)',
+              background: 'rgba(239,68,68,0.12)',
               color: '#ef4444',
-              '&:hover': { background: 'rgba(239,68,68,0.25)' },
+              '&:hover': { background: 'rgba(239,68,68,0.22)' },
             }}
           >
             <IconPlayerStop size={18} />
@@ -77,15 +79,11 @@ export default function ChatInput({ onSend, onStop, streaming }: Props) {
             disabled={!value.trim()}
             sx={{
               width: 38, height: 38, mb: 0.2,
-              background: value.trim()
-                ? 'linear-gradient(135deg, #f4b731 0%, #e5a820 100%)'
-                : 'rgba(255,255,255,0.06)',
-              color: value.trim() ? '#0f0f14' : 'rgba(255,255,255,0.2)',
+              background: value.trim() ? c.sendBg : c.inputBg,
+              color: value.trim() ? c.sendText : c.textMuted,
               transition: 'all 0.2s ease',
               '&:hover': {
-                background: value.trim()
-                  ? 'linear-gradient(135deg, #f5c04a 0%, #f4b731 100%)'
-                  : 'rgba(255,255,255,0.08)',
+                background: value.trim() ? c.sendBg : c.surfaceHover,
               },
               '&:disabled': { opacity: 0.4 },
             }}
@@ -102,7 +100,7 @@ export default function ChatInput({ onSend, onStop, streaming }: Props) {
         }}
       >
         {['Enter to send', 'Shift+Enter new line', 'Esc to close'].map(hint => (
-          <Box key={hint} component="span" sx={{ fontSize: '0.68rem', color: '#8b8b96' }}>
+          <Box key={hint} component="span" sx={{ fontSize: '0.68rem', color: c.textSecondary }}>
             {hint}
           </Box>
         ))}

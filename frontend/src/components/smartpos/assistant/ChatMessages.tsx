@@ -1,12 +1,14 @@
 import { Box, Typography, Chip } from '@mui/material';
 import { IconSparkles, IconChartBar, IconPackage, IconReceipt } from '@tabler/icons-react';
 import { useAssistant } from 'src/context/smartpos/AssistantContext';
+import { useChatTheme } from './useChatTheme';
 import { TextBlock, StreamingBlock, ChartBlock, MetricBlock, TableBlock, DraftBlock, ErrorBlock } from './ChatBlocks';
 import { useEffect, useRef } from 'react';
 
 export default function ChatMessages() {
   const { messages, streaming, error, send, confirmDraftAction, rejectDraftAction } = useAssistant();
   const bottomRef = useRef<HTMLDivElement>(null);
+  const c = useChatTheme();
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -19,21 +21,21 @@ export default function ChatMessages() {
           sx={{
             width: 64, height: 64, borderRadius: '50%',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: 'radial-gradient(circle, rgba(244,183,49,0.15) 0%, transparent 70%)',
+            background: `radial-gradient(circle, ${c.accent}26 0%, transparent 70%)`,
             mb: 2.5,
           }}
         >
-          <IconSparkles size={28} style={{ color: '#f4b731' }} />
+          <IconSparkles size={28} style={{ color: c.accent }} />
         </Box>
         <Typography
           sx={{
             fontFamily: '"DM Serif Display", Georgia, serif',
-            fontSize: '1.3rem', color: '#f0efe9', mb: 1,
+            fontSize: '1.3rem', color: c.text, mb: 1,
           }}
         >
           How can I help?
         </Typography>
-        <Typography sx={{ fontSize: '0.84rem', color: '#8b8b96', textAlign: 'center', mb: 3, lineHeight: 1.6 }}>
+        <Typography sx={{ fontSize: '0.84rem', color: c.textSecondary, textAlign: 'center', mb: 3, lineHeight: 1.6 }}>
           Ask me about sales, inventory, customers,<br />or anything about your store.
         </Typography>
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, justifyContent: 'center', maxWidth: 300 }}>
@@ -44,21 +46,20 @@ export default function ChatMessages() {
           ].map(({ icon: Icon, label }) => (
             <Chip
               key={label}
-              icon={<Icon size={14} style={{ color: '#8b8b96' }} />}
+              icon={<Icon size={14} style={{ color: c.textSecondary }} />}
               label={label}
               onClick={() => send(label)}
               sx={{
-                border: '1px solid rgba(255,255,255,0.06)',
-                background: 'rgba(255,255,255,0.02)',
-                color: '#8b8b96',
+                border: `1px solid ${c.border}`,
+                background: c.inputBg,
+                color: c.textSecondary,
                 fontSize: '0.8rem',
                 fontFamily: '"DM Sans", Inter, sans-serif',
-                borderRadius: 2.5,
-                py: 0.3,
+                borderRadius: 2.5, py: 0.3,
                 '&:hover': {
-                  background: 'rgba(244,183,49,0.08)',
-                  borderColor: 'rgba(244,183,49,0.2)',
-                  color: '#f4b731',
+                  background: c.accentBg,
+                  borderColor: c.accentBorder,
+                  color: c.accent,
                 },
               }}
             />
@@ -74,7 +75,7 @@ export default function ChatMessages() {
         flex: 1, overflowY: 'auto', pt: 2, pb: 1,
         '&::-webkit-scrollbar': { width: 4 },
         '&::-webkit-scrollbar-track': { background: 'transparent' },
-        '&::-webkit-scrollbar-thumb': { background: 'rgba(255,255,255,0.06)', borderRadius: 4 },
+        '&::-webkit-scrollbar-thumb': { background: c.border, borderRadius: 4 },
       }}
     >
       {messages.map(msg => {
