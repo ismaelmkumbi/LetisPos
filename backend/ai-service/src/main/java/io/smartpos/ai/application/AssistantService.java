@@ -88,23 +88,31 @@ public class AssistantService {
         AiProvider provider = aiRouter.active();
         long t0 = System.currentTimeMillis();
 
-        // Build the user prompt with tool definitions embedded
-        String toolDefs = tools.isEmpty() ? "" : buildToolPrompt(tools);
-        String fullPrompt = userMessage;
-        if (!toolDefs.isEmpty()) {
-            fullPrompt = "Available tools:\n" + toolDefs + "\n\nUser request: " + userMessage
-                + "\n\nIf you need to use a tool, respond with a JSON object: "
-                + "{\"tool_call\": {\"name\": \"<toolName>\", \"arguments\": {<args>}}}. "
-                + "If you're just responding, write naturally.";
-        }
+        // Build OpenAI function-calling tool definitions
+        List<Map<String, Object>> openAiTools = tools.stream()
+            .map(this::toOpenAiTool)
+            .toList();
 
-        AiProvider.Result result;
+        AiProvider.ToolCallResult result;
         String error = null;
         try {
-            result = provider.complete(systemPrompt, fullPrompt);
+            result = provider.completeWithTools(systemPrompt, userMessage,
+                openAiTools.isEmpty() ? null : openAiTools);
         } catch (Exception e) {
+            log.warn("AI provider tool call failed, falling back to simple completion", e);
             error = e.getMessage();
-            result = new AiProvider.Result("I'm having trouble right now. Please try again.", null, null);
+            // Fallback: simple completion without tools
+            AiProvider.Result simpleResult = null;
+            try {
+                simpleResult = provider.complete(systemPrompt, userMessage);
+            } catch (Exception e2) {
+                error = e2.getMessage();
+                simpleResult = new AiProvider.Result(
+                    "I'm having trouble right now. Please try again.", null, null);
+            }
+            result = new AiProvider.ToolCallResult(
+                simpleResult.text(), List.of(),
+                simpleResult.promptTokens(), simpleResult.completionTokens());
         }
 
         int duration = (int) (System.currentTimeMillis() - t0);
@@ -115,32 +123,57 @@ public class AssistantService {
             .provider(provider.name()).model(provider.model())
             .promptTokens(result.promptTokens()).completionTokens(result.completionTokens())
             .inputSummary(userMessage.substring(0, Math.min(200, userMessage.length())))
-            .output(result.text()).error(error)
+            .output(result.text() + (result.toolCalls().isEmpty() ? "" : " [tool calls: " + result.toolCalls().size() + "]"))
+            .error(error)
             .userId(userId).tenantId(tenantId)
             .durationMs(duration).build());
 
-        // Parse response for tool calls
-        String responseText = result.text();
-        ToolCall parsed = parseToolCall(responseText);
+        // Stream text content first
+        if (result.text() != null && !result.text().isBlank()) {
+            emitter.send(SseEmitter.event().name("token")
+                .data(Map.of("token", result.text())));
+        }
 
-        if (parsed != null) {
-            // Send the text part (if any before the JSON)
-            String textPart = responseText.substring(0, responseText.indexOf("{\"tool_call\"")).trim();
-            if (!textPart.isEmpty()) {
-                emitter.send(SseEmitter.event().name("token").data(Map.of("token", textPart)));
-            }
+        // Process tool calls from native function calling
+        if (!result.toolCalls().isEmpty()) {
+            for (var tc : result.toolCalls()) {
+                emitter.send(SseEmitter.event().name("tool_start")
+                    .data(Map.of("toolName", tc.name())));
 
-            emitter.send(SseEmitter.event().name("tool_start")
-                .data(Map.of("toolName", parsed.name)));
+                AssistantToolCatalog.ToolDef tool = tools.stream()
+                    .filter(t -> t.name().equals(tc.name())).findFirst().orElse(null);
 
-            AssistantToolCatalog.ToolDef tool = tools.stream()
-                .filter(t -> t.name().equals(parsed.name)).findFirst().orElse(null);
+                Map<String, Object> parsedArgs;
+                try {
+                    parsedArgs = om.readValue(tc.arguments(), Map.class);
+                } catch (Exception e) {
+                    parsedArgs = Map.of();
+                }
 
-            if (tool != null && tool.write()) {
-                if (isSuperAdmin) {
-                    // SUPER_ADMIN → execute immediately, no draft
+                if (tool != null && tool.write()) {
+                    if (isSuperAdmin) {
+                        try {
+                            ToolResult toolResult = toolExecutor.execute(tc.name(), parsedArgs, userId);
+                            emitter.send(SseEmitter.event().name("tool_result")
+                                .data(Map.of("type", toolResult.type(), "title", toolResult.title(),
+                                             "data", toolResult.data())));
+                        } catch (Exception e) {
+                            emitter.send(SseEmitter.event().name("error")
+                                .data(Map.of("message", e.getMessage(), "code", "TOOL_ERROR")));
+                        }
+                    } else {
+                        String summary = "Execute " + tc.name();
+                        var draft = toolExecutor.createDraft(tc.name(), parsedArgs,
+                            summary, userId, tenantId);
+                        emitter.send(SseEmitter.event().name("draft").data(Map.of(
+                            "draftId", draft.getId().toString(),
+                            "toolName", draft.getToolName(),
+                            "summary", draft.getSummary(),
+                            "toolInput", parsedArgs)));
+                    }
+                } else if (tool != null) {
                     try {
-                        ToolResult toolResult = toolExecutor.execute(parsed.name, parsed.arguments, userId);
+                        ToolResult toolResult = toolExecutor.execute(tc.name(), parsedArgs, userId);
                         emitter.send(SseEmitter.event().name("tool_result")
                             .data(Map.of("type", toolResult.type(), "title", toolResult.title(),
                                          "data", toolResult.data())));
@@ -148,38 +181,20 @@ public class AssistantService {
                         emitter.send(SseEmitter.event().name("error")
                             .data(Map.of("message", e.getMessage(), "code", "TOOL_ERROR")));
                     }
-                } else {
-                    // Normal user → create draft for confirmation
-                    String summary = "Execute " + parsed.name + " with " + parsed.arguments;
-                    var draft = toolExecutor.createDraft(parsed.name, parsed.arguments,
-                        summary, userId, tenantId);
-                    emitter.send(SseEmitter.event().name("draft").data(Map.of(
-                        "draftId", draft.getId().toString(),
-                        "toolName", draft.getToolName(),
-                        "summary", draft.getSummary(),
-                        "toolInput", parsed.arguments)));
                 }
-            } else if (tool != null) {
-                // Read tool — execute immediately
-                try {
-                    ToolResult toolResult = toolExecutor.execute(parsed.name, parsed.arguments, userId);
-                    emitter.send(SseEmitter.event().name("tool_result")
-                        .data(Map.of("type", toolResult.type(), "title", toolResult.title(),
-                                     "data", toolResult.data())));
-                } catch (Exception e) {
-                    emitter.send(SseEmitter.event().name("error")
-                        .data(Map.of("message", e.getMessage(), "code", "TOOL_ERROR")));
-                }
-            } else {
-                emitter.send(SseEmitter.event().name("error")
-                    .data(Map.of("message", "Unknown tool: " + parsed.name, "code", "UNKNOWN_TOOL")));
             }
-        } else {
-            // No tool call — just stream the text
-            emitter.send(SseEmitter.event().name("token").data(Map.of("token", responseText)));
         }
 
         emitter.send(SseEmitter.event().name("done").data("{}"));
+    }
+
+    /** Convert our ToolDef to OpenAI function-calling format. */
+    private Map<String, Object> toOpenAiTool(AssistantToolCatalog.ToolDef tool) {
+        Map<String, Object> fn = new java.util.LinkedHashMap<>();
+        fn.put("name", tool.name());
+        fn.put("description", tool.description());
+        fn.put("parameters", tool.parameters());
+        return Map.of("type", "function", "function", fn);
     }
 
     public DraftResponse confirmDraft(UUID draftId, UUID userId) {
@@ -191,34 +206,4 @@ public class AssistantService {
         toolExecutor.rejectDraft(draftId);
     }
 
-    // ── helpers ──
-
-    private String buildToolPrompt(List<AssistantToolCatalog.ToolDef> tools) {
-        StringBuilder sb = new StringBuilder();
-        for (var tool : tools) {
-            sb.append("- ").append(tool.name()).append(": ").append(tool.description()).append("\n");
-            sb.append("  Parameters: ").append(tool.parameters()).append("\n");
-        }
-        return sb.toString();
-    }
-
-    private record ToolCall(String name, Map<String, Object> arguments) {}
-
-    @SuppressWarnings("unchecked")
-    private ToolCall parseToolCall(String text) {
-        try {
-            int start = text.indexOf("{\"tool_call\"");
-            if (start < 0) return null;
-            int end = text.lastIndexOf("}") + 1;
-            String json = text.substring(start, end);
-            Map<String, Object> parsed = om.readValue(json, Map.class);
-            Map<String, Object> tc = (Map<String, Object>) parsed.get("tool_call");
-            if (tc == null) return null;
-            return new ToolCall(
-                (String) tc.get("name"),
-                (Map<String, Object>) tc.get("arguments"));
-        } catch (Exception e) {
-            return null;
-        }
-    }
 }

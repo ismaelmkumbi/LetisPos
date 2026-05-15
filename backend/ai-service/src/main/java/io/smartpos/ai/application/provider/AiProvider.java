@@ -35,4 +35,16 @@ public interface AiProvider {
     }
 
     record Result(String text, Integer promptTokens, Integer completionTokens) {}
+
+    /** Completion with OpenAI function-calling tools. */
+    default ToolCallResult completeWithTools(String systemPrompt, String userPrompt,
+            java.util.List<java.util.Map<String, Object>> tools) {
+        throw new UnsupportedOperationException(
+                "Provider " + name() + " does not support tool calling");
+    }
+
+    record ToolCallResult(String text, java.util.List<ToolCall> toolCalls,
+                          Integer promptTokens, Integer completionTokens) {}
+
+    record ToolCall(String id, String name, String arguments) {}
 }

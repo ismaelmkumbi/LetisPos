@@ -69,6 +69,72 @@ public class OpenAiProvider implements AiProvider {
         return execute(body);
     }
 
+    @Override
+    public ToolCallResult completeWithTools(String systemPrompt, String userPrompt,
+                                             java.util.List<java.util.Map<String, Object>> tools) {
+        if (props.openai().apiKey() == null || props.openai().apiKey().isBlank()) {
+            throw new IllegalStateException("OPENAI_API_KEY not configured");
+        }
+        java.util.Map<String, Object> body = new java.util.HashMap<>();
+        body.put("model", props.openai().model());
+        body.put("messages", java.util.List.of(
+                java.util.Map.of("role", "system", "content", systemPrompt == null ? "" : systemPrompt),
+                java.util.Map.of("role", "user", "content", userPrompt)));
+        body.put("tools", tools);
+        body.put("tool_choice", "auto");
+
+        @SuppressWarnings("unchecked")
+        java.util.Map<String, Object> resp = http.post()
+                .uri(url())
+                .header("Authorization", "Bearer " + props.openai().apiKey())
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(body)
+                .retrieve()
+                .bodyToMono(java.util.Map.class)
+                .timeout(Duration.ofSeconds(60))
+                .block();
+
+        if (resp == null) throw new IllegalStateException("Empty response from OpenAI");
+
+        @SuppressWarnings("unchecked")
+        java.util.List<java.util.Map<String, Object>> choices =
+            (java.util.List<java.util.Map<String, Object>>) resp.get("choices");
+        String text = "";
+        java.util.List<ToolCall> toolCalls = java.util.List.of();
+
+        if (choices != null && !choices.isEmpty()) {
+            @SuppressWarnings("unchecked")
+            java.util.Map<String, Object> message =
+                (java.util.Map<String, Object>) choices.get(0).get("message");
+            if (message != null) {
+                Object content = message.get("content");
+                if (content != null) text = String.valueOf(content);
+
+                @SuppressWarnings("unchecked")
+                java.util.List<java.util.Map<String, Object>> rawCalls =
+                    (java.util.List<java.util.Map<String, Object>>) message.get("tool_calls");
+                if (rawCalls != null) {
+                    toolCalls = new java.util.ArrayList<>();
+                    for (var rc : rawCalls) {
+                        @SuppressWarnings("unchecked")
+                        java.util.Map<String, Object> fn =
+                            (java.util.Map<String, Object>) rc.get("function");
+                        toolCalls.add(new ToolCall(
+                            String.valueOf(rc.get("id")),
+                            fn != null ? String.valueOf(fn.get("name")) : "",
+                            fn != null ? String.valueOf(fn.get("arguments")) : "{}"));
+                    }
+                }
+            }
+        }
+
+        @SuppressWarnings("unchecked")
+        java.util.Map<String, Object> usage = (java.util.Map<String, Object>) resp.get("usage");
+        Integer pTok = usage == null ? null : asInt(usage.get("prompt_tokens"));
+        Integer cTok = usage == null ? null : asInt(usage.get("completion_tokens"));
+        return new ToolCallResult(text, toolCalls, pTok, cTok);
+    }
+
     private Result call(String systemPrompt, String userPrompt, boolean jsonMode) {
         if (props.openai().apiKey() == null || props.openai().apiKey().isBlank()) {
             throw new IllegalStateException("OPENAI_API_KEY not configured");
