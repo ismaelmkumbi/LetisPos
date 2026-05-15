@@ -181,6 +181,16 @@ public class AssistantService {
                         emitter.send(SseEmitter.event().name("error")
                             .data(Map.of("message", e.getMessage(), "code", "TOOL_ERROR")));
                     }
+                } else {
+                    // Tool not found in scoped catalog — tell user what's available
+                    List<String> available = tools.stream()
+                        .map(AssistantToolCatalog.ToolDef::name)
+                        .toList();
+                    emitter.send(SseEmitter.event().name("error")
+                        .data(Map.of(
+                            "message", "I don't have access to '" + tc.name() + "'. " +
+                                "Available tools: " + String.join(", ", available),
+                            "code", "UNKNOWN_TOOL")));
                 }
             }
         }
