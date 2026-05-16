@@ -7,6 +7,7 @@
  * - Responsive: adapts intelligently on mobile
  */
 import { useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router';
 import { brand } from 'src/theme/smartpos/brand';
 import { CustomizerContext } from 'src/context/CustomizerContext';
 import {
@@ -27,7 +28,7 @@ import { listProducts, getProduct, getProductByBarcode, type Product, type Produ
 import { listCustomers, createCustomer } from 'src/api/smartpos/customers';
 import type { Customer } from 'src/api/smartpos/types';
 import { listWarehouses, lowStockAlerts, batchStockLevels, type StockLevel, type Warehouse } from 'src/api/smartpos/inventory';
-import { posCheckout, getTopProducts, suspendCart, type CreateSaleBody, type Sale } from 'src/api/smartpos/sales';
+import { posCheckout, getTopProducts, suspendCart, listSales, type CreateSaleBody, type Sale } from 'src/api/smartpos/sales';
 import {
   listTerminals,
   publishDisplayEvent,
@@ -63,6 +64,7 @@ import SplitLayout from 'src/components/smartpos/PosLayouts/SplitLayout';
 
 import { usePosLayout } from 'src/context/smartpos/PosLayoutContext';
 import { useAuth } from 'src/context/smartpos/AuthContext';
+import { recordPayment } from 'src/api/smartpos/payments';
 import type { Line } from 'src/components/smartpos/PosLayouts/types';
 import type { PosLayoutProps } from 'src/components/smartpos/PosLayouts/PosLayoutProps';
 import { playPosAddBeep, playPosErrorSound, playPosSuccessSound } from 'src/utils/smartpos/posBeep';
@@ -80,6 +82,7 @@ type CartHold = {
 };
 export default function PosTerminalPage() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { activeMode } = useContext(CustomizerContext);
   const isDark = activeMode === 'dark';
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
@@ -129,6 +132,40 @@ export default function PosTerminalPage() {
   const [posSettings, setPosSettings] = useState<PosSettings | null>(null);
   const [receiptPreview, setReceiptPreview] = useState<{ sale: Sale; paymentMethod: string } | null>(null);
   const [printers, setPrinters] = useState<PrinterInfo[]>([]);
+
+  // ── Credit sales state ─────────────────────────────────────────────────────
+  const [customerBalance, setCustomerBalance] = useState<number | null>(null);
+  const [creditAvailable, setCreditAvailable] = useState(false);
+  const [saleType, setSaleType] = useState<'CASH' | 'CREDIT' | 'SPLIT'>('CASH');
+  const [newCreditBalance, setNewCreditBalance] = useState<number | undefined>(undefined);
+
+  useEffect(() => {
+    if (!customerId || customerId === '__walkin__') {
+      setCustomerBalance(null);
+      setCreditAvailable(false);
+      return;
+    }
+    const customer = customers.find((c) => c.id === customerId);
+    if (!customer || customer.creditLimit <= 0) {
+      setCustomerBalance(null);
+      setCreditAvailable(false);
+      return;
+    }
+    listSales({ customerId, paymentStatus: 'UNPAID', size: 200 })
+      .then((unpaid) =>
+        listSales({ customerId, paymentStatus: 'PARTIAL', size: 200 })
+          .then((partial) => {
+            const all = [...unpaid.content, ...partial.content];
+            const bal = all.reduce((sum, s) => sum + (s.dueTotal || s.grandTotal), 0);
+            setCustomerBalance(bal);
+            setCreditAvailable(bal < customer.creditLimit);
+          })
+      )
+      .catch(() => {
+        setCustomerBalance(null);
+        setCreditAvailable(false);
+      });
+  }, [customerId, customers]);
 
   // draftsOpen / holdsTick are intentional cache-bust triggers — they force a
   // re-read from sessionStorage whenever the drafts panel or hold-tick changes.
@@ -425,6 +462,12 @@ export default function PosTerminalPage() {
       customerName: customers.find((c) => c.id === sale.customerId)?.name,
       warehouseName: warehouses.find((w) => w.id === sale.warehouseId)?.name,
       productNames,
+      previousBalance: sale.paymentStatus === 'UNPAID' || sale.paymentStatus === 'PARTIAL'
+        ? (customerBalance ?? undefined)
+        : undefined,
+      newBalance: sale.paymentStatus === 'UNPAID' || sale.paymentStatus === 'PARTIAL'
+        ? ((customerBalance || 0) + (sale.dueTotal || sale.grandTotal))
+        : undefined,
     };
   };
 
@@ -562,6 +605,96 @@ export default function PosTerminalPage() {
     }
   };
 
+  const checkoutWithMethod = async (
+    method: 'CASH' | 'CARD' | 'CREDIT' | 'SPLIT',
+    split?: { cashAmount: number; cardAmount: number; creditAmount: number },
+  ) => {
+    if (!canCheckout) return;
+    setSubmitting(true);
+    setBanner(null);
+    try {
+      const body: CreateSaleBody = {
+        warehouseId,
+        customerId: customerId || undefined,
+        isPos: true,
+        discount: discount > 0 ? discount : undefined,
+        taxMethod: posSettings?.defaultTaxMethod || undefined,
+        currency: posSettings?.currencyCode || undefined,
+        lines: lines.map((l) => ({
+          productId: l.productId,
+          variantId: l.variantId,
+          unitPrice: l.unitPrice,
+          qty: l.qty,
+          taxRate: l.taxRate,
+          taxMethod: posSettings?.defaultTaxMethod || undefined,
+        })),
+      };
+
+      if (!online) {
+        throw new Error("Credit sales require an internet connection to verify customer balances.");
+      }
+
+      const sale = await posCheckout(body);
+
+      // Record cash/card payments
+      if (method === 'CASH' || method === 'CARD') {
+        try {
+          await recordPayment({
+            referenceType: 'SALE',
+            referenceId: sale.id,
+            accountId: '',
+            amount: sale.grandTotal,
+            method,
+          });
+        } catch { /* non-blocking */ }
+      }
+
+      // Record split payments
+      if (method === 'SPLIT' && split) {
+        const paymentPromises: Promise<unknown>[] = [];
+        if (split.cashAmount > 0) {
+          paymentPromises.push(
+            recordPayment({ referenceType: 'SALE', referenceId: sale.id, accountId: '', amount: split.cashAmount, method: 'CASH' }).catch(() => {})
+          );
+        }
+        if (split.cardAmount > 0) {
+          paymentPromises.push(
+            recordPayment({ referenceType: 'SALE', referenceId: sale.id, accountId: '', amount: split.cardAmount, method: 'CARD' }).catch(() => {})
+          );
+        }
+        await Promise.all(paymentPromises);
+      }
+
+      setLastSale(sale);
+      playPosSuccessSound();
+
+      // Set sale type for the success overlay
+      setSaleType(method === 'CREDIT' ? 'CREDIT' : method === 'SPLIT' && split && split.creditAmount > 0 ? 'CREDIT' : 'CASH');
+
+      // Compute new balance for credit sales
+      if (method === 'CREDIT' || (method === 'SPLIT' && split && split.creditAmount > 0)) {
+        const prevBalance = customerBalance || 0;
+        const added = method === 'CREDIT' ? sale.grandTotal : (split?.creditAmount || 0);
+        setNewCreditBalance(prevBalance + added);
+      } else {
+        setNewCreditBalance(undefined);
+      }
+
+      const rc = getReceiptConfig();
+      if (rc.autoPrint) {
+        setReceiptPreview({ sale, paymentMethod: method });
+        clear();
+      } else {
+        setSuccessOverlay(true);
+      }
+    } catch (e: unknown) {
+      const { message } = parseApiError(e);
+      setBanner({ kind: 'error', text: message });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   // ── Inline customer creation callback ──────────────────────────────────────
 
   const handleCustomerCreated = (customer: Customer) => {
@@ -650,6 +783,12 @@ export default function PosTerminalPage() {
     onOpenRegister: () => setOpenRegisterOpen(true),
     onCloseRegister: () => setCloseRegisterOpen(true),
     onTodaySales: () => setTodaySalesOpen(true),
+
+    // Credit sales
+    customerBalance,
+    creditAvailable,
+    onViewCreditAccount: (id: string) => navigate(`/pos/credit/${id}`),
+    onCheckoutWithMethod: checkoutWithMethod,
   };
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -741,6 +880,8 @@ export default function PosTerminalPage() {
         sale={lastSale}
         paymentMethod={paymentMethod}
         change={totals.change}
+        saleType={saleType}
+        newBalance={newCreditBalance}
         onNewSale={() => {
           setSuccessOverlay(false);
           clear();
