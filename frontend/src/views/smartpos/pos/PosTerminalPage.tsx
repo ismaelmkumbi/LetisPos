@@ -508,6 +508,8 @@ export default function PosTerminalPage() {
         currency: posSettings?.currencyCode || undefined,
         lines: lines.map((l) => ({
           productId: l.productId,
+          productName: l.productName,
+          productCode: l.productCode,
           variantId: l.variantId,
           unitPrice: l.unitPrice,
           qty: l.qty,
