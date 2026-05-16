@@ -38,6 +38,7 @@ public class SaleReturnService {
     private final SaleRepository saleRepo;
     private final InventoryClient inventory;
     private final OutboxPublisher outbox;
+    private final ProductNameResolver productNameResolver;
 
     @Transactional(readOnly = true)
     public SaleReturnDto get(UUID id) {
@@ -82,7 +83,7 @@ public class SaleReturnService {
             SaleReturnLine line = SaleReturnLine.builder()
                     .saleReturn(ret)
                     .productId(in.productId()).variantId(in.variantId())
-                    .productNameSnapshot(in.productName() != null && !in.productName().isBlank() ? in.productName() : "Unknown Product")
+                    .productNameSnapshot(productNameResolver.resolve(in.productId(), in.productName()))
                     .unitPrice(in.unitPrice()).qty(in.qty())
                     .lineTotal(lineTotal)
                     .build();
