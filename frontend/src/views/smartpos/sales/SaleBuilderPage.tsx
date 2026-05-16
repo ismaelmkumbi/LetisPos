@@ -46,9 +46,7 @@ import {
   type CreateSaleBody,
   type Sale,
 } from 'src/api/smartpos/sales';
-import { listProducts, getProduct } from 'src/api/smartpos/products';
-
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+import { listProducts } from 'src/api/smartpos/products';
 import { listCustomers } from 'src/api/smartpos/customers';
 import { listWarehouses, type Warehouse } from 'src/api/smartpos/inventory';
 import type { Customer } from 'src/api/smartpos/types';
@@ -129,31 +127,6 @@ export default function SaleBuilderPage() {
           taxRate: l.taxRate,
         }));
         setLines(mapped);
-        const toResolve = Array.from(
-          new Set(mapped.filter((l) => UUID_RE.test(l.productName)).map((l) => l.productId)),
-        );
-        if (toResolve.length > 0) {
-          Promise.all(
-            toResolve.map((pid) =>
-              getProduct(pid)
-                .then((prod) => ({ id: pid, name: prod.name, code: prod.code }))
-                .catch(() => null),
-            ),
-          ).then((results) => {
-            const byId = new Map<string, { id: string; name: string; code?: string }>();
-            for (const r of results) {
-              if (r) byId.set(r.id, r);
-            }
-            if (byId.size === 0) return;
-            setLines((prev) =>
-              prev.map((l) => {
-                const hit = byId.get(l.productId);
-                if (!hit) return l;
-                return { ...l, productName: hit.name, productCode: l.productCode ?? hit.code };
-              }),
-            );
-          });
-        }
       })
       .catch((e) => setError(e instanceof Error ? (e as Error).message : 'Failed to load sale'))
       .finally(() => setLoading(false));
