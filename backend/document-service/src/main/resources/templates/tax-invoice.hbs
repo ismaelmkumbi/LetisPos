@@ -47,17 +47,25 @@
 
 <div class="header">
   <div>
-    <div class="logo">{{company.name}}</div>
-    <div style="font-size:11px;color:#555;">{{company.address}}</div>
-    <div style="font-size:11px;color:#555;">TIN: {{company.tin}}</div>
+    {{#if company.showLogo}}
+      {{#if company.logoUrl}}
+        <img src="{{company.logoUrl}}" style="max-height:{{company.logoSize}}px; object-fit:contain;" />
+      {{else}}
+        <div class="logo">{{company.name}}</div>
+      {{/if}}
+    {{else}}
+      <div class="logo">{{company.name}}</div>
+    {{/if}}
+    {{#if company.address}}<div style="font-size:11px;color:#555;">{{company.address}}</div>{{/if}}
+    {{#if company.tin}}<div style="font-size:11px;color:#555;">TIN: {{company.tin}}</div>{{/if}}
     {{#if company.vatRegNo}}
     <div style="font-size:11px;color:#555;">VAT Reg: {{company.vatRegNo}}</div>
     {{/if}}
   </div>
   <div class="company-info">
-    <div>{{company.phone}}</div>
-    <div>{{company.email}}</div>
-    <div>{{company.website}}</div>
+    {{#if company.phone}}<div>{{company.phone}}</div>{{/if}}
+    {{#if company.email}}<div>{{company.email}}</div>{{/if}}
+    {{#if company.website}}<div>{{company.website}}</div>{{/if}}
   </div>
 </div>
 
