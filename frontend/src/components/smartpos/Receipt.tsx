@@ -28,6 +28,10 @@ export interface ReceiptLookups {
   customerName?: string;
   warehouseName?: string;
   productNames?: Record<UUID, string>;
+  /** Previous balance before this credit sale */
+  previousBalance?: number;
+  /** New balance after this credit sale */
+  newBalance?: number;
 }
 
 export interface ReceiptConfig {
@@ -513,6 +517,22 @@ function ThermalReceipt({
               <td className="value">{fmtSummary(sale.dueTotal)}</td>
             </tr>
           )}
+          {lookups?.newBalance !== undefined && (
+            <>
+              <tr>
+                <td className="label" style={{ color: '#B45309' }}>Previous Balance</td>
+                <td className="value" style={{ color: '#B45309' }}>
+                  {Number(lookups.previousBalance || 0).toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </td>
+              </tr>
+              <tr>
+                <td className="label" style={{ fontWeight: 900, color: '#B91C1C' }}>NEW BALANCE</td>
+                <td className="value" style={{ fontWeight: 900, color: '#B91C1C' }}>
+                  {Number(lookups.newBalance || 0).toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </td>
+              </tr>
+            </>
+          )}
         </tbody>
       </table>
 
@@ -712,6 +732,18 @@ function A4Receipt({
             <span>Due</span>
             <span>{fmt(sale.dueTotal, sale.currency)}</span>
           </div>
+        )}
+        {lookups?.newBalance !== undefined && (
+          <>
+            <div className="row">
+              <span style={{ color: '#B45309' }}>Previous Balance</span>
+              <span style={{ color: '#B45309' }}>{Number(lookups.previousBalance || 0).toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+            </div>
+            <div className="row grand bold" style={{ background: '#FEF3C7', color: '#B91C1C' }}>
+              <span>NEW BALANCE</span>
+              <span>{Number(lookups.newBalance || 0).toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+            </div>
+          </>
         )}
         {config.showPayments && (
           <div className="row">
