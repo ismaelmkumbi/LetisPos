@@ -37,6 +37,7 @@ public class DocumentService {
     private final io.smartpos.documents.infrastructure.feign.SalesClient salesClient;
     private final io.smartpos.documents.infrastructure.feign.PurchaseClient purchaseClient;
     private final io.smartpos.documents.infrastructure.feign.PaymentClient paymentClient;
+    private final io.smartpos.documents.infrastructure.feign.PosSettingClient posSettingClient;
 
     private static final Map<String, String> TEMPLATE_FILES = Map.ofEntries(
         Map.entry("quotation", "quotation.hbs"),
@@ -95,9 +96,9 @@ public class DocumentService {
         String templateContent = templateResolver.resolve(tenantId, documentType, templateFile);
 
         Map<String, Object> mergedContext = new java.util.HashMap<>(contextData);
-        mergedContext.putIfAbsent("company", Map.of("name", "Letis POS"));
 
-        // Fetch real transaction data if reference provided
+        // Fetch real transaction data if reference provided (must run before company
+        // context so we have warehouseId for branding lookup).
         if (referenceType != null && referenceId != null) {
             try {
                 Map<String, Object> realData = fetchReferenceData(referenceType, referenceId);
@@ -105,6 +106,11 @@ public class DocumentService {
             } catch (Exception e) {
                 log.warn("Could not fetch {} data for {}: {}", referenceType, referenceId, e.getMessage());
             }
+        }
+
+        // Enrich company context from PosSetting (or use client override if provided).
+        if (!mergedContext.containsKey("company")) {
+            mergedContext.put("company", resolveCompanyContext(mergedContext));
         }
 
         mergedContext.put("qrData", buildQrData(documentType, referenceType, referenceId));
@@ -265,12 +271,62 @@ public class DocumentService {
             mapped.put("preparedBy", Map.of("name", raw.getOrDefault("sellerName",
                 raw.getOrDefault("createdBy", "System"))));
 
+            // Pass through warehouseId for branding lookup
+            if (raw.containsKey("warehouseId") && raw.get("warehouseId") != null) {
+                mapped.put("warehouseId", raw.get("warehouseId"));
+            }
+
             log.debug("Fetched {} data for id={}: {} fields", referenceType, referenceId, mapped.size());
             return mapped;
         } catch (Exception e) {
             log.warn("Failed to fetch {} data for {}: {}", referenceType, referenceId, e.getMessage());
             return Map.of();
         }
+    }
+
+    /**
+     * Builds the company context map for template rendering.
+     * Resolves PosSetting using warehouseId from reference data or contextData.
+     * Falls back to "Letis POS" default if PosSetting is unavailable.
+     */
+    private Map<String, Object> resolveCompanyContext(Map<String, Object> mergedContext) {
+        UUID warehouseId = null;
+        try {
+            Object wid = mergedContext.get("warehouseId");
+            if (wid instanceof UUID w) {
+                warehouseId = w;
+            } else if (wid instanceof String s) {
+                warehouseId = UUID.fromString(s);
+            }
+        } catch (Exception e) {
+            log.debug("No warehouseId in context for branding lookup");
+        }
+
+        if (warehouseId != null) {
+            try {
+                var branding = posSettingClient.get(warehouseId);
+                return Map.of(
+                    "name", branding.storeName() != null && !branding.storeName().isBlank()
+                        ? branding.storeName() : "Letis POS",
+                    "logoUrl", branding.logoUrl() != null ? branding.logoUrl() : "",
+                    "address", branding.showStoreAddress() && branding.storeAddress() != null
+                        ? branding.storeAddress() : "",
+                    "phone", branding.showStorePhone() && branding.storePhone() != null
+                        ? branding.storePhone() : "",
+                    "email", branding.showStoreEmail() && branding.storeEmail() != null
+                        ? branding.storeEmail() : "",
+                    "tin", branding.storeTaxId() != null ? branding.storeTaxId() : "",
+                    "website", branding.storeWebsite() != null ? branding.storeWebsite() : "",
+                    "showLogo", branding.showLogo() && branding.logoUrl() != null
+                        && !branding.logoUrl().isBlank(),
+                    "logoSize", branding.logoSize() > 0 ? branding.logoSize() : 60
+                );
+            } catch (Exception e) {
+                log.warn("Failed to fetch PosSetting for warehouse {}: {}", warehouseId, e.getMessage());
+            }
+        }
+
+        return Map.of("name", "Letis POS");
     }
 
     private String buildQrData(String documentType, String referenceType, UUID referenceId) {
