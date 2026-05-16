@@ -103,6 +103,12 @@ const SmartPosTerminals = Loadable(lazy(() => import('../views/smartpos/pos/Term
 const SmartPosCustomerDisplay = Loadable(
   lazy(() => import('../views/smartpos/pos/CustomerDisplayPage')),
 );
+const SmartPosCreditAccount = Loadable(
+  lazy(() => import('../views/smartpos/pos/CreditAccountPage')),
+);
+const SmartPosCollections = Loadable(
+  lazy(() => import('../views/smartpos/pos/CollectionsRunPage')),
+);
 const CameraPage = Loadable(lazy(() => import('../views/smartpos/products/CameraPage')));
 const SmartPosIntegrations = Loadable(
   lazy(() => import('../views/smartpos/integrations/IntegrationsPage')),
@@ -584,6 +590,8 @@ const Router = [
       { path: 'ai/fraud-detection', element: <PlanGate minPlan="PROFESSIONAL" featureName="AI Fraud Detection"><SmartPosAiFraudDetection /></PlanGate> },
       // POS terminals admin (display screen below uses BlankLayout)
       { path: 'pos/terminals', element: <SmartPosTerminals /> },
+      { path: 'pos/credit/:customerId', element: <RequireAuth><SmartPosCreditAccount /></RequireAuth> },
+      { path: 'pos/collections', element: <RequireAuth><SmartPosCollections /></RequireAuth> },
       // Integrations
       { path: 'integrations', element: <PlanGate minPlan="PROFESSIONAL" featureName="Integrations"><SmartPosIntegrations /></PlanGate> },
       { path: 'integrations/payment-gateways', element: <PlanGate minPlan="PROFESSIONAL" featureName="Payment Gateways"><PaymentGatewaysPage /></PlanGate> },

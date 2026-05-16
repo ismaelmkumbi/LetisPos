@@ -53,6 +53,8 @@ import CloseRegisterModal from 'src/components/smartpos/CloseRegisterModal';
 
 import PaymentSuccessOverlay from 'src/components/smartpos/PaymentSuccessOverlay';
 import TodaySalesModal from 'src/components/smartpos/TodaySalesModal';
+import WalkInPaymentModal from 'src/components/smartpos/WalkInPaymentModal';
+import DebtorsSheet from 'src/components/smartpos/DebtorsSheet';
 import { getReceiptConfig } from 'src/components/smartpos/Receipt';
 import { getPosSettings, type PosSettings } from 'src/api/smartpos/posSettings';
 import ModernLayout from 'src/components/smartpos/PosLayouts/ModernLayout';
@@ -138,6 +140,9 @@ export default function PosTerminalPage() {
   const [creditAvailable, setCreditAvailable] = useState(false);
   const [saleType, setSaleType] = useState<'CASH' | 'CREDIT' | 'SPLIT'>('CASH');
   const [newCreditBalance, setNewCreditBalance] = useState<number | undefined>(undefined);
+  const [walkInPaymentOpen, setWalkInPaymentOpen] = useState(false);
+  const [walkInPreselectedCustomer, setWalkInPreselectedCustomer] = useState<string | null>(null);
+  const [debtorsSheetOpen, setDebtorsSheetOpen] = useState(false);
 
   useEffect(() => {
     if (!customerId || customerId === '__walkin__') {
@@ -789,6 +794,12 @@ export default function PosTerminalPage() {
     creditAvailable,
     onViewCreditAccount: (id: string) => navigate(`/pos/credit/${id}`),
     onCheckoutWithMethod: checkoutWithMethod,
+    onReceivePayment: (customerId?: string) => {
+      setWalkInPreselectedCustomer(customerId || null);
+      setWalkInPaymentOpen(true);
+    },
+    onOpenDebtors: () => setDebtorsSheetOpen(true),
+    onOpenCollections: () => navigate('/pos/collections'),
   };
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -928,6 +939,40 @@ export default function PosTerminalPage() {
         open={todaySalesOpen}
         onClose={() => setTodaySalesOpen(false)}
         warehouseId={warehouseId}
+      />
+
+      <WalkInPaymentModal
+        open={walkInPaymentOpen}
+        onClose={() => setWalkInPaymentOpen(false)}
+        onPaid={() => {
+          setWalkInPaymentOpen(false);
+          // Refresh customer balance
+          if (customerId) {
+            listSales({ customerId, paymentStatus: 'UNPAID', size: 200 })
+              .then((unpaid) =>
+                listSales({ customerId, paymentStatus: 'PARTIAL', size: 200 })
+                  .then((partial) => {
+                    const all = [...unpaid.content, ...partial.content];
+                    setCustomerBalance(all.reduce((sum, s) => sum + (s.dueTotal || s.grandTotal), 0));
+                  })
+              );
+          }
+        }}
+        preselectedCustomerId={walkInPreselectedCustomer}
+      />
+
+      <DebtorsSheet
+        open={debtorsSheetOpen}
+        onClose={() => setDebtorsSheetOpen(false)}
+        onSelectDebtor={(id) => {
+          setDebtorsSheetOpen(false);
+          navigate(`/pos/credit/${id}`);
+        }}
+        onRecordPayment={(id) => {
+          setDebtorsSheetOpen(false);
+          setWalkInPreselectedCustomer(id);
+          setWalkInPaymentOpen(true);
+        }}
       />
     </Box>
   );

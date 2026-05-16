@@ -118,4 +118,9 @@ export interface PosLayoutProps {
   registerLoading?: boolean;
   onOpenRegister?: () => void;
   onCloseRegister?: () => void;
+
+  // ── Credit / Debtors ──
+  onReceivePayment?: (customerId?: string) => void;
+  onOpenDebtors?: () => void;
+  onOpenCollections?: () => void;
 }
