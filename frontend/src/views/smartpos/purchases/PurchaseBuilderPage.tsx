@@ -423,6 +423,7 @@ export default function PurchaseBuilderPage() {
             onChange={(l) => { setLines(l); setFormDirty(true); }}
             searchProducts={searchProducts}
             priceLabel="Unit cost"
+            priceField="cost"
           />
 
           <TextField
