@@ -44,6 +44,7 @@ public class PurchaseReturnService {
     private final PurchaseRepository purchaseRepo;
     private final InventoryClient inventory;
     private final OutboxPublisher outbox;
+    private final ProductNameResolver productNameResolver;
 
     @Transactional(readOnly = true)
     public PurchaseReturnDto get(UUID id) {
@@ -88,7 +89,7 @@ public class PurchaseReturnService {
             PurchaseReturnLine line = PurchaseReturnLine.builder()
                     .purchaseReturn(ret)
                     .productId(in.productId()).variantId(in.variantId())
-                    .productNameSnapshot(in.productName() != null && !in.productName().isBlank() ? in.productName() : "Unknown Product")
+                    .productNameSnapshot(productNameResolver.resolve(in.productId(), in.productName()))
                     .unitPrice(in.unitPrice()).qty(in.qty())
                     .lineTotal(lineTotal)
                     .build();
