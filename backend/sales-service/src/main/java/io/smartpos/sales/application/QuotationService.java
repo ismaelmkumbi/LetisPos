@@ -28,6 +28,7 @@ public class QuotationService {
     private final PricingEngine pricing;
     private final SaleService sales;
     private final OutboxPublisher outbox;
+    private final ProductNameResolver productNameResolver;
 
     @Transactional(readOnly = true)
     public Page<QuotationDto> search(LocalDate from, LocalDate to, UUID customerId,
@@ -70,7 +71,7 @@ public class QuotationService {
             QuotationLine line = QuotationLine.builder()
                     .quotation(q)
                     .productId(in.productId()).variantId(in.variantId())
-                    .productNameSnapshot(in.productName() != null && !in.productName().isBlank() ? in.productName() : "Unknown Product")
+                    .productNameSnapshot(productNameResolver.resolve(in.productId(), in.productName()))
                     .productCodeSnapshot(in.productCode())
                     .unitPrice(in.unitPrice()).qty(in.qty())
                     .discount(nz(in.discount())).discountType(dt)
