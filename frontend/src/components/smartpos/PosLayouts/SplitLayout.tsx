@@ -7,13 +7,13 @@ import { useContext } from 'react';
  */
 import { useEffect, useMemo, useState } from 'react';
 import {
-  Badge, Box, Button, Card, Chip, CircularProgress,
+  Badge, Box, Button, Card, Chip,
   Drawer, IconButton, InputAdornment, MenuItem,
   Skeleton, Stack, TextField, Typography,
   useMediaQuery, useTheme,
 } from '@mui/material';
 import {
-  IconBarcode, IconCheck, IconMinus, IconPlus,
+  IconBarcode, IconMinus, IconPlus,
   IconSearch, IconShoppingCart, IconX, IconSparkles,
   IconStar, IconTrendingUp, IconAlertTriangle, IconClock,
 } from '@tabler/icons-react';
@@ -21,6 +21,8 @@ import type { PosLayoutProps } from './PosLayoutProps';
 import type { Line } from './types';
 import EditLineModal from 'src/components/smartpos/EditLineModal';
 import CashRegisterIndicator from 'src/components/smartpos/CashRegisterIndicator';
+import CustomerChip from 'src/components/smartpos/CustomerChip';
+import CreditPaymentZone from 'src/components/smartpos/CreditPaymentZone';
 import TotalRow from './TotalRow';
 import { listCategories, listBrands, type Product } from 'src/api/smartpos/products';
 import type { Brand as BrandRef, Category } from 'src/api/smartpos/types';
@@ -101,6 +103,19 @@ export default function SplitLayout(props: PosLayoutProps) {
         </Stack>
       </Stack>
 
+      {/* CustomerChip in cart — visible on desktop */}
+      {!isMobile && (
+        <Box sx={{ px: 2.5, py: 1.5, borderBottom: `1px solid ${brand.neutral[100]}` }}>
+          <CustomerChip
+            customerId={props.customerId}
+            customers={props.customers}
+            onCustomerChange={(id) => props.onCustomerChange(id ?? null)}
+            onCustomerCreated={props.onCustomerCreated ?? (() => {})}
+            onViewAccount={props.onViewCreditAccount}
+          />
+        </Box>
+      )}
+
       <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto', px: 2, ...softScrollSx }}>
         {props.lines.length === 0 ? (
           <Box sx={{ textAlign: 'center', py: 8 }}>
@@ -145,13 +160,20 @@ export default function SplitLayout(props: PosLayoutProps) {
             {totals.disc > 0 && <TotalRow label="Discount" value={`-${fmt(totals.disc)}`} size="small" />}
             <TotalRow label="Total" value={fmt(totals.grand)} valueWeight={900} size="medium" />
           </Stack>
-          <Button fullWidth variant="contained"
-            disabled={!props.canCheckout}
-            onClick={() => { props.onCheckout(); setCartOpen(false); }}
-            startIcon={props.submitting ? <CircularProgress size={16} color="inherit" /> : <IconCheck size={18} />}
-            sx={{ textTransform: 'none', fontWeight: 800, borderRadius: '12px', py: 1.5, fontSize: '0.95rem', bgcolor: brand.primary[600], '&:hover': { bgcolor: brand.primary[700] }, boxShadow: `0 12px 28px -14px ${brand.primary[600]}bb` }}>
-            {props.submitting ? 'Processing…' : `Pay ${fmt(totals.grand)}`}
-          </Button>
+          <CreditPaymentZone
+            total={totals.grand}
+            customerId={props.customerId}
+            customers={props.customers}
+            customerBalance={props.customerBalance ?? null}
+            creditAvailable={props.creditAvailable ?? false}
+            creditLimit={props.customers.find(c => c.id === props.customerId)?.creditLimit || 0}
+            submitting={props.submitting}
+            canCheckout={props.canCheckout}
+            onCheckout={(method, split) => {
+              setCartOpen(false);
+              props.onCheckoutWithMethod?.(method, split);
+            }}
+          />
         </Box>
       )}
     </Box>

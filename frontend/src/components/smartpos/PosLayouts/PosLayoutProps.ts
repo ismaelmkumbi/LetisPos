@@ -58,6 +58,12 @@ export interface PosLayoutProps {
   onCustomerChange: (id: string | null) => void;
   onCustomerCreated?: (customer: Customer) => void;
 
+  // ── Credit sales ──
+  customerBalance?: number | null;
+  creditAvailable?: boolean;
+  onViewCreditAccount?: (customerId: string) => void;
+  onCheckoutWithMethod?: (method: 'CASH' | 'CARD' | 'CREDIT' | 'SPLIT', split?: { cashAmount: number; cardAmount: number; creditAmount: number }) => void;
+
   // ── Terminals ──
   terminals: PosTerminal[];
   linkedTerminalId: string;
