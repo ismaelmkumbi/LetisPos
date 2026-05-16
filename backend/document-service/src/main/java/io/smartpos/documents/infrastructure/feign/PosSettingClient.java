@@ -9,7 +9,7 @@ import java.util.UUID;
 /**
  * Feign client for sales-service PosSetting — fetches store branding.
  */
-@FeignClient(name = "sales-service", url = "${spring.cloud.openfeign.client.config.sales-service.url}")
+@FeignClient(name = "sales-service", contextId = "posSettingClient", url = "${spring.cloud.openfeign.client.config.sales-service.url}")
 public interface PosSettingClient {
 
     /**

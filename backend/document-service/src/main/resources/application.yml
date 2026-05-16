@@ -28,8 +28,12 @@ spring:
   cloud.openfeign.client.config:
     sales-service:
       url: ${SALES_URI:http://localhost:8085}
+      connectTimeout: 5000
+      readTimeout: 10000
     purchase-service:
       url: ${SALES_URI:http://localhost:8085}
+      connectTimeout: 5000
+      readTimeout: 10000
     payment-service:
       url: ${PAYMENT_URI:http://localhost:8086}
     notification-service:
