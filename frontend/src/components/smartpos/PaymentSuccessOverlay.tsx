@@ -9,6 +9,7 @@ import {
   Backdrop,
   Box,
   Button,
+  Chip,
   IconButton,
   Stack,
   Typography,
@@ -20,6 +21,7 @@ import {
   IconDeviceMobile,
   IconEye,
   IconPrinter,
+  IconReceipt,
   IconX,
 } from '@tabler/icons-react';
 import type { Sale } from 'src/api/smartpos/sales';
@@ -33,10 +35,14 @@ interface PaymentSuccessOverlayProps {
   sale: Sale | null;
   paymentMethod: string;
   change: number;
+  // Credit sale additions
+  saleType?: 'CASH' | 'CREDIT' | 'SPLIT';
+  newBalance?: number;
   onNewSale: () => void;
   onPrint: (sale: Sale) => void;
   onPreview?: (sale: Sale) => void;
   onClose: () => void;
+  onRecordPayment?: () => void;
 }
 
 const methodIcons: Record<string, React.ReactNode> = {
@@ -46,7 +52,7 @@ const methodIcons: Record<string, React.ReactNode> = {
 };
 
 export default function PaymentSuccessOverlay({
-  open, sale, paymentMethod, change, onNewSale, onPrint, onPreview, onClose,
+  open, sale, paymentMethod, change, saleType, newBalance, onNewSale, onPrint, onPreview, onClose, onRecordPayment,
 }: PaymentSuccessOverlayProps) {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -70,6 +76,10 @@ export default function PaymentSuccessOverlay({
         e.preventDefault();
         if (sale) onPrint(sale);
       }
+      if ((e.key === 'r' || e.key === 'R') && saleType === 'CREDIT' && onRecordPayment) {
+        e.preventDefault();
+        onRecordPayment();
+      }
       if (e.key === 'Escape') {
         e.preventDefault();
         onClose();
@@ -77,7 +87,7 @@ export default function PaymentSuccessOverlay({
     };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, [open, sale, onNewSale, onPrint, onClose]);
+  }, [open, sale, onNewSale, onPrint, onClose, saleType, onRecordPayment]);
 
   if (!sale) return null;
 
@@ -155,12 +165,39 @@ export default function PaymentSuccessOverlay({
           >
             <IconCheck size={36} stroke={3} />
           </Box>
-          <Typography sx={{ fontWeight: 900, fontSize: '1.35rem', letterSpacing: '-0.02em' }}>
-            Payment Successful
-          </Typography>
-          <Typography sx={{ fontWeight: 600, opacity: 0.85, mt: 0.3 }}>
-            Sale completed successfully
-          </Typography>
+          {saleType === 'CREDIT' ? (
+            <Box sx={{ textAlign: 'center' }}>
+              <Typography sx={{ fontWeight: 900, fontSize: '1.35rem', letterSpacing: '-0.02em' }}>
+                Added to Tab
+              </Typography>
+              <Typography sx={{ fontWeight: 600, opacity: 0.85, mt: 0.3 }}>
+                Balance updated
+              </Typography>
+              {newBalance !== undefined && (
+                <Chip
+                  label={`New Balance: ${Number(newBalance).toLocaleString('en', { minimumFractionDigits: 2 })}`}
+                  sx={{
+                    mt: 1.5,
+                    fontWeight: 800,
+                    fontSize: '0.9rem',
+                    bgcolor: 'rgba(255,255,255,0.2)',
+                    color: '#fff',
+                    borderRadius: '10px',
+                    height: 36,
+                  }}
+                />
+              )}
+            </Box>
+          ) : (
+            <>
+              <Typography sx={{ fontWeight: 900, fontSize: '1.35rem', letterSpacing: '-0.02em' }}>
+                Payment Successful
+              </Typography>
+              <Typography sx={{ fontWeight: 600, opacity: 0.85, mt: 0.3 }}>
+                Sale completed successfully
+              </Typography>
+            </>
+          )}
         </Box>
 
         {/* Details */}
@@ -274,6 +311,25 @@ export default function PaymentSuccessOverlay({
           >
             New Sale
           </Button>
+          {saleType === 'CREDIT' && onRecordPayment && (
+            <Button
+              variant="outlined"
+              startIcon={<IconReceipt size={18} />}
+              onClick={onRecordPayment}
+              sx={{
+                flex: 1,
+                py: 1.2,
+                borderRadius: '12px',
+                textTransform: 'none',
+                fontWeight: 800,
+                color: '#B45309',
+                borderColor: '#F59E0B',
+                '&:hover': { borderColor: '#B45309', bgcolor: '#FEF3C7' },
+              }}
+            >
+              Record Payment
+            </Button>
+          )}
         </Box>
 
         {/* Keyboard hint */}
@@ -287,7 +343,10 @@ export default function PaymentSuccessOverlay({
             fontWeight: 600,
           }}
         >
-          Enter = New Sale &nbsp;·&nbsp; P = Print &nbsp;·&nbsp; Esc = Close &nbsp;·&nbsp; Auto-closes in 5s
+          {saleType === 'CREDIT'
+            ? 'Enter = New Sale  ·  P = Print  ·  Esc = Close  ·  R = Record Payment  ·  Auto-closes in 5s'
+            : 'Enter = New Sale  ·  P = Print  ·  Esc = Close  ·  Auto-closes in 5s'
+          }
         </Typography>
       </Box>
     </Backdrop>
