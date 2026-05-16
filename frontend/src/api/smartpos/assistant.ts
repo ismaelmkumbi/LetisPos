@@ -7,7 +7,7 @@ export interface ChatRequest {
 }
 
 export interface ToolResult {
-  type: 'time_series' | 'ranking' | 'comparison' | 'proportion' | 'metric' | 'table' | 'text';
+  type: 'time_series' | 'ranking' | 'comparison' | 'proportion' | 'metric' | 'table' | 'text' | 'briefing';
   title: string;
   data: Record<string, unknown>;
 }

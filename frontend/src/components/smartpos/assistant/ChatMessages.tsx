@@ -2,7 +2,7 @@ import { Box, Typography, Chip } from '@mui/material';
 import { IconSparkles, IconChartBar, IconPackage, IconReceipt } from '@tabler/icons-react';
 import { useAssistant } from 'src/context/smartpos/AssistantContext';
 import { useChatTheme } from './useChatTheme';
-import { TextBlock, StreamingBlock, ChartBlock, MetricBlock, TableBlock, DraftBlock, ErrorBlock } from './ChatBlocks';
+import { TextBlock, StreamingBlock, ChartBlock, MetricBlock, TableBlock, ToolTextBlock, ExecutiveBriefingBlock, DraftBlock, ErrorBlock } from './ChatBlocks';
 import { useEffect, useRef } from 'react';
 
 export default function ChatMessages() {
@@ -41,6 +41,7 @@ export default function ChatMessages() {
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, justifyContent: 'center', maxWidth: 300 }}>
           {[
             { icon: IconChartBar, label: 'Today\'s sales' },
+            { icon: IconSparkles, label: 'Executive briefing' },
             { icon: IconPackage, label: 'Low stock items' },
             { icon: IconReceipt, label: 'Recent orders' },
           ].map(({ icon: Icon, label }) => (
@@ -86,8 +87,10 @@ export default function ChatMessages() {
         }
         if (msg.role === 'tool' && msg.toolResult) {
           const r = msg.toolResult;
+          if (r.type === 'briefing') return <ExecutiveBriefingBlock key={msg.id} result={r} />;
           if (r.type === 'metric') return <MetricBlock key={msg.id} result={r} />;
           if (r.type === 'table') return <TableBlock key={msg.id} result={r} />;
+          if (r.type === 'text') return <ToolTextBlock key={msg.id} result={r} />;
           return <ChartBlock key={msg.id} result={r} />;
         }
         if (msg.role === 'draft' && msg.draft) {

@@ -26,6 +26,10 @@ public class AssistantPromptBuilder {
         Rules:
         - Always use tools for factual questions about the store's data
         - Cite specific numbers and names from tool results
+        - When a date range is unclear, choose the most useful recent range and say which range you used
+        - Prefer charts for trends, rankings, comparisons, and proportions
+        - Never invent business data; if the available tools cannot answer exactly, explain the closest available answer
+        - For analytical answers, lead with the answer, then 2-3 supporting facts, then one recommended action
         - For write actions, explain what will happen before using the tool
         - If a tool returns an error, tell the user what went wrong
         - Respond in %s

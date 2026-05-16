@@ -145,6 +145,8 @@ public class AssistantService {
         }
 
         // Process tool calls from native function calling
+        List<ToolResult> collectedToolResults = new java.util.ArrayList<>();
+        List<String> toolErrors = new java.util.ArrayList<>();
         if (!result.toolCalls().isEmpty()) {
             for (var tc : result.toolCalls()) {
                 emitter.send(SseEmitter.event().name("tool_start")
@@ -164,10 +166,12 @@ public class AssistantService {
                     if (isSuperAdmin) {
                         try {
                             ToolResult toolResult = toolExecutor.execute(tc.name(), parsedArgs, userId);
+                            collectedToolResults.add(toolResult);
                             emitter.send(SseEmitter.event().name("tool_result")
                                 .data(Map.of("type", toolResult.type(), "title", toolResult.title(),
                                              "data", toolResult.data())));
                         } catch (Exception e) {
+                            toolErrors.add(tc.name() + ": " + e.getMessage());
                             emitter.send(SseEmitter.event().name("error")
                                 .data(Map.of("message", e.getMessage(), "code", "TOOL_ERROR")));
                         }
@@ -184,10 +188,12 @@ public class AssistantService {
                 } else if (tool != null) {
                     try {
                         ToolResult toolResult = toolExecutor.execute(tc.name(), parsedArgs, userId);
+                        collectedToolResults.add(toolResult);
                         emitter.send(SseEmitter.event().name("tool_result")
                             .data(Map.of("type", toolResult.type(), "title", toolResult.title(),
                                          "data", toolResult.data())));
                     } catch (Exception e) {
+                        toolErrors.add(tc.name() + ": " + e.getMessage());
                         emitter.send(SseEmitter.event().name("error")
                             .data(Map.of("message", e.getMessage(), "code", "TOOL_ERROR")));
                     }
@@ -201,11 +207,54 @@ public class AssistantService {
                             "message", "I don't have access to '" + tc.name() + "'. " +
                                 "Available tools: " + String.join(", ", available),
                             "code", "UNKNOWN_TOOL")));
+                    toolErrors.add("Unknown tool: " + tc.name());
                 }
+            }
+
+            String synthesis = synthesizeToolAnswer(provider, systemPrompt, userMessage,
+                collectedToolResults, toolErrors);
+            if (synthesis != null && !synthesis.isBlank()) {
+                emitter.send(SseEmitter.event().name("token")
+                    .data(Map.of("token", synthesis)));
             }
         }
 
         emitter.send(SseEmitter.event().name("done").data("{}"));
+    }
+
+    private String synthesizeToolAnswer(AiProvider provider, String systemPrompt, String userMessage,
+                                        List<ToolResult> toolResults, List<String> toolErrors) {
+        if (toolResults.isEmpty() && toolErrors.isEmpty()) {
+            return "";
+        }
+        try {
+            String toolJson = om.writeValueAsString(Map.of(
+                "toolResults", toolResults,
+                "toolErrors", toolErrors
+            ));
+            String synthesisPrompt = """
+                User question:
+                %s
+
+                Tool outputs as JSON:
+                %s
+
+                Write the final answer for the merchant. Requirements:
+                - Do not repeat the chart/table title unless useful.
+                - Use exact figures from the tool outputs.
+                - Mention the period used when dates are present.
+                - Give one practical next action.
+                - If a tool errored, be transparent and suggest the next best step.
+                - Keep it under 120 words.
+                """.formatted(userMessage, toolJson);
+            return provider.complete(systemPrompt, synthesisPrompt).text();
+        } catch (Exception e) {
+            log.warn("Assistant synthesis failed", e);
+            if (!toolResults.isEmpty()) {
+                return "I found the live data and displayed it above. Review the chart or table for the exact figures, then act on the highest-risk or highest-value item first.";
+            }
+            return "";
+        }
     }
 
     /** Convert our ToolDef to OpenAI function-calling format. */

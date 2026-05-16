@@ -40,54 +40,67 @@ public class AssistantToolCatalog {
 
     private List<ToolDef> readTools() {
         return List.of(
-            new ToolDef("getSalesReport", "Get sales summary for a date range",
+            new ToolDef("getExecutiveBriefing", "Generate an owner-level executive briefing with sales movement, top products, top customers, low-stock risks, expiring stock, and a recommended first action. Use this for daily briefing, morning briefing, executive summary, business pulse, or what should I do first.",
+                Map.of("type","object","properties", Map.of(
+                    "date", Map.of("type","string","description","Briefing date YYYY-MM-DD. Defaults to yesterday because complete business days are more reliable."),
+                    "topLimit", Map.of("type","integer","description","Number of top products/customers, default 5, max 10"),
+                    "expiryDays", Map.of("type","integer","description","Days to check expiry risk, default 14")
+                ),"required",List.of()), false, null),
+
+            new ToolDef("getSalesReport", "Get sales summary for a date range. Use this for today's sales, weekly sales, monthly sales, revenue, totals, or sales trend questions.",
                 Map.of("type","object","properties", Map.of(
                     "dateFrom", Map.of("type","string","description","Start date YYYY-MM-DD"),
                     "dateTo", Map.of("type","string","description","End date YYYY-MM-DD"),
                     "groupBy", Map.of("type","string","enum",List.of("day","week","month"))
                 ),"required",List.of("dateFrom","dateTo")), false, null),
 
-            new ToolDef("getTopProducts", "Get top selling products",
+            new ToolDef("getTopProducts", "Get top selling products by revenue for a date range. Use this for best sellers, product ranking, and product performance chart questions.",
                 Map.of("type","object","properties", Map.of(
                     "limit", Map.of("type","integer","description","Number of products, max 20"),
                     "dateFrom", Map.of("type","string","description","Start date YYYY-MM-DD"),
                     "dateTo", Map.of("type","string","description","End date YYYY-MM-DD")
                 ),"required",List.of("limit")), false, null),
 
-            new ToolDef("checkStock", "Check current stock levels for products",
+            new ToolDef("checkStock", "Check current stock levels for one product. If the user gives a product name, call searchProducts first to find the product UUID.",
                 Map.of("type","object","properties", Map.of(
-                    "productIds", Map.of("type","array","items", Map.of("type","string"),"description","Product UUIDs"),
+                    "productId", Map.of("type","string","description","Product UUID"),
                     "warehouseId", Map.of("type","string","description","Warehouse UUID, optional")
-                ),"required",List.of("productIds")), false, null),
+                ),"required",List.of("productId")), false, null),
 
-            new ToolDef("getTopCustomers", "Get top customers by sales",
+            new ToolDef("checkStockByProductSearch", "Find a product by name, SKU, or barcode and then check its current stock. Use this for natural stock questions like 'how many Coca-Cola do we have?'",
+                Map.of("type","object","properties", Map.of(
+                    "query", Map.of("type","string","description","Product name, SKU, or barcode"),
+                    "warehouseId", Map.of("type","string","description","Warehouse UUID, optional")
+                ),"required",List.of("query")), false, null),
+
+            new ToolDef("getTopCustomers", "Get top customers by sales. Use this for customer ranking, VIP customer, and buyer performance questions.",
                 Map.of("type","object","properties", Map.of(
                     "limit", Map.of("type","integer","description","Number of customers, max 20"),
                     "dateFrom", Map.of("type","string","description","Start date YYYY-MM-DD"),
                     "dateTo", Map.of("type","string","description","End date YYYY-MM-DD")
                 ),"required",List.of("limit")), false, null),
 
-            new ToolDef("getFinancialSummary", "Get financial summary: revenue, expenses, profit",
+            new ToolDef("getFinancialSummary", "Get financial summary for a date range. Use this for finance, revenue mix, and high-level money questions.",
                 Map.of("type","object","properties", Map.of(
                     "dateFrom", Map.of("type","string","description","Start date YYYY-MM-DD"),
                     "dateTo", Map.of("type","string","description","End date YYYY-MM-DD")
                 ),"required",List.of("dateFrom","dateTo")), false, null),
 
-            new ToolDef("getExpiringStock", "Get products expiring soon",
+            new ToolDef("getExpiringStock", "Get products expiring soon. Use this for expiry risk, near-expiry stock, and products to discount urgently.",
                 Map.of("type","object","properties", Map.of(
                     "daysFromNow", Map.of("type","integer","description","Days until expiry, default 30")
                 ),"required",List.of()), false, null),
 
-            new ToolDef("getLowStock", "Get products below reorder threshold",
+            new ToolDef("getLowStock", "Get products below reorder threshold. Use this for low stock, reorder, stockout risk, and replenishment questions.",
                 Map.of("type","object","properties", Map.of()), false, null),
 
-            new ToolDef("searchProducts", "Search products by name, SKU, or barcode",
+            new ToolDef("searchProducts", "Search products by name, SKU, or barcode. Use this before stock checks when the user does not provide a UUID.",
                 Map.of("type","object","properties", Map.of(
                     "query", Map.of("type","string","description","Search term"),
                     "limit", Map.of("type","integer","description","Max results, default 10")
                 ),"required",List.of("query")), false, null),
 
-            new ToolDef("getRecentSales", "Get recent sales transactions",
+            new ToolDef("getRecentSales", "Get recent sales transactions. Use this for latest orders, recent receipts, transaction lookup, and last sales questions.",
                 Map.of("type","object","properties", Map.of(
                     "limit", Map.of("type","integer","description","Number of sales, max 25")
                 ),"required",List.of()), false, null)

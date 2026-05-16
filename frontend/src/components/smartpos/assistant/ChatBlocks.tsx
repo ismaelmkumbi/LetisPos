@@ -1,6 +1,6 @@
 import { keyframes } from '@emotion/react';
 import { Box, Typography, Button } from '@mui/material';
-import { IconCheck, IconX, IconSparkles, IconAlertTriangle } from '@tabler/icons-react';
+import { IconCheck, IconX, IconSparkles, IconAlertTriangle, IconArrowUpRight, IconArrowDownRight } from '@tabler/icons-react';
 import React from 'react';
 import type { ToolResult, DraftResponse } from 'src/api/smartpos/assistant';
 import { useChatTheme } from './useChatTheme';
@@ -9,6 +9,32 @@ const messageIn = keyframes`
   from { opacity: 0; transform: translateY(12px); }
   to { opacity: 1; transform: translateY(0); }
 `;
+
+function asNumber(value: unknown): number {
+  if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
+  if (typeof value === 'string') {
+    const parsed = Number(value.replace(/,/g, ''));
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+  return 0;
+}
+
+function formatValue(value: unknown, currency?: unknown): string {
+  const numeric = asNumber(value);
+  if (numeric === 0 && value !== 0 && value !== '0') return String(value ?? '');
+  const compact = Math.abs(numeric) >= 1000;
+  const formatted = new Intl.NumberFormat('en-US', {
+    notation: compact ? 'compact' : 'standard',
+    maximumFractionDigits: compact ? 1 : 2,
+  }).format(numeric);
+  return currency ? `${currency} ${formatted}` : formatted;
+}
+
+function formatPercent(value: unknown): string {
+  if (value === null || value === undefined) return 'New';
+  const numeric = asNumber(value);
+  return `${numeric >= 0 ? '+' : ''}${new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(numeric)}%`;
+}
 
 const shimmer = keyframes`
   0% { background-position: -200% 0; }
@@ -145,7 +171,9 @@ export function MetricBlock({ result }: { result: ToolResult }) {
   const c = useChatTheme();
   const data = result.data as Record<string, unknown>;
   const total = data.totalSales ?? data.total ?? data.totalRevenue ?? data.value ?? null;
-  const subtitle = (data.period ?? data.note ?? '') as string;
+  const firstItem = Array.isArray(data.items) ? data.items[0] as Record<string, unknown> | undefined : undefined;
+  const displayValue = total ?? firstItem?.value ?? null;
+  const subtitle = (data.secondaryLabel ?? firstItem?.subtitle ?? data.period ?? data.note ?? '') as string;
 
   return (
     <Box
@@ -158,7 +186,7 @@ export function MetricBlock({ result }: { result: ToolResult }) {
         textAlign: 'center',
       }}
     >
-      {total !== null && total !== undefined && (
+      {displayValue !== null && displayValue !== undefined && (
         <Typography
           sx={{
             fontFamily: '"DM Serif Display", Georgia, serif',
@@ -166,7 +194,12 @@ export function MetricBlock({ result }: { result: ToolResult }) {
             color: c.accent, lineHeight: 1.2,
           }}
         >
-          {String(total)}
+          {formatValue(displayValue, data.currency)}
+        </Typography>
+      )}
+      {Boolean(data.primaryLabel) && (
+        <Typography sx={{ fontSize: '0.72rem', color: c.textMuted, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+          {String(data.primaryLabel)}
         </Typography>
       )}
       <Typography sx={{ fontSize: '0.82rem', color: c.textSecondary, mt: 0.5 }}>
@@ -243,7 +276,13 @@ export function TableBlock({ result }: { result: ToolResult }) {
 export function ChartBlock({ result }: { result: ToolResult }) {
   const c = useChatTheme();
   const data = result.data as Record<string, unknown>;
-  const items = (data.items as Array<Record<string, unknown>>) ?? [];
+  const rawItems = (data.items as Array<Record<string, unknown>>) ?? [];
+  const labelValues: Array<Record<string, unknown>> = Array.isArray(data.labels) && Array.isArray(data.values)
+    ? (data.labels as unknown[]).map((label, i) => ({ name: String(label), value: (data.values as unknown[])[i] }))
+    : [];
+  const items: Array<Record<string, unknown>> = rawItems.length ? rawItems : labelValues;
+  const maxValue = Math.max(...items.map(item => Math.abs(asNumber(item.value))), 0);
+  const totalValue = items.reduce((sum, item) => sum + Math.max(0, asNumber(item.value)), 0);
 
   return (
     <Box
@@ -258,27 +297,176 @@ export function ChartBlock({ result }: { result: ToolResult }) {
       <Typography sx={{ fontSize: '0.8rem', fontWeight: 600, color: c.textSecondary, mb: 1.5, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
         {result.title}
       </Typography>
+      {items.length === 0 && (
+        <Typography sx={{ fontSize: '0.84rem', color: c.textMuted }}>
+          No chart data returned for this question.
+        </Typography>
+      )}
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.8 }}>
         {items.map((item, i) => (
-          <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <Typography sx={{ flex: 1, fontSize: '0.84rem', color: c.text, textAlign: 'right' }}>
-              {String(item.name ?? '')}
+          <Box key={i} sx={{ display: 'grid', gridTemplateColumns: 'minmax(84px, 1fr) minmax(120px, 2fr) auto', alignItems: 'center', gap: 1.2 }}>
+            <Typography sx={{ fontSize: '0.82rem', color: c.text, textAlign: 'right', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {String(item.name ?? item.label ?? '')}
             </Typography>
-            <Box sx={{ flex: 2, height: 6, borderRadius: 3, background: c.inputBg, overflow: 'hidden' }}>
+            <Box sx={{ height: 8, borderRadius: 4, background: c.inputBg, overflow: 'hidden' }}>
               <Box
                 sx={{
-                  height: '100%', borderRadius: 3,
-                  width: `${Math.min(100, Math.max(5, i < items.length ? 100 - i * 20 : 30))}%`,
-                  background: `linear-gradient(90deg, ${c.accent} 0%, ${c.accent}dd 100%)`,
+                  height: '100%', borderRadius: 4,
+                  width: `${Math.min(100, Math.max(items.length > 1 ? 3 : 100, maxValue > 0 ? (Math.abs(asNumber(item.value)) / maxValue) * 100 : 0))}%`,
+                  background: i === 0
+                    ? `linear-gradient(90deg, ${c.accent} 0%, ${c.accent}dd 100%)`
+                    : c.accent,
+                  opacity: Math.max(0.48, 1 - i * 0.08),
                 }}
               />
             </Box>
-            <Typography sx={{ fontSize: '0.78rem', color: c.accent, fontWeight: 500, minWidth: 50 }}>
-              {String(item.value ?? item.subtitle ?? '')}
-            </Typography>
+            <Box sx={{ minWidth: 74 }}>
+              <Typography sx={{ fontSize: '0.78rem', color: c.accent, fontWeight: 600, textAlign: 'right' }}>
+                {formatValue(item.value, data.currency)}
+              </Typography>
+              {result.type === 'proportion' && totalValue > 0 && (
+                <Typography sx={{ fontSize: '0.68rem', color: c.textMuted, textAlign: 'right' }}>
+                  {Math.round((Math.max(0, asNumber(item.value)) / totalValue) * 100)}%
+                </Typography>
+              )}
+            </Box>
           </Box>
         ))}
       </Box>
+      {Boolean(data.from || data.to || data.valueLabel) && (
+        <Typography sx={{ fontSize: '0.7rem', color: c.textMuted, mt: 1.4, textAlign: 'right' }}>
+          {[data.valueLabel ? String(data.valueLabel) : null, data.from && data.to ? `${String(data.from)} to ${String(data.to)}` : null].filter(Boolean).join(' · ')}
+        </Typography>
+      )}
+    </Box>
+  );
+}
+
+export function ToolTextBlock({ result }: { result: ToolResult }) {
+  const c = useChatTheme();
+  const data = result.data as Record<string, unknown>;
+  return (
+    <Box
+      sx={{
+        mx: 1, mb: 1.5, p: 2,
+        animation: `${messageIn} 0.35s cubic-bezier(0.16, 1, 0.3, 1)`,
+        background: c.surfaceHover,
+        borderRadius: 3,
+        border: `1px solid ${c.border}`,
+      }}
+    >
+      <Typography sx={{ fontSize: '0.82rem', fontWeight: 600, color: c.textSecondary, mb: 0.8 }}>
+        {result.title}
+      </Typography>
+      <Typography sx={{ fontSize: '0.86rem', color: c.text, lineHeight: 1.55 }}>
+        {String(data.message ?? data.status ?? result.title)}
+      </Typography>
+    </Box>
+  );
+}
+
+export function ExecutiveBriefingBlock({ result }: { result: ToolResult }) {
+  const c = useChatTheme();
+  const data = result.data as Record<string, unknown>;
+  const metrics = (data.metrics as Array<Record<string, unknown>>) ?? [];
+  const sections = (data.sections as Array<Record<string, unknown>>) ?? [];
+
+  return (
+    <Box
+      sx={{
+        mx: 1, mb: 1.5, p: 2,
+        animation: `${messageIn} 0.35s cubic-bezier(0.16, 1, 0.3, 1)`,
+        background: c.surfaceHover,
+        borderRadius: 3,
+        border: `1px solid ${c.accentBorder}`,
+        boxShadow: `0 16px 38px ${c.accent}12`,
+      }}
+    >
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.2 }}>
+        <IconSparkles size={16} style={{ color: c.accent }} />
+        <Typography sx={{ fontSize: '0.78rem', fontWeight: 700, color: c.accent, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+          Executive Briefing
+        </Typography>
+        <Typography sx={{ ml: 'auto', fontSize: '0.72rem', color: c.textMuted }}>
+          {String(data.date ?? '')}
+        </Typography>
+      </Box>
+
+      <Typography sx={{ fontSize: '0.95rem', color: c.text, lineHeight: 1.45, fontWeight: 600, mb: 1.6 }}>
+        {String(data.headline ?? result.title)}
+      </Typography>
+
+      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 1, mb: 1.6 }}>
+        {metrics.map((metric, i) => {
+          const change = metric.changePct;
+          const isPositive = change === null || change === undefined || asNumber(change) >= 0;
+          const TrendIcon = isPositive ? IconArrowUpRight : IconArrowDownRight;
+          return (
+            <Box key={i} sx={{ p: 1.15, borderRadius: 2, border: `1px solid ${c.border}`, background: c.inputBg, minWidth: 0 }}>
+              <Typography sx={{ fontSize: '0.68rem', color: c.textMuted, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                {String(metric.label ?? '')}
+              </Typography>
+              <Typography sx={{ fontSize: '1rem', color: c.text, fontWeight: 700, mt: 0.2, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {formatValue(metric.value, data.currency)}
+              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4, mt: 0.4 }}>
+                <TrendIcon size={13} style={{ color: isPositive ? '#22c55e' : '#ef4444' }} />
+                <Typography sx={{ fontSize: '0.68rem', color: isPositive ? '#22c55e' : '#ef4444', fontWeight: 600 }}>
+                  {formatPercent(change)}
+                </Typography>
+                <Typography sx={{ fontSize: '0.66rem', color: c.textMuted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {String(metric.comparisonLabel ?? '')}
+                </Typography>
+              </Box>
+            </Box>
+          );
+        })}
+      </Box>
+
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.1 }}>
+        {sections.map((section, idx) => {
+          const items = (section.items as Array<Record<string, unknown>>) ?? [];
+          return (
+            <Box key={idx}>
+              <Typography sx={{ fontSize: '0.74rem', color: c.textSecondary, fontWeight: 700, mb: 0.55, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                {String(section.title ?? '')}
+              </Typography>
+              {items.length === 0 ? (
+                <Typography sx={{ fontSize: '0.8rem', color: c.textMuted }}>No urgent items.</Typography>
+              ) : (
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.45 }}>
+                  {items.slice(0, 4).map((item, itemIdx) => (
+                    <Box key={itemIdx} sx={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', gap: 1, alignItems: 'baseline' }}>
+                      <Typography sx={{ fontSize: '0.82rem', color: c.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {String(item.name ?? '')}
+                      </Typography>
+                      <Typography sx={{ fontSize: '0.78rem', color: c.accent, fontWeight: 600 }}>
+                        {formatValue(item.value, section.title === 'Low-stock risks' || section.title === 'Expiry watch' ? undefined : data.currency)}
+                      </Typography>
+                      {Boolean(item.subtitle) && (
+                        <Typography sx={{ gridColumn: '1 / -1', fontSize: '0.68rem', color: c.textMuted, mt: -0.2 }}>
+                          {String(item.subtitle)}
+                        </Typography>
+                      )}
+                    </Box>
+                  ))}
+                </Box>
+              )}
+            </Box>
+          );
+        })}
+      </Box>
+
+      {Boolean(data.recommendedAction) && (
+        <Box sx={{ mt: 1.6, p: 1.25, borderRadius: 2, background: c.accentBg, border: `1px solid ${c.accentBorder}` }}>
+          <Typography sx={{ fontSize: '0.68rem', color: c.accent, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.35 }}>
+            Do this first
+          </Typography>
+          <Typography sx={{ fontSize: '0.84rem', color: c.text, lineHeight: 1.45 }}>
+            {String(data.recommendedAction)}
+          </Typography>
+        </Box>
+      )}
     </Box>
   );
 }
