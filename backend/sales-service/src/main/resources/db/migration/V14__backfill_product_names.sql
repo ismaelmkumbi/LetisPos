@@ -1,49 +1,67 @@
 -- V14: Backfill product_name_snapshot for rows with "Unknown Product" or UUIDs.
--- Assumes the products table is in the same database (shared DB deployment).
--- For separate-DB deployments, this migration is a no-op and backfill must
--- be handled via dblink, FDW, or a manual script.
+-- Only runs if the products table is in the same database. For separate-DB
+-- deployments the migration is a safe no-op; backfill must be handled via
+-- dblink, FDW, or a manual script.
 
--- 1. sale_lines
-UPDATE sale_lines sl
-SET product_name_snapshot = p.name
-FROM products p
-WHERE sl.product_id = p.id
-  AND p.deleted_at IS NULL
-  AND (sl.product_name_snapshot = 'Unknown Product'
-       OR sl.product_name_snapshot ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$');
+DO $$
+DECLARE
+    uuid_re TEXT := '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$';
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables
+               WHERE table_schema = 'public' AND table_name = 'products') THEN
 
--- 2. purchase_lines
-UPDATE purchase_lines pl
-SET product_name_snapshot = p.name
-FROM products p
-WHERE pl.product_id = p.id
-  AND p.deleted_at IS NULL
-  AND (pl.product_name_snapshot = 'Unknown Product'
-       OR pl.product_name_snapshot ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$');
+        EXECUTE '
+        UPDATE sale_lines sl
+        SET product_name_snapshot = p.name
+        FROM products p
+        WHERE sl.product_id = p.id
+          AND p.deleted_at IS NULL
+          AND (sl.product_name_snapshot = ''Unknown Product''
+               OR sl.product_name_snapshot ~ $1)'
+        USING uuid_re;
 
--- 3. quotation_lines
-UPDATE quotation_lines ql
-SET product_name_snapshot = p.name
-FROM products p
-WHERE ql.product_id = p.id
-  AND p.deleted_at IS NULL
-  AND (ql.product_name_snapshot = 'Unknown Product'
-       OR ql.product_name_snapshot ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$');
+        EXECUTE '
+        UPDATE purchase_lines pl
+        SET product_name_snapshot = p.name
+        FROM products p
+        WHERE pl.product_id = p.id
+          AND p.deleted_at IS NULL
+          AND (pl.product_name_snapshot = ''Unknown Product''
+               OR pl.product_name_snapshot ~ $1)'
+        USING uuid_re;
 
--- 4. sale_return_lines
-UPDATE sale_return_lines srl
-SET product_name_snapshot = p.name
-FROM products p
-WHERE srl.product_id = p.id
-  AND p.deleted_at IS NULL
-  AND (srl.product_name_snapshot = 'Unknown Product'
-       OR srl.product_name_snapshot ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$');
+        EXECUTE '
+        UPDATE quotation_lines ql
+        SET product_name_snapshot = p.name
+        FROM products p
+        WHERE ql.product_id = p.id
+          AND p.deleted_at IS NULL
+          AND (ql.product_name_snapshot = ''Unknown Product''
+               OR ql.product_name_snapshot ~ $1)'
+        USING uuid_re;
 
--- 5. purchase_return_lines
-UPDATE purchase_return_lines prl
-SET product_name_snapshot = p.name
-FROM products p
-WHERE prl.product_id = p.id
-  AND p.deleted_at IS NULL
-  AND (prl.product_name_snapshot = 'Unknown Product'
-       OR prl.product_name_snapshot ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$');
+        EXECUTE '
+        UPDATE sale_return_lines srl
+        SET product_name_snapshot = p.name
+        FROM products p
+        WHERE srl.product_id = p.id
+          AND p.deleted_at IS NULL
+          AND (srl.product_name_snapshot = ''Unknown Product''
+               OR srl.product_name_snapshot ~ $1)'
+        USING uuid_re;
+
+        EXECUTE '
+        UPDATE purchase_return_lines prl
+        SET product_name_snapshot = p.name
+        FROM products p
+        WHERE prl.product_id = p.id
+          AND p.deleted_at IS NULL
+          AND (prl.product_name_snapshot = ''Unknown Product''
+               OR prl.product_name_snapshot ~ $1)'
+        USING uuid_re;
+
+        RAISE NOTICE 'V14: Backfilled product_name_snapshot across all 5 line tables.';
+    ELSE
+        RAISE NOTICE 'V14: products table not in same database — skipping backfill.';
+    END IF;
+END $$;
