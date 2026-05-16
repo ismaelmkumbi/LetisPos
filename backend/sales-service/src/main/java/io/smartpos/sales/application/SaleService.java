@@ -63,6 +63,7 @@ public class SaleService {
     private final SalePaymentAppliedRepository appliedRepo;
     private final EntityManager em;
     private final UserFeign userFeign;
+    private final ProductNameResolver productNameResolver;
 
     @Value("${smartpos.sales.default-currency:TZS}")
     private String defaultCurrency;
@@ -240,7 +241,7 @@ public class SaleService {
             SaleLine line = SaleLine.builder()
                     .sale(sale)
                     .productId(in.productId()).variantId(in.variantId())
-                    .productNameSnapshot(in.productName() != null && !in.productName().isBlank() ? in.productName() : "Unknown Product")
+                    .productNameSnapshot(productNameResolver.resolve(in.productId(), in.productName()))
                     .productCodeSnapshot(in.productCode())
                     .unitPrice(in.unitPrice()).qty(in.qty())
                     .discount(nz(in.discount())).discountType(dt)
