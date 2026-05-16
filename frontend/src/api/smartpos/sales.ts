@@ -95,6 +95,7 @@ export async function listSales(
     customerId?: UUID;
     warehouseId?: UUID;
     status?: SaleStatus;
+    paymentStatus?: PaymentStatus;
     page?: number;
     size?: number;
     sort?: string;
