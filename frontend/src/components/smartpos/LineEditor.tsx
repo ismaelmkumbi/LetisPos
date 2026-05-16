@@ -32,6 +32,8 @@ export interface LineEditorProps {
   searchProducts: (query: string) => Promise<Product[]>;
   /** Override the label shown on the price header (e.g. "Unit cost" for purchases). */
   priceLabel?: string;
+  /** Which product field to use as default unit price. Default: 'price'. */
+  priceField?: 'cost' | 'price';
   /** When true, all inputs are disabled (readonly mode). */
   disabled?: boolean;
 }
@@ -39,7 +41,7 @@ export interface LineEditorProps {
 const fmt = formatMoney;
 
 export default function LineEditor({
-  lines, onChange, searchProducts, priceLabel = 'Price', disabled = false,
+  lines, onChange, searchProducts, priceLabel = 'Price', priceField = 'price', disabled = false,
 }: LineEditorProps) {
   const [options, setOptions] = useState<Product[]>([]);
   const [searching, setSearching] = useState(false);
@@ -52,7 +54,7 @@ export default function LineEditor({
         productId: p.id,
         productName: p.name,
         productCode: p.code,
-        unitPrice: p.price,
+        unitPrice: p[priceField],
         qty: 1,
         taxRate: p.taxRate,
       },
@@ -105,7 +107,7 @@ export default function LineEditor({
               <Box>
                 <Typography variant="body2" sx={{ fontWeight: 600 }}>{p.name}</Typography>
                 <Typography variant="caption" sx={{ color: brand.neutral[500] }}>
-                  {p.code} · {fmt(p.price)}
+                  {p.code} · {fmt(priceField === 'cost' ? p.cost : p.price)}
                 </Typography>
               </Box>
             </li>
