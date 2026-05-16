@@ -31,9 +31,8 @@ import {
   type CreatePurchaseBody,
   type PurchaseStatus,
 } from 'src/api/smartpos/sales';
-import { listProducts, getProduct, uploadProductImage } from 'src/api/smartpos/products';
+import { listProducts, uploadProductImage } from 'src/api/smartpos/products';
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 import { listSuppliers } from 'src/api/smartpos/suppliers';
 import { listWarehouses, type Warehouse } from 'src/api/smartpos/inventory';
 import {
@@ -154,32 +153,6 @@ export default function PurchaseBuilderPage() {
           taxRate: l.taxRate,
         }));
         setLines(mapped);
-        // Legacy records stored productId as the name snapshot. Resolve real names.
-        const toResolve = Array.from(
-          new Set(mapped.filter((l) => UUID_RE.test(l.productName)).map((l) => l.productId)),
-        );
-        if (toResolve.length > 0) {
-          Promise.all(
-            toResolve.map((pid) =>
-              getProduct(pid)
-                .then((prod) => ({ id: pid, name: prod.name, code: prod.code }))
-                .catch(() => null),
-            ),
-          ).then((results) => {
-            const byId = new Map<string, { id: string; name: string; code?: string }>();
-            for (const r of results) {
-              if (r) byId.set(r.id, r);
-            }
-            if (byId.size === 0) return;
-            setLines((prev) =>
-              prev.map((l) => {
-                const hit = byId.get(l.productId);
-                if (!hit) return l;
-                return { ...l, productName: hit.name, productCode: l.productCode ?? hit.code };
-              }),
-            );
-          });
-        }
       })
       .catch((e) => setError(e instanceof Error ? (e as Error).message : 'Failed to load purchase'))
       .finally(() => {
