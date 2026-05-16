@@ -183,7 +183,7 @@ export interface SaleReturnSearchParams {
   to?: string;
   customerId?: UUID;
   warehouseId?: UUID;
-  status?: 'PENDING' | 'COMPLETED' | 'CANCELLED';
+  status?: 'DRAFT' | 'CONFIRMED' | 'CANCELLED';
   page?: number;
   size?: number;
 }

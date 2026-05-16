@@ -28,8 +28,8 @@ import { formatMoney } from 'src/utils/smartpos/currency';
 type Status = NonNullable<SaleReturnSearchParams['status']>;
 
 const STATUS_COLOURS: Record<Status, { bg: string; fg: string }> = {
-  PENDING:   { bg: brand.warning.light, fg: brand.warning.dark },
-  COMPLETED: { bg: brand.success.light, fg: brand.success.dark },
+  DRAFT:     { bg: brand.warning.light, fg: brand.warning.dark },
+  CONFIRMED: { bg: brand.success.light, fg: brand.success.dark },
   CANCELLED: { bg: brand.neutral[100],  fg: brand.neutral[500] },
 };
 
@@ -65,7 +65,7 @@ export default function ReturnsPage() {
       .map(([id, c]) => ({ id, count: c, name: customers.find((c) => c.id === id)?.name ?? id.slice(0, 8) + '…' }));
   }, [rows, customers]);
 
-  const pendingCount = useMemo(() => rows.filter((r) => (r.status as string) === 'PENDING').length, [rows]);
+  const draftCount = useMemo(() => rows.filter((r) => (r.status as string) === 'DRAFT').length, [rows]);
 
   // Bootstrap filter dropdowns once.
   useEffect(() => {
@@ -186,7 +186,7 @@ export default function ReturnsPage() {
     {
       key: 'status', label: 'Status', width: 110, align: 'center' as const,
       render: (r) => {
-        const c = STATUS_COLOURS[r.status as Status] ?? STATUS_COLOURS.PENDING;
+        const c = STATUS_COLOURS[r.status as Status] ?? STATUS_COLOURS.DRAFT;
         return (
           <Chip
             label={r.status}
@@ -224,7 +224,7 @@ export default function ReturnsPage() {
           { label: 'Sales Desk', href: '/smartpos/sales' },
           { label: 'Returns' },
         ]}
-        badge={pendingCount > 0 ? { label: `${pendingCount} pending`, tone: 'warning' } : undefined}
+        badge={draftCount > 0 ? { label: `${draftCount} draft`, tone: 'warning' } : undefined}
       />
 
       {/* Fraud alerts */}
@@ -254,8 +254,8 @@ export default function ReturnsPage() {
           onChange={(e) => { setStatus(e.target.value as Status | ''); setPage(0); }}
           sx={{ minWidth: 140 }}>
           <MenuItem value="">All</MenuItem>
-          <MenuItem value="PENDING">Pending</MenuItem>
-          <MenuItem value="COMPLETED">Completed</MenuItem>
+          <MenuItem value="DRAFT">Draft</MenuItem>
+          <MenuItem value="CONFIRMED">Confirmed</MenuItem>
           <MenuItem value="CANCELLED">Cancelled</MenuItem>
         </TextField>
         <TextField select size="small" label="Customer" value={customerId}
