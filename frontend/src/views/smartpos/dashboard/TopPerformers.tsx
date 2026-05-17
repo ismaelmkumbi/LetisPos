@@ -4,6 +4,7 @@ import {
   Card,
   CardContent,
   CardActionArea,
+  Chip,
   LinearProgress,
   Stack,
   Tab,
@@ -25,6 +26,7 @@ import {
   type Period,
 } from 'src/api/smartpos/reports';
 import type { UUID } from 'src/api/smartpos/types';
+import type { TopCustomer } from 'src/api/smartpos/ai';
 
 type TabKey = 'products' | 'customers' | 'suppliers';
 
@@ -32,6 +34,17 @@ interface TopPerformersProps {
   period: Period;
   warehouseId: UUID | '';
   limit?: number;
+  customerSegments?: Map<string, TopCustomer>;  // customerId → segment info
+}
+
+function segmentColor(segment: string): string {
+  const map: Record<string, string> = {
+    'Loyal': '#16a34a',
+    'At Risk': '#f59e0b',
+    'Lost': '#dc2626',
+    'New': '#3b82f6',
+  };
+  return map[segment] ?? brand.neutral[400];
 }
 
 function PerformerRow({
@@ -40,12 +53,14 @@ function PerformerRow({
   valueLabel,
   onClick,
   isDark,
+  segmentInfo,
 }: {
   rank: number;
   performer: TopPerformer;
   valueLabel: string;
   onClick: () => void;
   isDark: boolean;
+  segmentInfo?: TopCustomer;
 }) {
   return (
     <Card
@@ -77,18 +92,34 @@ function PerformerRow({
             {rank}
           </Typography>
           <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Typography
-              sx={{
-                fontWeight: 700,
-                fontSize: 13,
-                color: titleColor,
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {performer.name}
-            </Typography>
+            <Stack direction="row" alignItems="center" sx={{ minWidth: 0 }}>
+              <Typography
+                sx={{
+                  fontWeight: 700,
+                  fontSize: 13,
+                  color: titleColor,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {performer.name}
+              </Typography>
+              {segmentInfo && (
+                <Chip
+                  label={segmentInfo.segment}
+                  size="small"
+                  sx={{
+                    height: 18, fontSize: 10, fontWeight: 700, borderRadius: '4px',
+                    bgcolor: segmentColor(segmentInfo.segment),
+                    color: '#fff',
+                    ml: 0.75,
+                    flexShrink: 0,
+                    '& .MuiChip-label': { px: 0.75 },
+                  }}
+                />
+              )}
+            </Stack>
             <Box
               sx={{
                 mt: 0.3,
@@ -127,6 +158,7 @@ export default function TopPerformers({
   period,
   warehouseId,
   limit = 5,
+  customerSegments,
 }: TopPerformersProps) {
   const { activeMode: _am } = useContext(CustomizerContext);
   const isDark = _am === 'dark';
@@ -224,16 +256,22 @@ export default function TopPerformers({
 
         {!loading && currentList.length > 0 && (
           <Stack spacing={0.25}>
-            {currentList.map((item, idx) => (
-              <PerformerRow
-                key={item.id}
-                rank={idx + 1}
-                performer={item}
-                valueLabel={formatValue(item.value)}
-                onClick={() => handleRowClick(item)}
-                isDark={isDark}
-              />
-            ))}
+            {currentList.map((item, idx) => {
+              const seg = tab === 'customers' && customerSegments
+                ? customerSegments.get(item.id)
+                : undefined;
+              return (
+                <PerformerRow
+                  key={item.id}
+                  rank={idx + 1}
+                  performer={item}
+                  valueLabel={formatValue(item.value)}
+                  onClick={() => handleRowClick(item)}
+                  isDark={isDark}
+                  segmentInfo={seg}
+                />
+              );
+            })}
           </Stack>
         )}
 
