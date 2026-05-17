@@ -4,6 +4,7 @@ import React, { lazy } from 'react';
 import { createBrowserRouter, Navigate } from 'react-router';
 import Loadable from '../layouts/full/shared/loadable/Loadable';
 import { RequireAuth } from 'src/routes/smartpos/RequireAuth';
+import RequireAdmin from 'src/components/smartpos/RequireAdmin';
 import PlanGate from 'src/routes/smartpos/PlanGate';
 import { commerceAdminRoutes, storefrontRoutes } from './smartpos/CommerceRoutes';
 
@@ -679,19 +680,19 @@ const Router = [
       { path: 'settings/tenants', element: <Navigate to="/smartpos/admin/tenants/list" replace /> },
       { path: 'settings/locale', element: <SmartPosLocale /> },
       { path: 'settings/onboarding', element: <SmartPosOnboarding /> },
-      { path: 'admin/branches', element: <SmartPosBranches /> },
-      { path: 'admin/tenants', element: <TenantDashboardPage /> },
-      { path: 'admin/tenants/list', element: <TenantListPage /> },
-      { path: 'admin/tenants/:id', element: <TenantDetailPage /> },
-      { path: 'admin/billing', element: <SmartPosBilling /> },
-      { path: 'admin/billing/plans', element: <SmartPosBillingPlans /> },
-      { path: 'admin/billing/invoices', element: <InvoiceListPage /> },
-      { path: 'admin/audit-logs', element: <PlanGate minPlan="PROFESSIONAL" featureName="Audit Logs"><SmartPosAuditLogs /></PlanGate> },
-      { path: 'admin/sessions', element: <PlanGate minPlan="PROFESSIONAL" featureName="Sessions"><SmartPosSessions /></PlanGate> },
-      { path: 'admin/api-keys', element: <PlanGate minPlan="PROFESSIONAL" featureName="API Keys"><SmartPosApiKeys /></PlanGate> },
-      { path: 'admin/error-logs', element: <SmartPosErrorLogs /> },
-      { path: 'admin/data-retention', element: <PlanGate minPlan="PROFESSIONAL" featureName="Data Retention"><SmartPosDataRetention /></PlanGate> },
-      { path: 'admin/backups', element: <SmartPosBackups /> },
+      { path: 'admin/branches', element: <RequireAuth><RequireAdmin><SmartPosBranches /></RequireAdmin></RequireAuth> },
+      { path: 'admin/tenants', element: <RequireAuth><RequireAdmin><TenantDashboardPage /></RequireAdmin></RequireAuth> },
+      { path: 'admin/tenants/list', element: <RequireAuth><RequireAdmin><TenantListPage /></RequireAdmin></RequireAuth> },
+      { path: 'admin/tenants/:id', element: <RequireAuth><RequireAdmin><TenantDetailPage /></RequireAdmin></RequireAuth> },
+      { path: 'admin/billing', element: <RequireAuth><RequireAdmin><SmartPosBilling /></RequireAdmin></RequireAuth> },
+      { path: 'admin/billing/plans', element: <RequireAuth><RequireAdmin><SmartPosBillingPlans /></RequireAdmin></RequireAuth> },
+      { path: 'admin/billing/invoices', element: <RequireAuth><RequireAdmin><InvoiceListPage /></RequireAdmin></RequireAuth> },
+      { path: 'admin/audit-logs', element: <RequireAuth><RequireAdmin><PlanGate minPlan="PROFESSIONAL" featureName="Audit Logs"><SmartPosAuditLogs /></PlanGate></RequireAdmin></RequireAuth> },
+      { path: 'admin/sessions', element: <RequireAuth><RequireAdmin><PlanGate minPlan="PROFESSIONAL" featureName="Sessions"><SmartPosSessions /></PlanGate></RequireAdmin></RequireAuth> },
+      { path: 'admin/api-keys', element: <RequireAuth><RequireAdmin><PlanGate minPlan="PROFESSIONAL" featureName="API Keys"><SmartPosApiKeys /></PlanGate></RequireAdmin></RequireAuth> },
+      { path: 'admin/error-logs', element: <RequireAuth><RequireAdmin><SmartPosErrorLogs /></RequireAdmin></RequireAuth> },
+      { path: 'admin/data-retention', element: <RequireAuth><RequireAdmin><PlanGate minPlan="PROFESSIONAL" featureName="Data Retention"><SmartPosDataRetention /></PlanGate></RequireAdmin></RequireAuth> },
+      { path: 'admin/backups', element: <RequireAuth><RequireAdmin><SmartPosBackups /></RequireAdmin></RequireAuth> },
       // Commerce admin
       commerceAdminRoutes,
       // Marketing

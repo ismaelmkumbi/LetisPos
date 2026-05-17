@@ -183,3 +183,46 @@ export async function listAllTenants(): Promise<Tenant[]> {
   const { data } = await api.get<Tenant[]>('/api/v1/tenants/admin/all');
   return data;
 }
+
+export async function deleteTenant(id: string, hard?: boolean, reason?: string): Promise<void> {
+  if (hard) {
+    await api.delete(`/api/v1/tenants/${id}`, { params: { hard: true, reason } });
+  } else {
+    await api.delete(`/api/v1/tenants/${id}`, { data: { reason: reason || 'Admin action' } });
+  }
+}
+
+export async function disableTenant(id: string, reason: string): Promise<Tenant> {
+  const { data } = await api.post<Tenant>(`/api/v1/tenants/${id}/disable`, { reason });
+  return data;
+}
+
+export async function deleteUser(id: string, hard?: boolean): Promise<void> {
+  if (hard) {
+    await api.delete(`/api/v1/admin/users/${id}/hard`);
+  } else {
+    await api.delete(`/api/v1/admin/users/${id}`);
+  }
+}
+
+export interface UserSearchParams {
+  search?: string;
+  tenantId?: string;
+  status?: string;
+  page?: number;
+  size?: number;
+}
+
+export async function searchAllUsers(params: UserSearchParams = {}): Promise<{
+  content: Array<{
+    id: string;
+    email: string;
+    status: string;
+    tenantId: string;
+    createdAt: string;
+  }>;
+  totalElements: number;
+}> {
+  const { data } = await api.get('/api/v1/admin/users', { params });
+  return data;
+}
