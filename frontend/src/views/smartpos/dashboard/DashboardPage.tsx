@@ -36,6 +36,8 @@ import DashboardSideRail from './SideRail';
 import AnomalyAlerts from './AnomalyAlerts';
 import GoalProgress from './GoalProgress';
 import TopPerformers from './TopPerformers';
+import ExecutiveSummaryCard from './ExecutiveSummaryCard';
+import { getExecutiveSummary, type ExecutiveSummary } from 'src/api/smartpos/dashboardIntelligence';
 
 import {
   seriesOrFallback,
@@ -69,6 +71,8 @@ export default function DashboardPage() {
   const [expiringUnitsAtRisk, setExpiringUnitsAtRisk] = useState(0);
   const [lastUpdated, setLastUpdated] = useState<number | null>(null);
   const [forecast, setForecast] = useState<Forecast | null>(null);
+  const [executiveSummary, setExecutiveSummary] = useState<ExecutiveSummary | null>(null);
+  const [execSummaryLoading, setExecSummaryLoading] = useState(false);
   const [visibleSections, setVisibleSections] = useState<Set<SectionKey>>(() =>
     loadLayout(user?.tenantId ?? ''),
   );
@@ -214,9 +218,29 @@ export default function DashboardPage() {
     }
   }, [period, warehouseId, user?.tenantId]);
 
+  const fetchExecutiveSummary = useCallback(async (refresh = false) => {
+    if (!user?.tenantId) return;
+    setExecSummaryLoading(true);
+    try {
+      const today = new Date().toISOString().slice(0, 10);
+      const resp = await getExecutiveSummary(today, refresh);
+      if (resp.status !== 'error' && resp.data) {
+        setExecutiveSummary(resp.data);
+      }
+    } catch (err) {
+      // Silently fail — executive summary is non-critical
+    } finally {
+      setExecSummaryLoading(false);
+    }
+  }, [user?.tenantId]);
+
   useEffect(() => {
     fetchDashboardData();
   }, [fetchDashboardData]);
+
+  useEffect(() => {
+    fetchExecutiveSummary();
+  }, [fetchExecutiveSummary]);
 
   // Auto-refresh every 60 seconds
   usePolling(fetchDashboardData, 60000);
@@ -401,6 +425,18 @@ export default function DashboardPage() {
         <>
           <Grid container spacing={1.5} alignItems="flex-start">
             <Grid size={{ xs: 12, xl: 9 }}>
+              {/* Executive Summary */}
+              {showSection('executiveSummary') && (
+                <Box sx={{ mb: 1.5 }}>
+                  <ExecutiveSummaryCard
+                    data={executiveSummary}
+                    loading={execSummaryLoading}
+                    onRefresh={() => fetchExecutiveSummary(true)}
+                    isDark={isDark}
+                  />
+                </Box>
+              )}
+
               {/* KPI Grid */}
               {showSection('kpiGrid') && (
                 <Box
