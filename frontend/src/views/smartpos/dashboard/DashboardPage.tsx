@@ -254,31 +254,31 @@ export default function DashboardPage() {
 
     try {
       const resp = await getDemandForecast(7, wid);
-      if (resp.success && resp.data) setDemandForecast(resp.data);
+      if (resp.data) setDemandForecast(resp.data);
     } catch { /* silent */ }
     finally { setDemandLoading(false); }
 
     try {
       const resp = await getReorderRecommendations(wid);
-      if (resp.success && resp.data) setReorderRecs(resp.data);
+      if (resp.data) setReorderRecs(resp.data);
     } catch { /* silent */ }
     finally { setReorderLoading(false); }
 
     try {
       const resp = await getProfitOpportunities(wid);
-      if (resp.success && resp.data) setProfitOpps(resp.data);
+      if (resp.data) setProfitOpps(resp.data);
     } catch { /* silent */ }
     finally { setProfitLoading(false); }
 
     try {
       const resp = await getCustomerRetention();
-      if (resp.success && resp.data) setCustomerRetention(resp.data);
+      if (resp.data) setCustomerRetention(resp.data);
     } catch { /* silent */ }
     finally { setRetentionLoading(false); }
 
     try {
       const resp = await getCashFlowForecast(30);
-      if (resp.success && resp.data) setCashFlowForecast(resp.data);
+      if (resp.data) setCashFlowForecast(resp.data);
     } catch { /* silent */ }
     finally { setCashFlowLoading(false); }
   }, [user?.tenantId, warehouseId]);
@@ -326,10 +326,6 @@ export default function DashboardPage() {
     () => computeDelta(data?.sales.count ?? 0, previousData?.sales.count ?? 0),
     [data, previousData],
   );
-  const purchasesKpiDelta = useMemo(
-    () => computeDelta(data?.purchases.gross ?? 0, previousData?.purchases.gross ?? 0),
-    [data, previousData],
-  );
   const profitDelta = useMemo(
     () => computeDelta(data?.netProfit ?? 0, previousData?.netProfit ?? 0),
     [data, previousData],
@@ -366,6 +362,15 @@ export default function DashboardPage() {
     () => computeDelta(data?.inventory.totalAvailable ?? 0, previousData?.inventory.totalAvailable ?? 0),
     [data, previousData],
   );
+
+  // Derive at-risk customer stats from the retention API response
+  const atRiskStats = useMemo(() => {
+    if (!customerRetention?.atRiskCustomers) return { count: 0, revenue: 0 };
+    return {
+      count: customerRetention.atRiskCustomers.length,
+      revenue: customerRetention.totalAtRiskRevenue,
+    };
+  }, [customerRetention]);
 
   const showSection = (key: SectionKey) => visibleSections.has(key);
 
@@ -515,99 +520,33 @@ export default function DashboardPage() {
                       cashDelta={cashDelta}
                       salesDelta={salesDelta}
                       ordersDelta={ordersDelta}
-                      purchasesDelta={purchasesKpiDelta}
                     />
                   </Grid>
                 </Box>
               )}
 
-              {/* Revenue Chart + Recent Transactions */}
-              {(showSection('revenueChart') || showSection('recentTransactions')) && (
-                <Grid container spacing={1.5} sx={{ mb: 1.5 }}>
-                  {showSection('revenueChart') && (
-                    <Grid size={{ xs: 12, lg: showSection('recentTransactions') ? 8 : 12 }}>
-                      <RevenueChart
-                        salesSeries={salesSeries}
-                        period={period}
-                        isDark={isDark}
-                        data={data}
-                        previousSalesSeries={
-                          previousSalesSeries.length ? previousSalesSeries : undefined
-                        }
-                        forecast={forecast}
-                      />
-                    </Grid>
-                  )}
-                  {showSection('recentTransactions') && (
-                    <Grid size={{ xs: 12, lg: showSection('revenueChart') ? 4 : 12 }}>
-                      <RecentTransactions rows={recentSales} />
-                    </Grid>
-                  )}
-                </Grid>
-              )}
-
-              {/* Top Performers */}
-              {showSection('topPerformers') && (
+              {/* ── ROW 2: Revenue chart — full width now that transactions moved to side rail ── */}
+              {showSection('revenueChart') && (
                 <Box sx={{ mb: 1.5 }}>
-                  <TopPerformers
+                  <RevenueChart
+                    salesSeries={salesSeries}
+                    orderSeries={orderSeries}
                     period={period}
-                    warehouseId={warehouseId}
-                    limit={5}
-                  />
-                </Box>
-              )}
-
-              {/* Customer Retention */}
-              {showSection('customerRetention') && (
-                <Box sx={{ mb: 1.5 }}>
-                  <CustomerRetentionCard
-                    data={customerRetention}
-                    loading={retentionLoading}
                     isDark={isDark}
+                    data={data}
+                    previousSalesSeries={
+                      previousSalesSeries.length ? previousSalesSeries : undefined
+                    }
+                    forecast={forecast}
                   />
                 </Box>
               )}
 
-              {/* Demand Forecast + Profit Opportunities */}
-              {(showSection('demandForecast') || showSection('profitOpportunities')) && (
-                <Grid container spacing={1.5} sx={{ mb: 1.5 }}>
-                  {showSection('demandForecast') && (
-                    <Grid size={{ xs: 12, lg: 7 }}>
-                      <DemandForecastCard
-                        data={demandForecast}
-                        loading={demandLoading}
-                        isDark={isDark}
-                      />
-                    </Grid>
-                  )}
-                  {showSection('profitOpportunities') && (
-                    <Grid size={{ xs: 12, lg: 5 }}>
-                      <ProfitOpportunitiesCard
-                        data={profitOpps}
-                        loading={profitLoading}
-                        isDark={isDark}
-                      />
-                    </Grid>
-                  )}
-                </Grid>
-              )}
-
-              {/* Reorder Recommendations */}
-              {showSection('reorderRecommendations') && (
-                <Box sx={{ mb: 1.5 }}>
-                  <ReorderRecommendationsCard
-                    data={reorderRecs}
-                    loading={reorderLoading}
-                    isDark={isDark}
-                  />
-                </Box>
-              )}
-
-              {/* Financial Health + Operations Overview + Payment Mix */}
+              {/* ── ROW 3: Financial Health + Operations + Payment Mix ── */}
               {(showSection('financialHealth') || showSection('operationsOverview') || showSection('paymentMix')) && (
                 <Grid container spacing={1.5} sx={{ mb: 1.5 }}>
                   {showSection('financialHealth') && (
-                    <Grid size={{ xs: 12, lg: 4 }}>
+                    <Grid size={{ xs: 12, lg: showSection('operationsOverview') && showSection('paymentMix') ? 4 : showSection('paymentMix') ? 5 : 6 }}>
                       <FinancialHealth
                         data={data}
                         expensesDelta={expensesDelta}
@@ -619,7 +558,7 @@ export default function DashboardPage() {
                     </Grid>
                   )}
                   {showSection('operationsOverview') && (
-                    <Grid size={{ xs: 12, lg: 3 }}>
+                    <Grid size={{ xs: 12, lg: showSection('financialHealth') && showSection('paymentMix') ? 3 : showSection('paymentMix') ? 5 : 6 }}>
                       <OperationsOverview
                         data={data}
                         inventoryValueDelta={inventoryValueDelta}
@@ -630,7 +569,7 @@ export default function DashboardPage() {
                     </Grid>
                   )}
                   {showSection('paymentMix') && (
-                    <Grid size={{ xs: 12, lg: 5 }}>
+                    <Grid size={{ xs: 12, lg: showSection('financialHealth') && showSection('operationsOverview') ? 5 : 6 }}>
                       <PaymentMixCard
                         paymentMix={paymentMix}
                         paymentMixUnavailable={paymentMixUnavailable}
@@ -641,18 +580,70 @@ export default function DashboardPage() {
                 </Grid>
               )}
 
-              {/* Cash Flow Forecast */}
-              {showSection('cashFlowForecast') && (
+              {/* ── ROW 4: Demand Forecast — full width (ProfitOpps moved to rail) ── */}
+              {showSection('demandForecast') && (
                 <Box sx={{ mb: 1.5 }}>
-                  <CashFlowForecastCard
-                    data={cashFlowForecast}
-                    loading={cashFlowLoading}
+                  <DemandForecastCard
+                    data={demandForecast}
+                    loading={demandLoading}
                     isDark={isDark}
                   />
                 </Box>
               )}
 
-              {/* Goal Progress */}
+              {/* ── ROW 5: Customer Retention + Top Performers ── */}
+              {(showSection('customerRetention') || showSection('topPerformers')) && (
+                <Grid container spacing={1.5} sx={{ mb: 1.5 }}>
+                  {showSection('customerRetention') && (
+                    <Grid size={{ xs: 12, lg: 6 }}>
+                      <CustomerRetentionCard
+                        data={customerRetention}
+                        loading={retentionLoading}
+                        isDark={isDark}
+                      />
+                    </Grid>
+                  )}
+                  {showSection('topPerformers') && (
+                    <Grid size={{ xs: 12, lg: 6 }}>
+                      <TopPerformers period={period} warehouseId={warehouseId} limit={5} />
+                    </Grid>
+                  )}
+                </Grid>
+              )}
+
+              {/* ── ROW 6: Recent Transactions + Profit Opportunities ── */}
+              {(showSection('recentTransactions') || showSection('profitOpportunities')) && (
+                <Grid container spacing={1.5} sx={{ mb: 1.5 }}>
+                  {showSection('recentTransactions') && (
+                    <Grid size={{ xs: 12, lg: 7 }}>
+                      <RecentTransactions rows={recentSales} />
+                    </Grid>
+                  )}
+                  {showSection('profitOpportunities') && (
+                    <Grid size={{ xs: 12, lg: 5 }}>
+                      <ProfitOpportunitiesCard data={profitOpps} loading={profitLoading} isDark={isDark} />
+                    </Grid>
+                  )}
+                </Grid>
+              )}
+
+              {/* ── ROW 7: Reorder Recommendations + Cash Flow Forecast ── */}
+              {(showSection('reorderRecommendations') || showSection('cashFlowForecast')) && (
+                <Grid container spacing={1.5} sx={{ mb: 1.5 }}>
+                  {showSection('reorderRecommendations') && (
+                    <Grid size={{ xs: 12, lg: 6 }}>
+                      <ReorderRecommendationsCard data={reorderRecs} loading={reorderLoading} isDark={isDark} />
+                    </Grid>
+                  )}
+                  {showSection('cashFlowForecast') && (
+                    <Grid size={{ xs: 12, lg: 6 }}>
+                      <CashFlowForecastCard data={cashFlowForecast} loading={cashFlowLoading} isDark={isDark} />
+                    </Grid>
+                  )}
+                </Grid>
+              )}
+
+              {/* ── ROW 8: Goal Progress — full width ── */}
               {showSection('goalProgress') && (
                 <Box sx={{ mb: 1.5 }}>
                   <GoalProgress
@@ -665,7 +656,7 @@ export default function DashboardPage() {
               )}
             </Grid>
 
-            {/* SideRail + Anomaly Alerts */}
+            {/* ── Right column: SideRail — lean: only alerts + payments ── */}
             {showSection('sideRail') && (
               <Grid size={{ xs: 12, xl: 3 }}>
                 <DashboardSideRail
@@ -675,10 +666,10 @@ export default function DashboardPage() {
                   paymentTotal={paymentTotal}
                   expiringBatchesCount={expiringBatchesCount}
                   expiringUnitsAtRisk={expiringUnitsAtRisk}
+                  atRiskCustomerCount={atRiskStats.count}
+                  atRiskRevenue={atRiskStats.revenue}
                   anomalySlot={
-                    <Box sx={{ mb: 1.5 }}>
-                      <AnomalyAlerts warehouseId={warehouseId} />
-                    </Box>
+                    <AnomalyAlerts warehouseId={warehouseId} />
                   }
                 />
               </Grid>
