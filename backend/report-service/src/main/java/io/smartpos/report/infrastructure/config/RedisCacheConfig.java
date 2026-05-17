@@ -40,6 +40,7 @@ public class RedisCacheConfig {
     public static final String CACHE_TOP_CUSTOMERS = "top-customers";
     public static final String CACHE_INVENTORY     = "inventory";
     public static final String CACHE_PROFIT_LOSS   = "profit-loss";
+    public static final String CACHE_DASHBOARD_EXECUTIVE_SUMMARY = "dashboard-executive-summary";
 
     public static String tenantKey(Object... parts) {
         return Stream.concat(Stream.of(TenantContext.require()), Arrays.stream(parts))
@@ -83,7 +84,8 @@ public class RedisCacheConfig {
                         CACHE_TOP_PRODUCTS,  base.entryTtl(Duration.ofMinutes(5)),
                         CACHE_TOP_CUSTOMERS, base.entryTtl(Duration.ofMinutes(5)),
                         CACHE_INVENTORY,     base.entryTtl(Duration.ofMinutes(2)),
-                        CACHE_PROFIT_LOSS,   base.entryTtl(Duration.ofMinutes(10))
+                        CACHE_PROFIT_LOSS,   base.entryTtl(Duration.ofMinutes(10)),
+                        CACHE_DASHBOARD_EXECUTIVE_SUMMARY, base.entryTtl(Duration.ofHours(1))
                 ))
                 .build();
     }
