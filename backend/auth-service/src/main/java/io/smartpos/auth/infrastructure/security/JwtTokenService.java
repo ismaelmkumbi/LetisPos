@@ -75,6 +75,22 @@ public class JwtTokenService {
                 .getSubject();
     }
 
+    /** Extract permission list from the JWT claims. */
+    @SuppressWarnings("unchecked")
+    public List<String> extractPermissions(String token) {
+        try {
+            List<String> permissions = (List<String>) Jwts.parser()
+                    .verifyWith(keyPair.getPublic())
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload()
+                    .get("permissions");
+            return permissions != null ? permissions : List.of();
+        } catch (Exception e) {
+            return List.of();
+        }
+    }
+
     /** Returns true if the token contains the given permission. */
     @SuppressWarnings("unchecked")
     public boolean hasPermission(String token, String permission) {

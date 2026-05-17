@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -47,6 +48,14 @@ public class MeController {
         result.put("status", user.getStatus());
         result.put("tenantId", user.getTenantId() == null ? "" : user.getTenantId().toString());
         result.put("lastLoginAt", user.getLastLoginAt() == null ? "" : user.getLastLoginAt().toString());
+
+        // Extract permissions from the JWT claims
+        try {
+            List<String> permissions = jwtTokenService.extractPermissions(token);
+            result.put("permissions", permissions != null ? permissions : List.of());
+        } catch (Exception e) {
+            result.put("permissions", List.of());
+        }
 
         // Enrich with tenant details when available
         if (user.getTenantId() != null) {
