@@ -18,7 +18,7 @@ public class PaymentStatsController {
     private final PaymentStatsService stats;
 
     @GetMapping("/payments/stats")
-    @PreAuthorize("hasAuthority('report.financial') or hasAuthority('payment.view')")
+    @PreAuthorize("isAuthenticated()")
     public PaymentStatsService.PaymentStats paymentStats(@RequestParam(required = false) LocalDate dateFrom,
                                                          @RequestParam(required = false) LocalDate dateTo,
                                                          @RequestParam(required = false) UUID accountId) {
@@ -26,14 +26,14 @@ public class PaymentStatsController {
     }
 
     @GetMapping("/payments/by-method")
-    @PreAuthorize("hasAuthority('report.financial') or hasAuthority('payment.view')")
+    @PreAuthorize("isAuthenticated()")
     public List<PaymentStatsService.ByMethodRow> byMethod(@RequestParam(required = false) LocalDate dateFrom,
                                                           @RequestParam(required = false) LocalDate dateTo) {
         return stats.paymentsByMethod(dateFrom, dateTo);
     }
 
     @GetMapping("/payments/aging")
-    @PreAuthorize("hasAuthority('report.financial') or hasAuthority('payment.view')")
+    @PreAuthorize("isAuthenticated()")
     public List<PaymentStatsService.AgingBucket> aging(@RequestParam(required = false) LocalDate asOf) {
         return stats.aging(asOf);
     }

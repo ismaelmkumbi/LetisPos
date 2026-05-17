@@ -55,7 +55,7 @@ public class StockController {
     }
 
     @GetMapping("/summary")
-    @PreAuthorize("hasAuthority('report.inventory') or hasAuthority('stock.view')")
+    @PreAuthorize("isAuthenticated()")
     public InventoryStatsService.WarehouseSummary summary(@RequestParam(required = false) UUID warehouseId) {
         return stats.summary(warehouseId);
     }

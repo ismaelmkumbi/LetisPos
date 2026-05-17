@@ -21,7 +21,7 @@ public class StatsController {
     private final StatsService stats;
 
     @GetMapping("/sales/stats")
-    @PreAuthorize("hasAuthority('report.sales') or hasAuthority('sale.view')")
+    @PreAuthorize("isAuthenticated()")
     public StatsService.SaleStats salesStats(@RequestParam(required = false) LocalDate dateFrom,
                                              @RequestParam(required = false) LocalDate dateTo,
                                              @RequestParam(required = false) UUID warehouseId,
@@ -30,7 +30,7 @@ public class StatsController {
     }
 
     @GetMapping("/sales/top-products")
-    @PreAuthorize("hasAuthority('report.sales') or hasAuthority('sale.view')")
+    @PreAuthorize("isAuthenticated()")
     public List<StatsService.TopProduct> topProducts(@RequestParam(required = false) LocalDate dateFrom,
                                                      @RequestParam(required = false) LocalDate dateTo,
                                                      @RequestParam(required = false) UUID warehouseId,
@@ -39,7 +39,7 @@ public class StatsController {
     }
 
     @GetMapping("/sales/top-customers")
-    @PreAuthorize("hasAuthority('report.sales') or hasAuthority('sale.view')")
+    @PreAuthorize("isAuthenticated()")
     public List<StatsService.TopCustomer> topCustomers(@RequestParam(required = false) LocalDate dateFrom,
                                                        @RequestParam(required = false) LocalDate dateTo,
                                                        @RequestParam(defaultValue = "10") int limit) {
@@ -47,7 +47,7 @@ public class StatsController {
     }
 
     @GetMapping("/sales/series")
-    @PreAuthorize("hasAuthority('report.sales') or hasAuthority('sale.view')")
+    @PreAuthorize("isAuthenticated()")
     public List<StatsService.SalesSeriesPoint> salesSeries(@RequestParam(required = false) LocalDate dateFrom,
                                                            @RequestParam(required = false) LocalDate dateTo,
                                                            @RequestParam(required = false) UUID warehouseId) {
