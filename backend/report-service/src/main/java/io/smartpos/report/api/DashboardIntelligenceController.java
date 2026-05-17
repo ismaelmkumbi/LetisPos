@@ -1,5 +1,7 @@
 package io.smartpos.report.api;
 
+import io.smartpos.report.api.dto.CashFlowForecastDto;
+import io.smartpos.report.api.dto.CustomerRetentionDto;
 import io.smartpos.report.api.dto.DashboardIntelligenceDto;
 import io.smartpos.report.api.dto.DemandForecastDto;
 import io.smartpos.report.api.dto.ExecutiveSummaryDto;
@@ -73,5 +75,19 @@ public class DashboardIntelligenceController {
         @RequestParam(required = false) UUID warehouseId
     ) {
         return intelligenceService.profitOpportunities(warehouseId);
+    }
+
+    @GetMapping("/customer-retention")
+    @PreAuthorize("hasAuthority('report.sales')")
+    public UnifiedResponse<CustomerRetentionDto> customerRetention() {
+        return intelligenceService.retentionAlerts();
+    }
+
+    @GetMapping("/cash-flow-forecast")
+    @PreAuthorize("hasAuthority('report.financial')")
+    public UnifiedResponse<CashFlowForecastDto> cashFlowForecast(
+        @RequestParam(defaultValue = "30") int days
+    ) {
+        return intelligenceService.cashFlowForecast(days);
     }
 }

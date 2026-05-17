@@ -1,5 +1,7 @@
 package io.smartpos.report.application;
 
+import io.smartpos.report.api.dto.CashFlowForecastDto;
+import io.smartpos.report.api.dto.CustomerRetentionDto;
 import io.smartpos.report.api.dto.DashboardDto;
 import io.smartpos.report.api.dto.DashboardIntelligenceDto;
 import io.smartpos.report.api.dto.DemandForecastDto;
@@ -222,6 +224,101 @@ public class DashboardIntelligenceService {
         var top5 = withMargins.size() > 5 ? withMargins.subList(0, 5) : withMargins;
 
         ProfitOpportunityDto dto = new ProfitOpportunityDto(top5, totalImpact);
+        DataFreshnessMap fm = freshness.currentFreshness();
+        List<Alert> alerts = freshness.buildAlerts(fm);
+        return UnifiedResponse.ok(dto, new ResponseMeta(Instant.now(), fm, alerts));
+    }
+
+    // ---- Customer Retention ----
+
+    @Cacheable(value = RedisCacheConfig.CACHE_DASHBOARD_EXECUTIVE_SUMMARY,
+               key = "T(io.smartpos.report.infrastructure.config.RedisCacheConfig).tenantKey('retention')")
+    public UnifiedResponse<CustomerRetentionDto> retentionAlerts() {
+        TenantContext.require();
+
+        AiFeign.CustomerAnalyticsResponse cust = safeCustomerAnalytics();
+
+        List<CustomerRetentionDto.AtRiskCustomer> atRisk = cust.topCustomers().stream()
+            .filter(c -> "At Risk".equals(c.segment()) || "Lost".equals(c.segment()))
+            .sorted((a, b) -> b.totalSpent().compareTo(a.totalSpent()))
+            .limit(5)
+            .map(c -> new CustomerRetentionDto.AtRiskCustomer(
+                c.id(), c.name() != null ? c.name() : "Customer " + c.id().toString().substring(0, 8),
+                c.lastPurchase() != null ? java.time.temporal.ChronoUnit.DAYS.between(c.lastPurchase(), java.time.LocalDate.now()) : 999,
+                c.totalSpent().longValue(), c.segment(), c.visits()))
+            .toList();
+
+        long totalRevenue = atRisk.stream().mapToLong(CustomerRetentionDto.AtRiskCustomer::lifetimeValue).sum();
+
+        CustomerRetentionDto dto = new CustomerRetentionDto(atRisk, totalRevenue, cust.totalCustomers(), cust.churnRisk());
+        DataFreshnessMap fm = freshness.currentFreshness();
+        List<Alert> alerts = freshness.buildAlerts(fm);
+        return UnifiedResponse.ok(dto, new ResponseMeta(Instant.now(), fm, alerts));
+    }
+
+    // ---- Cash Flow Forecast ----
+
+    @Cacheable(value = RedisCacheConfig.CACHE_DASHBOARD_EXECUTIVE_SUMMARY,
+               key = "T(io.smartpos.report.infrastructure.config.RedisCacheConfig).tenantKey('cashflow', #days)")
+    public UnifiedResponse<CashFlowForecastDto> cashFlowForecast(int days) {
+        TenantContext.require();
+
+        // Opening balance: recent net cash flow
+        long openingBalance;
+        try {
+            var stats = payments.paymentStats(null, null, null);
+            openingBalance = stats.totalIn().subtract(stats.totalOut()).longValue();
+        } catch (Exception e) { openingBalance = 0; }
+
+        long safetyThreshold = 500_000; // TZS 500k default safety
+
+        // Daily inflow: average from recent sales
+        long dailyInflow;
+        try {
+            var s = sales.salesStats(null, null, null, null);
+            dailyInflow = s.count() > 0 ? s.net().divide(BigDecimal.valueOf(s.count()), 0, RoundingMode.HALF_UP).longValue() : 0;
+        } catch (Exception e) { dailyInflow = 0; }
+
+        // Daily outflows: spread AP aging buckets over their date ranges
+        List<CashFlowForecastDto.DailyProjection> projections = new ArrayList<>();
+        long runningBalance = openingBalance;
+        long lowestBalance = runningBalance;
+        String lowestDate = LocalDate.now().toString();
+
+        // Get aging buckets for scheduled outflows
+        java.util.Map<Integer, Long> outflowsByDay = new java.util.LinkedHashMap<>();
+        try {
+            var aging = payments.aging(LocalDate.now());
+            for (var bucket : aging) {
+                if (bucket.amount().compareTo(BigDecimal.ZERO) <= 0) continue;
+                long amount = bucket.amount().longValue();
+                int daysRange = bucket.daysTo() - bucket.daysFrom() + 1;
+                if (daysRange <= 0) daysRange = 1;
+                long dailyAmount = amount / daysRange;
+                for (int d = bucket.daysFrom(); d <= bucket.daysTo() && d < days; d++) {
+                    outflowsByDay.merge(d, dailyAmount, Long::sum);
+                }
+            }
+        } catch (Exception e) { /* no aging data */ }
+
+        for (int d = 0; d < days; d++) {
+            long inflows = dailyInflow;
+            long outflows = outflowsByDay.getOrDefault(d, 0L);
+            long closingBalance = runningBalance + inflows - outflows;
+            boolean danger = closingBalance < safetyThreshold;
+
+            projections.add(new CashFlowForecastDto.DailyProjection(
+                LocalDate.now().plusDays(d).toString(),
+                runningBalance, inflows, outflows, closingBalance, danger));
+
+            if (closingBalance < lowestBalance) {
+                lowestBalance = closingBalance;
+                lowestDate = LocalDate.now().plusDays(d).toString();
+            }
+            runningBalance = closingBalance;
+        }
+
+        CashFlowForecastDto dto = new CashFlowForecastDto(projections, openingBalance, lowestBalance, lowestDate, safetyThreshold);
         DataFreshnessMap fm = freshness.currentFreshness();
         List<Alert> alerts = freshness.buildAlerts(fm);
         return UnifiedResponse.ok(dto, new ResponseMeta(Instant.now(), fm, alerts));
