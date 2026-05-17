@@ -94,3 +94,55 @@ export async function getProfitOpportunities(
   );
   return data;
 }
+
+// ── Customer Retention ──────────────────────────────────────────────────────
+
+export interface AtRiskCustomer {
+  customerId: string;
+  name: string;
+  lastVisitDays: number;
+  lifetimeValue: number;
+  segment: string; // "At Risk" | "Lost"
+  visits: number;
+}
+
+export interface CustomerRetention {
+  atRiskCustomers: AtRiskCustomer[];
+  totalAtRiskRevenue: number;
+  totalCustomers: number;
+  churnRisk: number;
+}
+
+export async function getCustomerRetention(): Promise<UnifiedResponse<CustomerRetention>> {
+  const { data } = await api.get<UnifiedResponse<CustomerRetention>>(
+    '/api/v1/dashboard/customer-retention',
+  );
+  return data;
+}
+
+// ── Cash Flow Forecast ──────────────────────────────────────────────────────
+
+export interface DailyProjection {
+  date: string;
+  openingBalance: number;
+  inflows: number;
+  outflows: number;
+  closingBalance: number;
+  isDangerDay: boolean;
+}
+
+export interface CashFlowForecast {
+  dailyProjections: DailyProjection[];
+  openingBalance: number;
+  lowestBalance: number;
+  lowestBalanceDate: string;
+  safetyThreshold: number;
+}
+
+export async function getCashFlowForecast(days?: number): Promise<UnifiedResponse<CashFlowForecast>> {
+  const { data } = await api.get<UnifiedResponse<CashFlowForecast>>(
+    '/api/v1/dashboard/cash-flow-forecast',
+    { params: { days: days ?? 30 } },
+  );
+  return data;
+}

@@ -35,6 +35,8 @@ export const ALL_SECTIONS = [
   { key: 'operationsOverview', label: 'Operations Overview' },
   { key: 'paymentMix', label: 'Payment Mix' },
   { key: 'goalProgress', label: 'Goal Progress' },
+  { key: 'customerRetention', label: 'Customer Retention' },
+  { key: 'cashFlowForecast', label: 'Cash Flow Forecast' },
   { key: 'sideRail', label: 'Side Panel' },
 ] as const;
 
