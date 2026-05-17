@@ -54,7 +54,7 @@ export default function CustomerRetentionCard({
     navigate(`/smartpos/sales?customerId=${customer.customerId}`);
   };
 
-  const hasCustomers = data && data.atRiskCustomers.length > 0;
+  const hasCustomers = (data?.atRiskCustomers?.length ?? 0) > 0;
 
   return (
     <Card
@@ -159,7 +159,7 @@ export default function CustomerRetentionCard({
               sx={{ mt: 1.5, pt: 1.5, borderTop: `1px solid ${isDark ? brand.neutral[700] : brand.neutral[100]}` }}
             >
               <Typography sx={{ color: muted(isDark), fontSize: 12 }}>
-                {data.atRiskCustomers.length} at-risk / {data.totalCustomers} total
+                {data?.atRiskCustomers?.length ?? 0} at-risk / {data?.totalCustomers ?? 0} total
               </Typography>
               <Chip
                 size="small"

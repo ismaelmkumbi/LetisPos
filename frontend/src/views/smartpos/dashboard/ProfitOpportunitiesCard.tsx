@@ -109,7 +109,7 @@ export default function ProfitOpportunitiesCard({
   loading,
   isDark,
 }: ProfitOpportunitiesCardProps) {
-  const hasData = data && data.items.length > 0;
+  const hasData = (data?.items?.length ?? 0) > 0;
   const items = data?.items ?? [];
   const totalImpact = data?.totalEstimatedMonthlyImpact ?? 0;
 

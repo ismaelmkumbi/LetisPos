@@ -145,7 +145,7 @@ export default function DemandForecastCard({
   loading,
   isDark,
 }: DemandForecastCardProps) {
-  const hasData = data && data.products.length > 0;
+  const hasData = (data?.products?.length ?? 0) > 0;
   const products = data?.products ?? [];
 
   // Sort by projected demand descending, limit 5

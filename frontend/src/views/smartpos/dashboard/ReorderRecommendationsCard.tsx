@@ -142,7 +142,7 @@ export default function ReorderRecommendationsCard({
   isDark,
 }: ReorderRecommendationsCardProps) {
   const navigate = useNavigate();
-  const hasData = data && data.recommendations.length > 0;
+  const hasData = (data?.recommendations?.length ?? 0) > 0;
   const recommendations = data?.recommendations ?? [];
 
   return (
