@@ -23,6 +23,7 @@ import type { GreetingBarProps } from './types';
 export const LAYOUT_STORAGE_PREFIX = 'dashboard:layout:';
 
 export const ALL_SECTIONS = [
+  { key: 'executiveSummary', label: 'Executive Summary' },
   { key: 'kpiGrid', label: 'KPI Metrics' },
   { key: 'revenueChart', label: 'Revenue Chart' },
   { key: 'topPerformers', label: 'Top Performers' },
