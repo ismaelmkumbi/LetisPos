@@ -79,6 +79,8 @@ public class RecurringInvoiceService {
                 .status(RecurringStatus.ACTIVE)
                 .tenantId(TenantContext.require())
                 .build();
+        // Save parent first so we have an ID for the lines' FK
+        r = repo.save(r);
         addLines(r, req.lines());
         return RecurringInvoiceDto.from(repo.save(r));
     }
@@ -201,6 +203,7 @@ public class RecurringInvoiceService {
         int idx = 0;
         for (RecurringInvoiceDto.LineInput in : inputs) {
             r.getLines().add(RecurringInvoiceLine.builder()
+                    .recurringInvoiceId(r.getId())
                     .productId(in.productId())
                     .variantId(in.variantId())
                     .productNameSnapshot(in.productName())

@@ -43,6 +43,9 @@ public class RecurringInvoiceLine {
     @Builder.Default
     private int position = 0;
 
+    @Column(name = "recurring_invoice_id")
+    private UUID recurringInvoiceId;
+
     @PrePersist
     void onCreate() { if (id == null) id = UUID.randomUUID(); }
 }
