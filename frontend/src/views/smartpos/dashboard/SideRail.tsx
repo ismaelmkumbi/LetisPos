@@ -73,6 +73,8 @@ interface DashboardSideRailProps {
   expiringBatchesCount: number;
   expiringUnitsAtRisk: number;
   anomalySlot?: React.ReactNode;
+  atRiskCustomerCount?: number;
+  atRiskRevenue?: number;
 }
 
 export default function DashboardSideRail({
@@ -83,6 +85,8 @@ export default function DashboardSideRail({
   expiringBatchesCount,
   expiringUnitsAtRisk,
   anomalySlot,
+  atRiskCustomerCount = 0,
+  atRiskRevenue = 0,
 }: DashboardSideRailProps) {
   return (
     <Stack
@@ -114,6 +118,15 @@ export default function DashboardSideRail({
               title={`${expiringBatchesCount} batch${expiringBatchesCount !== 1 ? 'es' : ''} expiring within 30 days`}
               subtitle={`${expiringUnitsAtRisk} unit${expiringUnitsAtRisk !== 1 ? 's' : ''} at risk — review expiry dates`}
               to="/smartpos/stock?expiring=30"
+            />
+          )}
+          {atRiskCustomerCount > 0 && (
+            <AlertStrip
+              tone="warning"
+              icon={<IconAlertTriangle size={22} />}
+              title={`${atRiskCustomerCount} high-value customer${atRiskCustomerCount !== 1 ? 's' : ''} at risk of churning`}
+              subtitle={`TSh ${(atRiskRevenue ?? 0).toLocaleString()} in lifetime value — review retention`}
+              to="/smartpos/customers?segment=at-risk"
             />
           )}
           <AlertStrip
