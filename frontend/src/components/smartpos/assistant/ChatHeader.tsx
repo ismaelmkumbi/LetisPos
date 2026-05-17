@@ -29,7 +29,7 @@ export default function ChatHeader({ onClose, onClear }: Props) {
           color: c.text, letterSpacing: '0.02em',
         }}
       >
-        AI Assistant
+        Letis POS Assistant
       </Typography>
       <IconButton
         size="small" onClick={onClear}

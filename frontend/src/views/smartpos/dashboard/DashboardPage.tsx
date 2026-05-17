@@ -6,10 +6,12 @@ import {
   getDashboard,
   getPaymentMethodMix,
   getForecast,
+  getArAging,
   type Dashboard,
   type Forecast,
   type PaymentMethodMixRow,
   type Period,
+  type ArAging,
 } from 'src/api/smartpos/reports';
 import { listSales, type Sale } from 'src/api/smartpos/sales';
 import { listWarehouses, type Warehouse } from 'src/api/smartpos/inventory';
@@ -75,6 +77,7 @@ export default function DashboardPage() {
   const [expiringUnitsAtRisk, setExpiringUnitsAtRisk] = useState(0);
   const [lastUpdated, setLastUpdated] = useState<number | null>(null);
   const [forecast, setForecast] = useState<Forecast | null>(null);
+  const [arAging, setArAging] = useState<ArAging | null>(null);
   const [visibleSections, setVisibleSections] = useState<Set<SectionKey>>(() =>
     loadLayout(user?.tenantId ?? ''),
   );
@@ -173,6 +176,7 @@ export default function DashboardPage() {
         }),
         getExpiringBatches({ withinDays: 30 }),
         getForecast({ period, warehouseId: warehouseId || undefined, days: 30 }),
+        getArAging(),
       ]);
 
       if (results[0].status === 'rejected') {
@@ -206,6 +210,8 @@ export default function DashboardPage() {
       } else {
         setForecast(null);
       }
+
+      if (results[6]?.status === 'fulfilled') setArAging(results[6].value);
 
       const failedSections = [
         results[3].status === 'rejected' ? 'recent sales' : null,
@@ -608,6 +614,7 @@ export default function DashboardPage() {
                         profitMarginDelta={profitMarginDelta}
                         salesDueDelta={salesDueDelta}
                         purchasesDelta={financialPurchasesDelta}
+                        arAging={arAging}
                       />
                     </Grid>
                   )}

@@ -164,6 +164,11 @@ export default function PurchaseBuilderPage() {
       .catch(() => {});
   }, [id]);
 
+  // Pre-fill payment amount with the balance due
+  useEffect(() => {
+    if (balanceDue > 0) setPayAmount(balanceDue);
+  }, [balanceDue]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const subtotal = lines.reduce((s, l) => s + l.unitPrice * l.qty, 0);
   const tax = lines.reduce((s, l) => s + l.unitPrice * l.qty * (l.taxRate / 100), 0);
   const grand = subtotal + tax - discount + shipping;

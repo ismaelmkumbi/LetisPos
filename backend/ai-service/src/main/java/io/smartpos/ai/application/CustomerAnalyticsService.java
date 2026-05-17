@@ -144,19 +144,28 @@ public class CustomerAnalyticsService {
                     segmentColors.getOrDefault(seg.getKey(), "#6b7280")));
         }
 
-        // Step 6: Top 10 customers by total spent
+        // Step 6: Top 10 customers by total spent (with churn probability)
+        int maxFrequency = rfmRecords.stream()
+                .mapToInt(RfmRecord::frequency)
+                .max().orElse(1);
+
         List<AiAnalyticsDtos.TopCustomer> topCustomers = rfmRecords.stream()
                 .sorted((a, b) -> b.monetary().compareTo(a.monetary()))
                 .limit(10)
                 .map(rfm -> {
                     String seg = determineSegment(rfm, medianMonetary);
+                    double churnProbability = Math.min(1.0, Math.max(0.0,
+                            (rfm.recencyDays() / 180.0) * 0.6
+                                    + (1.0 - rfm.frequency() / Math.max(maxFrequency, 1.0)) * 0.4
+                    ));
                     return new AiAnalyticsDtos.TopCustomer(
                             rfm.customerId(),
                             "Customer " + rfm.customerId().toString().substring(0, 8),
                             rfm.monetary(),
                             rfm.frequency(),
                             rfm.lastPurchase(),
-                            seg);
+                            seg,
+                            Math.round(churnProbability * 1000.0) / 1000.0);
                 })
                 .collect(Collectors.toList());
 

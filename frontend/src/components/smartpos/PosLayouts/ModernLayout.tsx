@@ -115,6 +115,7 @@ import {
   PRODUCT_PAGE_SIZE,
 } from './shared';
 import EditLineModal from 'src/components/smartpos/EditLineModal';
+import MobilePaymentFlow from './MobilePaymentFlow';
 import CashRegisterIndicator from 'src/components/smartpos/CashRegisterIndicator';
 import TotalRow from './TotalRow';
 import BrandLogo from 'src/components/smartpos/BrandLogo';
@@ -2390,44 +2391,46 @@ function PaymentScreen(p: PaymentScreenProps) {
         overflow: 'hidden',
       }}
     >
-      <Card
-        elevation={0}
-        sx={{
-          ...posSurface(isDark),
-          borderRadius: '8px',
-          overflow: 'hidden',
-          display: 'flex',
-          flexDirection: 'column',
-          minHeight: 0,
-        }}
-      >
-        <Stack
-          direction="row"
-          alignItems="center"
-          justifyContent="space-between"
-          sx={{ px: 2, py: 2, borderBottom: `1px solid ${brand.neutral[200]}` }}
+      {/* Desktop layout (hidden on xs) */}
+      <Box sx={{ display: { xs: 'none', md: 'contents' } }}>
+        <Card
+          elevation={0}
+          sx={{
+            ...posSurface(isDark),
+            borderRadius: '8px',
+            overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column',
+            minHeight: 0,
+          }}
         >
-          <Button
-            startIcon={<IconArrowLeft size={18} />}
-            onClick={p.onBack}
-            sx={{
-              color: isDark ? brand.neutral[200] : brand.neutral[800],
-              fontWeight: 800,
-              textTransform: 'none',
-            }}
+          <Stack
+            direction="row"
+            alignItems="center"
+            justifyContent="space-between"
+            sx={{ px: 2, py: 2, borderBottom: `1px solid ${brand.neutral[200]}` }}
           >
-            Back to Cart
-          </Button>
-          <Chip
-            label={`${p.totalItems} Items`}
-            sx={{
-              bgcolor: brand.success.light,
-              color: brand.success.dark,
-              fontWeight: 800,
-              borderRadius: '999px',
-            }}
-          />
-        </Stack>
+            <Button
+              startIcon={<IconArrowLeft size={18} />}
+              onClick={p.onBack}
+              sx={{
+                color: isDark ? brand.neutral[200] : brand.neutral[800],
+                fontWeight: 800,
+                textTransform: 'none',
+              }}
+            >
+              Back to Cart
+            </Button>
+            <Chip
+              label={`${p.totalItems} Items`}
+              sx={{
+                bgcolor: brand.success.light,
+                color: brand.success.dark,
+                fontWeight: 800,
+                borderRadius: '999px',
+              }}
+            />
+          </Stack>
 
         <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto', px: 2, py: 1.5, ...softScrollSx }}>
           <Stack spacing={1.2}>
@@ -2821,15 +2824,24 @@ function PaymentScreen(p: PaymentScreenProps) {
                     >
                       Cash Received
                     </Typography>
-                    <Typography
-                      sx={{
-                        fontSize: '1.65rem',
-                        color: isDark ? brand.neutral[50] : brand.neutral[900],
-                        fontWeight: 900,
+                    <TextField
+                      type="number"
+                      size="small"
+                      value={p.tendered}
+                      onChange={(e) => p.onTenderedChange(e.target.value)}
+                      placeholder="0"
+                      variant="standard"
+                      InputProps={{
+                        disableUnderline: true,
+                        sx: {
+                          fontSize: '1.65rem',
+                          fontWeight: 900,
+                          color: isDark ? brand.neutral[50] : brand.neutral[900],
+                          '& input': { textAlign: 'left' },
+                        },
                       }}
-                    >
-                      {tenderedNumber ? fmt(tenderedNumber) : 'TSh 0'}
-                    </Typography>
+                      sx={{ width: '100%' }}
+                    />
                   </Box>
                 </Box>
                 <Box sx={{ mt: 1.3 }}>
@@ -3010,6 +3022,24 @@ function PaymentScreen(p: PaymentScreenProps) {
           )}
         </Stack>
       </Card>
+
+      </Box>{/* end desktop layout */}
+
+      {/* ═══ Mobile 3-step payment flow (xs only) ═══ */}
+      <Box sx={{ display: { xs: 'flex', md: 'none' }, flex: 1, minHeight: 0, flexDirection: 'column' }}>
+        <MobilePaymentFlow
+          grand={p.grand}
+          paymentChoice={p.paymentChoice}
+          onPaymentChoiceChange={p.onPaymentChoiceChange}
+          tendered={p.tendered}
+          onTenderedChange={p.onTenderedChange}
+          customerName={p.customerName}
+          submitting={p.submitting}
+          canComplete={p.canComplete}
+          onBack={p.onBack}
+          onComplete={p.onComplete}
+        />
+      </Box>
     </Box>
   );
 }

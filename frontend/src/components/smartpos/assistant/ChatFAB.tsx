@@ -46,7 +46,7 @@ export default function ChatFAB() {
       )}
       <IconButton
         onClick={toggle}
-        aria-label="AI Assistant"
+        aria-label="Letis POS Assistant"
         sx={{
           width: 56, height: 56,
           background: open

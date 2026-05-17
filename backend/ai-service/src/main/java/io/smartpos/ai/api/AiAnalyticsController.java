@@ -27,7 +27,8 @@ public class AiAnalyticsController {
 
     /**
      * Demand forecasting: top 10 products by projected demand using
-     * 4-week simple moving average on 12 weeks of sales history.
+     * Holt-Winters exponential smoothing (or 4-week simple moving
+     * average fallback when data is sparse).
      */
     @GetMapping("/forecasting")
     @PreAuthorize("isAuthenticated()")

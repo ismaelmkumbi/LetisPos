@@ -85,6 +85,12 @@ smartpos:
     default-currency: ${SMARTPOS_DEFAULT_CURRENCY:TZS}
     export:
       sweep-ms: ${SMARTPOS_EXPORT_SWEEP_MS:30000}
+    freshness:
+      interval-ms: 300000  # 5 minutes — how often DataFreshnessService polls
+    cache:
+      dashboard-intelligence-ttl: 5m
+      dashboard-trends-ttl: 30m
+      dashboard-executive-summary-ttl: 1h
     inventory-snapshot:
       cron: ${SMARTPOS_INV_SNAPSHOT_CRON:0 30 1 * * *}   # 01:30 UTC daily
   minio:
