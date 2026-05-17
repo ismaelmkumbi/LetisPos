@@ -120,7 +120,7 @@ export default function CustomerRetentionCard({
                 </TableRow>
               </TableHead>
               <TableBody>
-                {data.atRiskCustomers.map((customer) => (
+                {(data?.atRiskCustomers ?? []).map((customer) => (
                   <TableRow
                     key={customer.customerId}
                     hover
@@ -163,7 +163,7 @@ export default function CustomerRetentionCard({
               </Typography>
               <Chip
                 size="small"
-                label={`At-risk revenue: ${formatMoney(data.totalAtRiskRevenue)}`}
+                label={`At-risk revenue: ${formatMoney(data?.totalAtRiskRevenue ?? 0)}`}
                 sx={{
                   height: 24,
                   fontSize: 11,
