@@ -146,3 +146,46 @@ export async function getCashFlowForecast(days?: number): Promise<UnifiedRespons
   );
   return data;
 }
+
+// ── Executive Summary ─────────────────────────────────────────────────────────
+
+export interface BulletPoint {
+  category: 'HEADLINE' | 'CHANGE' | 'ATTENTION' | 'RECOMMENDATION';
+  text: string;
+  linkTo?: string | null;
+}
+
+export interface KpiSnapshot {
+  revenue: number;
+  netProfit: number;
+  orderCount: number;
+  profitMargin: number;
+  lowStockLines: number;
+  totalCustomers: number;
+  churnRisk: number;
+  repeatRate: number;
+}
+
+export interface AlertSummary {
+  fraudAlerts: number;
+  stockAlerts: number;
+  paymentAlerts: number;
+}
+
+export interface ExecutiveSummary {
+  bullets: BulletPoint[];
+  kpiSnapshot: KpiSnapshot;
+  alertSummary: AlertSummary;
+  provider: 'template' | 'llm';
+}
+
+export async function getExecutiveSummary(
+  date?: string,
+  refresh?: boolean,
+): Promise<UnifiedResponse<ExecutiveSummary>> {
+  const { data } = await api.get<UnifiedResponse<ExecutiveSummary>>(
+    '/api/v1/dashboard/executive-summary',
+    { params: { date, refresh: refresh ? 'true' : undefined } },
+  );
+  return data;
+}

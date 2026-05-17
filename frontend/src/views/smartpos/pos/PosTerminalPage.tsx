@@ -266,7 +266,7 @@ export default function PosTerminalPage() {
             const alerts = await lowStockAlerts(warehouseId, 0, 48);
             const ids = alerts.content.map((a) => a.productId);
             if (ids.length > 0) {
-              const prods = await Promise.all(ids.map((id) => getProduct(id).catch(() => null)));
+              const prods = await Promise.all(ids.map((id: string) => getProduct(id).catch(() => null)));
               setProducts(prods.filter((p): p is Product => p !== null));
             } else {
               setProducts([]);
@@ -275,7 +275,7 @@ export default function PosTerminalPage() {
             const top = await getTopProducts({ limit: 48 });
             const ids = top.map((t) => t.productId);
             if (ids.length > 0) {
-              const prods = await Promise.all(ids.map((id) => getProduct(id).catch(() => null)));
+              const prods = await Promise.all(ids.map((id: string) => getProduct(id).catch(() => null)));
               setProducts(prods.filter((p): p is Product => p !== null));
             } else {
               setProducts([]);

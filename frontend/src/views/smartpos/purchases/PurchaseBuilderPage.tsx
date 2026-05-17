@@ -164,15 +164,15 @@ export default function PurchaseBuilderPage() {
       .catch(() => {});
   }, [id]);
 
-  // Pre-fill payment amount with the balance due
-  useEffect(() => {
-    if (balanceDue > 0) setPayAmount(balanceDue);
-  }, [balanceDue]);
-
   const subtotal = lines.reduce((s, l) => s + l.unitPrice * l.qty, 0);
   const tax = lines.reduce((s, l) => s + l.unitPrice * l.qty * (l.taxRate / 100), 0);
   const grand = subtotal + tax - discount + shipping;
   const balanceDue = grand - paidTotal;
+
+  // Pre-fill payment amount with the balance due
+  useEffect(() => {
+    if (balanceDue > 0) setPayAmount(balanceDue);
+  }, [balanceDue]);
 
   const searchProducts = async (q: string) => (await listProducts({ search: q, size: 20 })).content;
 
