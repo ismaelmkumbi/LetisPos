@@ -5,6 +5,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -35,6 +36,14 @@ public interface InventoryFeign {
      * pages until {@code content} is empty.
      */
     record StockLevelPage(List<StockLevel> content, int number, int size, int totalPages, long totalElements) {}
+
+    record ReorderSuggestion(UUID productId, String productName, int currentStock,
+                             int suggestedQty, int minQty, UUID supplierId,
+                             String urgency, double dailyVelocity,
+                             LocalDate expectedShortageDate) {}
+
+    @GetMapping("/api/v1/inventory/reorder-suggestions")
+    List<ReorderSuggestion> reorderSuggestions();
 
     @GetMapping("/api/v1/stock/levels")
     StockLevelPage levels(@RequestParam UUID warehouseId,
