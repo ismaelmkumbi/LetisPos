@@ -6,7 +6,7 @@ import { brand } from 'src/theme/smartpos/brand';
 import { muted, titleColor } from './utils';
 import type { SmallStatProps } from './types';
 
-export default function SmallStat({ label, value, tone, icon, delta }: SmallStatProps) {
+export default function SmallStat({ label, value, tone, icon, delta, threshold }: SmallStatProps) {
   const { activeMode: _s } = useContext(CustomizerContext);
   const isDark = _s === 'dark';
   const map = {
@@ -44,7 +44,10 @@ export default function SmallStat({ label, value, tone, icon, delta }: SmallStat
         </Box>
       </Stack>
       <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 1 }}>
-        <Typography sx={{ color: titleColor, fontWeight: 900, fontSize: 17 }}>
+        <Typography sx={{ color: threshold === 'good' ? brand.success.main
+          : threshold === 'marginal' ? brand.warning.main
+          : threshold === 'poor' ? brand.error.main
+          : titleColor, fontWeight: 900, fontSize: 17 }}>
           {value}
         </Typography>
         {delta && (

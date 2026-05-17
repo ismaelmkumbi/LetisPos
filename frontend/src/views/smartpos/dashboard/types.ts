@@ -41,6 +41,7 @@ export interface SmallStatProps {
   tone: 'success' | 'warning' | 'error' | 'info' | 'purple';
   icon?: React.ReactNode;
   delta?: Delta;
+  threshold?: 'good' | 'marginal' | 'poor';
 }
 
 export interface PaymentRowProps {

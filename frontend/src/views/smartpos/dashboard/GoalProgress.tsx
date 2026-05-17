@@ -3,6 +3,7 @@ import {
   Box,
   Card,
   CardContent,
+  Chip,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -60,6 +61,18 @@ function ProgressRow({
   const pct = target > 0 ? Math.min((current / target) * 100, 100) : 0;
   const remaining = target > 0 ? target - current : 0;
 
+  let pacingLabel = '';
+  let pacingColor: string = brand.neutral[400];
+  if (target > 0 && pct > 0) {
+    const now = new Date();
+    const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    const daysElapsed = now.getDate();
+    const expectedPct = label === 'Daily Orders' ? 100 : (daysElapsed / daysInMonth) * 100;
+    if (pct >= expectedPct * 0.9) { pacingLabel = 'On track'; pacingColor = brand.success.main; }
+    else if (pct >= expectedPct * 0.7) { pacingLabel = 'Slightly behind'; pacingColor = brand.warning.main; }
+    else { pacingLabel = 'At risk'; pacingColor = brand.error.main; }
+  }
+
   return (
     <Box>
       <Stack direction="row" justifyContent="space-between" alignItems="baseline" sx={{ mb: 0.5 }}>
@@ -81,11 +94,24 @@ function ProgressRow({
         }}
       />
       {target > 0 && (
-        <Typography sx={{ color: brand.neutral[500], fontSize: 11, mt: 0.4 }}>
-          {pct >= 100
-            ? 'Target reached!'
-            : `${format(remaining)} ${unit} to go (${pct.toFixed(0)}%)`}
-        </Typography>
+        <Stack direction="row" alignItems="center" sx={{ mt: 0.4 }}>
+          <Typography sx={{ color: brand.neutral[500], fontSize: 11 }}>
+            {pct >= 100
+              ? 'Target reached!'
+              : `${format(remaining)} ${unit} to go (${pct.toFixed(0)}%)`}
+          </Typography>
+          {pacingLabel && (
+            <Chip
+              label={pacingLabel}
+              size="small"
+              sx={{
+                height: 20, fontSize: 10, fontWeight: 700, ml: 1,
+                bgcolor: pacingColor + '22', color: pacingColor,
+                '& .MuiChip-label': { px: 0.75 },
+              }}
+            />
+          )}
+        </Stack>
       )}
     </Box>
   );
