@@ -28,7 +28,7 @@ export interface MetricCardProps {
 }
 
 export interface AlertStripProps {
-  tone: 'success' | 'warning' | 'error';
+  tone: 'success' | 'warning' | 'error' | 'fraud';
   icon: React.ReactNode;
   title: string;
   subtitle: string;
