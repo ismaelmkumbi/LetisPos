@@ -40,6 +40,7 @@ import {
   DialogContent,
   DialogTitle,
   Divider,
+  Drawer,
   IconButton,
   InputAdornment,
   ListItemIcon,
@@ -148,6 +149,8 @@ export default function ModernLayout(props: PosLayoutProps) {
   const [brands, setBrands] = useState<BrandRef[]>([]);
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
+  const [mobileEditIdx, setMobileEditIdx] = useState<number | null>(null);
+  const [mobileEditLine, setMobileEditLine] = useState<Line | null>(null);
   const [paymentChoice, setPaymentChoice] = useState<PaymentChoice>('CASH');
 
   useEffect(() => {
@@ -187,12 +190,16 @@ export default function ModernLayout(props: PosLayoutProps) {
     setPaymentChoice(choice);
     if (choice === 'CASH') props.onPaymentMethodChange('CASH');
     else if (choice === 'SPLIT') props.onPaymentMethodChange('SPLIT');
+    else if (choice === 'CREDIT') props.onPaymentMethodChange('CREDIT');
     else props.onPaymentMethodChange('CARD');
   };
 
   const openPayment = () => {
     if (!props.canCheckout) return;
-    if (!props.tendered && paymentChoice === 'CASH') {
+    // Auto-select credit if customer has credit available and no tendered entered
+    if (props.creditAvailable && props.customerId && (!props.tendered || Number(props.tendered) === 0)) {
+      setPaymentChoice('CREDIT');
+    } else if (!props.tendered && paymentChoice === 'CASH') {
       props.onTenderedChange(String(Math.ceil(computed.grand / 1000) * 1000));
     }
     setPaymentOpen(true);
@@ -309,32 +316,83 @@ export default function ModernLayout(props: PosLayoutProps) {
           sx={{
             flex: 1,
             minHeight: 0,
-            display: 'flex',
-            flexDirection: 'column',
+            display: 'grid',
+            gridTemplateColumns: {
+              xs: '1fr',
+              md: `minmax(${CHECKOUT_PANEL_MIN_WIDTH}px, 0.85fr) minmax(0, 1.6fr)`,
+            },
+            gap: 1.5,
             p: { xs: 1, md: 1.5 },
+            alignItems: 'stretch',
             overflowX: 'hidden',
-            overflowY: 'auto',
+            overflowY: { xs: 'auto', md: 'hidden' },
           }}
         >
-          <TopFilters
-            search={props.search}
-            onSearchChange={props.onSearchChange}
-            barcode={props.barcode}
-            onBarcodeChange={props.onBarcodeChange}
-            onBarcodeScan={props.onBarcodeScan}
-            barcodeRef={props.barcodeRef}
-            isDark={isDark}
-          />
+          {/* ── Products (right column on desktop, full width on mobile) ── */}
+          <Box
+            sx={{
+              minWidth: 0, minHeight: 0,
+              order: { xs: 1, md: 2 },
+              display: 'flex', flexDirection: 'column',
+            }}
+          >
+            <TopFilters
+              search={props.search}
+              onSearchChange={props.onSearchChange}
+              barcode={props.barcode}
+              onBarcodeChange={props.onBarcodeChange}
+              onBarcodeScan={props.onBarcodeScan}
+              barcodeRef={props.barcodeRef}
+              isDark={isDark}
+            />
+            <ProductTabs activeTab={props.activeTab} onTabChange={handleTabChange} />
+            <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto', pr: 0.5, ...softScrollSx }}>
+              <ProductGrid
+                products={props.products}
+                loading={props.productsLoading}
+                stockMap={props.stockMap}
+                stockLoading={props.stockLoading}
+                onAdd={props.onAddProduct}
+                isDark={isDark}
+              />
+            </Box>
+          </Box>
 
-          <ProductTabs activeTab={props.activeTab} onTabChange={handleTabChange} />
-
-          <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto', ...softScrollSx }}>
-            <ProductGrid
+          {/* ── Cart (left column on desktop, hidden on mobile) ── */}
+          <Box
+            id="letis-pos-checkout"
+            sx={{
+              minHeight: 0,
+              order: { xs: 2, md: 1 },
+              display: { xs: 'none', md: 'flex' },
+              flexDirection: 'column',
+            }}
+          >
+            <CheckoutPanel
+              itemCount={itemCount}
+              lines={props.lines}
+              onInc={props.onIncQty}
+              onDec={props.onDecQty}
+              onRemove={props.onRemoveLine}
+              onClear={props.onClearCart}
+              onPatchLine={props.onPatchLine}
+              onNotify={props.onNotify}
+              subtotal={computed.subtotal}
+              tax={computed.totalTax}
+              discountVal={computed.disc}
+              shippingVal={computed.ship}
+              grand={computed.grand}
+              taxRate={
+                computed.subtotal > 0
+                  ? Math.round((computed.totalTax / computed.subtotal) * 100)
+                  : 0
+              }
+              discount={props.discount}
+              discountType={props.discountType}
+              onDiscountChange={props.onDiscountChange}
+              onDiscountTypeChange={props.onDiscountTypeChange}
               products={props.products}
-              loading={props.productsLoading}
               stockMap={props.stockMap}
-              stockLoading={props.stockLoading}
-              onAdd={props.onAddProduct}
               isDark={isDark}
             />
           </Box>
@@ -353,11 +411,152 @@ export default function ModernLayout(props: PosLayoutProps) {
           canCheckout={props.canCheckout}
           submitting={props.submitting}
           onCheckout={openPayment}
+          onOpenCart={() => setCartDrawerOpen(true)}
           grand={computed.grand}
           itemCount={itemCount}
           labelPay={t('pos.charge')}
           labelProcessing={t('pos.processing')}
           isDark={isDark}
+        />
+      )}
+
+      {/* ═══ Mobile Cart Drawer (bottom sheet, xs only) ═══ */}
+      <Drawer
+        anchor="bottom"
+        open={cartDrawerOpen && !paymentOpen}
+        onClose={() => setCartDrawerOpen(false)}
+        sx={{ display: { xs: 'block', md: 'none' } }}
+        PaperProps={{
+          sx: {
+            maxHeight: '85dvh',
+            height: 'auto',
+            minHeight: '40dvh',
+            borderTopLeftRadius: 24,
+            borderTopRightRadius: 24,
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+            pt: 1,
+          },
+        }}
+      >
+        {/* Drag handle — visual cue for dismiss */}
+        <Box sx={{ display: 'flex', justifyContent: 'center', pb: 1, flexShrink: 0 }}>
+          <Box sx={{ width: 40, height: 4, borderRadius: 2, bgcolor: brand.neutral[200] }} />
+        </Box>
+
+        {/* Cart header */}
+        <Stack direction="row" alignItems="center" justifyContent="space-between"
+          sx={{ px: 2.5, py: 0.5, flexShrink: 0 }}>
+          <Stack direction="row" alignItems="center" spacing={1}>
+            <Typography sx={{ fontWeight: 900, fontSize: '1.05rem' }}>Cart</Typography>
+            <Chip label={`${itemCount} item${itemCount !== 1 ? 's' : ''}`} size="small"
+              sx={{ height: 22, fontWeight: 700, fontSize: '0.65rem', bgcolor: brand.primary[50], color: brand.primary[700], borderRadius: '6px' }} />
+          </Stack>
+          {props.lines.length > 0 && (
+            <Button size="small" onClick={() => { props.onClearCart(); setCartDrawerOpen(false); }}
+              sx={{ textTransform: 'none', fontSize: '0.75rem', fontWeight: 600, color: brand.error.main }}>
+              Clear
+            </Button>
+          )}
+        </Stack>
+
+        {/* Cart items — scrollable */}
+        <Box sx={{ flex: 1, overflowY: 'auto', px: 2, py: 1 }}>
+          {props.lines.length === 0 ? (
+            <Box sx={{ textAlign: 'center', py: 6 }}>
+              <IconShoppingCart size={36} color={brand.neutral[300]} />
+              <Typography sx={{ mt: 1.5, fontWeight: 700, color: brand.neutral[400], fontSize: '0.9rem' }}>
+                Cart is empty
+              </Typography>
+              <Typography variant="caption" sx={{ color: brand.neutral[400] }}>
+                Tap products above to add them
+              </Typography>
+            </Box>
+          ) : (
+            <Stack spacing={0.75}>
+              {props.lines.map((line, i) => (
+                <Box key={`${line.productId}-${i}`}
+                  sx={{
+                    p: 1.5, borderRadius: '14px',
+                    border: `1px solid ${brand.neutral[200]}`, bgcolor: '#fff',
+                  }}>
+                  <Stack direction="row" justifyContent="space-between" alignItems="center">
+                    <Box sx={{ flex: 1, mr: 1, minWidth: 0 }}>
+                      <Typography sx={{ fontWeight: 700, fontSize: '0.85rem' }} noWrap>
+                        {line.productName}
+                      </Typography>
+                      <Typography variant="caption" sx={{ color: brand.neutral[500], fontWeight: 600 }}>
+                        {fmt(line.unitPrice)} × {line.qty} = {fmt(line.unitPrice * line.qty)}
+                      </Typography>
+                    </Box>
+                    <Stack direction="row" alignItems="center" spacing={0.25}>
+                      <IconButton size="small" onClick={(e) => { e.stopPropagation(); setMobileEditIdx(i); setMobileEditLine(line); }}
+                        sx={{ width: 28, height: 28, borderRadius: '8px', color: brand.neutral[400] }}>
+                        <IconEdit size={13} />
+                      </IconButton>
+                      <IconButton size="small" onClick={() => props.onDecQty(i)}
+                        sx={{ width: 30, height: 30, borderRadius: '8px', bgcolor: brand.neutral[50] }}>
+                        <IconMinus size={14} />
+                      </IconButton>
+                      <Typography sx={{ minWidth: 24, textAlign: 'center', fontWeight: 800, fontSize: '0.85rem' }}>
+                        {line.qty}
+                      </Typography>
+                      <IconButton size="small" onClick={() => props.onIncQty(i)}
+                        sx={{ width: 30, height: 30, borderRadius: '8px', bgcolor: brand.primary[50], color: brand.primary[600] }}>
+                        <IconPlus size={14} />
+                      </IconButton>
+                      <IconButton size="small" onClick={() => props.onRemoveLine(i)}
+                        sx={{ ml: 0.5, width: 26, height: 26, borderRadius: '8px', color: brand.error.main }}>
+                        <IconX size={13} />
+                      </IconButton>
+                    </Stack>
+                  </Stack>
+                </Box>
+              ))}
+            </Stack>
+          )}
+        </Box>
+
+        {/* Footer — totals + CTA */}
+        {props.lines.length > 0 && (
+          <Box sx={{ borderTop: `1px solid ${brand.neutral[200]}`, px: 2.5, py: 2, flexShrink: 0, pb: 'calc(16px + env(safe-area-inset-bottom, 8px))' }}>
+            <Stack spacing={0.5} sx={{ mb: 1.5 }}>
+              <TotalRow label="Subtotal" value={fmt(computed.subtotal)} size="small" />
+              <TotalRow label="Tax" value={fmt(computed.totalTax)} size="small" />
+              {computed.disc > 0 && <TotalRow label="Discount" value={`-${fmt(computed.disc)}`} size="small" />}
+              <TotalRow label="Total" value={fmt(computed.grand)} valueWeight={900} size="medium" />
+            </Stack>
+            <Stack direction="row" spacing={1}>
+              <Button fullWidth variant="outlined" onClick={props.onHoldCart}
+                disabled={props.lines.length === 0}
+                sx={{ textTransform: 'none', fontWeight: 700, borderRadius: '12px', py: 1.3, borderColor: brand.neutral[200], color: brand.neutral[600] }}>
+                Hold
+              </Button>
+              <Button fullWidth variant="contained" disabled={!props.canCheckout}
+                onClick={() => { setCartDrawerOpen(false); openPayment(); }}
+                startIcon={props.submitting ? <CircularProgress size={16} color="inherit" /> : <IconCheck size={18} />}
+                sx={{ textTransform: 'none', fontWeight: 800, borderRadius: '12px', py: 1.3, fontSize: '0.9rem',
+                  bgcolor: brand.primary[600], '&:hover': { bgcolor: brand.primary[700] },
+                  boxShadow: `0 8px 22px -10px ${brand.primary[600]}88`,
+                }}>
+                {props.submitting ? 'Processing…' : `Pay ${fmt(computed.grand)}`}
+              </Button>
+            </Stack>
+          </Box>
+        )}
+      </Drawer>
+
+      {/* ═══ Edit Line Modal (shared by desktop + mobile) ═══ */}
+      {mobileEditLine && (
+        <EditLineModal
+          open={mobileEditIdx !== null}
+          onClose={() => { setMobileEditIdx(null); setMobileEditLine(null); }}
+          line={mobileEditLine}
+          lineIndex={mobileEditIdx!}
+          product={props.products.find((p) => p.id === mobileEditLine.productId)}
+          stockAvailable={props.stockMap[mobileEditLine.productId]?.available}
+          onSave={(index, patch) => { props.onPatchLine?.(index, patch); setMobileEditIdx(null); setMobileEditLine(null); }}
         />
       )}
     </Box>
@@ -2175,7 +2374,9 @@ function PaymentScreen(p: PaymentScreenProps) {
   const backspace = () => p.onTenderedChange((p.tendered || '').slice(0, -1));
 
   const effectiveCanComplete =
-    p.paymentChoice === 'SPLIT' ? splitRemaining <= 0 && p.submitting === false : p.canComplete;
+    p.paymentChoice === 'SPLIT' ? splitRemaining <= 0 && p.submitting === false
+    : p.paymentChoice === 'CREDIT' ? !p.submitting
+    : p.canComplete;
 
   return (
     <Box
@@ -2402,6 +2603,15 @@ function PaymentScreen(p: PaymentScreenProps) {
                 isDark={isDark}
               />
               <PaymentMethodCard
+                choice="CREDIT"
+                active={p.paymentChoice === 'CREDIT'}
+                icon={<IconReceipt size={30} />}
+                title="Pay Later"
+                subtitle="Add to customer tab"
+                onClick={p.onPaymentChoiceChange}
+                isDark={isDark}
+              />
+              <PaymentMethodCard
                 choice="SPLIT"
                 active={p.paymentChoice === 'SPLIT'}
                 icon={<IconSparkles size={30} />}
@@ -2560,7 +2770,9 @@ function PaymentScreen(p: PaymentScreenProps) {
                         ? 'Mobile Payment'
                         : p.paymentChoice === 'BANK'
                           ? 'Bank Transfer'
-                          : 'USSD Payment'}
+                          : p.paymentChoice === 'CREDIT'
+                            ? 'Pay Later — Add to Tab'
+                            : 'USSD Payment'}
                 </Typography>
                 <Box
                   sx={{
@@ -2644,7 +2856,7 @@ function PaymentScreen(p: PaymentScreenProps) {
             )}
           </Box>
 
-          {p.paymentChoice !== 'SPLIT' && (
+          {p.paymentChoice !== 'SPLIT' && p.paymentChoice !== 'CREDIT' && (
             <Box
               sx={{
                 borderLeft: { lg: `1px solid ${brand.neutral[200]}` },
@@ -2781,10 +2993,21 @@ function PaymentScreen(p: PaymentScreenProps) {
           >
             {p.submitting
               ? 'Completing...'
-              : p.paymentChoice === 'SPLIT'
-                ? `Complete Payment · ${fmt(splitTotal)}`
-                : `Complete Payment ${tenderedNumber ? fmt(tenderedNumber) : ''}`}
+              : p.paymentChoice === 'CREDIT'
+                ? `Add to Tab · ${fmt(p.grand)}`
+                : p.paymentChoice === 'SPLIT'
+                  ? `Complete Payment · ${fmt(splitTotal)}`
+                  : `Complete Payment ${tenderedNumber ? fmt(tenderedNumber) : ''}`}
           </Button>
+          {!effectiveCanComplete && !p.submitting && (
+            <Typography variant="caption" sx={{ display: 'block', textAlign: 'center', mt: 1, color: brand.warning.dark, fontWeight: 600 }}>
+              {p.paymentChoice === 'CASH'
+                ? 'Enter the cash amount received using the keypad above'
+                : p.paymentChoice === 'SPLIT'
+                  ? `Remaining: ${fmt(splitRemaining)} — add payments to cover the total`
+                  : 'Fill in the payment details to continue'}
+            </Typography>
+          )}
         </Stack>
       </Card>
     </Box>
@@ -3105,6 +3328,7 @@ interface FooterBarProps {
   canCheckout: boolean;
   submitting: boolean;
   onCheckout: () => void;
+  onOpenCart?: () => void;
   grand: number;
   itemCount: number;
   labelPay: string;
@@ -3265,6 +3489,23 @@ function FooterBar(p: FooterBarProps) {
             {fmt(p.grand)}
           </Typography>
         </Stack>
+
+        {/* Cart button — opens cart drawer */}
+        <Badge badgeContent={p.itemCount} color="error" max={99}
+          sx={{ '& .MuiBadge-badge': { fontWeight: 800, fontSize: '0.6rem', minWidth: 16, height: 16 } }}>
+          <IconButton
+            onClick={p.onOpenCart}
+            sx={{
+              width: 40, height: 40, borderRadius: '10px',
+              bgcolor: p.itemCount > 0 ? brand.primary[50] : brand.neutral[50],
+              color: p.itemCount > 0 ? brand.primary[600] : brand.neutral[400],
+              border: `1px solid ${brand.neutral[200]}`,
+              '&:hover': { bgcolor: brand.primary[100] },
+            }}
+          >
+            <IconShoppingCart size={20} />
+          </IconButton>
+        </Badge>
 
         <Button
           variant="contained"

@@ -4,6 +4,7 @@ import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
@@ -22,6 +23,11 @@ public interface ProductFeign {
             LocalDate warrantyStart, LocalDate warrantyEnd) {}
 
     record SerialPage(List<SerialView> content, int number, int size, int totalPages, long totalElements) {}
+
+    record ProductInfo(UUID id, String code, String name, BigDecimal cost, BigDecimal price, String category) {}
+
+    @GetMapping("/api/v1/products")
+    List<ProductInfo> listProducts(@RequestParam("page") int page, @RequestParam("size") int size);
 
     @GetMapping("/api/v1/serials")
     SerialPage searchSerials(@RequestParam(required = false) UUID productId,

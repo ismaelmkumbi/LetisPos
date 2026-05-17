@@ -2,8 +2,11 @@ package io.smartpos.report.application;
 
 import io.smartpos.report.api.dto.DashboardDto;
 import io.smartpos.report.api.dto.DashboardIntelligenceDto;
+import io.smartpos.report.api.dto.DemandForecastDto;
 import io.smartpos.report.api.dto.ExecutiveSummaryDto;
 import io.smartpos.report.api.dto.Period;
+import io.smartpos.report.api.dto.ProfitOpportunityDto;
+import io.smartpos.report.api.dto.ReorderRecommendationDto;
 import io.smartpos.report.api.dto.UnifiedResponse;
 import io.smartpos.report.api.dto.UnifiedResponse.*;
 import io.smartpos.report.infrastructure.config.RedisCacheConfig;
@@ -35,6 +38,7 @@ public class DashboardIntelligenceService {
     private final AiFeign ai;
     private final DataFreshnessService freshness;
     private final DashboardService dashboardService;
+    private final ProductFeign productFeign;
 
     /**
      * Lightweight health/status check. Pings each downstream service,
@@ -102,6 +106,125 @@ public class DashboardIntelligenceService {
     public UnifiedResponse<ExecutiveSummaryDto> executiveSummaryUncached(
         @org.springframework.lang.Nullable LocalDate date) {
         return executiveSummary(date);  // self-invocation bypasses cache interceptor
+    }
+
+    // ---- Demand Forecast ----
+
+    @Cacheable(value = RedisCacheConfig.CACHE_DASHBOARD_TRENDS,
+               key = "T(io.smartpos.report.infrastructure.config.RedisCacheConfig).tenantKey('forecast', #warehouseId, #horizonDays)")
+    public UnifiedResponse<DemandForecastDto> demandForecast(
+        @org.springframework.lang.Nullable UUID warehouseId, int horizonDays) {
+        TenantContext.require();
+
+        List<AiFeign.ForecastItem> aiForecast;
+        try { aiForecast = ai.forecasting(); }
+        catch (Exception e) { log.warn("Forecast fetch failed: {}", e.getMessage()); aiForecast = List.of(); }
+
+        // Filter top 10 by projected demand, map to DTO
+        List<DemandForecastDto.ForecastEntry> entries = aiForecast.stream()
+            .filter(f -> f.projectedDemand() > 0)
+            .sorted((a, b) -> Integer.compare(b.projectedDemand(), a.projectedDemand()))
+            .limit(10)
+            .map(f -> new DemandForecastDto.ForecastEntry(
+                f.productId(), f.productName(), f.projectedDemand(),
+                f.confidence(), f.trend(), f.weeksOfData()))
+            .toList();
+
+        // Estimate aggregate revenue: assume avg product price of 10000 TZS per unit
+        long aggregateRevenue = entries.stream().mapToLong(e -> e.projectedDemand() * 10000L).sum();
+        String startDate = java.time.LocalDate.now().toString();
+        String endDate = java.time.LocalDate.now().plusDays(horizonDays).toString();
+
+        DemandForecastDto dto = new DemandForecastDto(entries, aggregateRevenue, startDate, endDate);
+
+        DataFreshnessMap fm = freshness.currentFreshness();
+        List<Alert> alerts = freshness.buildAlerts(fm);
+        return UnifiedResponse.ok(dto, new ResponseMeta(Instant.now(), fm, alerts));
+    }
+
+    // ---- Reorder Recommendations ----
+
+    @Cacheable(value = RedisCacheConfig.CACHE_DASHBOARD_INTELLIGENCE,
+               key = "T(io.smartpos.report.infrastructure.config.RedisCacheConfig).tenantKey('reorder', #warehouseId)")
+    public UnifiedResponse<ReorderRecommendationDto> reorderRecommendations(
+        @org.springframework.lang.Nullable UUID warehouseId) {
+        TenantContext.require();
+
+        List<InventoryFeign.ReorderSuggestion> suggestions;
+        try { suggestions = inventory.reorderSuggestions(); }
+        catch (Exception e) { log.warn("Reorder suggestions failed: {}", e.getMessage()); suggestions = List.of(); }
+
+        List<ReorderRecommendationDto.ReorderEntry> entries = suggestions.stream()
+            .sorted((a, b) -> {
+                // Sort by urgency: HIGH > MEDIUM > LOW
+                int order = urgencyOrder(b.urgency()) - urgencyOrder(a.urgency());
+                if (order != 0) return order;
+                return Double.compare(b.dailyVelocity(), a.dailyVelocity());
+            })
+            .limit(10)
+            .map(s -> new ReorderRecommendationDto.ReorderEntry(
+                s.productId(), s.productName() != null ? s.productName() : "Product " + s.productId().toString().substring(0, 8),
+                s.currentStock(), s.minQty(), s.suggestedQty(),
+                s.dailyVelocity(), s.urgency(),
+                s.expectedShortageDate() != null ? s.expectedShortageDate().toString() : null))
+            .toList();
+
+        ReorderRecommendationDto dto = new ReorderRecommendationDto(entries);
+        DataFreshnessMap fm = freshness.currentFreshness();
+        List<Alert> alerts = freshness.buildAlerts(fm);
+        return UnifiedResponse.ok(dto, new ResponseMeta(Instant.now(), fm, alerts));
+    }
+
+    private static int urgencyOrder(String urgency) {
+        return switch (urgency != null ? urgency.toUpperCase() : "LOW") {
+            case "HIGH" -> 3; case "MEDIUM" -> 2; default -> 1;
+        };
+    }
+
+    // ---- Profit Opportunities ----
+
+    @Cacheable(value = RedisCacheConfig.CACHE_DASHBOARD_EXECUTIVE_SUMMARY,
+               key = "T(io.smartpos.report.infrastructure.config.RedisCacheConfig).tenantKey('profit', #warehouseId)")
+    public UnifiedResponse<ProfitOpportunityDto> profitOpportunities(
+        @org.springframework.lang.Nullable UUID warehouseId) {
+        TenantContext.require();
+
+        List<ProductFeign.ProductInfo> products;
+        try { products = productFeign.listProducts(0, 500); }
+        catch (Exception e) { log.warn("Product list failed: {}", e.getMessage()); products = List.of(); }
+
+        // Compute margin per product: (price - cost) / price * 100
+        // Filter products with valid cost and price
+        var withMargins = new java.util.ArrayList<ProfitOpportunityDto.OpportunityEntry>();
+        BigDecimal totalImpact = BigDecimal.ZERO;
+
+        for (var p : products) {
+            if (p.cost() == null || p.price() == null || p.price().compareTo(BigDecimal.ZERO) <= 0) continue;
+            BigDecimal margin = p.price().subtract(p.cost())
+                .divide(p.price(), 4, java.math.RoundingMode.HALF_UP)
+                .multiply(BigDecimal.valueOf(100));
+
+            // Flag products below 15% margin as underpriced
+            if (margin.compareTo(BigDecimal.valueOf(15)) < 0 && margin.compareTo(BigDecimal.ZERO) >= 0) {
+                // Estimate: raising price by 10% would add margin
+                BigDecimal estimatedImpact = p.price().multiply(BigDecimal.valueOf(0.10));
+                totalImpact = totalImpact.add(estimatedImpact);
+                String reason = String.format("Margin %.1f%% below 15%% threshold", margin);
+                withMargins.add(new ProfitOpportunityDto.OpportunityEntry(
+                    p.id(), p.name() != null ? p.name() : "Product " + p.id().toString().substring(0, 8),
+                    p.category() != null ? p.category() : "Uncategorized",
+                    margin, 0, estimatedImpact, reason));
+            }
+        }
+
+        // Sort by margin ascending (worst first), limit to 5
+        withMargins.sort((a, b) -> a.currentMargin().compareTo(b.currentMargin()));
+        var top5 = withMargins.size() > 5 ? withMargins.subList(0, 5) : withMargins;
+
+        ProfitOpportunityDto dto = new ProfitOpportunityDto(top5, totalImpact);
+        DataFreshnessMap fm = freshness.currentFreshness();
+        List<Alert> alerts = freshness.buildAlerts(fm);
+        return UnifiedResponse.ok(dto, new ResponseMeta(Instant.now(), fm, alerts));
     }
 
     // ---- Safe wrappers ----
@@ -220,7 +343,7 @@ public class DashboardIntelligenceService {
             revenue, margin,
             profitable ? "Your business is profitable today." : "Your business is running at a loss today.");
 
-        // Bullet 2: CHANGE — delta vs yesterday
+        // Bullet 2: CHANGE -- delta vs yesterday
         BigDecimal yesterdayRevenue = yesterday.sales().net();
         String change;
         if (yesterdayRevenue.compareTo(BigDecimal.ZERO) > 0) {
@@ -236,7 +359,7 @@ public class DashboardIntelligenceService {
             change = String.format("Recorded %d orders today generating TSh %,.0f in revenue.", orders, revenue);
         }
 
-        // Bullet 3: ATTENTION — aggregate alerts
+        // Bullet 3: ATTENTION -- aggregate alerts
         List<String> items = new ArrayList<>();
         long lowStock = today.inventory().lowStockLines();
         if (lowStock > 0) items.add(lowStock + " low-stock items need restocking");

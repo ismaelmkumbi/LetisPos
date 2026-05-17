@@ -1,82 +1,96 @@
 /**
- * Dashboard Intelligence API — backed by report-service.
- *   GET /api/v1/dashboard/status
- *   GET /api/v1/dashboard/executive-summary
+ * Dashboard Intelligence API wrapper.
+ * Endpoints: demand-forecast, reorder-recommendations, profit-opportunities.
  */
 import { api } from './client';
+import type { UUID } from './types';
 
-// ── Unified Response wrapper ─────────────────────────────────────────────────
-
-export interface FreshnessEntry {
-  lastUpdated: string; // ISO-8601 instant
-  status: 'FRESH' | 'STALE' | 'ERROR';
-  errorMessage?: string | null;
-}
-
-export interface DataFreshnessMap {
-  sales: FreshnessEntry;
-  inventory: FreshnessEntry;
-  payments: FreshnessEntry;
-  purchases: FreshnessEntry;
-  customers: FreshnessEntry;
-}
-
-export interface ResponseAlert {
-  level: string;
-  message: string;
-}
-
-export interface ResponseMeta {
-  generatedAt: string; // ISO-8601 instant
-  dataFreshness?: DataFreshnessMap | null;
-  alerts?: ResponseAlert[] | null;
-}
-
+/** Generic API response envelope returned by dashboard microservice endpoints. */
 export interface UnifiedResponse<T> {
-  status: 'ok' | 'degraded' | 'error';
-  data: T | null;
-  meta?: ResponseMeta | null;
+  success: boolean;
+  data: T;
+  message?: string | null;
+  statusCode?: number;
 }
 
-// ── Executive Summary ───────────────────────────────────────────────────────
+// ── Demand Forecast ───────────────────────────────────────────────────────────
 
-export interface BulletPoint {
-  category: 'HEADLINE' | 'CHANGE' | 'ATTENTION' | 'RECOMMENDATION';
-  text: string;
-  linkTo?: string | null;
+export interface ForecastedProduct {
+  productId: UUID;
+  productName: string;
+  trend: 'UP' | 'DOWN' | 'STABLE';
+  confidence: number; // 0-100
+  projectedDemand: number;
 }
 
-export interface KpiSnapshot {
-  revenue: number;
-  netProfit: number;
-  orderCount: number;
-  profitMargin: number;
-  lowStockLines: number;
-  totalCustomers: number;
-  churnRisk: number;
-  repeatRate: number;
+export interface DemandForecast {
+  products: ForecastedProduct[];
+  dateFrom: string;
+  dateTo: string;
 }
 
-export interface AlertSummary {
-  fraudAlerts: number;
-  stockAlerts: number;
-  paymentAlerts: number;
+export async function getDemandForecast(
+  horizon?: number,
+  warehouseId?: string,
+): Promise<UnifiedResponse<DemandForecast>> {
+  const { data } = await api.get<UnifiedResponse<DemandForecast>>(
+    '/api/v1/dashboard/demand-forecast',
+    { params: { horizon: horizon ?? 7, warehouseId } },
+  );
+  return data;
 }
 
-export interface ExecutiveSummary {
-  bullets: BulletPoint[];
-  kpiSnapshot: KpiSnapshot;
-  alertSummary: AlertSummary;
-  provider: 'template' | 'llm';
+// ── Reorder Recommendations ──────────────────────────────────────────────────
+
+export interface ReorderRecommendationItem {
+  productId: UUID;
+  productName: string;
+  currentStock: number;
+  minQty: number;
+  suggestedQty: number;
+  supplierId?: UUID | null;
+  urgency: 'HIGH' | 'MEDIUM' | 'LOW';
+  dailyVelocity: number;
+  expectedShortageDate?: string | null;
 }
 
-export async function getExecutiveSummary(
-  date?: string,
-  refresh?: boolean,
-): Promise<UnifiedResponse<ExecutiveSummary>> {
-  const { data } = await api.get<UnifiedResponse<ExecutiveSummary>>(
-    '/api/v1/dashboard/executive-summary',
-    { params: { date, refresh: refresh ? 'true' : undefined } },
+export interface ReorderRecommendations {
+  recommendations: ReorderRecommendationItem[];
+}
+
+export async function getReorderRecommendations(
+  warehouseId?: string,
+): Promise<UnifiedResponse<ReorderRecommendations>> {
+  const { data } = await api.get<UnifiedResponse<ReorderRecommendations>>(
+    '/api/v1/dashboard/reorder-recommendations',
+    { params: { warehouseId } },
+  );
+  return data;
+}
+
+// ── Profit Opportunities ─────────────────────────────────────────────────────
+
+export interface UnderpricedItem {
+  productId: UUID;
+  productName: string;
+  category: string;
+  currentMargin: number; // percentage (e.g. 8.5 = 8.5%)
+  suggestedMargin?: number | null;
+  estimatedMonthlyImpact: number; // additional revenue if margin corrected
+  reason: string;
+}
+
+export interface ProfitOpportunities {
+  items: UnderpricedItem[];
+  totalEstimatedMonthlyImpact: number;
+}
+
+export async function getProfitOpportunities(
+  warehouseId?: string,
+): Promise<UnifiedResponse<ProfitOpportunities>> {
+  const { data } = await api.get<UnifiedResponse<ProfitOpportunities>>(
+    '/api/v1/dashboard/profit-opportunities',
+    { params: { warehouseId } },
   );
   return data;
 }
