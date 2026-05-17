@@ -126,7 +126,7 @@ export default function DashboardSideRail({
               tone="warning"
               icon={<IconAlertTriangle size={22} />}
               title={`${atRiskCustomerCount} high-value customer${atRiskCustomerCount !== 1 ? 's' : ''} at risk of churning`}
-              subtitle={`TSh ${(atRiskRevenue ?? 0).toLocaleString()} in lifetime value — review retention`}
+              subtitle={`${formatMoney(atRiskRevenue)} in lifetime value — review retention`}
               to="/smartpos/customers?segment=at-risk"
             />
           )}
