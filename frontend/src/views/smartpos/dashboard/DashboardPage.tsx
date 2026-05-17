@@ -192,13 +192,13 @@ export default function DashboardPage() {
       );
       setPaymentMixUnavailable(results[2].status === 'rejected');
       setRecentSales(
-        results[3].status === 'fulfilled' ? results[3].value.content : [],
+        results[3].status === 'fulfilled' ? (results[3].value?.content ?? []) : [],
       );
 
-      if (results[4].status === 'fulfilled') {
+      if (results[4].status === 'fulfilled' && Array.isArray(results[4].value)) {
         setExpiringBatchesCount(results[4].value.length);
         setExpiringUnitsAtRisk(
-          results[4].value.reduce((sum, b) => sum + b.onHand, 0),
+          results[4].value.reduce((sum, b) => sum + (b?.onHand ?? 0), 0),
         );
       } else {
         setExpiringBatchesCount(0);
@@ -535,7 +535,7 @@ export default function DashboardPage() {
                     isDark={isDark}
                     data={data}
                     previousSalesSeries={
-                      previousSalesSeries.length ? previousSalesSeries : undefined
+                      previousSalesSeries?.length ? previousSalesSeries : undefined
                     }
                     forecast={forecast}
                   />
