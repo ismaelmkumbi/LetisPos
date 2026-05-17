@@ -63,6 +63,8 @@ spring:
             url: ${PRODUCT_URI:http://localhost:8083}
           document-service:
             url: ${DOCUMENT_URI:http://localhost:8093}
+          ai-service:
+            url: ${AI_SERVICE_URI:http://localhost:8091}
 
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:9094}
