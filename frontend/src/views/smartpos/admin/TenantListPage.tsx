@@ -3,33 +3,49 @@ import {
   Alert,
   Box,
   Button,
+  Checkbox,
   Chip,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
+  Divider,
   FormControl,
+  FormControlLabel,
   IconButton,
   InputLabel,
+  ListItemIcon,
+  ListItemText,
   MenuItem,
+  Radio,
+  RadioGroup,
   Select,
   Stack,
   TextField,
   Typography,
 } from '@mui/material';
 import {
+  IconBan,
   IconBuilding,
+  IconDoorExit,
   IconDotsVertical,
   IconEdit,
+  IconPlayerPause,
+  IconPlayerPlay,
   IconPlus,
+  IconTrash,
 } from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
 
+import { api } from 'src/api/smartpos/client';
 import {
+  closeTenant,
   createTenant,
+  deleteTenant,
+  disableTenant,
   listAllTenants,
-  suspendTenant,
   reactivateTenant,
+  suspendTenant,
   updateTenant,
   type Tenant,
 } from 'src/api/smartpos/auth';
@@ -51,9 +67,12 @@ const PLAN_OPTIONS = ['STARTER', 'BUSINESS', 'PROFESSIONAL', 'ENTERPRISE'];
 const STATUS_TONES: Record<string, 'success' | 'info' | 'warning' | 'error' | 'neutral'> = {
   ACTIVE: 'success',
   TRIAL: 'info',
+  TRIAL_EXPIRED: 'info',
   PAST_DUE: 'warning',
   SUSPENDED: 'error',
   CLOSED: 'neutral',
+  DISABLED: 'neutral',
+  DELETED: 'error',
 };
 
 function planBadge(plan: string) {
@@ -84,6 +103,11 @@ function formatDate(iso: string) {
   });
 }
 
+const menuItemSx = {
+  borderRadius: '8px',
+  '&:hover': { bgcolor: brand.neutral[50] },
+};
+
 /* ── Page ── */
 
 export default function TenantListPage() {
@@ -96,6 +120,9 @@ export default function TenantListPage() {
   const [planFilter, setPlanFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [search, setSearch] = useState('');
+
+  // Bulk selection
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   // Create dialog
   const [createOpen, setCreateOpen] = useState(false);
@@ -121,6 +148,11 @@ export default function TenantListPage() {
     action: 'suspend' | 'reactivate';
   } | null>(null);
   const [lifecycleLoading, setLifecycleLoading] = useState(false);
+
+  // Delete confirmation
+  const [deleteDialog, setDeleteDialog] = useState<{ tenant: Tenant } | null>(null);
+  const [deleteConfirmName, setDeleteConfirmName] = useState('');
+  const [deleteHard, setDeleteHard] = useState(false);
 
   const fetch = useCallback(() => {
     setLoading(true);
@@ -196,6 +228,74 @@ export default function TenantListPage() {
     }
   };
 
+  /* ── Close / Disable ── */
+
+  const handleClose = async (tenant: Tenant) => {
+    try {
+      await closeTenant(tenant.id, 'Admin action');
+      fetch();
+    } catch {
+      /* handled silently */
+    }
+  };
+
+  const handleDisable = async (tenant: Tenant) => {
+    try {
+      await disableTenant(tenant.id, 'Admin action');
+      fetch();
+    } catch {
+      /* handled silently */
+    }
+  };
+
+  /* ── Delete ── */
+
+  const handleDelete = async () => {
+    if (!deleteDialog || deleteConfirmName !== deleteDialog.tenant.name) return;
+    try {
+      if (deleteHard) {
+        await api.delete(`/api/v1/tenants/${deleteDialog.tenant.id}`, {
+          params: { hard: true },
+          data: { reason: 'Admin hard delete' },
+        });
+      } else {
+        await deleteTenant(deleteDialog.tenant.id, false, 'Admin action');
+      }
+      setDeleteDialog(null);
+      setDeleteConfirmName('');
+      setDeleteHard(false);
+      fetch();
+    } catch {
+      /* handled silently */
+    }
+  };
+
+  /* ── Bulk actions ── */
+
+  const handleBulkSuspend = async () => {
+    for (const id of selectedIds) {
+      try {
+        await suspendTenant(id, 'Bulk admin action');
+      } catch {
+        /* continue */
+      }
+    }
+    setSelectedIds(new Set());
+    fetch();
+  };
+
+  const handleBulkDelete = async () => {
+    for (const id of selectedIds) {
+      try {
+        await api.delete(`/api/v1/tenants/${id}`, { data: { reason: 'Bulk admin action' } });
+      } catch {
+        /* continue */
+      }
+    }
+    setSelectedIds(new Set());
+    fetch();
+  };
+
   /* ── Filtered rows ── */
 
   const filtered = useMemo(() => {
@@ -212,10 +312,40 @@ export default function TenantListPage() {
       });
   }, [tenants, planFilter, statusFilter, search]);
 
+  /* ── Stats ── */
+
+  const stats = useMemo(() => {
+    return [
+      { label: 'Total', value: tenants.length, color: brand.neutral[700] },
+      { label: 'Active', value: tenants.filter((t) => t.status === 'ACTIVE').length, color: brand.success.main },
+      { label: 'Trial', value: tenants.filter((t) => t.status === 'TRIAL' || t.status === 'TRIAL_EXPIRED').length, color: brand.info.main },
+      { label: 'Suspended', value: tenants.filter((t) => t.status === 'SUSPENDED').length, color: brand.warning.main },
+      { label: 'Deleted', value: tenants.filter((t) => (t.status as string) === 'DELETED' || t.status === 'CLOSED' || (t.status as string) === 'DISABLED').length, color: brand.error.main },
+    ];
+  }, [tenants]);
+
   /* ── Columns ── */
 
   const columns: Column<Tenant>[] = useMemo(
     () => [
+      {
+        key: 'select',
+        label: '',
+        width: 40,
+        enableHiding: false,
+        render: (t: Tenant) => (
+          <Checkbox
+            checked={selectedIds.has(t.id)}
+            onChange={() => {
+              const next = new Set(selectedIds);
+              next.has(t.id) ? next.delete(t.id) : next.add(t.id);
+              setSelectedIds(next);
+            }}
+            onClick={(e: any) => e.stopPropagation()}
+            size="small"
+          />
+        ),
+      },
       {
         key: 'name',
         label: 'Name',
@@ -306,12 +436,19 @@ export default function TenantListPage() {
               setNewPlan(t.billingPlan);
               setPlanDialogOpen(true);
             }}
+            onClose={() => handleClose(t)}
+            onDisable={() => handleDisable(t)}
+            onDelete={() => {
+              setDeleteDialog({ tenant: t });
+              setDeleteConfirmName('');
+              setDeleteHard(false);
+            }}
             status={t.status}
           />
         ),
       },
     ],
-    [],
+    [selectedIds],
   );
 
   return (
@@ -331,6 +468,30 @@ export default function TenantListPage() {
           },
         ]}
       />
+
+      {/* Stats bar */}
+      <Stack direction="row" spacing={2} sx={{ mb: 2 }}>
+        {stats.map((s) => (
+          <Box
+            key={s.label}
+            sx={{
+              flex: 1,
+              bgcolor: '#fff',
+              borderRadius: '10px',
+              p: 2,
+              border: `1px solid ${brand.neutral[200]}`,
+              textAlign: 'center',
+            }}
+          >
+            <Typography sx={{ fontSize: '1.5rem', fontWeight: 900, color: s.color }}>
+              {s.value}
+            </Typography>
+            <Typography variant="caption" sx={{ color: brand.neutral[500], fontWeight: 600 }}>
+              {s.label}
+            </Typography>
+          </Box>
+        ))}
+      </Stack>
 
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>
@@ -392,6 +553,51 @@ export default function TenantListPage() {
           </Button>
         )}
       </Stack>
+
+      {/* Bulk actions bar */}
+      {selectedIds.size > 0 && (
+        <Box
+          sx={{
+            py: 1,
+            px: 2,
+            mb: 1,
+            bgcolor: brand.primary[50],
+            borderRadius: '8px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1.5,
+          }}
+        >
+          <Typography sx={{ fontWeight: 700, fontSize: '0.82rem' }}>
+            {selectedIds.size} selected
+          </Typography>
+          <Button
+            size="small"
+            color="warning"
+            variant="outlined"
+            startIcon={<IconPlayerPause size={14} />}
+            onClick={handleBulkSuspend}
+          >
+            Suspend
+          </Button>
+          <Button
+            size="small"
+            color="error"
+            variant="outlined"
+            startIcon={<IconTrash size={14} />}
+            onClick={handleBulkDelete}
+          >
+            Delete
+          </Button>
+          <Button
+            size="small"
+            onClick={() => setSelectedIds(new Set())}
+            sx={{ textTransform: 'none', fontWeight: 600, ml: 'auto' }}
+          >
+            Clear
+          </Button>
+        </Box>
+      )}
 
       <DataTable
         columns={columns}
@@ -551,6 +757,63 @@ export default function TenantListPage() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={!!deleteDialog} onClose={() => setDeleteDialog(null)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ fontWeight: 800, color: brand.error.main }}>
+          Delete Tenant — {deleteDialog?.tenant?.name}
+        </DialogTitle>
+        <DialogContent>
+          <Stack spacing={2.5} sx={{ mt: 1 }}>
+            <Typography variant="body2" sx={{ color: brand.neutral[600] }}>
+              This action cannot be undone. All users will lose access immediately.
+            </Typography>
+            <FormControl>
+              <RadioGroup
+                value={deleteHard ? 'hard' : 'soft'}
+                onChange={(e) => setDeleteHard(e.target.value === 'hard')}
+              >
+                <FormControlLabel
+                  value="soft"
+                  control={<Radio />}
+                  label="Soft Delete — data retained 30 days, slug & email reserved, reversible"
+                />
+                <FormControlLabel
+                  value="hard"
+                  control={<Radio />}
+                  label="Hard Delete — immediate, irreversible, slug released"
+                />
+              </RadioGroup>
+            </FormControl>
+            <TextField
+              label={`Type "${deleteDialog?.tenant?.name}" to confirm`}
+              value={deleteConfirmName}
+              onChange={(e) => setDeleteConfirmName(e.target.value)}
+              fullWidth
+              size="small"
+            />
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button
+            onClick={() => {
+              setDeleteDialog(null);
+              setDeleteConfirmName('');
+              setDeleteHard(false);
+            }}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            color="error"
+            disabled={deleteConfirmName !== deleteDialog?.tenant?.name}
+            onClick={handleDelete}
+          >
+            {deleteHard ? 'Hard Delete' : 'Soft Delete'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }
@@ -561,11 +824,17 @@ function MoreMenu({
   onSuspend,
   onReactivate,
   onChangePlan,
+  onClose,
+  onDisable,
+  onDelete,
   status,
 }: {
   onSuspend: () => void;
   onReactivate: () => void;
   onChangePlan: () => void;
+  onClose?: () => void;
+  onDisable?: () => void;
+  onDelete?: () => void;
   status: string;
 }) {
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
@@ -587,46 +856,128 @@ function MoreMenu({
         PaperProps={{ sx: { minWidth: 200, borderRadius: '12px', p: 1 } }}
       >
         <Stack spacing={0.5}>
-          <Button
-            fullWidth
-            size="small"
-            startIcon={<IconEdit size={16} />}
-            onClick={(e) => {
-              e.stopPropagation();
+          {/* Change Plan — always available */}
+          <MenuItem
+            onClick={() => {
               setAnchor(null);
               onChangePlan();
             }}
-            sx={{ justifyContent: 'flex-start', textTransform: 'none', fontWeight: 600, color: brand.neutral[700] }}
+            sx={menuItemSx}
           >
-            Change Plan
-          </Button>
+            <ListItemIcon>
+              <IconEdit size={16} />
+            </ListItemIcon>
+            <ListItemText
+              primary="Change Plan"
+              primaryTypographyProps={{ fontSize: '0.82rem', fontWeight: 600 }}
+            />
+          </MenuItem>
+
+          <Divider />
+
+          {/* Suspend / Reactivate */}
           {(status === 'ACTIVE' || status === 'TRIAL' || status === 'PAST_DUE') && (
-            <Button
-              fullWidth
-              size="small"
-              onClick={(e) => {
-                e.stopPropagation();
+            <MenuItem
+              onClick={() => {
                 setAnchor(null);
                 onSuspend();
               }}
-              sx={{ justifyContent: 'flex-start', textTransform: 'none', fontWeight: 600, color: brand.warning.dark }}
+              sx={menuItemSx}
             >
-              Suspend
-            </Button>
+              <ListItemIcon sx={{ color: brand.warning.dark }}>
+                <IconPlayerPause size={16} />
+              </ListItemIcon>
+              <ListItemText
+                primary="Suspend"
+                primaryTypographyProps={{
+                  fontSize: '0.82rem',
+                  fontWeight: 600,
+                  color: brand.warning.dark,
+                }}
+              />
+            </MenuItem>
           )}
-          {(status === 'SUSPENDED' || status === 'TRIAL_EXPIRED') && (
-            <Button
-              fullWidth
-              size="small"
-              onClick={(e) => {
-                e.stopPropagation();
+          {(status === 'SUSPENDED' || status === 'DISABLED') && (
+            <MenuItem
+              onClick={() => {
                 setAnchor(null);
                 onReactivate();
               }}
-              sx={{ justifyContent: 'flex-start', textTransform: 'none', fontWeight: 600, color: brand.success.dark }}
+              sx={menuItemSx}
             >
-              Reactivate
-            </Button>
+              <ListItemIcon sx={{ color: brand.success.dark }}>
+                <IconPlayerPlay size={16} />
+              </ListItemIcon>
+              <ListItemText
+                primary="Reactivate"
+                primaryTypographyProps={{
+                  fontSize: '0.82rem',
+                  fontWeight: 600,
+                  color: brand.success.dark,
+                }}
+              />
+            </MenuItem>
+          )}
+
+          {/* Close / Disable */}
+          {(status === 'ACTIVE' || status === 'TRIAL' || status === 'PAST_DUE') && (
+            <MenuItem
+              onClick={() => {
+                setAnchor(null);
+                onDisable?.();
+              }}
+              sx={menuItemSx}
+            >
+              <ListItemIcon>
+                <IconBan size={16} />
+              </ListItemIcon>
+              <ListItemText
+                primary="Disable"
+                primaryTypographyProps={{ fontSize: '0.82rem', fontWeight: 600 }}
+              />
+            </MenuItem>
+          )}
+          {status !== 'CLOSED' && status !== 'DELETED' && (
+            <MenuItem
+              onClick={() => {
+                setAnchor(null);
+                onClose?.();
+              }}
+              sx={menuItemSx}
+            >
+              <ListItemIcon>
+                <IconDoorExit size={16} />
+              </ListItemIcon>
+              <ListItemText
+                primary="Close"
+                primaryTypographyProps={{ fontSize: '0.82rem', fontWeight: 600 }}
+              />
+            </MenuItem>
+          )}
+
+          <Divider />
+
+          {/* Delete — always available if not already deleted */}
+          {status !== 'DELETED' && (
+            <MenuItem
+              onClick={() => {
+                setAnchor(null);
+                onDelete?.();
+              }}
+              sx={{ ...menuItemSx, '&:hover': { bgcolor: brand.error.light } }}
+            >
+              <ListItemIcon sx={{ color: brand.error.main }}>
+                <IconTrash size={16} />
+              </ListItemIcon>
+              <ListItemText
+                primary="Delete Tenant"
+                primaryTypographyProps={{
+                  fontSize: '0.82rem',
+                  fontWeight: 700,
+                  color: brand.error.main,
+                }}
+              />
+            </MenuItem>
           )}
         </Stack>
       </Dialog>
