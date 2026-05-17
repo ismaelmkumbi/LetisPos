@@ -18,6 +18,7 @@ function AlertStrip({ tone, icon, title, subtitle, to }: AlertStripProps) {
     success: { color: brand.primary[600], bg: '#F0FDF4', border: brand.primary[100] },
     warning: { color: brand.warning.main, bg: '#FFFBEB', border: brand.warning.light },
     error: { color: brand.error.main, bg: '#FEF2F2', border: brand.error.light },
+    fraud: { color: brand.error.main, bg: '#FEF2F2', border: brand.error.light },
   };
   const current = map[tone];
   return (
