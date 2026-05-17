@@ -544,6 +544,11 @@ export default function PosTerminalPage() {
 
   const checkout = async () => {
     if (!canCheckout) return;
+
+    // Auto-detect credit sale: if customer has credit available and no cash
+    // tendered, treat as "Pay Later".
+    const isCreditSale = creditAvailable && customerId && (!tendered || Number(tendered) === 0);
+
     setSubmitting(true);
     setBanner(null);
     try {
@@ -581,12 +586,37 @@ export default function PosTerminalPage() {
 
       const sale = await posCheckout(body);
       setLastSale(sale);
+
+      // Record cash payment unless it's a credit sale
+      if (!isCreditSale && Number(tendered) > 0) {
+        try {
+          await recordPayment({
+            referenceType: 'SALE',
+            referenceId: sale.id,
+            accountId: '',
+            amount: Math.min(Number(tendered), sale.grandTotal),
+            method: paymentMethod === 'CARD' ? 'CARD' : 'CASH',
+          });
+        } catch { /* non-blocking */ }
+      }
+
+      if (isCreditSale) {
+        const prevBalance = customerBalance || 0;
+        const newBal = prevBalance + sale.grandTotal;
+        setSaleType('CREDIT');
+        setNewCreditBalance(newBal);
+        setCustomerBalance(newBal);
+      } else {
+        setSaleType('CASH');
+        setNewCreditBalance(undefined);
+      }
+
       playPosSuccessSound();
 
       if (linkedTerminalId) {
         publishDisplayEvent(linkedTerminalId, 'PAYMENT', {
           amount: sale.grandTotal,
-          method: paymentMethod,
+          method: isCreditSale ? 'CREDIT' : paymentMethod,
           change: totals.change,
         }).catch(() => {});
         setTimeout(() => {
@@ -594,10 +624,9 @@ export default function PosTerminalPage() {
         }, 4000);
       }
 
-      // Auto-print now opens the receipt preview first, matching the legacy POS flow.
       const rc = getReceiptConfig();
       if (rc.autoPrint) {
-        setReceiptPreview({ sale, paymentMethod });
+        setReceiptPreview({ sale, paymentMethod: isCreditSale ? 'CREDIT' : paymentMethod });
         clear();
       } else {
         setSuccessOverlay(true);

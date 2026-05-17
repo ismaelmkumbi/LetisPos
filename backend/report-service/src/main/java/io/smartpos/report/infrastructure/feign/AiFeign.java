@@ -2,6 +2,8 @@ package io.smartpos.report.infrastructure.feign;
 
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -45,4 +47,14 @@ public interface AiFeign {
 
     @GetMapping("/api/v1/ai/health")
     Map<String, Object> health();
+
+    record NarrateRequest(String reportKind, String factsJson, String question) {}
+
+    record InsightResponse(
+        String narrative, String provider, String model,
+        Long promptTokens, Long completionTokens, Instant generatedAt
+    ) {}
+
+    @PostMapping("/api/v1/ai/narrate")
+    InsightResponse narrate(@RequestBody NarrateRequest request);
 }

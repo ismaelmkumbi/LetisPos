@@ -1,19 +1,14 @@
 /**
- * Dashboard Intelligence API — backed by report-service /api/v1/dashboard/*
+ * Dashboard Intelligence API — backed by report-service.
+ *   GET /api/v1/dashboard/status
+ *   GET /api/v1/dashboard/executive-summary
  */
 import { api } from './client';
 
-// ── Unified Response Envelope ──────────────────────────────────────────────
-
-export type ResponseStatus = 'ok' | 'degraded' | 'error';
-
-export interface Alert {
-  level: 'info' | 'warning' | 'error';
-  message: string;
-}
+// ── Unified Response wrapper ─────────────────────────────────────────────────
 
 export interface FreshnessEntry {
-  lastUpdated: string;        // ISO-8601 instant
+  lastUpdated: string; // ISO-8601 instant
   status: 'FRESH' | 'STALE' | 'ERROR';
   errorMessage?: string | null;
 }
@@ -26,35 +21,62 @@ export interface DataFreshnessMap {
   customers: FreshnessEntry;
 }
 
+export interface ResponseAlert {
+  level: string;
+  message: string;
+}
+
 export interface ResponseMeta {
-  generatedAt: string;        // ISO-8601 instant
-  dataFreshness: DataFreshnessMap;
-  alerts: Alert[];
+  generatedAt: string; // ISO-8601 instant
+  dataFreshness?: DataFreshnessMap | null;
+  alerts?: ResponseAlert[] | null;
 }
 
 export interface UnifiedResponse<T> {
-  status: ResponseStatus;
+  status: 'ok' | 'degraded' | 'error';
   data: T | null;
-  meta: ResponseMeta | null;
+  meta?: ResponseMeta | null;
 }
 
-// ── Status Endpoint ────────────────────────────────────────────────────────
+// ── Executive Summary ───────────────────────────────────────────────────────
 
-export interface DashboardIntelligenceStatus {
-  service: string;
-  version: string;
-  serverTime: string;
-  aiServiceReachable: boolean;
-  salesServiceReachable: boolean;
-  inventoryServiceReachable: boolean;
-  paymentServiceReachable: boolean;
+export interface BulletPoint {
+  category: 'HEADLINE' | 'CHANGE' | 'ATTENTION' | 'RECOMMENDATION';
+  text: string;
+  linkTo?: string | null;
 }
 
-export async function getDashboardIntelligenceStatus(): Promise<
-  UnifiedResponse<DashboardIntelligenceStatus>
-> {
-  const { data } = await api.get<
-    UnifiedResponse<DashboardIntelligenceStatus>
-  >('/api/v1/dashboard/status');
+export interface KpiSnapshot {
+  revenue: number;
+  netProfit: number;
+  orderCount: number;
+  profitMargin: number;
+  lowStockLines: number;
+  totalCustomers: number;
+  churnRisk: number;
+  repeatRate: number;
+}
+
+export interface AlertSummary {
+  fraudAlerts: number;
+  stockAlerts: number;
+  paymentAlerts: number;
+}
+
+export interface ExecutiveSummary {
+  bullets: BulletPoint[];
+  kpiSnapshot: KpiSnapshot;
+  alertSummary: AlertSummary;
+  provider: 'template' | 'llm';
+}
+
+export async function getExecutiveSummary(
+  date?: string,
+  refresh?: boolean,
+): Promise<UnifiedResponse<ExecutiveSummary>> {
+  const { data } = await api.get<UnifiedResponse<ExecutiveSummary>>(
+    '/api/v1/dashboard/executive-summary',
+    { params: { date, refresh: refresh ? 'true' : undefined } },
+  );
   return data;
 }

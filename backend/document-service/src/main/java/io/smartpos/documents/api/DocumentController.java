@@ -75,7 +75,9 @@ public class DocumentController {
         String templateContent = templateResolver.resolve(tenantId, req.getDocumentType(), templateFile);
         Map<String, Object> context = new java.util.HashMap<>(
             req.getContextData() != null ? req.getContextData() : Map.of());
-        context.putIfAbsent("company", Map.of("name", "Letis POS"));
+        // Resolve full company branding (logo, address, phone, etc.) — with
+        // proper Letis fallback when no tenant-specific PosSetting exists.
+        context.putIfAbsent("company", documentService.resolveCompanyContext(context));
         if (req.getReferenceType() != null && req.getReferenceId() != null) {
             try {
                 context.putAll(documentService.fetchReferenceData(
@@ -254,13 +256,16 @@ public class DocumentController {
     public ResponseEntity<Map<String, String>> summarize(@PathVariable UUID id) throws Exception {
         Document doc = documentRepo.findByIdAndTenantId(id, TenantContext.require())
             .orElseThrow(() -> new IllegalArgumentException("Document not found: " + id));
+        java.util.Map<String, Object> facts = new java.util.LinkedHashMap<>();
+        facts.put("documentType", doc.getDocumentType());
+        facts.put("documentNumber", doc.getDocumentNumber());
+        facts.put("referenceType", doc.getReferenceType());
+        facts.put("status", doc.getStatus());
+        String factsJson = new ObjectMapper().writeValueAsString(facts);
         Map<String, Object> req = Map.of(
-            "facts", Map.of(
-                "documentType", doc.getDocumentType(),
-                "documentNumber", doc.getDocumentNumber(),
-                "referenceType", doc.getReferenceType()
-            ),
-            "instruction", "Summarize this document in 2-3 sentences for a business audience."
+            "reportKind", "document-summary",
+            "factsJson", factsJson,
+            "question", "Summarize this document in 2-3 sentences for a business audience."
         );
         Map<String, Object> result = aiClient.narrate(req);
         String summary = (String) result.getOrDefault("narrative", "");
@@ -290,12 +295,13 @@ public class DocumentController {
         Document doc = documentRepo.findByIdAndTenantId(id, TenantContext.require())
             .orElseThrow(() -> new IllegalArgumentException("Document not found: " + id));
         Map<String, Object> req = Map.of(
-            "data", Map.of(
+            "reportKind", "document-anomaly",
+            "factsJson", new ObjectMapper().writeValueAsString(Map.of(
                 "documentNumber", doc.getDocumentNumber(),
                 "documentType", doc.getDocumentType(),
                 "status", doc.getStatus(),
                 "createdAt", doc.getCreatedAt().toString()
-            )
+            ))
         );
         return ResponseEntity.ok(aiClient.detectAnomalies(req));
     }

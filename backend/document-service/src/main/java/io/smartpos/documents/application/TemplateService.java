@@ -139,32 +139,40 @@ public class TemplateService {
     private Map<String, Object> createSampleData(String documentType) {
         Map<String, Object> data = new HashMap<>();
         data.put("company", Map.of(
-            "name", "Sample Company",
-            "address", "123 Sample Street",
-            "phone", "+255 123 456 789",
-            "email", "info@sample.com",
-            "tin", "123-456-789"
+            "name", "Letis POS",
+            "address", "Dar es Salaam, Tanzania",
+            "phone", "+255 712 345 678",
+            "email", "hello@letispos.com",
+            "tin", "123-456-789",
+            "website", "https://letispos.com",
+            "showLogo", true,
+            "logoUrl", "http://localhost:8093/letis-logo.svg",
+            "logoSize", 64
         ));
         data.put("document", Map.of(
-            "number", "SMP-000001",
-            "date", Instant.now().toString(),
+            "number", "INV-2026-000100",
+            "date", java.time.LocalDate.now().toString(),
             "status", "draft"
         ));
         data.put("customer", Map.of(
-            "name", "Sample Customer",
-            "address", "456 Customer Ave",
-            "phone", "+255 987 654 321"
+            "name", "Juma Mwangi",
+            "address", "Kariakoo, Dar es Salaam",
+            "phone", "+255 765 432 100"
         ));
         data.put("items", List.of(
-            Map.of("name", "Sample Product A", "quantity", 2, "unitPrice", "10,000",
-                   "total", "20,000"),
-            Map.of("name", "Sample Product B", "quantity", 1, "unitPrice", "15,000",
-                   "total", "15,000")
+            Map.of("name", "Mchele Mbeya 5kg", "quantity", 2, "unitPrice", "22,000",
+                   "taxRate", "18", "total", "51,920"),
+            Map.of("name", "Sukari Kilo 1kg", "quantity", 5, "unitPrice", "3,200",
+                   "taxRate", "0", "total", "16,000"),
+            Map.of("name", "Mafuta ya Kupikia 1L", "quantity", 3, "unitPrice", "6,200",
+                   "taxRate", "0", "total", "18,600"),
+            Map.of("name", "Unga wa Ngano 2kg", "quantity", 4, "unitPrice", "5,300",
+                   "taxRate", "18", "total", "25,016")
         ));
         data.put("totals", Map.of(
-            "subtotal", "35,000",
-            "tax", "6,300",
-            "grand_total", "41,300"
+            "subtotal", "101,900",
+            "tax", "9,636",
+            "grandTotal", "111,536"
         ));
         return data;
     }

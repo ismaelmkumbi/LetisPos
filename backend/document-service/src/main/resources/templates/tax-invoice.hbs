@@ -5,42 +5,203 @@
 <style>
   @page { size: A4; margin: 15mm; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 12px; color: #1a1a1a; }
-  .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 30px; border-bottom: 3px solid #2563eb; padding-bottom: 16px; }
-  .logo { font-size: 24px; font-weight: 700; color: #2563eb; }
-  .company-info { text-align: right; font-size: 11px; color: #555; line-height: 1.5; }
-  .doc-title { font-size: 22px; font-weight: 700; color: #2563eb; margin-bottom: 4px; }
-  .doc-meta { display: flex; justify-content: space-between; margin-bottom: 24px; }
+  body {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 12px;
+    color: #0F172A;
+  }
+
+  /* ── Header ── */
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 24px;
+    border-bottom: 3px solid #16A34A;
+    padding-bottom: 16px;
+  }
+  .logo-text {
+    font-size: 26px;
+    font-weight: 900;
+    color: #16A34A;
+    letter-spacing: -0.02em;
+  }
+  .company-info {
+    text-align: right;
+    font-size: 11px;
+    color: #64748B;
+    line-height: 1.6;
+  }
+
+  /* ── Document title ── */
+  .doc-title {
+    font-size: 22px;
+    font-weight: 900;
+    color: #16A34A;
+    margin-bottom: 6px;
+    letter-spacing: -0.01em;
+  }
+
+  /* ── Meta ── */
+  .doc-meta {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
   .meta-box { flex: 1; }
-  .meta-label { font-size: 10px; text-transform: uppercase; color: #888; letter-spacing: 1px; margin-bottom: 2px; }
-  .meta-value { font-size: 13px; font-weight: 500; }
-  table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
-  thead th { background: #f1f5f9; padding: 10px 12px; text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: #555; border-bottom: 2px solid #e2e8f0; }
-  tbody td { padding: 10px 12px; border-bottom: 1px solid #e2e8f0; font-size: 12px; }
+  .meta-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    color: #94A3B8;
+    letter-spacing: 0.08em;
+    margin-bottom: 2px;
+    font-weight: 700;
+  }
+  .meta-value {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1E293B;
+  }
+
+  /* ── Table ── */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 24px;
+  }
+  thead th {
+    background: #ECFDF5;
+    padding: 10px 12px;
+    text-align: left;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #15803D;
+    font-weight: 700;
+    border-bottom: 2px solid #BBF7D0;
+  }
+  tbody td {
+    padding: 10px 12px;
+    border-bottom: 1px solid #E2E8F0;
+    font-size: 12px;
+    color: #334155;
+  }
+  tbody tr:nth-child(even) td {
+    background: #F8FAFC;
+  }
   .text-right { text-align: right; }
-  .totals { margin-left: auto; width: 280px; }
-  .total-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 12px; }
-  .total-row.grand { border-top: 2px solid #2563eb; font-size: 16px; font-weight: 700; color: #2563eb; padding-top: 10px; margin-top: 4px; }
-  .footer { margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 16px; font-size: 10px; color: #888; line-height: 1.6; }
+
+  /* ── Totals ── */
+  .totals {
+    margin-left: auto;
+    width: 280px;
+  }
+  .total-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    font-size: 12px;
+    color: #475569;
+  }
+  .total-row.grand {
+    border-top: 2px solid #16A34A;
+    font-size: 16px;
+    font-weight: 900;
+    color: #16A34A;
+    padding-top: 10px;
+    margin-top: 4px;
+  }
+
+  /* ── Sections ── */
+  .vat-section { margin-top: 20px; }
+  .vat-section h4 {
+    font-size: 11px;
+    margin-bottom: 10px;
+    color: #1E293B;
+    font-weight: 700;
+  }
+  .vat-table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
+  .vat-table th {
+    background: #F1F5F9;
+    padding: 8px 10px;
+    text-align: left;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #64748B;
+    font-weight: 700;
+  }
+  .vat-table td {
+    padding: 8px 10px;
+    font-size: 11px;
+    border-bottom: 1px solid #E2E8F0;
+  }
+
+  .bank-details { margin-top: 20px; }
+  .bank-details h4 {
+    font-size: 11px;
+    margin-bottom: 6px;
+    color: #1E293B;
+    font-weight: 700;
+  }
+  .bank-details p {
+    font-size: 11px;
+    color: #475569;
+    line-height: 1.7;
+  }
+
   .terms { margin-top: 20px; }
-  .terms h4 { font-size: 11px; margin-bottom: 6px; }
-  .terms p { font-size: 10px; color: #666; }
-  .validity { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; padding: 10px 14px; font-size: 11px; color: #1e40af; margin-top: 16px; }
+  .terms h4 {
+    font-size: 11px;
+    margin-bottom: 6px;
+    color: #1E293B;
+    font-weight: 700;
+  }
+  .terms p { font-size: 10px; color: #64748B; }
+
   .signature { display: flex; justify-content: space-between; margin-top: 50px; }
   .sig-block { text-align: center; }
-  .sig-line { border-bottom: 1px solid #1a1a1a; width: 200px; margin-bottom: 6px; }
-  .sig-label { font-size: 11px; color: #555; }
-  .disclaimer { background: #fef3c7; border: 1px solid #fcd34d; border-radius: 6px; padding: 10px 14px; font-size: 11px; color: #92400e; margin-top: 16px; }
-  .info-box { background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 6px; padding: 10px 14px; font-size: 11px; color: #0369a1; margin-top: 16px; }
-  .vat-section { margin-top: 20px; }
-  .vat-section h4 { font-size: 11px; margin-bottom: 10px; color: #333; }
-  .vat-table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
-  .vat-table th { background: #f1f5f9; padding: 8px 10px; text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: #555; }
-  .vat-table td { padding: 8px 10px; font-size: 11px; border-bottom: 1px solid #e2e8f0; }
-  .bank-details { margin-top: 20px; }
-  .bank-details h4 { font-size: 11px; margin-bottom: 6px; }
-  .bank-details p { font-size: 11px; color: #555; line-height: 1.6; }
-  .footer-note { margin-top: 12px; font-size: 10px; color: #888; font-style: italic; }
+  .sig-line {
+    border-bottom: 1px solid #CBD5E1;
+    width: 200px;
+    margin-bottom: 6px;
+  }
+  .sig-label { font-size: 11px; color: #64748B; }
+
+  .disclaimer {
+    background: #FEF3C7;
+    border: 1px solid #FCD34D;
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-size: 11px;
+    color: #92400E;
+    margin-top: 16px;
+  }
+  .info-box {
+    background: #ECFDF5;
+    border: 1px solid #BBF7D0;
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-size: 11px;
+    color: #15803D;
+    margin-top: 16px;
+  }
+
+  /* ── Footer ── */
+  .footer {
+    margin-top: 40px;
+    border-top: 1px solid #E2E8F0;
+    padding-top: 16px;
+    font-size: 10px;
+    color: #94A3B8;
+    line-height: 1.8;
+  }
+  .footer-note {
+    margin-top: 4px;
+    font-size: 10px;
+    color: #94A3B8;
+    font-style: italic;
+  }
 </style>
 </head>
 <body>
@@ -51,15 +212,15 @@
       {{#if company.logoUrl}}
         <img src="{{company.logoUrl}}" style="max-height:{{company.logoSize}}px; object-fit:contain;" />
       {{else}}
-        <div class="logo">{{company.name}}</div>
+        <div class="logo-text">{{company.name}}</div>
       {{/if}}
     {{else}}
-      <div class="logo">{{company.name}}</div>
+      <div class="logo-text">{{company.name}}</div>
     {{/if}}
-    {{#if company.address}}<div style="font-size:11px;color:#555;">{{company.address}}</div>{{/if}}
-    {{#if company.tin}}<div style="font-size:11px;color:#555;">TIN: {{company.tin}}</div>{{/if}}
+    {{#if company.address}}<div style="font-size:11px;color:#64748B;margin-top:2px;">{{company.address}}</div>{{/if}}
+    {{#if company.tin}}<div style="font-size:11px;color:#64748B;">TIN: {{company.tin}}</div>{{/if}}
     {{#if company.vatRegNo}}
-    <div style="font-size:11px;color:#555;">VAT Reg: {{company.vatRegNo}}</div>
+    <div style="font-size:11px;color:#64748B;">VAT Reg: {{company.vatRegNo}}</div>
     {{/if}}
   </div>
   <div class="company-info">
@@ -90,10 +251,10 @@
   <div class="meta-box">
     <div class="meta-label">Bill To</div>
     <div class="meta-value">{{customer.name}}</div>
-    <div style="font-size:11px;color:#555;">{{customer.address}}</div>
-    <div style="font-size:11px;color:#555;">{{customer.phone}}</div>
+    <div style="font-size:11px;color:#64748B;">{{customer.address}}</div>
+    <div style="font-size:11px;color:#64748B;">{{customer.phone}}</div>
     {{#if customer.tin}}
-    <div style="font-size:11px;color:#555;">TIN: {{customer.tin}}</div>
+    <div style="font-size:11px;color:#64748B;">TIN: {{customer.tin}}</div>
     {{/if}}
   </div>
   <div class="meta-box">
@@ -117,7 +278,7 @@
     {{#each items}}
     <tr>
       <td>{{inc @index}}</td>
-      <td><strong>{{name}}</strong>{{#if description}}<br><span style="font-size:10px;color:#888;">{{description}}</span>{{/if}}</td>
+      <td><strong>{{name}}</strong>{{#if description}}<br><span style="font-size:10px;color:#94A3B8;">{{description}}</span>{{/if}}</td>
       <td class="text-right">{{quantity}}</td>
       <td class="text-right">{{unitPrice}}</td>
       <td class="text-right">{{taxRate}}%</td>
@@ -194,13 +355,13 @@
 <div class="qr-code" style="text-align:right;margin-top:20px;">
   <div style="display:inline-block;text-align:center;">
     {{{qrCode}}}
-    <div style="font-size:9px;color:#888;margin-top:4px;">Scan to verify this invoice</div>
-    <div style="font-size:10px;font-weight:500;">{{document.number}}</div>
+    <div style="font-size:9px;color:#94A3B8;margin-top:4px;">Scan to verify this invoice</div>
+    <div style="font-size:10px;font-weight:600;color:#1E293B;">{{document.number}}</div>
   </div>
 </div>
 
-<div style="margin-top:16px;padding:10px;border:1px solid #e2e8f0;border-radius:6px;font-size:10px;color:#555;">
-  <div style="font-weight:600;margin-bottom:4px;">TRA Fiscal Information</div>
+<div style="margin-top:16px;padding:10px;border:1px solid #E2E8F0;border-radius:6px;font-size:10px;color:#64748B;">
+  <div style="font-weight:700;margin-bottom:4px;color:#475569;">TRA Fiscal Information</div>
   {{#if fiscalCode}}<div>Fiscal Code: {{fiscalCode}}</div>{{/if}}
   {{#if zNumber}}<div>Z-Number: {{zNumber}}</div>{{/if}}
   {{#if receiptNumber}}<div>Receipt #: {{receiptNumber}}</div>{{/if}}

@@ -12,7 +12,7 @@ import type { Sale } from 'src/api/smartpos/sales';
 import type { CashRegisterSession } from 'src/api/smartpos/cashRegister';
 import type { Line } from './types';
 
-export type PaymentChoice = 'CASH' | 'CARD' | 'MOBILE' | 'BANK' | 'USSD' | 'SPLIT';
+export type PaymentChoice = 'CASH' | 'CARD' | 'MOBILE' | 'BANK' | 'USSD' | 'SPLIT' | 'CREDIT';
 export type DiscountType = 'FIXED' | 'PERCENT';
 export type LayoutTab = 'all' | 'featured' | 'recent' | 'low' | 'bestsellers';
 

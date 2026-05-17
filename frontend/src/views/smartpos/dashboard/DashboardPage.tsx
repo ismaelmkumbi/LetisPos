@@ -14,7 +14,6 @@ import {
 import { listSales, type Sale } from 'src/api/smartpos/sales';
 import { listWarehouses, type Warehouse } from 'src/api/smartpos/inventory';
 import { getExpiringBatches } from 'src/api/smartpos/batches';
-import { getFraudAlerts, getCustomerAnalytics, type FlaggedTransaction, type CustomerAnalytics } from 'src/api/smartpos/ai';
 import { useAuth } from 'src/context/smartpos/AuthContext';
 import { useOnboarding } from 'src/context/smartpos/OnboardingContext';
 import { CustomizerContext } from 'src/context/CustomizerContext';
@@ -37,6 +36,8 @@ import DashboardSideRail from './SideRail';
 import AnomalyAlerts from './AnomalyAlerts';
 import GoalProgress from './GoalProgress';
 import TopPerformers from './TopPerformers';
+import ExecutiveSummaryCard from './ExecutiveSummaryCard';
+import { getExecutiveSummary, type ExecutiveSummary } from 'src/api/smartpos/dashboardIntelligence';
 
 import {
   seriesOrFallback,
@@ -70,8 +71,8 @@ export default function DashboardPage() {
   const [expiringUnitsAtRisk, setExpiringUnitsAtRisk] = useState(0);
   const [lastUpdated, setLastUpdated] = useState<number | null>(null);
   const [forecast, setForecast] = useState<Forecast | null>(null);
-  const [fraudAlerts, setFraudAlerts] = useState<FlaggedTransaction[]>([]);
-  const [customerAnalytics, setCustomerAnalytics] = useState<CustomerAnalytics | null>(null);
+  const [executiveSummary, setExecutiveSummary] = useState<ExecutiveSummary | null>(null);
+  const [execSummaryLoading, setExecSummaryLoading] = useState(false);
   const [visibleSections, setVisibleSections] = useState<Set<SectionKey>>(() =>
     loadLayout(user?.tenantId ?? ''),
   );
@@ -159,8 +160,6 @@ export default function DashboardPage() {
         }),
         getExpiringBatches({ withinDays: 30 }),
         getForecast({ period, warehouseId: warehouseId || undefined, days: 30 }),
-        getFraudAlerts(),
-        getCustomerAnalytics(),
       ]);
 
       if (results[0].status === 'rejected') {
@@ -195,20 +194,6 @@ export default function DashboardPage() {
         setForecast(null);
       }
 
-      // results[6] = fraud alerts
-      if (results[6].status === 'fulfilled') {
-        setFraudAlerts(results[6].value);
-      } else {
-        setFraudAlerts([]);
-      }
-
-      // results[7] = customer analytics
-      if (results[7].status === 'fulfilled') {
-        setCustomerAnalytics(results[7].value);
-      } else {
-        setCustomerAnalytics(null);
-      }
-
       const failedSections = [
         results[3].status === 'rejected' ? 'recent sales' : null,
       ].filter(Boolean);
@@ -233,9 +218,29 @@ export default function DashboardPage() {
     }
   }, [period, warehouseId, user?.tenantId]);
 
+  const fetchExecutiveSummary = useCallback(async (refresh = false) => {
+    if (!user?.tenantId) return;
+    setExecSummaryLoading(true);
+    try {
+      const today = new Date().toISOString().slice(0, 10);
+      const resp = await getExecutiveSummary(today, refresh);
+      if (resp.status !== 'error' && resp.data) {
+        setExecutiveSummary(resp.data);
+      }
+    } catch (err) {
+      // Silently fail — executive summary is non-critical
+    } finally {
+      setExecSummaryLoading(false);
+    }
+  }, [user?.tenantId]);
+
   useEffect(() => {
     fetchDashboardData();
   }, [fetchDashboardData]);
+
+  useEffect(() => {
+    fetchExecutiveSummary();
+  }, [fetchExecutiveSummary]);
 
   // Auto-refresh every 60 seconds
   usePolling(fetchDashboardData, 60000);
@@ -316,36 +321,6 @@ export default function DashboardPage() {
     () => computeDelta(data?.inventory.totalAvailable ?? 0, previousData?.inventory.totalAvailable ?? 0),
     [data, previousData],
   );
-
-  // Build fraud alert lookup maps for RecentTransactions
-  const fraudAlertIdSet = useMemo(() => {
-    return new Set(fraudAlerts.map((f) => f.transactionId));
-  }, [fraudAlerts]);
-
-  const fraudReasonMap = useMemo(() => {
-    const map = new Map<string, string>();
-    fraudAlerts.forEach((f) => {
-      map.set(f.transactionId, f.type);
-    });
-    return map;
-  }, [fraudAlerts]);
-
-  // Build customer segment lookup for TopPerformers
-  const customerSegmentMap = useMemo(() => {
-    if (!customerAnalytics?.topCustomers) return undefined;
-    const map = new Map<string, typeof customerAnalytics.topCustomers[number]>();
-    customerAnalytics.topCustomers.forEach((c) => map.set(c.id, c));
-    return map;
-  }, [customerAnalytics]);
-
-  // Compute at-risk customer stats for SideRail
-  const atRiskStats = useMemo(() => {
-    if (!customerAnalytics?.segments) return { count: 0, revenue: 0 };
-    const atRiskCustomers = customerAnalytics.topCustomers
-      ?.filter((c) => c.segment === 'At Risk' || c.segment === 'Lost') ?? [];
-    const totalAtRiskRevenue = atRiskCustomers.reduce((sum, c) => sum + c.totalSpent, 0);
-    return { count: atRiskCustomers.length, revenue: totalAtRiskRevenue };
-  }, [customerAnalytics]);
 
   const showSection = (key: SectionKey) => visibleSections.has(key);
 
@@ -450,6 +425,18 @@ export default function DashboardPage() {
         <>
           <Grid container spacing={1.5} alignItems="flex-start">
             <Grid size={{ xs: 12, xl: 9 }}>
+              {/* Executive Summary */}
+              {showSection('executiveSummary') && (
+                <Box sx={{ mb: 1.5 }}>
+                  <ExecutiveSummaryCard
+                    data={executiveSummary}
+                    loading={execSummaryLoading}
+                    onRefresh={() => fetchExecutiveSummary(true)}
+                    isDark={isDark}
+                  />
+                </Box>
+              )}
+
               {/* KPI Grid */}
               {showSection('kpiGrid') && (
                 <Box
@@ -520,7 +507,7 @@ export default function DashboardPage() {
                   )}
                   {showSection('recentTransactions') && (
                     <Grid size={{ xs: 12, lg: showSection('revenueChart') ? 4 : 12 }}>
-                      <RecentTransactions rows={recentSales} fraudAlertIds={fraudAlertIdSet} fraudReasons={fraudReasonMap} />
+                      <RecentTransactions rows={recentSales} />
                     </Grid>
                   )}
                 </Grid>
@@ -533,7 +520,6 @@ export default function DashboardPage() {
                     period={period}
                     warehouseId={warehouseId}
                     limit={5}
-                    customerSegments={customerSegmentMap}
                   />
                 </Box>
               )}
@@ -598,8 +584,6 @@ export default function DashboardPage() {
                   paymentTotal={paymentTotal}
                   expiringBatchesCount={expiringBatchesCount}
                   expiringUnitsAtRisk={expiringUnitsAtRisk}
-                  atRiskCustomerCount={atRiskStats.count}
-                  atRiskRevenue={atRiskStats.revenue}
                   anomalySlot={
                     <Box sx={{ mb: 1.5 }}>
                       <AnomalyAlerts warehouseId={warehouseId} />

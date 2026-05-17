@@ -27,19 +27,19 @@ public class DeliveryService {
             .collect(Collectors.joining(" "));
 
         String htmlBody = """
-            <div style="max-width:600px;margin:0 auto;font-family:Arial,sans-serif;">
-                <div style="background:#2563eb;color:#fff;padding:20px;text-align:center;border-radius:8px 8px 0 0;">
-                    <h2 style="margin:0;">Letis POS</h2>
+            <div style="max-width:600px;margin:0 auto;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;">
+                <div style="background:linear-gradient(135deg,#16A34A,#15803D);color:#fff;padding:24px;text-align:center;border-radius:8px 8px 0 0;">
+                    <h2 style="margin:0;font-weight:800;letter-spacing:-0.02em;">Letis POS</h2>
                     <p style="margin:4px 0 0;font-size:14px;opacity:0.9;">%s • #%s</p>
                 </div>
-                <div style="padding:24px;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 8px 8px;">
-                    <p style="font-size:14px;color:#333;">%s</p>
+                <div style="padding:24px;border:1px solid #E2E8F0;border-top:none;border-radius:0 0 8px 8px;">
+                    <p style="font-size:14px;color:#334155;">%s</p>
                     <div style="text-align:center;margin:24px 0;">
-                        <a href="%s" style="background:#2563eb;color:#fff;padding:12px 32px;text-decoration:none;border-radius:6px;font-size:14px;font-weight:600;">Download PDF</a>
+                        <a href="%s" style="background:#16A34A;color:#fff;padding:14px 36px;text-decoration:none;border-radius:8px;font-size:14px;font-weight:700;display:inline-block;">Download PDF</a>
                     </div>
-                    <p style="font-size:12px;color:#888;text-align:center;">This link expires in 1 hour.</p>
-                    <hr style="border:none;border-top:1px solid #e2e8f0;margin:20px 0;">
-                    <p style="font-size:11px;color:#aaa;text-align:center;">Letis POS • Tanzania • info@letispos.com</p>
+                    <p style="font-size:12px;color:#94A3B8;text-align:center;">This link expires in 1 hour.</p>
+                    <hr style="border:none;border-top:1px solid #E2E8F0;margin:20px 0;">
+                    <p style="font-size:11px;color:#94A3B8;text-align:center;">Letis POS • Dar es Salaam, Tanzania • hello@letispos.com</p>
                 </div>
             </div>
             """.formatted(displayType, doc.getDocumentNumber(),

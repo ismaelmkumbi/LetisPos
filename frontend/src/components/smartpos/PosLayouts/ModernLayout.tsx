@@ -147,6 +147,7 @@ export default function ModernLayout(props: PosLayoutProps) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [brands, setBrands] = useState<BrandRef[]>([]);
   const [paymentOpen, setPaymentOpen] = useState(false);
+  const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
   const [paymentChoice, setPaymentChoice] = useState<PaymentChoice>('CASH');
 
   useEffect(() => {
@@ -308,83 +309,32 @@ export default function ModernLayout(props: PosLayoutProps) {
           sx={{
             flex: 1,
             minHeight: 0,
-            display: 'grid',
-            gridTemplateColumns: {
-              xs: '1fr',
-              md: `minmax(${CHECKOUT_PANEL_MIN_WIDTH}px, 0.92fr) minmax(0, 1.52fr)`,
-            },
-            gap: 1.5,
-            p: 1.5,
-            alignItems: 'stretch',
-            // On md+ each column scrolls independently within its own bounds.
-            // On xs both stacks vertically and the whole area scrolls — fixes
-            // the bottom of the cart (Tax / Shipping rows) being clipped by
-            // the footer when content exceeds the visible viewport.
+            display: 'flex',
+            flexDirection: 'column',
+            p: { xs: 1, md: 1.5 },
             overflowX: 'hidden',
-            overflowY: { xs: 'auto', md: 'hidden' },
+            overflowY: 'auto',
           }}
         >
-          {/* ───────────── Products section (right column on md+) ───────── */}
-          <Box
-            sx={{
-              minWidth: 0,
-              minHeight: 0,
-              order: { xs: 1, md: 2 },
-              display: 'flex',
-              flexDirection: 'column',
-            }}
-          >
-            <TopFilters
-              search={props.search}
-              onSearchChange={props.onSearchChange}
-              barcode={props.barcode}
-              onBarcodeChange={props.onBarcodeChange}
-              onBarcodeScan={props.onBarcodeScan}
-              barcodeRef={props.barcodeRef}
-              isDark={isDark}
-            />
+          <TopFilters
+            search={props.search}
+            onSearchChange={props.onSearchChange}
+            barcode={props.barcode}
+            onBarcodeChange={props.onBarcodeChange}
+            onBarcodeScan={props.onBarcodeScan}
+            barcodeRef={props.barcodeRef}
+            isDark={isDark}
+          />
 
-            <ProductTabs activeTab={props.activeTab} onTabChange={handleTabChange} />
+          <ProductTabs activeTab={props.activeTab} onTabChange={handleTabChange} />
 
-            <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto', pr: 0.5, ...softScrollSx }}>
-              <ProductGrid
-                products={props.products}
-                loading={props.productsLoading}
-                stockMap={props.stockMap}
-                stockLoading={props.stockLoading}
-                onAdd={props.onAddProduct}
-                isDark={isDark}
-              />
-            </Box>
-          </Box>
-
-          {/* ───────────── Checkout panel (left column on md+) ──────────── */}
-          <Box id="letis-pos-checkout" sx={{ order: { xs: 2, md: 1 }, minHeight: 0 }}>
-            <CheckoutPanel
-              itemCount={itemCount}
-              lines={props.lines}
-              onInc={props.onIncQty}
-              onDec={props.onDecQty}
-              onRemove={props.onRemoveLine}
-              onClear={props.onClearCart}
-              onPatchLine={props.onPatchLine}
-              onNotify={props.onNotify}
-              subtotal={computed.subtotal}
-              tax={computed.totalTax}
-              discountVal={computed.disc}
-              shippingVal={computed.ship}
-              grand={computed.grand}
-              taxRate={
-                computed.subtotal > 0
-                  ? Math.round((computed.totalTax / computed.subtotal) * 100)
-                  : 0
-              }
-              discount={props.discount}
-              discountType={props.discountType}
-              onDiscountChange={props.onDiscountChange}
-              onDiscountTypeChange={props.onDiscountTypeChange}
+          <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto', ...softScrollSx }}>
+            <ProductGrid
               products={props.products}
+              loading={props.productsLoading}
               stockMap={props.stockMap}
+              stockLoading={props.stockLoading}
+              onAdd={props.onAddProduct}
               isDark={isDark}
             />
           </Box>

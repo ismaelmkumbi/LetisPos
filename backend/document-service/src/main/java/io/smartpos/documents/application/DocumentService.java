@@ -38,6 +38,8 @@ public class DocumentService {
     private final io.smartpos.documents.infrastructure.feign.PurchaseClient purchaseClient;
     private final io.smartpos.documents.infrastructure.feign.PaymentClient paymentClient;
     private final io.smartpos.documents.infrastructure.feign.PosSettingClient posSettingClient;
+    private final io.smartpos.documents.infrastructure.feign.CustomerClient customerClient;
+    private final io.smartpos.documents.infrastructure.feign.ProductClient productClient;
 
     private static final Map<String, String> TEMPLATE_FILES = Map.ofEntries(
         Map.entry("quotation", "quotation.hbs"),
@@ -247,8 +249,19 @@ public class DocumentService {
 
             if (raw.containsKey("customer") && raw.get("customer") instanceof Map) {
                 mapped.put("customer", raw.get("customer"));
-            } else if (raw.containsKey("customerName")) {
-                mapped.put("customer", Map.of("name", raw.getOrDefault("customerName", "")));
+            } else if (raw.containsKey("customerName") && !raw.get("customerName").toString().isBlank()) {
+                mapped.put("customer", Map.of("name", raw.get("customerName")));
+            } else if (raw.containsKey("customerId") && raw.get("customerId") != null) {
+                // Resolve customer name from product-service
+                try {
+                    UUID cid = raw.get("customerId") instanceof UUID uid
+                        ? uid : UUID.fromString(raw.get("customerId").toString());
+                    var customerData = customerClient.getCustomer(cid);
+                    String cname = (String) customerData.getOrDefault("name", "Walk-in Customer");
+                    mapped.put("customer", Map.of("name", cname));
+                } catch (Exception e) {
+                    mapped.put("customer", Map.of("name", "Walk-in Customer"));
+                }
             }
 
             if (raw.containsKey("supplier") && raw.get("supplier") instanceof Map) {
@@ -256,7 +269,39 @@ public class DocumentService {
             }
 
             if (raw.containsKey("lines") || raw.containsKey("items")) {
-                mapped.put("items", raw.getOrDefault("lines", raw.get("items")));
+                @SuppressWarnings("unchecked")
+                java.util.List<Map<String, Object>> rawItems =
+                    (java.util.List<Map<String, Object>>) raw.getOrDefault("lines", raw.get("items"));
+                java.util.List<Map<String, Object>> transformed = new java.util.ArrayList<>();
+                // UUID pattern for detecting unresolved product names
+                java.util.regex.Pattern uuidPattern = java.util.regex.Pattern.compile(
+                    "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+                    java.util.regex.Pattern.CASE_INSENSITIVE);
+                for (Map<String, Object> item : rawItems) {
+                    Map<String, Object> t = new java.util.HashMap<>(item);
+                    // Map API field names to template field names
+                    t.putIfAbsent("name", item.getOrDefault("productName", item.get("name")));
+                    t.putIfAbsent("quantity", item.getOrDefault("qty", item.get("quantity")));
+                    t.putIfAbsent("total", item.getOrDefault("lineTotal", item.get("total")));
+                    t.putIfAbsent("unitPrice", item.getOrDefault("unitPrice", item.get("price")));
+                    // Resolve UUID product names via product-service (dynamic, always fresh)
+                    Object nameObj = t.get("name");
+                    Object productIdObj = item.get("productId");
+                    if (nameObj instanceof String name && uuidPattern.matcher(name).matches()
+                        && productIdObj != null) {
+                        try {
+                            UUID pid = productIdObj instanceof UUID uid
+                                ? uid : UUID.fromString(productIdObj.toString());
+                            var product = productClient.getProduct(pid);
+                            String resolvedName = (String) product.getOrDefault("name", name);
+                            t.put("name", resolvedName);
+                        } catch (Exception e) {
+                            // Keep the UUID as fallback — better than nothing
+                        }
+                    }
+                    transformed.add(t);
+                }
+                mapped.put("items", transformed);
             }
 
             if (raw.containsKey("grandTotal")) {
@@ -289,7 +334,7 @@ public class DocumentService {
      * Resolves PosSetting using warehouseId from reference data or contextData.
      * Falls back to "Letis POS" default if PosSetting is unavailable.
      */
-    private Map<String, Object> resolveCompanyContext(Map<String, Object> mergedContext) {
+    public Map<String, Object> resolveCompanyContext(Map<String, Object> mergedContext) {
         UUID warehouseId = null;
         try {
             Object wid = mergedContext.get("warehouseId");
@@ -305,10 +350,12 @@ public class DocumentService {
         if (warehouseId != null) {
             try {
                 var branding = posSettingClient.get(warehouseId);
+                boolean hasCustomLogo = branding.showLogo() && branding.logoUrl() != null
+                    && !branding.logoUrl().isBlank();
                 return Map.of(
                     "name", branding.storeName() != null && !branding.storeName().isBlank()
                         ? branding.storeName() : "Letis POS",
-                    "logoUrl", branding.logoUrl() != null ? branding.logoUrl() : "",
+                    "logoUrl", hasCustomLogo ? branding.logoUrl() : letisLogoSvgDataUri(),
                     "address", branding.showStoreAddress() && branding.storeAddress() != null
                         ? branding.storeAddress() : "",
                     "phone", branding.showStorePhone() && branding.storePhone() != null
@@ -316,17 +363,39 @@ public class DocumentService {
                     "email", branding.showStoreEmail() && branding.storeEmail() != null
                         ? branding.storeEmail() : "",
                     "tin", branding.storeTaxId() != null ? branding.storeTaxId() : "",
-                    "website", branding.storeWebsite() != null ? branding.storeWebsite() : "",
-                    "showLogo", branding.showLogo() && branding.logoUrl() != null
-                        && !branding.logoUrl().isBlank(),
-                    "logoSize", branding.logoSize() > 0 ? branding.logoSize() : 60
+                    "website", branding.storeWebsite() != null ? branding.storeWebsite() : "https://letispos.com",
+                    "showLogo", true,
+                    "logoSize", branding.logoSize() > 0 ? branding.logoSize() : 64
                 );
             } catch (Exception e) {
                 log.warn("Failed to fetch PosSetting for warehouse {}: {}", warehouseId, e.getMessage());
             }
         }
 
-        return Map.of("name", "Letis POS");
+        // Default Letis POS branding — used when PosSetting is unavailable
+        // or the tenant has not configured custom branding.
+        java.util.HashMap<String, Object> defaults = new java.util.HashMap<>();
+        defaults.put("name", "Letis POS");
+        defaults.put("logoUrl", letisLogoSvgDataUri());
+        defaults.put("address", "");
+        defaults.put("phone", "");
+        defaults.put("email", "");
+        defaults.put("tin", "");
+        defaults.put("website", "https://letispos.com");
+        defaults.put("showLogo", true);
+        defaults.put("showStoreName", true);
+        defaults.put("showStoreAddress", false);
+        defaults.put("showStorePhone", false);
+        defaults.put("showStoreEmail", false);
+        defaults.put("logoSize", 64);
+        return defaults;
+    }
+
+    /** Letis POS logo URL — static SVG served by the document-service itself. */
+    private String letisLogoSvgDataUri() {
+        // Static file served from src/main/resources/static/letis-logo.svg.
+        // Gotenberg can fetch this URL reliably; data URIs don't render in headless Chrome.
+        return "http://localhost:8093/letis-logo.svg";
     }
 
     private String buildQrData(String documentType, String referenceType, UUID referenceId) {

@@ -16,7 +16,7 @@ import {
   TextField,
 } from '@mui/material';
 import { IconEye, IconFileTypePdf, IconHistory, IconSparkles, IconNotes } from '@tabler/icons-react';
-import { getTemplate, previewTemplate, summarizeDocument, updateDocumentNotes } from '../../../api/smartpos/documents';
+import { getTemplate, previewDocument, summarizeDocument, updateDocumentNotes } from '../../../api/smartpos/documents';
 import TemplatePreviewRenderer from './TemplatePreviewRenderer';
 import DocumentVersionTimeline from './DocumentVersionTimeline';
 import AnomalyBanner from './AnomalyBanner';
@@ -26,6 +26,9 @@ interface DocumentPreviewModalProps {
   onClose: () => void;
   documentType: string;
   documentId?: string;
+  /** Pass referenceType + referenceId to render with real data instead of empty template. */
+  referenceType?: string;
+  referenceId?: string;
   data: Record<string, unknown>;
 }
 
@@ -34,6 +37,8 @@ export default function DocumentPreviewModal({
   onClose,
   documentType,
   documentId,
+  referenceType,
+  referenceId,
   data,
 }: DocumentPreviewModalProps) {
   const [tab, setTab] = useState(0);
@@ -50,13 +55,10 @@ export default function DocumentPreviewModal({
   const loadTemplate = useCallback(async () => {
     if (templateHtml) return;
     try {
-      setLoading(true);
       const tpl = await getTemplate(documentType);
       setTemplateHtml(tpl.bodyHtml);
     } catch {
-      setError('Failed to load template');
-    } finally {
-      setLoading(false);
+      // Non-critical — HTML preview is secondary to PDF preview
     }
   }, [documentType, templateHtml]);
 
@@ -64,7 +66,13 @@ export default function DocumentPreviewModal({
     try {
       setLoading(true);
       setError(null);
-      const pdfBlob = await previewTemplate(documentType, templateHtml);
+      // Use the document preview endpoint so it fetches real sale data
+      // instead of rendering with sample/template-only data.
+      const pdfBlob = await previewDocument({
+        documentType,
+        referenceType,
+        referenceId,
+      });
       const url = URL.createObjectURL(pdfBlob);
       setPdfBlobUrl(url);
       setTab(1);
@@ -73,7 +81,7 @@ export default function DocumentPreviewModal({
     } finally {
       setLoading(false);
     }
-  }, [documentType, templateHtml]);
+  }, [documentType, referenceType, referenceId]);
 
   const handleSummarize = useCallback(async () => {
     if (!documentId) return;
@@ -106,8 +114,12 @@ export default function DocumentPreviewModal({
       setPdfBlobUrl(null);
       setTab(0);
       setError(null);
+      // Auto-generate PDF preview if we have real data to show
+      if (referenceType && referenceId) {
+        generatePdfPreview();
+      }
     }
-  }, [open, loadTemplate]);
+  }, [open, loadTemplate, referenceType, referenceId, generatePdfPreview]);
 
   const handleClose = useCallback(() => {
     if (pdfBlobUrl) {
@@ -168,9 +180,20 @@ export default function DocumentPreviewModal({
             {error}
           </Typography>
         )}
+
+        {/* HTML Preview — pass referenceType/referenceId so real data is used when available */}
         {!loading && !error && tab === 0 && templateHtml && (
-          <TemplatePreviewRenderer templateHtml={templateHtml} data={data} />
+          <TemplatePreviewRenderer
+            templateHtml={templateHtml}
+            data={{
+              documentType,
+              referenceType,
+              referenceId,
+              ...data,
+            }}
+          />
         )}
+
         {!loading && !error && tab === 1 && pdfBlobUrl && (
           <Box
             component="iframe"
