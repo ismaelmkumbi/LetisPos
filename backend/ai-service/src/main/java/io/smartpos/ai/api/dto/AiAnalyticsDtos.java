@@ -42,7 +42,8 @@ public final class AiAnalyticsDtos {
             BigDecimal totalSpent,
             int visits,
             LocalDate lastPurchase,
-            String segment        // Loyal | At Risk | Lost | New
+            String segment,        // Loyal | At Risk | Lost | New
+            double churnProbability // 0.0-1.0
     ) {}
 
     public record CustomerAnalyticsResponse(
