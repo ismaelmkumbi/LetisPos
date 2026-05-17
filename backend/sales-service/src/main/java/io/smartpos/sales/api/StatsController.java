@@ -55,7 +55,7 @@ public class StatsController {
     }
 
     @GetMapping("/purchases/stats")
-    @PreAuthorize("hasAuthority('report.sales') or hasAuthority('purchase.view')")
+    @PreAuthorize("isAuthenticated()")
     public StatsService.PurchaseStats purchaseStats(@RequestParam(required = false) LocalDate dateFrom,
                                                     @RequestParam(required = false) LocalDate dateTo,
                                                     @RequestParam(required = false) UUID warehouseId,
@@ -64,7 +64,7 @@ public class StatsController {
     }
 
     @GetMapping("/purchases/top-suppliers")
-    @PreAuthorize("hasAuthority('report.sales') or hasAuthority('purchase.view')")
+    @PreAuthorize("isAuthenticated()")
     public List<StatsService.TopSupplier> topSuppliers(@RequestParam(required = false) LocalDate dateFrom,
                                                        @RequestParam(required = false) LocalDate dateTo,
                                                        @RequestParam(required = false) UUID warehouseId,
