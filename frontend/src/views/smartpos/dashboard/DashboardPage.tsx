@@ -14,7 +14,7 @@ import {
 import { listSales, type Sale } from 'src/api/smartpos/sales';
 import { listWarehouses, type Warehouse } from 'src/api/smartpos/inventory';
 import { getExpiringBatches } from 'src/api/smartpos/batches';
-import { getDemandForecast, getReorderRecommendations, getProfitOpportunities, type DemandForecast, type ReorderRecommendations, type ProfitOpportunities } from 'src/api/smartpos/dashboardIntelligence';
+import { getDemandForecast, getReorderRecommendations, getProfitOpportunities, getCustomerRetention, getCashFlowForecast, type DemandForecast, type ReorderRecommendations, type ProfitOpportunities, type CustomerRetention, type CashFlowForecast } from 'src/api/smartpos/dashboardIntelligence';
 import { useAuth } from 'src/context/smartpos/AuthContext';
 import { useOnboarding } from 'src/context/smartpos/OnboardingContext';
 import { CustomizerContext } from 'src/context/CustomizerContext';
@@ -40,6 +40,8 @@ import TopPerformers from './TopPerformers';
 import DemandForecastCard from './DemandForecastCard';
 import ReorderRecommendationsCard from './ReorderRecommendationsCard';
 import ProfitOpportunitiesCard from './ProfitOpportunitiesCard';
+import CustomerRetentionCard from './CustomerRetentionCard';
+import CashFlowForecastCard from './CashFlowForecastCard';
 
 import {
   seriesOrFallback,
@@ -84,6 +86,10 @@ export default function DashboardPage() {
   const [demandLoading, setDemandLoading] = useState(false);
   const [reorderLoading, setReorderLoading] = useState(false);
   const [profitLoading, setProfitLoading] = useState(false);
+  const [customerRetention, setCustomerRetention] = useState<CustomerRetention | null>(null);
+  const [cashFlowForecast, setCashFlowForecast] = useState<CashFlowForecast | null>(null);
+  const [retentionLoading, setRetentionLoading] = useState(false);
+  const [cashFlowLoading, setCashFlowLoading] = useState(false);
 
   useEffect(() => {
     if (onboardingState.isComplete) {
@@ -233,10 +239,12 @@ export default function DashboardPage() {
     if (!user?.tenantId) return;
     const wid = warehouseId || undefined;
 
-    // Fire all 3 in parallel, each non-blocking
+    // Fire all 5 in parallel, each non-blocking
     setDemandLoading(true);
     setReorderLoading(true);
     setProfitLoading(true);
+    setRetentionLoading(true);
+    setCashFlowLoading(true);
 
     try {
       const resp = await getDemandForecast(7, wid);
@@ -255,6 +263,18 @@ export default function DashboardPage() {
       if (resp.success && resp.data) setProfitOpps(resp.data);
     } catch { /* silent */ }
     finally { setProfitLoading(false); }
+
+    try {
+      const resp = await getCustomerRetention();
+      if (resp.success && resp.data) setCustomerRetention(resp.data);
+    } catch { /* silent */ }
+    finally { setRetentionLoading(false); }
+
+    try {
+      const resp = await getCashFlowForecast(30);
+      if (resp.success && resp.data) setCashFlowForecast(resp.data);
+    } catch { /* silent */ }
+    finally { setCashFlowLoading(false); }
   }, [user?.tenantId, warehouseId]);
 
   useEffect(() => {
@@ -531,6 +551,17 @@ export default function DashboardPage() {
                 </Box>
               )}
 
+              {/* Customer Retention */}
+              {showSection('customerRetention') && (
+                <Box sx={{ mb: 1.5 }}>
+                  <CustomerRetentionCard
+                    data={customerRetention}
+                    loading={retentionLoading}
+                    isDark={isDark}
+                  />
+                </Box>
+              )}
+
               {/* Demand Forecast + Profit Opportunities */}
               {(showSection('demandForecast') || showSection('profitOpportunities')) && (
                 <Grid container spacing={1.5} sx={{ mb: 1.5 }}>
@@ -601,6 +632,17 @@ export default function DashboardPage() {
                     </Grid>
                   )}
                 </Grid>
+              )}
+
+              {/* Cash Flow Forecast */}
+              {showSection('cashFlowForecast') && (
+                <Box sx={{ mb: 1.5 }}>
+                  <CashFlowForecastCard
+                    data={cashFlowForecast}
+                    loading={cashFlowLoading}
+                    isDark={isDark}
+                  />
+                </Box>
               )}
 
               {/* Goal Progress */}
