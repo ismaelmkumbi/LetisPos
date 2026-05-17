@@ -1,14 +1,28 @@
-import { Box, Card, CardContent, Chip, Stack, Typography } from '@mui/material';
-import { IconArrowDown, IconArrowUp, IconWalletOff } from '@tabler/icons-react';
+/**
+ * BusinessPulseCard — redesigned as the HERO card of the dashboard.
+ *
+ * Design intent:
+ * - Full-bleed deep gradient (green when profitable, red when loss)
+ * - White text throughout — contrast on dark bg
+ * - LARGE net profit number (36px Mono) as the dominant focal point
+ * - Three supporting stats below: Revenue | Expenses | Margin
+ * - Profit sparkline at card bottom (white/semi-transparent)
+ * - Status pill at top-right
+ */
+import {
+  Box, Card, CardContent, Chip, Stack, Typography,
+} from '@mui/material';
+import { IconArrowDown, IconArrowUp, IconTrendingUp, IconTrendingDown } from '@tabler/icons-react';
 import Chart from 'react-apexcharts';
-import { useContext } from 'react';
+import { useContext, useMemo } from 'react';
 import { CustomizerContext } from 'src/context/CustomizerContext';
-import { brand } from 'src/theme/smartpos/brand';
 import { formatMoney } from 'src/utils/smartpos/currency';
-import { cardSx, titleColor, PERIOD_LABELS, sparkOptions } from './utils';
-import EmptyPanel from './EmptyPanel';
+import { PERIOD_LABELS, sparkOptions, profitMargin } from './utils';
 import type { Dashboard, Period } from 'src/api/smartpos/reports';
 import type { Delta } from './types';
+
+const NUM_FONT = "'JetBrains Mono', 'DM Mono', monospace";
+const LBL_FONT = "'Outfit', 'DM Sans', sans-serif";
 
 interface BusinessPulseCardProps {
   data: Dashboard | null;
@@ -17,119 +31,214 @@ interface BusinessPulseCardProps {
   delta?: Delta;
 }
 
-export default function BusinessPulseCard({
-  data,
-  salesSeries,
-  period,
-  delta,
-}: BusinessPulseCardProps) {
-  const { activeMode: _am } = useContext(CustomizerContext);
-  const isDark = _am === 'dark';
-  const loss = data ? Math.min(data.netProfit, 0) : 0;
-  const options = sparkOptions(brand.error.main);
-  const periodLabel = PERIOD_LABELS[period].toLowerCase();
+export default function BusinessPulseCard({ data, salesSeries, period, delta }: BusinessPulseCardProps) {
+  const { activeMode } = useContext(CustomizerContext);
+  const isDark = activeMode === 'dark';
+
+  const profit      = data?.netProfit ?? 0;
+  const isLoss      = profit < 0;
+  const periodLabel = PERIOD_LABELS[period];
+  const margin      = profitMargin(data);
+  const revenue     = data?.sales.net ?? 0;
+  const expenses    = data?.expenses.total ?? 0;
+
+  // Gradient backgrounds
+  const bg = isLoss
+    ? isDark
+      ? 'linear-gradient(135deg, #450a0a 0%, #7f1d1d 55%, #991b1b 100%)'
+      : 'linear-gradient(135deg, #b91c1c 0%, #dc2626 60%, #ef4444 100%)'
+    : isDark
+      ? 'linear-gradient(135deg, #052e16 0%, #14532d 55%, #166534 100%)'
+      : 'linear-gradient(135deg, #14532d 0%, #15803d 60%, #16a34a 100%)';
+
+  const sparkColor = 'rgba(255,255,255,0.7)';
+  const spkOpts = useMemo(() => ({
+    ...sparkOptions(sparkColor),
+    chart: { type: 'area' as const, sparkline: { enabled: true }, toolbar: { show: false } },
+    fill: {
+      type: 'gradient' as const,
+      gradient: { shadeIntensity: 1, opacityFrom: 0.28, opacityTo: 0.02, stops: [0, 100] },
+    },
+    colors: [sparkColor],
+    stroke: { curve: 'smooth' as const, width: 2 },
+    tooltip: { y: { formatter: (v: number) => formatMoney(v) } },
+  }), []);
+
+  const supportStats = [
+    {
+      label: 'Revenue',
+      value: formatMoney(revenue),
+      sub: 'net sales',
+    },
+    {
+      label: 'Expenses',
+      value: formatMoney(expenses),
+      sub: 'total costs',
+    },
+    {
+      label: 'Margin',
+      value: `${margin.toFixed(1)}%`,
+      sub: margin >= 20 ? 'healthy' : margin >= 10 ? 'marginal' : 'needs attention',
+    },
+  ];
+
   return (
     <Card
       elevation={0}
       sx={{
-        ...cardSx(isDark),
-        minHeight: 204,
-        background: isDark
-          ? `linear-gradient(135deg, ${brand.neutral[800]} 0%, ${brand.neutral[900]} 58%, #1C0F0F 100%)`
-          : 'linear-gradient(135deg, #FFF7ED 0%, #FFFFFF 58%, #FEE2E2 100%)',
+        height: '100%',
+        minHeight: { xs: 200, sm: 204 },
+        borderRadius: '14px',
+        background: bg,
+        border: 'none',
+        overflow: 'hidden',
+        position: 'relative',
       }}
     >
-      <CardContent sx={{ p: 2.5, height: '100%', display: 'flex', flexDirection: 'column' }}>
-        <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
-          <Box>
-            <Typography
-              sx={{ color: titleColor, fontSize: 12, fontWeight: 800, textTransform: 'uppercase' }}
-            >
-              Business Pulse
-            </Typography>
-            <Typography sx={{ color: titleColor, fontSize: 16, fontWeight: 800, mt: 1.5 }}>
-              {loss < 0
-                ? `You are losing money ${periodLabel}`
-                : `Your business is profitable ${periodLabel}`}
-            </Typography>
-            <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 1.25 }}>
-              <Typography
-                sx={{
-                  color: loss < 0 ? brand.error.main : brand.primary[600],
-                  fontSize: 26,
-                  fontWeight: 900,
-                }}
-              >
-                {loss < 0 ? `-${formatMoney(Math.abs(loss))}` : formatMoney(data?.netProfit ?? 0)}
-              </Typography>
-              {delta && (
-                <Chip
-                  size="small"
-                  icon={delta.positive ? <IconArrowUp size={12} /> : <IconArrowDown size={12} />}
-                  label={`${delta.positive ? '+' : '-'}${delta.value.toFixed(1)}%`}
-                  sx={{
-                    height: 22,
-                    fontSize: 11,
-                    fontWeight: 800,
-                    bgcolor: delta.positive ? '#ECFDF5' : '#FEF2F2',
-                    color: delta.positive ? brand.primary[600] : brand.error.main,
-                    '& .MuiChip-icon': {
-                      color: delta.positive ? brand.primary[600] : brand.error.main,
-                      marginLeft: '4px',
-                    },
-                  }}
-                />
-              )}
-            </Stack>
-          </Box>
-          <Box
-            sx={{
-              width: 48,
-              height: 48,
-              borderRadius: '12px',
-              bgcolor: brand.error.light,
-              color: brand.error.main,
-              display: 'grid',
-              placeItems: 'center',
-            }}
-          >
-            <IconWalletOff size={25} />
-          </Box>
-        </Stack>
-        <Stack direction="row" spacing={0.75} alignItems="center" sx={{ mt: 1 }}>
-          {loss < 0 ? (
-            <IconArrowDown size={15} color={brand.error.main} />
-          ) : (
-            <IconArrowUp size={15} color={brand.primary[600]} />
-          )}
+      {/* Decorative circle — top-right */}
+      <Box
+        aria-hidden="true"
+        sx={{
+          position: 'absolute',
+          top: -40,
+          right: -40,
+          width: 160,
+          height: 160,
+          borderRadius: '50%',
+          bgcolor: 'rgba(255,255,255,0.06)',
+          pointerEvents: 'none',
+        }}
+      />
+      <Box
+        aria-hidden="true"
+        sx={{
+          position: 'absolute',
+          bottom: 24,
+          right: -20,
+          width: 90,
+          height: 90,
+          borderRadius: '50%',
+          bgcolor: 'rgba(255,255,255,0.04)',
+          pointerEvents: 'none',
+        }}
+      />
+
+      <CardContent sx={{ p: { xs: 2, sm: 2.5 }, height: '100%', display: 'flex', flexDirection: 'column', position: 'relative', zIndex: 1 }}>
+
+        {/* Header row */}
+        <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 0.5 }}>
           <Typography
             sx={{
-              color: loss < 0 ? brand.error.main : brand.primary[600],
-              fontSize: 13,
-              fontWeight: 800,
+              fontFamily: LBL_FONT,
+              color: 'rgba(255,255,255,0.7)',
+              fontSize: 11,
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              letterSpacing: '0.08em',
             }}
           >
-            {data ? 'Live profit' : 'Waiting for data'}
+            Business Pulse · {periodLabel}
           </Typography>
-          <Typography sx={{ color: brand.neutral[600], fontSize: 13 }}>
-            for selected period
-          </Typography>
+
+          {/* Status pill */}
+          <Chip
+            size="small"
+            icon={isLoss ? <IconTrendingDown size={12} /> : <IconTrendingUp size={12} />}
+            label={isLoss ? 'Loss' : 'Profitable'}
+            sx={{
+              height: 22,
+              fontFamily: LBL_FONT,
+              fontSize: 11,
+              fontWeight: 700,
+              bgcolor: 'rgba(255,255,255,0.15)',
+              color: '#fff',
+              backdropFilter: 'blur(4px)',
+              border: '1px solid rgba(255,255,255,0.22)',
+              '& .MuiChip-icon': { color: '#fff', ml: '4px' },
+            }}
+          />
         </Stack>
-        <Box sx={{ mt: 'auto', mx: -1 }}>
-          {salesSeries.length ? (
+
+        {/* Net Profit — hero number */}
+        <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 1.25, mb: 0.5 }}>
+          <Typography
+            sx={{
+              fontFamily: NUM_FONT,
+              color: '#ffffff',
+              fontWeight: 700,
+              fontSize: { xs: 28, sm: 34 },
+              lineHeight: 1,
+              letterSpacing: '-0.03em',
+              textShadow: '0 2px 12px rgba(0,0,0,0.25)',
+            }}
+          >
+            {isLoss ? `−${formatMoney(Math.abs(profit))}` : formatMoney(profit)}
+          </Typography>
+          {delta && (
+            <Chip
+              size="small"
+              icon={delta.positive ? <IconArrowUp size={11} /> : <IconArrowDown size={11} />}
+              label={`${delta.positive ? '+' : '−'}${delta.value.toFixed(1)}%`}
+              sx={{
+                height: 22,
+                fontFamily: LBL_FONT,
+                fontSize: 11,
+                fontWeight: 700,
+                bgcolor: 'rgba(255,255,255,0.2)',
+                color: '#fff',
+                border: '1px solid rgba(255,255,255,0.25)',
+                '& .MuiChip-icon': { color: '#fff', ml: '4px' },
+              }}
+            />
+          )}
+        </Stack>
+        <Typography
+          sx={{
+            fontFamily: LBL_FONT,
+            color: 'rgba(255,255,255,0.6)',
+            fontSize: 12,
+            mb: 1.75,
+          }}
+        >
+          {data ? 'Net profit · selected period' : 'Waiting for data…'}
+        </Typography>
+
+        {/* Supporting stats */}
+        <Stack direction="row" spacing={0} sx={{ mb: 'auto' }}>
+          {supportStats.map((stat, i) => (
+            <Box
+              key={stat.label}
+              sx={{
+                flex: 1,
+                px: 1.5,
+                py: 1,
+                borderLeft: i > 0 ? '1px solid rgba(255,255,255,0.15)' : 'none',
+              }}
+            >
+              <Typography sx={{ fontFamily: LBL_FONT, color: 'rgba(255,255,255,0.55)', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                {stat.label}
+              </Typography>
+              <Typography sx={{ fontFamily: NUM_FONT, color: '#fff', fontSize: 14, fontWeight: 700, mt: 0.3, lineHeight: 1.2 }}>
+                {stat.value}
+              </Typography>
+              <Typography sx={{ fontFamily: LBL_FONT, color: 'rgba(255,255,255,0.45)', fontSize: 10, mt: 0.2 }}>
+                {stat.sub}
+              </Typography>
+            </Box>
+          ))}
+        </Stack>
+
+        {/* Profit sparkline — edge-to-edge */}
+        <Box sx={{ mx: -2.5, mb: -2.5, mt: 1.5 }}>
+          {salesSeries.length > 1 ? (
             <Chart
-              options={options}
+              options={spkOpts}
               series={[{ name: 'Revenue', data: salesSeries }]}
               type="area"
-              height={62}
+              height={52}
             />
           ) : (
-            <EmptyPanel
-              title="No revenue trend"
-              subtitle="Sales series will appear here."
-              height={62}
-              compact
-            />
+            <Box sx={{ height: 52, bgcolor: 'rgba(255,255,255,0.04)', borderRadius: '0 0 14px 14px' }} />
           )}
         </Box>
       </CardContent>

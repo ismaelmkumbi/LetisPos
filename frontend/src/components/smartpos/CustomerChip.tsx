@@ -37,8 +37,6 @@ export interface CustomerChipProps {
 export default function CustomerChip({
   customerId,
   customers,
-  onCustomerChange: _onCustomerChange,
-  onCustomerCreated: _onCustomerCreated,
   onViewAccount,
 }: CustomerChipProps) {
   const [customerBalance, setCustomerBalance] = useState<number | null>(null);

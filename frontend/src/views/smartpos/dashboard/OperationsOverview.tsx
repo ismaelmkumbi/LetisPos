@@ -27,7 +27,7 @@ export default function OperationsOverview({
   return (
     <Card elevation={0} sx={{ ...cardSx(isDark), height: '100%' }}>
       <CardContent sx={{ p: 2 }}>
-        <Typography sx={{ fontWeight: 800, color: titleColor, fontSize: 18, mb: 1.5 }}>
+        <Typography sx={{ fontFamily: "'Outfit','DM Sans',sans-serif", fontWeight: 800, color: isDark ? '#F1F5F9' : titleColor, fontSize: { xs: 15, sm: 17 }, letterSpacing: '-0.01em', mb: 1.5 }}>
           Operations Overview
         </Typography>
         <Grid container spacing={1.25}>

@@ -54,8 +54,6 @@ export interface CreditPaymentZoneProps {
 export default function CreditPaymentZone({
   total,
   currency,
-  customerId: _customerId,
-  customers: _customers,
   customerBalance,
   creditAvailable,
   creditLimit,

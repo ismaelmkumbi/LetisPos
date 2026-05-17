@@ -1,5 +1,16 @@
+/**
+ * KpiGrid — 4 metric cards in the KPI strip.
+ *
+ * Changes vs original:
+ * - Replaced "Purchases" with "Avg. Order Value" (AOV).
+ *   AOV = Net Sales ÷ Order Count. It's a far more actionable at-a-glance
+ *   metric for retail; Purchases already appears in Financial Health.
+ * - Passes a computed AOV series for the sparkline (derived from salesSeries)
+ * - Uses IconReceipt for AOV, keeps existing icons for others
+ */
 import { Grid } from '@mui/material';
-import { IconBriefcase, IconShoppingCart, IconWallet } from '@tabler/icons-react';
+import { IconBriefcase, IconReceipt, IconShoppingCart, IconWallet } from '@tabler/icons-react';
+import { useMemo } from 'react';
 import { useNavigate } from 'react-router';
 import { brand } from 'src/theme/smartpos/brand';
 import { formatMoney, formatNumber } from 'src/utils/smartpos/currency';
@@ -27,12 +38,29 @@ export default function KpiGrid({
   cashDelta,
   salesDelta,
   ordersDelta,
-  purchasesDelta,
 }: KpiGridProps) {
   const navigate = useNavigate();
 
+  // Average Order Value — computed from data
+  const aov = useMemo(() => {
+    const count = data?.sales.count ?? 0;
+    const net   = data?.sales.net   ?? 0;
+    return count > 0 ? net / count : 0;
+  }, [data]);
+
+  // Derive a synthetic AOV series from sales/orders series
+  const aovSeries = useMemo(() => {
+    if (!salesSeries.length || !orderSeries.length) return [];
+    return salesSeries.map((s, i) =>
+      orderSeries[i] ? Math.round(s / orderSeries[i]) : 0,
+    );
+  }, [salesSeries, orderSeries]);
+
+  const aovTrend = useMemo(() => trend(aovSeries), [aovSeries]);
+
   return (
     <>
+      {/* Cash in Hand */}
       <Grid size={{ xs: 6, sm: 6, lg: 2 }} sx={{ minWidth: { xs: 0, lg: 'auto' }, scrollSnapAlign: 'start' }}>
         <MetricCard
           label="Cash in Hand"
@@ -45,6 +73,8 @@ export default function KpiGrid({
           onClick={() => navigate('/smartpos/accounts')}
         />
       </Grid>
+
+      {/* Net Sales */}
       <Grid size={{ xs: 6, sm: 6, lg: 2 }} sx={{ minWidth: { xs: 0, lg: 'auto' }, scrollSnapAlign: 'start' }}>
         <MetricCard
           label="Net Sales"
@@ -57,6 +87,8 @@ export default function KpiGrid({
           onClick={() => navigate('/smartpos/reports/sales')}
         />
       </Grid>
+
+      {/* Orders */}
       <Grid size={{ xs: 6, sm: 6, lg: 2 }} sx={{ minWidth: { xs: 0, lg: 'auto' }, scrollSnapAlign: 'start' }}>
         <MetricCard
           label="Orders"
@@ -69,16 +101,17 @@ export default function KpiGrid({
           onClick={() => navigate('/smartpos/sales')}
         />
       </Grid>
+
+      {/* Avg. Order Value (replaces Purchases — which lives in Financial Health) */}
       <Grid size={{ xs: 6, sm: 6, lg: 2 }} sx={{ minWidth: { xs: 0, lg: 'auto' }, scrollSnapAlign: 'start' }}>
         <MetricCard
-          label="Purchases"
-          value={formatMoney(data?.purchases.gross ?? 0)}
-          change={null}
-          icon={<IconShoppingCart size={20} />}
-          color={brand.primary[600]}
-          series={[]}
-          delta={purchasesDelta}
-          onClick={() => navigate('/smartpos/purchases')}
+          label="Avg. Order Value"
+          value={formatMoney(aov)}
+          change={trendLabel(aovTrend)}
+          icon={<IconReceipt size={20} />}
+          color={brand.primary[500]}
+          series={aovSeries}
+          onClick={() => navigate('/smartpos/reports/sales')}
         />
       </Grid>
     </>

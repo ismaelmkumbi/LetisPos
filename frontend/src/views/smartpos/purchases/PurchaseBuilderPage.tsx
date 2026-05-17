@@ -167,7 +167,7 @@ export default function PurchaseBuilderPage() {
   // Pre-fill payment amount with the balance due
   useEffect(() => {
     if (balanceDue > 0) setPayAmount(balanceDue);
-  }, [balanceDue]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [balanceDue]);
 
   const subtotal = lines.reduce((s, l) => s + l.unitPrice * l.qty, 0);
   const tax = lines.reduce((s, l) => s + l.unitPrice * l.qty * (l.taxRate / 100), 0);

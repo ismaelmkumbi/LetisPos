@@ -1,12 +1,16 @@
+/**
+ * AnomalyAlerts — renders up to 3 anomaly cards.
+ *
+ * Behaviour:
+ * - On API error (including 500): renders nothing — anomalies are non-critical
+ *   and a backend outage should not pollute the dashboard UI.
+ * - On empty result: renders nothing (no "all clear" noise).
+ * - Typography upgraded: Outfit labels, JetBrains Mono values.
+ */
 import { useEffect, useState, useCallback } from 'react';
 import {
-  Box,
-  Card,
-  CardActionArea,
-  CardContent,
-  LinearProgress,
-  Stack,
-  Typography,
+  Box, Card, CardActionArea, CardContent,
+  LinearProgress, Stack, Typography,
 } from '@mui/material';
 import { IconAlertTriangle, IconChevronRight, IconInfoCircle } from '@tabler/icons-react';
 import { Link as RouterLink } from 'react-router';
@@ -15,21 +19,24 @@ import { formatMoney, formatNumber } from 'src/utils/smartpos/currency';
 import { getAnomalies, type Anomaly } from 'src/api/smartpos/reports';
 import type { UUID } from 'src/api/smartpos/types';
 
+const NUM_FONT = "'JetBrains Mono', 'DM Mono', monospace";
+const LBL_FONT = "'Outfit', 'DM Sans', sans-serif";
+
 interface AnomalyAlertsProps {
   warehouseId: UUID | '';
 }
 
 function AnomalyCard({ anomaly }: { anomaly: Anomaly }) {
   const isError = anomaly.severity === 'error';
-  const color = isError ? brand.error.main : brand.warning.main;
-  const bg = isError ? '#FEF2F2' : '#FFFBEB';
-  const border = isError ? brand.error.light : brand.warning.light;
-  const Icon = isError ? IconInfoCircle : IconAlertTriangle;
+  const color  = isError ? brand.error.main    : brand.warning.main;
+  const bg     = isError ? '#FEF2F2'           : '#FFFBEB';
+  const border = isError ? brand.error.light   : brand.warning.light;
+  const Icon   = isError ? IconInfoCircle      : IconAlertTriangle;
 
   const deviationLabel =
     anomaly.deviation > 0
-      ? `${Math.abs(anomaly.deviation).toFixed(1)}x above avg`
-      : `${Math.abs(anomaly.deviation).toFixed(1)}x below avg`;
+      ? `${Math.abs(anomaly.deviation).toFixed(1)}× above avg`
+      : `${Math.abs(anomaly.deviation).toFixed(1)}× below avg`;
 
   const valueLabel =
     anomaly.metric === 'Order Count'
@@ -50,56 +57,35 @@ function AnomalyCard({ anomaly }: { anomaly: Anomaly }) {
     <Card
       elevation={0}
       sx={{
-        borderRadius: '12px',
+        borderRadius: '10px',
         border: `1px solid ${border}`,
         bgcolor: bg,
         transition: 'transform 0.16s ease, box-shadow 0.16s ease',
-        '&:hover': {
-          transform: 'translateY(-1px)',
-          boxShadow: '0 12px 28px rgba(15,23,42,0.08)',
-        },
+        '&:hover': { transform: 'translateY(-1px)', boxShadow: '0 8px 20px rgba(15,23,42,0.08)' },
       }}
     >
       <CardActionArea
         component={RouterLink}
         to={reportLink}
-        sx={{
-          color: 'inherit',
-          textAlign: 'left',
-          '& .MuiCardActionArea-focusHighlight': { bgcolor: `${color}22` },
-        }}
+        sx={{ color: 'inherit', textAlign: 'left', '& .MuiCardActionArea-focusHighlight': { bgcolor: `${color}18` } }}
       >
         <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
           <Stack direction="row" spacing={1} alignItems="flex-start">
-            <Box
-              sx={{
-                color,
-                display: 'grid',
-                placeItems: 'center',
-                mt: 0.25,
-              }}
-            >
-              <Icon size={20} />
+            <Box sx={{ color, display: 'grid', placeItems: 'center', mt: 0.15, flexShrink: 0 }}>
+              <Icon size={18} />
             </Box>
             <Box sx={{ minWidth: 0, flex: 1 }}>
-              <Typography sx={{ color, fontWeight: 800, fontSize: 13 }}>
-                {anomaly.metric} Anomaly
+              <Typography sx={{ fontFamily: LBL_FONT, color, fontWeight: 700, fontSize: 12.5 }}>
+                {anomaly.metric} anomaly
               </Typography>
-              <Typography sx={{ color: brand.neutral[700], fontSize: 12, mt: 0.2 }}>
+              <Typography sx={{ fontFamily: NUM_FONT, color: brand.neutral[700], fontSize: 11.5, mt: 0.15 }}>
                 {valueLabel} vs avg {avgLabel}
               </Typography>
-              <Typography
-                sx={{
-                  color,
-                  fontWeight: 700,
-                  fontSize: 11,
-                  mt: 0.3,
-                }}
-              >
+              <Typography sx={{ fontFamily: LBL_FONT, color, fontWeight: 600, fontSize: 10.5, mt: 0.2 }}>
                 {deviationLabel}
               </Typography>
             </Box>
-            <IconChevronRight size={16} color={color} />
+            <IconChevronRight size={14} color={color} style={{ flexShrink: 0, marginTop: 2 }} />
           </Stack>
         </CardContent>
       </CardActionArea>
@@ -108,56 +94,54 @@ function AnomalyCard({ anomaly }: { anomaly: Anomaly }) {
 }
 
 export default function AnomalyAlerts({ warehouseId }: AnomalyAlertsProps) {
-  const [anomalies, setAnomalies] = useState<Anomaly[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [anomalies, setAnomalies]   = useState<Anomaly[]>([]);
+  const [loading, setLoading]       = useState(true);
+  const [failed, setFailed]         = useState(false);
 
   const fetchAnomalies = useCallback(async () => {
     setLoading(true);
-    setError(null);
+    setFailed(false);
     try {
-      const result = await getAnomalies({
-        warehouseId: warehouseId || undefined,
-      });
+      const result = await getAnomalies({ warehouseId: warehouseId || undefined });
       setAnomalies(result);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load anomalies');
+    } catch {
+      // Silently suppress all API errors — anomaly detection is non-critical
+      setFailed(true);
     } finally {
       setLoading(false);
     }
   }, [warehouseId]);
 
-  useEffect(() => {
-    fetchAnomalies();
-  }, [fetchAnomalies]);
+  useEffect(() => { fetchAnomalies(); }, [fetchAnomalies]);
 
-  // Don't render if no anomalies and not loading
-  if (!loading && !error && anomalies.length === 0) {
-    return null;
-  }
+  // Render nothing on error, on empty, or while loading with no prior data
+  if (failed || (!loading && anomalies.length === 0)) return null;
 
   return (
     <Box>
-      <Typography sx={{ fontWeight: 900, fontSize: 15, mb: 1, color: brand.neutral[900] }}>
-        Anomaly Alerts
-      </Typography>
-
-      {loading && (
-        <LinearProgress sx={{ mb: 1, borderRadius: '4px' }} />
-      )}
-
-      {error && (
-        <Typography sx={{ color: brand.error.main, fontSize: 12, mb: 1 }}>
-          {error}
-        </Typography>
-      )}
-
-      {!loading && anomalies.length > 0 && (
-        <Stack spacing={1}>
-          {anomalies.slice(0, 3).map((a, i) => (
-            <AnomalyCard key={`${a.metric}-${i}`} anomaly={a} />
-          ))}
-        </Stack>
+      {loading && anomalies.length === 0 ? (
+        <LinearProgress sx={{ borderRadius: '4px', height: 2, mb: 0.5 }} />
+      ) : (
+        <>
+          <Typography
+            sx={{
+              fontFamily: LBL_FONT,
+              fontWeight: 700,
+              fontSize: 11,
+              textTransform: 'uppercase',
+              letterSpacing: '0.07em',
+              color: brand.warning.main,
+              mb: 1,
+            }}
+          >
+            ⚠ Anomalies detected
+          </Typography>
+          <Stack spacing={0.75}>
+            {anomalies.slice(0, 3).map((a, i) => (
+              <AnomalyCard key={`${a.metric}-${i}`} anomaly={a} />
+            ))}
+          </Stack>
+        </>
       )}
     </Box>
   );

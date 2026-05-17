@@ -230,23 +230,23 @@ export default function TenantListPage() {
 
   /* ── Close / Disable ── */
 
-  const handleClose = async (tenant: Tenant) => {
+  const handleClose = useCallback(async (tenant: Tenant) => {
     try {
       await closeTenant(tenant.id, 'Admin action');
       fetch();
     } catch {
       /* handled silently */
     }
-  };
+  }, [fetch]);
 
-  const handleDisable = async (tenant: Tenant) => {
+  const handleDisable = useCallback(async (tenant: Tenant) => {
     try {
       await disableTenant(tenant.id, 'Admin action');
       fetch();
     } catch {
       /* handled silently */
     }
-  };
+  }, [fetch]);
 
   /* ── Delete ── */
 
@@ -341,7 +341,7 @@ export default function TenantListPage() {
               next.has(t.id) ? next.delete(t.id) : next.add(t.id);
               setSelectedIds(next);
             }}
-            onClick={(e: any) => e.stopPropagation()}
+            onClick={(e: React.MouseEvent) => e.stopPropagation()}
             size="small"
           />
         ),
@@ -448,7 +448,7 @@ export default function TenantListPage() {
         ),
       },
     ],
-    [selectedIds],
+    [selectedIds, handleClose, handleDisable],
   );
 
   return (

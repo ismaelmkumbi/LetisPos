@@ -217,29 +217,49 @@ export default function DashboardGreetingBar({
       >
         {/* Greeting */}
         <Box sx={{ flex: '0 0 auto' }}>
-          <Stack direction="row" spacing={1} alignItems="center">
+          <Stack direction="row" spacing={0.75} alignItems="center">
             <Typography
               sx={{
-                fontWeight: 900,
+                fontFamily: "'Outfit', 'DM Sans', sans-serif",
+                fontWeight: 800,
                 fontSize: { xs: 19, md: 21 },
-                color: brand.neutral[900],
-                letterSpacing: '-0.02em',
+                color: isDark ? '#F1F5F9' : brand.neutral[900],
+                letterSpacing: '-0.025em',
                 lineHeight: 1.1,
               }}
             >
-              {salutation}, {name}
+              {salutation},{' '}
+              <Box
+                component="span"
+                sx={{ color: brand.primary[600] }}
+              >
+                {name}
+              </Box>
             </Typography>
-            <Box component="span" sx={{ fontSize: 20, lineHeight: 1 }}>
+            <Box component="span" sx={{ fontSize: 20, lineHeight: 1, ml: 0.5 }}>
               {wave}
             </Box>
           </Stack>
-          <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mt: 0.3 }}>
-            <Typography sx={{ color: brand.neutral[500], fontSize: 13 }}>
+          <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mt: 0.4 }}>
+            <Typography
+              sx={{
+                fontFamily: "'Outfit', 'DM Sans', sans-serif",
+                color: isDark ? brand.neutral[500] : brand.neutral[500],
+                fontSize: 13,
+                fontWeight: 400,
+              }}
+            >
               Here's what's happening with your business today.
             </Typography>
             {lastUpdated && (
-              <Typography sx={{ color: brand.neutral[400], fontSize: 11 }}>
-                Updated {timeAgo(lastUpdated)}
+              <Typography
+                sx={{
+                  fontFamily: "'JetBrains Mono', 'DM Mono', monospace",
+                  color: brand.neutral[400],
+                  fontSize: 10.5,
+                }}
+              >
+                · {timeAgo(lastUpdated)}
               </Typography>
             )}
             {onRefresh && (
