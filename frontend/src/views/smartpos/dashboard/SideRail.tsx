@@ -18,6 +18,7 @@ function AlertStrip({ tone, icon, title, subtitle, to }: AlertStripProps) {
     success: { color: brand.primary[600], bg: '#F0FDF4', border: brand.primary[100] },
     warning: { color: brand.warning.main, bg: '#FFFBEB', border: brand.warning.light },
     error: { color: brand.error.main, bg: '#FEF2F2', border: brand.error.light },
+    fraud: { color: brand.error.main, bg: '#FEF2F2', border: brand.error.light },
   };
   const current = map[tone];
   return (
@@ -73,6 +74,8 @@ interface DashboardSideRailProps {
   expiringBatchesCount: number;
   expiringUnitsAtRisk: number;
   anomalySlot?: React.ReactNode;
+  atRiskCustomerCount?: number;
+  atRiskRevenue?: number;
 }
 
 export default function DashboardSideRail({
@@ -83,6 +86,8 @@ export default function DashboardSideRail({
   expiringBatchesCount,
   expiringUnitsAtRisk,
   anomalySlot,
+  atRiskCustomerCount = 0,
+  atRiskRevenue = 0,
 }: DashboardSideRailProps) {
   return (
     <Stack
@@ -114,6 +119,15 @@ export default function DashboardSideRail({
               title={`${expiringBatchesCount} batch${expiringBatchesCount !== 1 ? 'es' : ''} expiring within 30 days`}
               subtitle={`${expiringUnitsAtRisk} unit${expiringUnitsAtRisk !== 1 ? 's' : ''} at risk — review expiry dates`}
               to="/smartpos/stock?expiring=30"
+            />
+          )}
+          {atRiskCustomerCount > 0 && (
+            <AlertStrip
+              tone="warning"
+              icon={<IconAlertTriangle size={22} />}
+              title={`${atRiskCustomerCount} high-value customer${atRiskCustomerCount !== 1 ? 's' : ''} at risk of churning`}
+              subtitle={`${formatMoney(atRiskRevenue)} in lifetime value — review retention`}
+              to="/smartpos/customers?segment=at-risk"
             />
           )}
           <AlertStrip
