@@ -14,6 +14,7 @@ import {
 import { listSales, type Sale } from 'src/api/smartpos/sales';
 import { listWarehouses, type Warehouse } from 'src/api/smartpos/inventory';
 import { getExpiringBatches } from 'src/api/smartpos/batches';
+import { getDemandForecast, getReorderRecommendations, getProfitOpportunities, type DemandForecast, type ReorderRecommendations, type ProfitOpportunities } from 'src/api/smartpos/dashboardIntelligence';
 import { useAuth } from 'src/context/smartpos/AuthContext';
 import { useOnboarding } from 'src/context/smartpos/OnboardingContext';
 import { CustomizerContext } from 'src/context/CustomizerContext';
@@ -36,6 +37,9 @@ import DashboardSideRail from './SideRail';
 import AnomalyAlerts from './AnomalyAlerts';
 import GoalProgress from './GoalProgress';
 import TopPerformers from './TopPerformers';
+import DemandForecastCard from './DemandForecastCard';
+import ReorderRecommendationsCard from './ReorderRecommendationsCard';
+import ProfitOpportunitiesCard from './ProfitOpportunitiesCard';
 
 import {
   seriesOrFallback,
@@ -73,6 +77,13 @@ export default function DashboardPage() {
     loadLayout(user?.tenantId ?? ''),
   );
   const loadedRef = useRef(false);
+
+  const [demandForecast, setDemandForecast] = useState<DemandForecast | null>(null);
+  const [reorderRecs, setReorderRecs] = useState<ReorderRecommendations | null>(null);
+  const [profitOpps, setProfitOpps] = useState<ProfitOpportunities | null>(null);
+  const [demandLoading, setDemandLoading] = useState(false);
+  const [reorderLoading, setReorderLoading] = useState(false);
+  const [profitLoading, setProfitLoading] = useState(false);
 
   useEffect(() => {
     if (onboardingState.isComplete) {
@@ -217,6 +228,38 @@ export default function DashboardPage() {
   useEffect(() => {
     fetchDashboardData();
   }, [fetchDashboardData]);
+
+  const fetchIntelligenceModules = useCallback(async () => {
+    if (!user?.tenantId) return;
+    const wid = warehouseId || undefined;
+
+    // Fire all 3 in parallel, each non-blocking
+    setDemandLoading(true);
+    setReorderLoading(true);
+    setProfitLoading(true);
+
+    try {
+      const resp = await getDemandForecast(7, wid);
+      if (resp.success && resp.data) setDemandForecast(resp.data);
+    } catch { /* silent */ }
+    finally { setDemandLoading(false); }
+
+    try {
+      const resp = await getReorderRecommendations(wid);
+      if (resp.success && resp.data) setReorderRecs(resp.data);
+    } catch { /* silent */ }
+    finally { setReorderLoading(false); }
+
+    try {
+      const resp = await getProfitOpportunities(wid);
+      if (resp.success && resp.data) setProfitOpps(resp.data);
+    } catch { /* silent */ }
+    finally { setProfitLoading(false); }
+  }, [user?.tenantId, warehouseId]);
+
+  useEffect(() => {
+    fetchIntelligenceModules();
+  }, [fetchIntelligenceModules]);
 
   // Auto-refresh every 60 seconds
   usePolling(fetchDashboardData, 60000);
@@ -484,6 +527,41 @@ export default function DashboardPage() {
                     period={period}
                     warehouseId={warehouseId}
                     limit={5}
+                  />
+                </Box>
+              )}
+
+              {/* Demand Forecast + Profit Opportunities */}
+              {(showSection('demandForecast') || showSection('profitOpportunities')) && (
+                <Grid container spacing={1.5} sx={{ mb: 1.5 }}>
+                  {showSection('demandForecast') && (
+                    <Grid size={{ xs: 12, lg: 7 }}>
+                      <DemandForecastCard
+                        data={demandForecast}
+                        loading={demandLoading}
+                        isDark={isDark}
+                      />
+                    </Grid>
+                  )}
+                  {showSection('profitOpportunities') && (
+                    <Grid size={{ xs: 12, lg: 5 }}>
+                      <ProfitOpportunitiesCard
+                        data={profitOpps}
+                        loading={profitLoading}
+                        isDark={isDark}
+                      />
+                    </Grid>
+                  )}
+                </Grid>
+              )}
+
+              {/* Reorder Recommendations */}
+              {showSection('reorderRecommendations') && (
+                <Box sx={{ mb: 1.5 }}>
+                  <ReorderRecommendationsCard
+                    data={reorderRecs}
+                    loading={reorderLoading}
+                    isDark={isDark}
                   />
                 </Box>
               )}
