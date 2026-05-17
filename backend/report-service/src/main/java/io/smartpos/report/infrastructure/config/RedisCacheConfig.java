@@ -30,6 +30,9 @@ import java.util.stream.Stream;
  *   top-customers   —                                                      5 min
  *   inventory       — per-warehouse summary                                 2 min
  *   profit-loss     — heaviest query; computed from multiple Feign calls — 10 min
+ *   dashboard-intelligence  — AI feature status / heartbeat           —  5 min
+ *   dashboard-trends        — trend projections                       — 30 min
+ *   dashboard-executive-summary — exec-level P&L + highlight summary  —  1 h
  */
 @Configuration
 public class RedisCacheConfig {
@@ -40,6 +43,9 @@ public class RedisCacheConfig {
     public static final String CACHE_TOP_CUSTOMERS = "top-customers";
     public static final String CACHE_INVENTORY     = "inventory";
     public static final String CACHE_PROFIT_LOSS   = "profit-loss";
+    public static final String CACHE_DASHBOARD_INTELLIGENCE     = "dashboard-intelligence";
+    public static final String CACHE_DASHBOARD_TRENDS           = "dashboard-trends";
+    public static final String CACHE_DASHBOARD_EXECUTIVE_SUMMARY = "dashboard-executive-summary";
 
     public static String tenantKey(Object... parts) {
         return Stream.concat(Stream.of(TenantContext.require()), Arrays.stream(parts))
@@ -83,7 +89,10 @@ public class RedisCacheConfig {
                         CACHE_TOP_PRODUCTS,  base.entryTtl(Duration.ofMinutes(5)),
                         CACHE_TOP_CUSTOMERS, base.entryTtl(Duration.ofMinutes(5)),
                         CACHE_INVENTORY,     base.entryTtl(Duration.ofMinutes(2)),
-                        CACHE_PROFIT_LOSS,   base.entryTtl(Duration.ofMinutes(10))
+                        CACHE_PROFIT_LOSS,   base.entryTtl(Duration.ofMinutes(10)),
+                        CACHE_DASHBOARD_INTELLIGENCE,     base.entryTtl(Duration.ofMinutes(5)),
+                        CACHE_DASHBOARD_TRENDS,           base.entryTtl(Duration.ofMinutes(30)),
+                        CACHE_DASHBOARD_EXECUTIVE_SUMMARY, base.entryTtl(Duration.ofHours(1))
                 ))
                 .build();
     }
