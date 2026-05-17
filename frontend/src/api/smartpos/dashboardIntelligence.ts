@@ -3,6 +3,7 @@
  * Endpoints: demand-forecast, reorder-recommendations, profit-opportunities.
  */
 import { api } from './client';
+import type { UUID } from './types';
 
 /** Generic API response envelope returned by dashboard microservice endpoints. */
 export interface UnifiedResponse<T> {
@@ -12,22 +13,20 @@ export interface UnifiedResponse<T> {
   statusCode?: number;
 }
 
-// ── Demand Forecast ─────────────────────────────────────────────────────────
+// ── Demand Forecast ───────────────────────────────────────────────────────────
 
-export interface ForecastEntry {
-  productId: string;
+export interface ForecastedProduct {
+  productId: UUID;
   productName: string;
-  projectedDemand: number;
+  trend: 'UP' | 'DOWN' | 'STABLE';
   confidence: number; // 0-100
-  trend: string; // "UP" | "DOWN" | "STABLE"
-  weeksOfData: number;
+  projectedDemand: number;
 }
 
 export interface DemandForecast {
-  forecast: ForecastEntry[];
-  aggregateProjectedRevenue: number;
-  dataStartDate: string;
-  dataEndDate: string;
+  products: ForecastedProduct[];
+  dateFrom: string;
+  dateTo: string;
 }
 
 export async function getDemandForecast(
@@ -41,21 +40,22 @@ export async function getDemandForecast(
   return data;
 }
 
-// ── Reorder Recommendations ─────────────────────────────────────────────────
+// ── Reorder Recommendations ──────────────────────────────────────────────────
 
-export interface ReorderEntry {
-  productId: string;
+export interface ReorderRecommendationItem {
+  productId: UUID;
   productName: string;
   currentStock: number;
   minQty: number;
   suggestedQty: number;
+  supplierId?: UUID | null;
+  urgency: 'HIGH' | 'MEDIUM' | 'LOW';
   dailyVelocity: number;
-  urgency: string; // "HIGH" | "MEDIUM" | "LOW"
   expectedShortageDate?: string | null;
 }
 
 export interface ReorderRecommendations {
-  recommendations: ReorderEntry[];
+  recommendations: ReorderRecommendationItem[];
 }
 
 export async function getReorderRecommendations(
@@ -68,20 +68,20 @@ export async function getReorderRecommendations(
   return data;
 }
 
-// ── Profit Opportunities ────────────────────────────────────────────────────
+// ── Profit Opportunities ─────────────────────────────────────────────────────
 
-export interface OpportunityEntry {
-  productId: string;
+export interface UnderpricedItem {
+  productId: UUID;
   productName: string;
   category: string;
-  currentMargin: number; // percentage
-  unitsSold30d: number;
-  estimatedMonthlyImpact: number;
+  currentMargin: number; // percentage (e.g. 8.5 = 8.5%)
+  suggestedMargin?: number | null;
+  estimatedMonthlyImpact: number; // additional revenue if margin corrected
   reason: string;
 }
 
 export interface ProfitOpportunities {
-  opportunities: OpportunityEntry[];
+  items: UnderpricedItem[];
   totalEstimatedMonthlyImpact: number;
 }
 
