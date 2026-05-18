@@ -55,7 +55,7 @@ public class DashboardService {
         List<SalesFeign.SalesSeriesPoint> series = safeSeries(from, to, warehouseId);
         List<SalesFeign.TopProduct>       tp     = safeTopProducts(from, to, warehouseId);
 
-        // Net profit (rough) = sales.net - purchases.net (≈cogs) - expenses.total
+        // Net profit = sales.net - cogs - expenses.total
         BigDecimal cogs = safeCogs(from, to, warehouseId);
         BigDecimal netProfit = nz(s.net()).subtract(cogs).subtract(nz(exp.total()));
 
