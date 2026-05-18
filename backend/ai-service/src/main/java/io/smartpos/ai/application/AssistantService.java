@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.smartpos.ai.api.dto.AssistantDtos;
 import io.smartpos.ai.api.dto.AssistantDtos.DraftResponse;
 import io.smartpos.ai.api.dto.AssistantDtos.ToolResult;
+import io.smartpos.ai.api.dto.IntentClassification;
 import io.smartpos.ai.application.provider.AiProvider;
 import io.smartpos.ai.application.provider.AiRouter;
 import io.smartpos.ai.domain.model.AiInvocation;
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -24,34 +26,84 @@ import java.util.UUID;
 public class AssistantService {
 
     private static final Logger log = LoggerFactory.getLogger(AssistantService.class);
-    private static final int MAX_TOOL_ROUNDS = 5;
 
     private final AiRouter aiRouter;
     private final AssistantPromptBuilder promptBuilder;
     private final AssistantToolCatalog toolCatalog;
     private final AssistantToolExecutor toolExecutor;
     private final AiInvocationRepository invocations;
+    private final ConversationStore conversationStore;
+    private final ConversationSummarizer summarizer;
+    private final IntentClassifierService classifier;
     private final ObjectMapper om = new ObjectMapper();
 
     public AssistantService(AiRouter aiRouter, AssistantPromptBuilder promptBuilder,
                             AssistantToolCatalog toolCatalog,
                             AssistantToolExecutor toolExecutor,
-                            AiInvocationRepository invocations) {
+                            AiInvocationRepository invocations,
+                            ConversationStore conversationStore,
+                            ConversationSummarizer summarizer,
+                            IntentClassifierService classifier) {
         this.aiRouter = aiRouter;
         this.promptBuilder = promptBuilder;
         this.toolCatalog = toolCatalog;
         this.toolExecutor = toolExecutor;
         this.invocations = invocations;
+        this.conversationStore = conversationStore;
+        this.summarizer = summarizer;
+        this.classifier = classifier;
     }
 
-    public SseEmitter chat(AssistantDtos.ChatRequest request, Jwt jwt, UUID userId) {
+    public SseEmitter chat(AssistantDtos.ChatRequest request, Jwt jwt,
+                           UUID userId, UUID conversationIdParam) {
         UUID tenantId = TenantContext.require();
-        String systemPrompt = promptBuilder.build(jwt, request.language());
-        List<AssistantToolCatalog.ToolDef> tools = toolCatalog.scopedTools(jwt);
-        String userMessage = request.message();
         @SuppressWarnings("unchecked")
         var roles = (List<String>) jwt.getClaims().get("roles");
         boolean isSuperAdmin = roles != null && roles.contains("SUPER_ADMIN");
+
+        // 1. Classify intent
+        IntentClassification intent = classifier.classify(request.message());
+
+        // 2. Determine role profile
+        RoleProfile profile = RoleProfile.fromJwt(roles);
+        int effectiveMaxRounds = profile.maxToolRounds();
+
+        // 3. Determine language (intent can override client preference)
+        String effectiveLanguage = intent.language() == IntentClassification.Language.SWAHILI
+            ? "sw" : request.language();
+
+        // 4. Handle conversation: create new or load existing
+        UUID convId = conversationIdParam != null ? conversationIdParam : UUID.randomUUID();
+        List<Map<String, Object>> history = conversationStore.loadMessages(tenantId, convId);
+
+        // Extract summary from history (look for the system message with "Previous conversation summary:")
+        String summary = null;
+        for (Map<String, Object> msg : history) {
+            if ("system".equals(msg.get("role"))
+                && String.valueOf(msg.get("content")).startsWith("Previous conversation summary")) {
+                summary = String.valueOf(msg.get("content"))
+                    .replace("Previous conversation summary: ", "");
+                break;
+            }
+        }
+
+        // Remove summary system messages from history (they were synthetic)
+        List<Map<String, Object>> cleanHistory = new ArrayList<>();
+        for (Map<String, Object> msg : history) {
+            if (!("system".equals(msg.get("role"))
+                && String.valueOf(msg.get("content")).startsWith("Previous conversation summary"))) {
+                cleanHistory.add(msg);
+            }
+        }
+
+        // Add current user message to history
+        cleanHistory.add(Map.of("role", "user", "content", request.message()));
+
+        // 5. Build enhanced prompt
+        String systemPrompt = promptBuilder.build(jwt, effectiveLanguage, intent, summary, profile);
+
+        // 6. Narrowed tools using intent
+        List<AssistantToolCatalog.ToolDef> tools = toolCatalog.scopedTools(jwt, request.message());
 
         // Capture auth for background thread
         String jwtToken = jwt.getTokenValue();
@@ -59,12 +111,21 @@ public class AssistantService {
 
         SseEmitter emitter = new SseEmitter(120_000L); // 2 minute timeout
 
+        // Emit conversationId meta event for new conversations
+        if (conversationIdParam == null) {
+            try {
+                emitter.send(SseEmitter.event().name("meta")
+                    .data(Map.of("conversationId", convId.toString())));
+            } catch (IOException ignored) {}
+        }
+
         new Thread(() -> {
             try {
                 // Propagate security context to background thread for Feign calls
                 org.springframework.security.core.context.SecurityContextHolder.setContext(securityCtx);
                 TenantContext.set(tenantId);
-                processConversation(emitter, systemPrompt, userMessage, tools, userId, tenantId, 0, isSuperAdmin);
+                processConversation(emitter, systemPrompt, cleanHistory, tools,
+                    userId, tenantId, convId, 0, isSuperAdmin, effectiveMaxRounds, profile);
                 emitter.complete();
             } catch (Exception e) {
                 log.error("Assistant chat error", e);
@@ -86,11 +147,13 @@ public class AssistantService {
     }
 
     private void processConversation(SseEmitter emitter, String systemPrompt,
-                                      String userMessage,
+                                      List<Map<String, Object>> messages,
                                       List<AssistantToolCatalog.ToolDef> tools,
-                                      UUID userId, UUID tenantId, int round,
-                                      boolean isSuperAdmin) throws IOException {
-        if (round >= MAX_TOOL_ROUNDS) {
+                                      UUID userId, UUID tenantId,
+                                      UUID conversationId, int round,
+                                      boolean isSuperAdmin, int maxRounds,
+                                      RoleProfile profile) throws IOException {
+        if (round >= maxRounds) {
             emitter.send(SseEmitter.event().name("done").data("{}"));
             return;
         }
@@ -106,7 +169,7 @@ public class AssistantService {
         AiProvider.ToolCallResult result;
         String error = null;
         try {
-            result = provider.completeWithTools(systemPrompt, userMessage,
+            result = provider.completeWithTools(systemPrompt, messages,
                 openAiTools.isEmpty() ? null : openAiTools);
         } catch (Exception e) {
             log.warn("AI provider tool call failed, falling back to simple completion", e);
@@ -114,7 +177,7 @@ public class AssistantService {
             // Fallback: simple completion without tools
             AiProvider.Result simpleResult = null;
             try {
-                simpleResult = provider.complete(systemPrompt, userMessage);
+                simpleResult = provider.complete(systemPrompt, messages);
             } catch (Exception e2) {
                 error = e2.getMessage();
                 simpleResult = new AiProvider.Result(
@@ -127,12 +190,19 @@ public class AssistantService {
 
         int duration = (int) (System.currentTimeMillis() - t0);
 
+        // Extract current user message for logging and synthesis
+        String currentUserMessage = messages.stream()
+            .filter(m -> "user".equals(m.get("role")))
+            .map(m -> String.valueOf(m.getOrDefault("content", "")))
+            .reduce((first, second) -> second)
+            .orElse("");
+
         // Log invocation
         invocations.save(AiInvocation.builder()
             .kind("ASSISTANT_CHAT")
             .provider(provider.name()).model(provider.model())
             .promptTokens(result.promptTokens()).completionTokens(result.completionTokens())
-            .inputSummary(userMessage.substring(0, Math.min(200, userMessage.length())))
+            .inputSummary(currentUserMessage.substring(0, Math.min(200, currentUserMessage.length())))
             .output(result.text() + (result.toolCalls().isEmpty() ? "" : " [tool calls: " + result.toolCalls().size() + "]"))
             .error(error)
             .userId(userId).tenantId(tenantId)
@@ -176,9 +246,9 @@ public class AssistantService {
                                 .data(Map.of("message", e.getMessage(), "code", "TOOL_ERROR")));
                         }
                     } else {
-                        String summary = "Execute " + tc.name();
+                        String draftSummary = "Execute " + tc.name();
                         var draft = toolExecutor.createDraft(tc.name(), parsedArgs,
-                            summary, userId, tenantId);
+                            draftSummary, userId, tenantId);
                         emitter.send(SseEmitter.event().name("draft").data(Map.of(
                             "draftId", draft.getId().toString(),
                             "toolName", draft.getToolName(),
@@ -211,12 +281,39 @@ public class AssistantService {
                 }
             }
 
-            String synthesis = synthesizeToolAnswer(provider, systemPrompt, userMessage,
+            String synthesis = synthesizeToolAnswer(provider, systemPrompt, currentUserMessage,
                 collectedToolResults, toolErrors);
             if (synthesis != null && !synthesis.isBlank()) {
                 emitter.send(SseEmitter.event().name("token")
                     .data(Map.of("token", synthesis)));
             }
+        }
+
+        // Save conversation history
+        List<ConversationStore.Message> savedMessages = new ArrayList<>();
+        for (Map<String, Object> msg : messages) {
+            savedMessages.add(new ConversationStore.Message(
+                String.valueOf(msg.get("role")),
+                String.valueOf(msg.getOrDefault("content", "")),
+                null, null, null));
+        }
+        // Also save the assistant's response
+        if (result.text() != null && !result.text().isBlank()) {
+            savedMessages.add(new ConversationStore.Message(
+                "assistant", result.text(), null, null, null));
+        }
+        // Also save tool calls
+        for (var tc : result.toolCalls()) {
+            savedMessages.add(new ConversationStore.Message(
+                "assistant", "",
+                List.of(Map.of("id", tc.id(), "name", tc.name(), "arguments", tc.arguments())),
+                tc.id(), null));
+        }
+        conversationStore.save(tenantId, conversationId, savedMessages, null);
+
+        // Trigger summarization if conversation is getting long
+        if (savedMessages.size() > 20) {
+            // Summarization deferred to a follow-up task
         }
 
         emitter.send(SseEmitter.event().name("done").data("{}"));
