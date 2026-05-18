@@ -76,7 +76,7 @@ import {
   IconCategory,
   IconPalette,
   IconAd,
-  IconBuild,
+  IconTools,
 } from '@tabler/icons-react';
 
 export interface MenuItem {
@@ -276,7 +276,7 @@ export function buildSmartPosMenu(t: TFunction): MenuItem[] {
     { id: uid(), title: 'API Keys', icon: IconKey, href: '/smartpos/admin/api-keys', minPlan: 'PROFESSIONAL' },
     { id: uid(), title: 'Error Logs', icon: IconBug, href: '/smartpos/admin/error-logs' },
     { id: uid(), title: 'Backups', icon: IconDownload, href: '/smartpos/admin/backups' },
-    { id: uid(), title: 'Troubleshooting', icon: IconBuild, href: '/smartpos/admin/troubleshooting' },
+    { id: uid(), title: 'Troubleshooting', icon: IconTools, href: '/smartpos/admin/troubleshooting' },
     { id: uid(), title: 'Subscription & Billing', icon: IconCreditCard, href: '/smartpos/admin/billing' },
     // ── Tenants & Subscriptions ─────────────────────────────────────────
     {
