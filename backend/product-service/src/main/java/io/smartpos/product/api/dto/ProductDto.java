@@ -19,6 +19,7 @@ public record ProductDto(
         UUID subCategoryId,
         UUID brandId,
         UUID unitId,
+        UUID supplierId,
         BigDecimal cost,
         BigDecimal price,
         // Multi-tier pricing (Stocky parity)
@@ -55,7 +56,7 @@ public record ProductDto(
     public static ProductDto from(Product p) {
         return new ProductDto(
                 p.getId(), p.getCode(), p.getName(), p.getDescription(),
-                p.getCategoryId(), p.getSubCategoryId(), p.getBrandId(), p.getUnitId(),
+                p.getCategoryId(), p.getSubCategoryId(), p.getBrandId(), p.getUnitId(), p.getSupplierId(),
                 p.getCost(), p.getPrice(),
                 p.getWholesalePrice(), p.getMinPrice(), p.getPoints(),
                 p.getTaxMethod(), p.getTaxRate(),

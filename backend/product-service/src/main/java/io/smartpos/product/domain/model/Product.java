@@ -41,6 +41,7 @@ public class Product {
     @Column(name = "sub_category_id") private UUID subCategoryId;
     @Column(name = "brand_id")        private UUID brandId;
     @Column(name = "unit_id")         private UUID unitId;
+    @Column(name = "supplier_id")     private UUID supplierId;
 
     /** Default barcode symbology used when auto-generating a barcode. */
     @Column(name = "barcode_symbology", nullable = false, length = 16)

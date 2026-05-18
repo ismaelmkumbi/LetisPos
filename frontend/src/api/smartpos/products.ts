@@ -364,11 +364,50 @@ export async function searchBarcodes(params: BarcodeSearchParams = {}): Promise<
 
 // ---------- Image upload ----------
 
-export async function uploadProductImage(file: File): Promise<{ url: string }> {
-  const form = new FormData();
-  form.append('file', file);
-  const { data } = await api.post<{ url: string }>('/api/v1/products/images', form, {
-    headers: { 'Content-Type': 'multipart/form-data' },
+const MAX_DIMENSION = 1200;
+const MAX_BYTES = 2 * 1024 * 1024; // 2MB target after compression
+
+async function compressImage(file: File): Promise<Blob> {
+  // Only compress images that are large or high-res
+  if (file.size <= MAX_BYTES) return file;
+
+  return new Promise((resolve) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const { width, height } = img;
+      if (width <= MAX_DIMENSION && height <= MAX_DIMENSION && file.size <= MAX_BYTES * 2) {
+        resolve(file);
+        return;
+      }
+      const scale = Math.min(MAX_DIMENSION / Math.max(width, height), 1);
+      const w = Math.round(width * scale);
+      const h = Math.round(height * scale);
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) { resolve(file); return; }
+      ctx.drawImage(img, 0, 0, w, h);
+      canvas.toBlob(
+        (blob) => {
+          resolve(blob && blob.size < file.size ? blob : file);
+        },
+        'image/jpeg',
+        0.85,
+      );
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
+    img.src = url;
   });
+}
+
+export async function uploadProductImage(file: File): Promise<{ url: string }> {
+  const compressed = await compressImage(file);
+  const form = new FormData();
+  form.append('file', compressed, file.name || 'image.jpg');
+  // Do NOT set Content-Type manually — the browser must set it with the boundary
+  const { data } = await api.post<{ url: string }>('/api/v1/products/images', form);
   return data;
 }

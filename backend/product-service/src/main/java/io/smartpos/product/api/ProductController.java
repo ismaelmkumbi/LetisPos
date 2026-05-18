@@ -1,17 +1,12 @@
 package io.smartpos.product.api;
 
-import io.smartpos.product.api.dto.BulkCreateProductsRequest;
-import io.smartpos.product.api.dto.BulkCreateProductsResponse;
-import io.smartpos.product.api.dto.CreateProductRequest;
-import io.smartpos.product.api.dto.ImageUploadResponse;
-import io.smartpos.product.api.dto.ImportOpeningStockRequest;
-import io.smartpos.product.api.dto.ImportOpeningStockResponse;
-import io.smartpos.product.api.dto.ImportUpdateOnlyRequest;
-import io.smartpos.product.api.dto.ImportUpdateOnlyResponse;
-import io.smartpos.product.api.dto.ProductDto;
-import io.smartpos.product.api.dto.UpdateProductRequest;
+import io.smartpos.product.api.dto.*;
+import io.smartpos.product.application.ProductBatchService;
 import io.smartpos.product.application.ProductService;
+import io.smartpos.product.domain.model.PriceHistory;
+import io.smartpos.product.domain.model.ProductBatch;
 import io.smartpos.product.infrastructure.storage.ImageUploadService;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,10 +15,19 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Slf4j
@@ -33,6 +37,7 @@ import java.util.UUID;
 public class ProductController {
 
     private final ProductService productService;
+    private final ProductBatchService batchService;
     private final ImageUploadService imageUploadService;
 
     @GetMapping
@@ -40,20 +45,37 @@ public class ProductController {
     public Page<ProductDto> search(@RequestParam(required = false) String search,
                                    @RequestParam(required = false) UUID categoryId,
                                    @RequestParam(required = false) UUID brandId,
+                                   @RequestParam(required = false) UUID supplierId,
                                    @RequestParam(required = false) Boolean status,
                                    @RequestParam(required = false) Boolean featured,
                                    Pageable pageable) {
-        return productService.search(search, categoryId, brandId, status, featured, pageable);
+        return productService.search(search, categoryId, brandId, supplierId, status, featured, pageable);
+    }
+
+    @GetMapping("/export")
+    @PreAuthorize("hasAuthority('product.view')")
+    public void exportCsv(@RequestParam(required = false) String search,
+                          @RequestParam(required = false) UUID categoryId,
+                          @RequestParam(required = false) UUID brandId,
+                          @RequestParam(required = false) Boolean status,
+                          @RequestParam(required = false) Boolean featured,
+                          HttpServletResponse response) throws IOException {
+        productService.exportCsv(search, categoryId, brandId, status, featured, response);
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAuthority('product.view')")
     public ProductDto get(@PathVariable UUID id) { return productService.get(id); }
 
+    @GetMapping("/{id}/price-history")
+    @PreAuthorize("hasAuthority('product.view')")
+    public Page<PriceHistory> priceHistory(@PathVariable UUID id, Pageable pageable) {
+        return productService.priceHistory(id, pageable);
+    }
+
     @GetMapping("/by-barcode/{barcode}")
     @PreAuthorize("hasAuthority('product.view') or hasAuthority('pos.use')")
     public ProductDto byBarcode(@PathVariable String barcode) {
-        // Two-step: barcode → productId, then id → ProductDto (both cached).
         ProductService.BarcodeLookup lookup = productService.lookupByBarcode(barcode);
         return productService.get(lookup.productId());
     }
@@ -64,12 +86,13 @@ public class ProductController {
         return ResponseEntity.status(HttpStatus.CREATED).body(productService.create(req));
     }
 
-    /**
-     * Mint and return the next available SKU (e.g. {@code PROD-000042}). Each
-     * call consumes a value from {@code product_code_seq}, so the UI's
-     * "Generate" button receives a guaranteed-unique code it can show in the
-     * form. Cancelling the form simply leaves a gap — uniqueness is preserved.
-     */
+    @PostMapping("/{id}/duplicate")
+    @PreAuthorize("hasAuthority('product.create')")
+    public ResponseEntity<ProductDto> duplicate(@PathVariable UUID id,
+                                                 @Valid @RequestBody DuplicateProductRequest req) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(productService.duplicate(id, req));
+    }
+
     @GetMapping("/next-sku")
     @PreAuthorize("hasAuthority('product.create')")
     public NextSkuResponse nextSku() {
@@ -78,20 +101,33 @@ public class ProductController {
 
     public record NextSkuResponse(String code) {}
 
-    /**
-     * Bulk create — typically called by the AI import wizard.
-     * Returns 200 with per-row created/failed details (partial success allowed).
-     */
     @PostMapping("/bulk")
     @PreAuthorize("hasAuthority('product.create')")
     public BulkCreateProductsResponse bulkCreate(@Valid @RequestBody BulkCreateProductsRequest req) {
         return productService.bulkCreate(req);
     }
 
+    @PostMapping("/batch-status")
+    @PreAuthorize("hasAuthority('product.update')")
+    public BatchStatusResult batchStatus(@Valid @RequestBody BatchStatusRequest req) {
+        int count = productService.batchStatus(req);
+        return new BatchStatusResult(count);
+    }
+
+    public record BatchStatusResult(int updated) {}
+
+    @PostMapping("/price/bulk-update")
+    @PreAuthorize("hasAuthority('product.update')")
+    public BulkPriceUpdateResponse bulkPriceUpdate(@Valid @RequestBody BulkPriceUpdateRequest req) {
+        return productService.bulkPriceUpdate(req);
+    }
+
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('product.update')")
-    public ProductDto update(@PathVariable UUID id, @RequestBody UpdateProductRequest req) {
-        return productService.update(id, req);
+    public ProductDto update(@PathVariable UUID id, @RequestBody UpdateProductRequest req,
+                              @AuthenticationPrincipal Jwt jwt) {
+        UUID userId = jwt != null ? UUID.fromString(jwt.getSubject()) : null;
+        return productService.update(id, req, userId);
     }
 
     @DeleteMapping("/{id}")
@@ -119,24 +155,18 @@ public class ProductController {
         }
         String contentType = file.getContentType();
         if (contentType == null || !contentType.startsWith("image/")) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Only image files are accepted. Got: " + contentType);
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only image files are accepted. Got: " + contentType);
         }
-        if (file.getSize() > 5 * 1024 * 1024) {
-            throw new ResponseStatusException(HttpStatus.PAYLOAD_TOO_LARGE,
-                    "Image must be under 5 MB");
+        if (file.getSize() > 10 * 1024 * 1024) {
+            throw new ResponseStatusException(HttpStatus.PAYLOAD_TOO_LARGE, "Image must be under 10 MB");
         }
         String originalName = file.getOriginalFilename();
         String ext = "jpg";
         if (originalName != null && originalName.contains(".")) {
             ext = originalName.substring(originalName.lastIndexOf('.') + 1).toLowerCase();
-        } else if ("image/png".equals(contentType)) {
-            ext = "png";
-        } else if ("image/webp".equals(contentType)) {
-            ext = "webp";
-        } else if ("image/gif".equals(contentType)) {
-            ext = "gif";
-        }
+        } else if ("image/png".equals(contentType)) { ext = "png";
+        } else if ("image/webp".equals(contentType)) { ext = "webp";
+        } else if ("image/gif".equals(contentType)) { ext = "gif"; }
         try {
             String url = imageUploadService.upload(file.getBytes(), ext, contentType);
             return ResponseEntity.status(HttpStatus.CREATED).body(new ImageUploadResponse(url));
@@ -145,5 +175,77 @@ public class ProductController {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
                     "Failed to upload image: " + e.getMessage());
         }
+    }
+
+    // ---- Batches ----
+
+    @GetMapping("/batches")
+    @PreAuthorize("hasAuthority('product.view')")
+    public List<ProductBatch> listBatches() { return batchService.list(); }
+
+    @GetMapping("/{productId}/batches")
+    @PreAuthorize("hasAuthority('product.view')")
+    public List<ProductBatch> productBatches(@PathVariable UUID productId) {
+        return batchService.byProduct(productId);
+    }
+
+    @GetMapping("/batches/expiring")
+    @PreAuthorize("hasAuthority('product.view')")
+    public List<ProductBatch> expiringBatches(@RequestParam(defaultValue = "#{T(java.time.LocalDate).now().plusDays(30)}") LocalDate before) {
+        return batchService.expiring(before);
+    }
+
+    @PostMapping("/batches")
+    @PreAuthorize("hasAuthority('product.update')")
+    public ResponseEntity<ProductBatch> createBatch(@RequestBody ProductBatch batch) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(batchService.create(batch));
+    }
+
+    @PutMapping("/batches/{id}")
+    @PreAuthorize("hasAuthority('product.update')")
+    public ProductBatch updateBatch(@PathVariable UUID id, @RequestBody ProductBatch batch) {
+        return batchService.update(id, batch);
+    }
+
+    @DeleteMapping("/batches/{id}")
+    @PreAuthorize("hasAuthority('product.update')")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteBatch(@PathVariable UUID id) { batchService.delete(id); }
+
+    // ---- File import (CSV) ----
+
+    @PostMapping(value = "/import/file", consumes = "multipart/form-data")
+    @PreAuthorize("hasAuthority('product.create')")
+    public BulkCreateProductsResponse importFile(@RequestParam("file") MultipartFile file) throws IOException {
+        if (file.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "File is empty");
+        }
+        List<CreateProductRequest> items = new ArrayList<>();
+        try (BufferedReader r = new BufferedReader(new InputStreamReader(file.getInputStream()))) {
+            String header = r.readLine();
+            String line;
+            while ((line = r.readLine()) != null) {
+                String[] cols = line.split(",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)", -1);
+                if (cols.length < 5) continue;
+                String code = clean(cols[0]);
+                String name = clean(cols[1]);
+                BigDecimal cost = cols.length > 2 ? parseDecimal(cols[2]) : BigDecimal.ZERO;
+                BigDecimal price = cols.length > 3 ? parseDecimal(cols[3]) : BigDecimal.ZERO;
+                items.add(new CreateProductRequest(code, name, null, null, null, null, null,
+                        cost, price, null, null, null, null, null, null, null,
+                        true, true, false, false, null, "CODE128", null, null,
+                        null, null, null, null, false, false, null, null, null, null));
+            }
+        }
+        return productService.bulkCreate(new BulkCreateProductsRequest(items));
+    }
+
+    private static String clean(String s) {
+        if (s == null) return "";
+        return s.replaceAll("^\"|\"$", "").trim();
+    }
+
+    private static BigDecimal parseDecimal(String s) {
+        try { return new BigDecimal(clean(s)); } catch (Exception e) { return BigDecimal.ZERO; }
     }
 }

@@ -31,9 +31,13 @@ public interface ProductRepository extends JpaRepository<Product, UUID> {
     @Query("""
            SELECT p FROM Product p
            WHERE (COALESCE(:search, '') = '' OR LOWER(p.name) LIKE LOWER(CONCAT('%', :search, '%'))
-                                            OR LOWER(p.code) LIKE LOWER(CONCAT('%', :search, '%')))
+                                            OR LOWER(p.code) LIKE LOWER(CONCAT('%', :search, '%'))
+                                            OR EXISTS (SELECT 1 FROM ProductBarcode pb
+                                                       WHERE pb.productId = p.id
+                                                         AND LOWER(pb.barcode) LIKE LOWER(CONCAT('%', :search, '%'))))
              AND (:categoryId IS NULL OR p.categoryId = :categoryId)
              AND (:brandId    IS NULL OR p.brandId    = :brandId)
+             AND (:supplierId IS NULL OR p.supplierId = :supplierId)
              AND (:status     IS NULL OR p.status     = :status)
              AND (:featured   IS NULL OR p.featured   = :featured)
              AND p.tenantId = :tenantId
@@ -41,6 +45,7 @@ public interface ProductRepository extends JpaRepository<Product, UUID> {
     Page<Product> search(@Param("search")     String search,
                          @Param("categoryId") UUID   categoryId,
                          @Param("brandId")    UUID   brandId,
+                         @Param("supplierId") UUID   supplierId,
                          @Param("status")     Boolean status,
                          @Param("featured")   Boolean featured,
                          @Param("tenantId")   UUID   tenantId,

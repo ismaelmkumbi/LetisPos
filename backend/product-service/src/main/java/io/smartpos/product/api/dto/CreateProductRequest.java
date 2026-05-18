@@ -43,6 +43,7 @@ public record CreateProductRequest(
         @DecimalMin("0.0") BigDecimal weightGrams,
         Boolean trackSerial,
         Boolean trackImei,
+        UUID supplierId,
         // Relations
         List<VariantInput> variants,
         List<BarcodeInput> barcodes,

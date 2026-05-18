@@ -37,7 +37,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MaxUploadSizeExceededException.class)
     public ProblemDetail maxUploadSize(MaxUploadSizeExceededException ex) {
         ProblemDetail pd = ProblemDetail.forStatusAndDetail(
-                HttpStatus.PAYLOAD_TOO_LARGE, "Image must be under 5 MB");
+                HttpStatus.PAYLOAD_TOO_LARGE, "Image must be under 10 MB");
         pd.setTitle("File too large");
         return pd;
     }
@@ -45,7 +45,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MultipartException.class)
     public ProblemDetail multipart(MultipartException ex) {
         ProblemDetail pd = ProblemDetail.forStatusAndDetail(
-                HttpStatus.BAD_REQUEST, "Invalid upload request: " + ex.getMessage());
+                HttpStatus.BAD_REQUEST, "Invalid upload request. Ensure you are sending a multipart file with field name 'file'.");
         pd.setTitle("Upload error");
         return pd;
     }
