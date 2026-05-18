@@ -6,7 +6,11 @@
  * hasPlan() (programmatic). Kept in sync with the backend
  * FeatureGateFilter.java PLAN_GATES / REPORT_GATES maps.
  */
-import { PLAN_LEVEL } from 'src/context/smartpos/AuthContext';
+
+/** Plan hierarchy — higher ordinal = more features. Mirrors backend BillingPlan.java. */
+export const PLAN_LEVEL: Record<string, number> = {
+  FREE: 0, STARTER: 1, BUSINESS: 2, PROFESSIONAL: 3, ENTERPRISE: 4,
+};
 
 export interface FeatureGate {
   /** Feature area key (matches SmartPosMenuItems minPlan values) */

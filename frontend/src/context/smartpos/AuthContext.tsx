@@ -6,11 +6,9 @@ import {
   type Tenant,
 } from 'src/api/smartpos/auth';
 import { bootstrapAuthSession, tokenStore, refreshAccessToken } from 'src/api/smartpos/client';
-import { planHasAccess } from 'src/config/planGates';
+import { planHasAccess, PLAN_LEVEL } from 'src/config/planGates';
 
-export const PLAN_LEVEL: Record<string, number> = {
-  FREE: 0, STARTER: 1, BUSINESS: 2, PROFESSIONAL: 3, ENTERPRISE: 4,
-};
+export { PLAN_LEVEL };
 
 interface AuthContextValue {
   user: CurrentUser | null;
