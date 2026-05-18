@@ -78,6 +78,21 @@ public class AssistantToolCatalog {
                     "groupBy", Map.of("type","string","enum",List.of("day","week","month"))
                 ),"required",List.of("dateFrom","dateTo")), false, null),
 
+            new ToolDef("getSalesByCustomer", "Get sales summary for a specific customer. Use this when asked about a customer's purchases, buying history, or how much a customer has spent.",
+                Map.of("type","object","properties", Map.of(
+                    "customerId", Map.of("type","string","description","Customer UUID"),
+                    "dateFrom", Map.of("type","string","description","Start date YYYY-MM-DD"),
+                    "dateTo", Map.of("type","string","description","End date YYYY-MM-DD")
+                ),"required",List.of("customerId")), false, null),
+
+            new ToolDef("getSalesByStatus", "Get sales filtered by status. Use this for pending orders, completed sales, refunded transactions, or any status-specific sales query.",
+                Map.of("type","object","properties", Map.of(
+                    "status", Map.of("type","string","enum",List.of("PENDING","CONFIRMED","COMPLETED","REFUNDED","CANCELLED")),
+                    "dateFrom", Map.of("type","string","description","Start date YYYY-MM-DD"),
+                    "dateTo", Map.of("type","string","description","End date YYYY-MM-DD"),
+                    "limit", Map.of("type","integer","description","Max results, default 25")
+                ),"required",List.of("status")), false, null),
+
             new ToolDef("getTopProducts", "Get top selling products by revenue for a date range. Use this for best sellers, product ranking, and product performance chart questions.",
                 Map.of("type","object","properties", Map.of(
                     "limit", Map.of("type","integer","description","Number of products, max 20"),
@@ -118,6 +133,11 @@ public class AssistantToolCatalog {
             new ToolDef("getLowStock", "Get products below reorder threshold. Use this for low stock, reorder, stockout risk, and replenishment questions.",
                 Map.of("type","object","properties", Map.of()), false, null),
 
+            new ToolDef("getStockByWarehouse", "Get stock summary for a specific warehouse showing total products, stock value, and low-stock counts. Use this for warehouse-level inventory questions or when the user asks about a specific warehouse.",
+                Map.of("type","object","properties", Map.of(
+                    "warehouseId", Map.of("type","string","description","Warehouse UUID, omit for all warehouses")
+                ),"required",List.of()), false, null),
+
             new ToolDef("getStockOverview", "Get a complete stock overview: total products, total stock value, available vs on-hand counts, and a list of all products with their current stock levels. Use this for 'all stock', 'stock overview', 'show me everything in stock', and general inventory overview questions.",
                 Map.of("type","object","properties", Map.of(
                     "limit", Map.of("type","integer","description","Max products to list, default 50")
@@ -129,10 +149,25 @@ public class AssistantToolCatalog {
                     "limit", Map.of("type","integer","description","Max results, default 10")
                 ),"required",List.of("query")), false, null),
 
+            new ToolDef("getProductDetail", "Get detailed product information including price, cost, category, brand, stock, and barcode. Use this when the user asks about a specific product's details, pricing, or full information.",
+                Map.of("type","object","properties", Map.of(
+                    "query", Map.of("type","string","description","Product name, SKU, or barcode")
+                ),"required",List.of("query")), false, null),
+
             new ToolDef("getRecentSales", "Get recent sales transactions. Use this for latest orders, recent receipts, transaction lookup, and last sales questions.",
                 Map.of("type","object","properties", Map.of(
                     "limit", Map.of("type","integer","description","Number of sales, max 25")
-                ),"required",List.of()), false, null)
+                ),"required",List.of()), false, null),
+
+            new ToolDef("getDailySnapshot", "Get a real-time snapshot of today: today's sales so far, current low-stock items, and upcoming expiry risks. Use this for 'how is today going?', 'show me the store right now', or live dashboards.",
+                Map.of("type","object","properties", Map.of(
+                ),"required",List.of()), false, null),
+
+            new ToolDef("getExpenseSummary", "Get expense overview for a date range. Use this for expense questions, cost tracking, and spending analysis.",
+                Map.of("type","object","properties", Map.of(
+                    "dateFrom", Map.of("type","string","description","Start date YYYY-MM-DD"),
+                    "dateTo", Map.of("type","string","description","End date YYYY-MM-DD")
+                ),"required",List.of("dateFrom","dateTo")), false, null)
         );
     }
 

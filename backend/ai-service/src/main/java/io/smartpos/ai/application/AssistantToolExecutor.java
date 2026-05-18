@@ -57,6 +57,12 @@ public class AssistantToolExecutor {
             case "searchProducts" -> searchProducts(args);
             case "getRecentSales" -> getRecentSales(args);
             case "getStockOverview" -> getStockOverview(args);
+            case "getStockByWarehouse" -> getStockByWarehouse(args);
+            case "getSalesByCustomer" -> getSalesByCustomer(args);
+            case "getSalesByStatus" -> getSalesByStatus(args);
+            case "getProductDetail" -> getProductDetail(args);
+            case "getDailySnapshot" -> getDailySnapshot(args);
+            case "getExpenseSummary" -> getExpenseSummary(args);
             case "getTenantList" -> getTenantList(args);
             case "listTenants" -> getTenantList(args); // backwards compat
             case "getPlatformStats" -> getPlatformStats(args);
@@ -364,6 +370,117 @@ public class AssistantToolExecutor {
         data.put("rows", rows);
         return new AssistantDtos.ToolResult("table",
             "Stock Overview (" + totalProducts + " products)", data);
+    }
+
+    private AssistantDtos.ToolResult getStockByWarehouse(Map<String, Object> args) {
+        UUID warehouseId = args.containsKey("warehouseId")
+            ? UUID.fromString((String) args.get("warehouseId")) : null;
+        var summary = inventoryFeign.warehouseSummary(warehouseId);
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("columns", List.of("Field","Value"));
+        data.put("rows", summary.entrySet().stream()
+            .map(e -> List.of(e.getKey(), String.valueOf(e.getValue())))
+            .collect(Collectors.toList()));
+        return new AssistantDtos.ToolResult("table", "Stock by Warehouse", data);
+    }
+
+    private AssistantDtos.ToolResult getSalesByCustomer(Map<String, Object> args) {
+        UUID customerId = UUID.fromString((String) args.get("customerId"));
+        LocalDate from = dateArg(args, "dateFrom", LocalDate.now().minusDays(30));
+        LocalDate to = dateArg(args, "dateTo", LocalDate.now());
+        var summary = reportFeign.salesSummary(from.toString(), to.toString(), null, customerId);
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("customerId", customerId.toString());
+        data.put("from", from.toString());
+        data.put("to", to.toString());
+        data.put("total", summary.gross());
+        data.put("currency", "TZS");
+        data.put("count", summary.salesCount());
+        data.put("primaryLabel", "Total purchases");
+        data.put("secondaryLabel", summary.salesCount() + " transactions");
+        return new AssistantDtos.ToolResult("metric",
+            "Customer Sales " + from + " to " + to, data);
+    }
+
+    private AssistantDtos.ToolResult getSalesByStatus(Map<String, Object> args) {
+        String status = (String) args.get("status");
+        LocalDate from = dateArg(args, "dateFrom", LocalDate.now().minusDays(30));
+        LocalDate to = dateArg(args, "dateTo", LocalDate.now());
+        int limit = intArg(args, "limit", 25, 1, 50);
+        var page = salesFeign.search(from, to, null, null, status, 0, limit);
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("columns", List.of("Ref","Date","Customer","Total"));
+        data.put("rows", page.content().stream().map(s -> List.of(
+            s.ref(), s.date().toString(),
+            s.customerId() != null ? s.customerId().toString() : "",
+            s.grandTotal())).collect(Collectors.toList()));
+        return new AssistantDtos.ToolResult("table",
+            status + " Sales (" + page.content().size() + ")", data);
+    }
+
+    private AssistantDtos.ToolResult getProductDetail(Map<String, Object> args) {
+        String query = (String) args.get("query");
+        var page = productFeign.search(query, null, null, null,
+            org.springframework.data.domain.Pageable.ofSize(3));
+        var products = page.getContent();
+        if (products.isEmpty()) {
+            return new AssistantDtos.ToolResult("text", "Product not found: " + query,
+                Map.of("message", "No product matched '" + query + "'."));
+        }
+        var product = products.get(0);
+        Map<String, Object> stock = Map.of();
+        try { stock = inventoryFeign.stockLevel(product.id(), null); } catch (Exception ignored) {}
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("columns", List.of("Field","Value"));
+        Map<String, Object> details = new LinkedHashMap<>();
+        details.put("Name", product.name());
+        details.put("SKU", product.sku() != null ? product.sku() : "N/A");
+        details.put("Price", product.price());
+        details.put("Cost", product.cost() != null ? product.cost() : "N/A");
+        details.put("Category", product.categoryId() != null ? product.categoryId().toString() : "N/A");
+        stock.forEach((k, v) -> details.put("Stock " + k, v));
+        data.put("rows", details.entrySet().stream()
+            .map(e -> List.of(e.getKey(), String.valueOf(e.getValue())))
+            .collect(Collectors.toList()));
+        if (products.size() > 1) {
+            data.put("note", products.size() + " products matched. Showing first match: " + product.name());
+        }
+        return new AssistantDtos.ToolResult("table", "Product: " + product.name(), data);
+    }
+
+    private AssistantDtos.ToolResult getDailySnapshot(Map<String, Object> args) {
+        LocalDate today = LocalDate.now();
+        var sales = reportFeign.salesSummary(today.toString(), today.toString(), null, null);
+        var lowStock = inventoryFeign.lowStockAlerts(null,
+            org.springframework.data.domain.Pageable.ofSize(5));
+        var expiring = inventoryFeign.expiringSoon(14);
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("date", today.toString());
+        data.put("currency", "TZS");
+        data.put("headline", "Today's sales: TZS " + sales.gross() + " (" + sales.salesCount() + " transactions)");
+        data.put("lowStockCount", lowStock.getContent().size());
+        data.put("expiringCount", expiring.size());
+        data.put("metrics", List.of(
+            metric("Today's Sales", sales.gross(), sales.salesCount() + " transactions", null, ""),
+            metric("Low Stock Items", lowStock.getContent().size(), "Below reorder threshold", null, ""),
+            metric("Expiring Soon", expiring.size(), "Within 14 days", null, "")
+        ));
+        data.put("sections", List.of(
+            section("Today's sales", "metric", List.of(item("Gross revenue", sales.gross(), sales.salesCount() + " sales"))),
+            section("Low-stock risks", "table", lowStock.getContent().stream().limit(5)
+                .map(i -> item(i.productId().toString(), i.available(), "threshold " + i.stockAlertThreshold()))
+                .collect(Collectors.toList())),
+            section("Expiry watch", "table", expiring.stream().limit(5)
+                .map(i -> item(i.productName(), i.quantity(), "expires " + i.expiryDate()))
+                .collect(Collectors.toList()))
+        ));
+        return new AssistantDtos.ToolResult("briefing", "Daily Snapshot — " + today, data);
+    }
+
+    private AssistantDtos.ToolResult getExpenseSummary(Map<String, Object> args) {
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("message", "Expense tracking via assistant is coming soon. For now, use the Finance page to view and record expenses. I can record an expense for you — just tell me the category, amount, and description.");
+        return new AssistantDtos.ToolResult("text", "Expense Summary", data);
     }
 
     // ── Admin tools ──
