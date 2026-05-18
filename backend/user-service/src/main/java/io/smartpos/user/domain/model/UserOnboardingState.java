@@ -69,14 +69,15 @@ public class UserOnboardingState {
         if (warehouseCompleted) completed++;
         if (taxCompleted) completed++;
         if (productsCompleted) completed++;
-        if (staffCompleted) completed++;
+        // staff is auto-detected by the backend and excluded from the
+        // percentage so the frontend's 5-step calculation stays in sync
         if (firstSaleCompleted) completed++;
-        return Math.round((completed / 6f) * 100);
+        return Math.round((completed / 5f) * 100);
     }
 
     public boolean isComplete() {
         return workspaceCompleted && warehouseCompleted && taxCompleted
-                && productsCompleted && staffCompleted && firstSaleCompleted;
+                && productsCompleted && firstSaleCompleted;
     }
 
     private void checkCompletion() {
