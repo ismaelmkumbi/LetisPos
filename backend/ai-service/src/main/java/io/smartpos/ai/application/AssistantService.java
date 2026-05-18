@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -139,6 +140,26 @@ public class AssistantService {
                 emitter.send(SseEmitter.event().name("meta")
                     .data(Map.of("conversationId", convId.toString())));
             } catch (IOException ignored) {}
+        }
+
+        // Proactive alert for owner/manager on new conversation
+        if (conversationIdParam == null
+            && (profile == RoleProfile.OWNER || profile == RoleProfile.MANAGER)) {
+            try {
+                var briefing = toolExecutor.execute("getExecutiveBriefing",
+                    Map.of("date", LocalDate.now().minusDays(1).toString()), userId);
+                String alert = "Good morning. Here's your briefing for " +
+                    LocalDate.now().minusDays(1).toString() + ":\n\n" +
+                    briefing.title() + "\n" +
+                    briefing.data().get("headline") + "\n\n" +
+                    briefing.data().get("recommendedAction");
+                // Send as initial message in the stream
+                emitter.send(SseEmitter.event().name("token")
+                    .data(Map.of("token", alert)));
+            } catch (Exception e) {
+                // Silent — briefing is a bonus, not required
+                log.debug("Proactive alert skipped: {}", e.getMessage());
+            }
         }
 
         new Thread(() -> {

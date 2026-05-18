@@ -272,6 +272,16 @@ const Hero: React.FC = () => {
         trustDivider: 'rgba(15, 23, 42, 0.12)',
         trustTitle: '#0F172A',
         trustText: '#52637A',
+        productStageBg:
+          'radial-gradient(circle at 80% 10%, rgba(22, 163, 74, 0.14), transparent 28%), radial-gradient(circle at 20% 82%, rgba(21, 128, 61, 0.10), transparent 26%), linear-gradient(180deg, rgba(255,255,255,0.92), rgba(236,253,245,0.72))',
+        productStageBorder: 'rgba(22, 163, 74, 0.16)',
+        productStageShadow: '0 28px 80px rgba(22, 101, 52, 0.11)',
+        monitorFrame: 'linear-gradient(180deg, #F8FAFC 0%, #E2E8F0 100%)',
+        monitorBorder: 'rgba(15, 23, 42, 0.12)',
+        monitorShadow: '0 36px 86px rgba(15, 23, 42, 0.16)',
+        monitorStand: 'linear-gradient(180deg, #334155 0%, #101827 100%)',
+        monitorBase: '#111827',
+        screenBorder: 'rgba(15, 23, 42, 0.10)',
       }
     : {
         background:
@@ -287,6 +297,16 @@ const Hero: React.FC = () => {
         trustDivider: 'rgba(248, 250, 252, 0.14)',
         trustTitle: '#F8FAFC',
         trustText: '#CBD5E1',
+        productStageBg:
+          'radial-gradient(circle at 78% 12%, rgba(74, 222, 128, 0.16), transparent 28%), radial-gradient(circle at 25% 82%, rgba(34, 197, 94, 0.13), transparent 28%), linear-gradient(180deg, rgba(15,23,42,0.68), rgba(15,23,42,0.30))',
+        productStageBorder: 'rgba(134, 239, 172, 0.14)',
+        productStageShadow: '0 32px 90px rgba(0, 0, 0, 0.26)',
+        monitorFrame: 'linear-gradient(180deg, #26313E 0%, #0F172A 100%)',
+        monitorBorder: 'rgba(255, 255, 255, 0.18)',
+        monitorShadow: '0 38px 90px rgba(0, 0, 0, 0.34)',
+        monitorStand: 'linear-gradient(180deg, #2B313A 0%, #121820 100%)',
+        monitorBase: '#111827',
+        screenBorder: 'rgba(255, 255, 255, 0.20)',
       };
 
   return (
@@ -429,8 +449,9 @@ const Hero: React.FC = () => {
                   position: 'relative',
                   minHeight: { xs: 470, sm: 540, md: 620 },
                   borderRadius: { xs: '28px', md: '34px' },
-                  background:
-                    'radial-gradient(circle at 28% 74%, rgba(22, 163, 74, 0.14), transparent 28%), linear-gradient(180deg, rgba(255,255,255,0.82), rgba(255,255,255,0.55))',
+                  background: heroStyles.productStageBg,
+                  border: `1px solid ${heroStyles.productStageBorder}`,
+                  boxShadow: heroStyles.productStageShadow,
                 }}
               >
                 <Box
@@ -589,15 +610,16 @@ const Hero: React.FC = () => {
                     sx={{
                       p: { xs: 1.3, md: 1.6 },
                       borderRadius: { xs: '22px', md: '28px' },
-                      background: 'linear-gradient(180deg, #232A34 0%, #111827 100%)',
-                      boxShadow: '0 38px 80px rgba(15, 23, 42, 0.28)',
+                      background: heroStyles.monitorFrame,
+                      border: `1px solid ${heroStyles.monitorBorder}`,
+                      boxShadow: heroStyles.monitorShadow,
                     }}
                   >
                     <Box
                       sx={{
                         overflow: 'hidden',
                         borderRadius: { xs: '14px', md: '18px' },
-                        border: '1px solid rgba(255,255,255,0.22)',
+                        border: `1px solid ${heroStyles.screenBorder}`,
                         bgcolor: '#FFFFFF',
                         aspectRatio: '16 / 10',
                       }}
@@ -605,7 +627,7 @@ const Hero: React.FC = () => {
                       <Box
                         component="img"
                         src={dashboardCapture}
-                        alt="Real Letis POS dashboard shown on a POS monitor with receipt printer"
+                        alt="Letis POS dashboard preview for the selected month"
                         sx={{
                           width: '100%',
                           height: '100%',
@@ -621,7 +643,7 @@ const Hero: React.FC = () => {
                       mx: 'auto',
                       width: { xs: '34%', md: '30%' },
                       height: { xs: 46, md: 60 },
-                      background: 'linear-gradient(180deg, #2B313A 0%, #121820 100%)',
+                      background: heroStyles.monitorStand,
                       clipPath: 'polygon(20% 0, 80% 0, 100% 100%, 0 100%)',
                     }}
                   />
@@ -631,7 +653,7 @@ const Hero: React.FC = () => {
                       width: { xs: '58%', md: '50%' },
                       height: { xs: 18, md: 24 },
                       borderRadius: '999px',
-                      background: '#111827',
+                      background: heroStyles.monitorBase,
                       boxShadow: '0 18px 34px rgba(15, 23, 42, 0.22)',
                     }}
                   />
