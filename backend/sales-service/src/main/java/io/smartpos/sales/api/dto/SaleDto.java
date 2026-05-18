@@ -38,7 +38,7 @@ public record SaleDto(
     public record Line(
             UUID id, UUID productId, UUID variantId,
             String productName, String productCode,
-            BigDecimal unitPrice, BigDecimal qty,
+            BigDecimal unitPrice, BigDecimal unitCost, BigDecimal qty,
             BigDecimal discount, DiscountType discountType,
             BigDecimal taxRate, TaxMethod taxMethod,
             BigDecimal lineSubtotal, BigDecimal lineTax, BigDecimal lineTotal
@@ -46,7 +46,7 @@ public record SaleDto(
         public static Line from(SaleLine l) {
             return new Line(l.getId(), l.getProductId(), l.getVariantId(),
                     l.getProductNameSnapshot(), l.getProductCodeSnapshot(),
-                    l.getUnitPrice(), l.getQty(),
+                    l.getUnitPrice(), l.getUnitCost(), l.getQty(),
                     l.getDiscount(), l.getDiscountType(),
                     l.getTaxRate(), l.getTaxMethod(),
                     l.getLineSubtotal(), l.getLineTax(), l.getLineTotal());

@@ -31,6 +31,11 @@ public class SaleLine {
     @Column(name = "product_code_snapshot")                   private String productCodeSnapshot;
 
     @Column(name = "unit_price", nullable = false) private BigDecimal unitPrice;
+
+    @Column(name = "unit_cost", nullable = false)
+    @Builder.Default
+    private BigDecimal unitCost = BigDecimal.ZERO;
+
     @Column(name = "qty",        nullable = false) private BigDecimal qty;
 
     @Column(name = "discount", nullable = false)
