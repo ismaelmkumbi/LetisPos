@@ -104,7 +104,7 @@ public class PurchaseReturnService {
         // warehouse on their way back to the supplier.
         List<InventoryClient.AdjustmentLine> lines = saved.getLines().stream()
                 .map(l -> new InventoryClient.AdjustmentLine(
-                        l.getProductId(), l.getVariantId(), l.getQty().negate()))
+                        l.getProductId(), l.getVariantId(), l.getQty().negate(), null))
                 .toList();
         try {
             inventory.createAdjustment(new InventoryClient.CreateAdjustmentRequest(

@@ -204,6 +204,12 @@ public class SaleService {
         }
     }
 
+    @Transactional(readOnly = true)
+    public BigDecimal costOfGoodsSold(LocalDate dateFrom, LocalDate dateTo, UUID warehouseId) {
+        UUID tenantId = TenantContext.require();
+        return saleRepo.costOfGoodsSold(tenantId, dateFrom, dateTo, warehouseId);
+    }
+
     // ---------- Create & confirm (back-office) ----------
 
     /**
@@ -251,6 +257,30 @@ public class SaleService {
             sale.getLines().add(line);
             sumSubtotal = sumSubtotal.add(calc.subtotal());
             sumTax      = sumTax.add(calc.tax());
+        }
+
+        // Snapshot weighted average cost from Inventory for each line
+        List<UUID> productIds = sale.getLines().stream()
+                .map(SaleLine::getProductId)
+                .distinct()
+                .toList();
+        if (!productIds.isEmpty()) {
+            try {
+                var costs = inventory.getCosts(sale.getWarehouseId(), productIds);
+                var costMap = costs.stream().collect(Collectors.toMap(
+                        c -> new AbstractMap.SimpleEntry<>(c.productId(), c.variantId()),
+                        c -> c.weightedAvgCost(),
+                        (a, b) -> a));
+                for (SaleLine line : sale.getLines()) {
+                    BigDecimal wac = costMap.get(new AbstractMap.SimpleEntry<>(line.getProductId(), line.getVariantId()));
+                    if (wac != null && wac.signum() > 0) {
+                        line.setUnitCost(wac);
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("Could not fetch WAC for sale {}: {}", sale.getId(), e.getMessage());
+                // sale proceeds with unitCost = 0 (default) — non-blocking
+            }
         }
 
         PricingEngine.DocCalc doc = pricing.calcDocument(sumSubtotal, sumTax, req.discount(), req.shipping());

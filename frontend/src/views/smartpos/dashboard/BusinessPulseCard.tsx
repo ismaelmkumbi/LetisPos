@@ -60,11 +60,21 @@ export default function BusinessPulseCard({ data, salesSeries, period, delta }: 
     ? isLoss ? '#2A1113' : '#0B2418'
     : isLoss ? '#FFF7F7' : '#F7FDF9';
 
+  const cogs = data?.cogs ?? 0;
+  const cogsLabel = cogs > 0 && revenue > 0
+    ? `${((cogs / revenue) * 100).toFixed(0)}% of revenue`
+    : 'cost of goods sold';
+
   const supportStats = [
     {
       label: 'Revenue',
       value: formatMoney(revenue),
       sub: 'net sales',
+    },
+    {
+      label: 'COGS',
+      value: formatMoney(cogs),
+      sub: cogsLabel,
     },
     {
       label: 'Expenses',

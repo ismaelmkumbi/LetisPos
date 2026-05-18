@@ -1,9 +1,12 @@
 package io.smartpos.inventory.api;
 
+import io.smartpos.common.context.TenantContext;
 import io.smartpos.inventory.api.dto.ReservationDto;
+import io.smartpos.inventory.api.dto.StockCostDto;
 import io.smartpos.inventory.api.dto.StockLevelDto;
 import io.smartpos.inventory.application.InventoryStatsService;
 import io.smartpos.inventory.application.StockService;
+import io.smartpos.inventory.domain.repository.StockLevelRepository;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -26,6 +29,7 @@ public class StockController {
 
     private final StockService service;
     private final InventoryStatsService stats;
+    private final StockLevelRepository stockRepo;
 
     @GetMapping
     @PreAuthorize("hasAuthority('stock.view')")
@@ -52,6 +56,17 @@ public class StockController {
     public Map<UUID, StockLevelDto> batch(@RequestParam UUID warehouseId,
                                           @RequestParam List<UUID> productIds) {
         return service.batchLevels(warehouseId, productIds);
+    }
+
+    @GetMapping("/costs")
+    @PreAuthorize("hasAuthority('sale.create') or hasAuthority('pos.use')")
+    public List<StockCostDto> getCosts(@RequestParam UUID warehouseId,
+                                        @RequestParam List<UUID> productIds) {
+        UUID tenantId = TenantContext.require();
+        return stockRepo.findCostsByWarehouseAndProducts(warehouseId, productIds, tenantId)
+                .stream()
+                .map(StockCostDto::from)
+                .toList();
     }
 
     @GetMapping("/summary")

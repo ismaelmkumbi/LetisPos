@@ -31,6 +31,9 @@ public class AdjustmentLine {
     @Column(name = "qty_delta", nullable = false)
     private BigDecimal qtyDelta;
 
+    @Column(name = "unit_cost")
+    private BigDecimal unitCost;
+
     @PrePersist
     void onCreate() {
         if (id == null) id = UUID.randomUUID();

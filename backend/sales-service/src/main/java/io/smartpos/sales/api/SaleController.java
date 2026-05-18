@@ -100,6 +100,16 @@ public class SaleController {
         return saleService.salesByUser(dateFrom, dateTo);
     }
 
+    @GetMapping("/cogs")
+    @PreAuthorize("hasAuthority('sale.view')")
+    public BigDecimal costOfGoodsSold(@RequestParam(required = false) LocalDate dateFrom,
+                                       @RequestParam(required = false) LocalDate dateTo,
+                                       @RequestParam(required = false) UUID warehouseId) {
+        LocalDate from = dateFrom != null ? dateFrom : LocalDate.now().withDayOfMonth(1);
+        LocalDate to = dateTo != null ? dateTo : LocalDate.now();
+        return saleService.costOfGoodsSold(from, to, warehouseId);
+    }
+
     // ---- Returns ----
     @PostMapping("/{id}/returns")
     @PreAuthorize("hasAuthority('sale.return')")

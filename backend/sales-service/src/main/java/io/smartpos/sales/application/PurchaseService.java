@@ -118,7 +118,7 @@ public class PurchaseService {
         }
 
         List<InventoryClient.AdjustmentLine> lines = p.getLines().stream()
-                .map(l -> new InventoryClient.AdjustmentLine(l.getProductId(), l.getVariantId(), l.getQty()))
+                .map(l -> new InventoryClient.AdjustmentLine(l.getProductId(), l.getVariantId(), l.getQty(), l.getUnitCost()))
                 .toList();
         try {
             inventory.createAdjustment(new InventoryClient.CreateAdjustmentRequest(

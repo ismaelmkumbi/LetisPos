@@ -35,7 +35,7 @@ public interface InventoryClient {
 
     // --- For purchase receipt — create an ADJUSTMENT that increments stock ---
 
-    record AdjustmentLine(UUID productId, UUID variantId, BigDecimal qtyDelta) {}
+    record AdjustmentLine(UUID productId, UUID variantId, BigDecimal qtyDelta, BigDecimal unitCost) {}
 
     record CreateAdjustmentRequest(
             UUID warehouseId,
@@ -48,4 +48,12 @@ public interface InventoryClient {
 
     @PostMapping("/api/v1/adjustments")
     ResponseEntity<AdjustmentResponse> createAdjustment(@RequestBody CreateAdjustmentRequest req);
+
+    // --- Weighted average cost lookup for sale-time COGS ---
+
+    record StockCostDto(UUID productId, UUID variantId, BigDecimal weightedAvgCost) {}
+
+    @GetMapping("/api/v1/stock/costs")
+    List<StockCostDto> getCosts(@RequestParam("warehouseId") UUID warehouseId,
+                                @RequestParam("productIds") List<UUID> productIds);
 }

@@ -33,7 +33,7 @@ public record PurchaseDto(
                 p.getLines().stream().map(l -> new SaleDto.Line(
                         l.getId(), l.getProductId(), l.getVariantId(),
                         l.getProductNameSnapshot(), l.getProductCodeSnapshot(),
-                        l.getUnitCost(), l.getQty(),
+                        l.getUnitCost(), BigDecimal.ZERO, l.getQty(),
                         l.getDiscount(), l.getDiscountType(),
                         l.getTaxRate(), l.getTaxMethod(),
                         l.getLineSubtotal(), l.getLineTax(), l.getLineTotal()

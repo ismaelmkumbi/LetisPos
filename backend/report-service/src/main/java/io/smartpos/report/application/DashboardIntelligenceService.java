@@ -699,6 +699,7 @@ public class DashboardIntelligenceService {
                 new DashboardDto.Inventory(0L, z, z, 0L),
                 Collections.emptyList(),
                 Collections.emptyList(),
+                z,
                 z
         );
     }

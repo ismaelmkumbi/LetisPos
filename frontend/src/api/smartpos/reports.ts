@@ -26,6 +26,7 @@ export interface Dashboard {
   salesSeries: { date: string; net: number; count: number }[];
   topProducts: { productId: string; name: string; qty: number; revenue: number }[];
   netProfit: number;
+  cogs: number;
 }
 
 export async function getDashboard(params: {

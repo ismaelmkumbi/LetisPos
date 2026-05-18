@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -36,6 +37,10 @@ public class StockLevel {
     @Column(name = "reserved", nullable = false)
     @Builder.Default
     private BigDecimal reserved = BigDecimal.ZERO;
+
+    @Column(name = "weighted_avg_cost", nullable = false)
+    @Builder.Default
+    private BigDecimal weightedAvgCost = BigDecimal.ZERO;
 
     @Column(name = "stock_alert_threshold", nullable = false)
     @Builder.Default
@@ -105,5 +110,21 @@ public class StockLevel {
                 "Adjustment would leave on_hand < reserved: on_hand=" + next + " reserved=" + reserved);
         }
         this.onHand = next;
+    }
+
+    /**
+     * Recalculate weighted average cost BEFORE receiving new stock.
+     * Call this BEFORE applyDelta so current onHand is pre-receipt.
+     * newWAC = (onHand * currentWAC + receivedQty * receivedUnitCost) / (onHand + receivedQty)
+     */
+    public void recalculateWac(BigDecimal receivedQty, BigDecimal receivedUnitCost) {
+        if (receivedQty.signum() <= 0) return;
+        BigDecimal currentValue = this.onHand.multiply(this.weightedAvgCost);
+        BigDecimal receivedValue = receivedQty.multiply(receivedUnitCost);
+        BigDecimal totalQty = this.onHand.add(receivedQty);
+        if (totalQty.compareTo(BigDecimal.ZERO) > 0) {
+            this.weightedAvgCost = currentValue.add(receivedValue)
+                    .divide(totalQty, 4, RoundingMode.HALF_UP);
+        }
     }
 }

@@ -52,6 +52,11 @@ public interface SalesFeign {
                                        @RequestParam(value = "dateTo",   required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateTo,
                                        @RequestParam(value = "warehouseId", required = false) UUID warehouseId);
 
+    @GetMapping("/api/v1/sales/cogs")
+    BigDecimal costOfGoodsSold(@RequestParam(value = "dateFrom", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateFrom,
+                               @RequestParam(value = "dateTo",   required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateTo,
+                               @RequestParam(value = "warehouseId", required = false) UUID warehouseId);
+
     @GetMapping("/api/v1/sales/by-user")
     List<SalesByUser> salesByUser(@RequestParam(value = "dateFrom", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateFrom,
                                    @RequestParam(value = "dateTo", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateTo);

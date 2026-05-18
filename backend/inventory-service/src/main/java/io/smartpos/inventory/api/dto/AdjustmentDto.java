@@ -30,8 +30,13 @@ public record AdjustmentDto(
     public record LineInput(
             @NotNull UUID productId,
             UUID variantId,
-            @NotNull BigDecimal qtyDelta     // signed
-    ) {}
+            @NotNull BigDecimal qtyDelta,     // signed
+            BigDecimal unitCost
+    ) {
+        public LineInput(UUID productId, UUID variantId, BigDecimal qtyDelta) {
+            this(productId, variantId, qtyDelta, null);
+        }
+    }
 
     public record CreateRequest(
             @NotNull UUID warehouseId,
