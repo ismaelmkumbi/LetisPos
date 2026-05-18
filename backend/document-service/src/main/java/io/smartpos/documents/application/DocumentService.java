@@ -17,8 +17,10 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.InputStream;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Base64;
 import java.util.Map;
 import java.util.UUID;
 
@@ -391,11 +393,19 @@ public class DocumentService {
         return defaults;
     }
 
-    /** Letis POS logo URL — static SVG served by the document-service itself. */
+    /** Letis POS logo embedded in the generated HTML so PDF conversion is self-contained. */
     private String letisLogoSvgDataUri() {
-        // Static file served from src/main/resources/static/letis-logo.svg.
-        // Gotenberg can fetch this URL reliably; data URIs don't render in headless Chrome.
-        return "http://localhost:8093/letis-logo.svg";
+        try (InputStream in = getClass().getClassLoader().getResourceAsStream("static/letis-logo.svg")) {
+            if (in == null) {
+                log.warn("Default Letis POS logo resource not found");
+                return "";
+            }
+            String encoded = Base64.getEncoder().encodeToString(in.readAllBytes());
+            return "data:image/svg+xml;base64," + encoded;
+        } catch (Exception e) {
+            log.warn("Failed to load default Letis POS logo: {}", e.getMessage());
+            return "";
+        }
     }
 
     private String buildQrData(String documentType, String referenceType, UUID referenceId) {

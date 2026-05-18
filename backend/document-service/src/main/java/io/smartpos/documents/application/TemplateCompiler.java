@@ -41,6 +41,7 @@ public class TemplateCompiler {
         html.append("body{font-family:'Helvetica Neue',Arial,sans-serif;font-size:12px;color:#1a1a1a}");
         html.append(".header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:30px;border-bottom:3px solid #2563eb;padding-bottom:16px}");
         html.append(".logo{font-size:24px;font-weight:700;color:#2563eb}");
+        html.append(".brand-logo{display:block;max-width:180px;object-fit:contain}");
         html.append(".company-info{text-align:right;font-size:11px;color:#555;line-height:1.5}");
         html.append(".doc-title{font-size:22px;font-weight:700;color:#2563eb;margin-bottom:4px}");
         html.append(".doc-meta{display:flex;justify-content:space-between;margin-bottom:24px}");
@@ -95,7 +96,11 @@ public class TemplateCompiler {
         sb.append("<div class=\"header\"><div>");
 
         if (booleanValue(cfg, "showLogo", true)) {
-            sb.append("<div class=\"logo\">{{company.name}}</div>");
+            sb.append("{{#if company.logoUrl}}")
+                .append("<img class=\"brand-logo\" src=\"{{company.logoUrl}}\" alt=\"{{company.name}} logo\" style=\"max-height:{{company.logoSize}}px;\" />")
+                .append("{{else}}")
+                .append("<div class=\"logo\">{{company.name}}</div>")
+                .append("{{/if}}");
         }
         if (booleanValue(cfg, "showAddress", true)) {
             sb.append("<div style=\"font-size:11px;color:#555;\">{{company.address}}</div>");

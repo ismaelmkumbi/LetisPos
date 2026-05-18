@@ -3,10 +3,9 @@ package io.smartpos.documents;
 import com.github.jknack.handlebars.Handlebars;
 import io.smartpos.documents.application.TemplateCompiler;
 import io.smartpos.documents.infrastructure.config.HandlebarsConfig;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 
@@ -15,15 +14,13 @@ import java.util.*;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThat;
 
-@SpringBootTest(classes = {HandlebarsConfig.class, TemplateCompiler.class})
 class TemplateValidationTest {
 
-    @Autowired
-    private Handlebars handlebars;
+    private final Handlebars handlebars = new HandlebarsConfig().handlebars();
 
-    @Autowired
-    private TemplateCompiler compiler;
+    private final TemplateCompiler compiler = new TemplateCompiler();
 
     static Stream<String> templateNames() throws IOException {
         var resolver = new PathMatchingResourcePatternResolver();
@@ -44,6 +41,28 @@ class TemplateValidationTest {
         Map<String, Object> sample = createSampleData(templateName);
         assertThatCode(() -> handlebars.compileInline(html).apply(sample))
             .doesNotThrowAnyException();
+    }
+
+    @Test
+    void compiledDesignerTemplateShouldRenderLogoImageWhenLogoUrlExists() throws Exception {
+        String config = """
+            {
+              "blocks": ["header"],
+              "header": {"showLogo": true, "showAddress": false, "showTin": false, "showPhone": false, "showEmail": false}
+            }
+            """;
+
+        String html = compiler.compile(config);
+        String rendered = handlebars.compileInline(html).apply(Map.of(
+            "company", Map.of(
+                "name", "Test Co",
+                "logoUrl", "data:image/svg+xml;base64,PHN2Zy8+",
+                "logoSize", 64
+            )
+        ));
+
+        assertThat(rendered).contains("<img class=\"brand-logo\"");
+        assertThat(rendered).contains("src=\"data:image/svg+xml;base64,PHN2Zy8+\"");
     }
 
     private Map<String, Object> createSampleData(String type) {

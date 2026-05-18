@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.InputStream;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.*;
@@ -146,7 +147,7 @@ public class TemplateService {
             "tin", "123-456-789",
             "website", "https://letispos.com",
             "showLogo", true,
-            "logoUrl", "http://localhost:8093/letis-logo.svg",
+            "logoUrl", letisLogoSvgDataUri(),
             "logoSize", 64
         ));
         data.put("document", Map.of(
@@ -175,5 +176,15 @@ public class TemplateService {
             "grandTotal", "111,536"
         ));
         return data;
+    }
+
+    private String letisLogoSvgDataUri() {
+        try (InputStream in = getClass().getClassLoader().getResourceAsStream("static/letis-logo.svg")) {
+            if (in == null) return "";
+            String encoded = Base64.getEncoder().encodeToString(in.readAllBytes());
+            return "data:image/svg+xml;base64," + encoded;
+        } catch (Exception e) {
+            return "";
+        }
     }
 }
