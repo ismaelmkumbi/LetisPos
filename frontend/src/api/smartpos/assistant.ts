@@ -2,7 +2,6 @@ import { api, TOKEN_KEY } from './client';
 
 export interface ChatRequest {
   message: string;
-  conversationId?: string | null;
   language?: string;
 }
 
@@ -20,6 +19,7 @@ export interface DraftResponse {
 }
 
 export type StreamEvent =
+  | { type: 'meta'; conversationId: string }
   | { type: 'token'; token: string }
   | { type: 'tool_start'; toolName: string }
   | { type: 'tool_result'; result: ToolResult }
@@ -29,11 +29,16 @@ export type StreamEvent =
 
 export async function* streamChat(
   request: ChatRequest,
+  conversationId: string | null,
   signal?: AbortSignal,
 ): AsyncGenerator<StreamEvent> {
   const token = localStorage.getItem(TOKEN_KEY) || '';
 
-  const response = await fetch(`/api/v1/ai/assistant/chat`, {
+  const params = new URLSearchParams();
+  if (conversationId) params.set('conversationId', conversationId);
+  const queryString = params.toString();
+
+  const response = await fetch(`/api/v1/ai/assistant/chat${queryString ? '?' + queryString : ''}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -74,6 +79,9 @@ export async function* streamChat(
         try {
           const payload = JSON.parse(dataStr);
           switch (currentEvent) {
+            case 'meta':
+              yield { type: 'meta', conversationId: payload.conversationId || '' };
+              break;
             case 'token':
               yield { type: 'token', token: payload.token || '' };
               break;
