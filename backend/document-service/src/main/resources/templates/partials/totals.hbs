@@ -1,0 +1,10 @@
+<div class="totals">
+  <div class="total-row"><span>Subtotal</span><span>{{totals.subtotal}}</span></div>
+  {{#if totals.discount}}
+  <div class="total-row"><span>Discount</span><span>-{{totals.discount}}</span></div>
+  {{/if}}
+  {{#each totals.taxLines}}
+  <div class="total-row"><span>{{label}}</span><span>{{amount}}</span></div>
+  {{/each}}
+  <div class="total-row grand"><span>Grand Total</span><span>{{totals.grandTotal}}</span></div>
+</div>

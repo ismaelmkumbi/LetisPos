@@ -1,0 +1,21 @@
+<div class="header">
+  <div>
+    {{#if company.showLogo}}
+      {{#if company.logoUrl}}
+        <img src="{{company.logoUrl}}" style="max-height:{{company.logoSize}}px; object-fit:contain;" />
+      {{else}}
+        <div class="logo-text">{{company.name}}</div>
+      {{/if}}
+    {{else}}
+      <div class="logo-text">{{company.name}}</div>
+    {{/if}}
+    {{#if company.address}}<div class="company-addr">{{company.address}}</div>{{/if}}
+    {{#if company.tin}}<div class="company-tin">TIN: {{company.tin}}</div>{{/if}}
+    {{#if company.vatRegNo}}<div class="company-tin">VAT Reg: {{company.vatRegNo}}</div>{{/if}}
+  </div>
+  <div class="company-info">
+    {{#if company.phone}}<div>{{company.phone}}</div>{{/if}}
+    {{#if company.email}}<div>{{company.email}}</div>{{/if}}
+    {{#if company.website}}<div>{{company.website}}</div>{{/if}}
+  </div>
+</div>

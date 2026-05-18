@@ -1,0 +1,8 @@
+<div class="footer">
+  <div>{{company.name}} | {{company.address}} | TIN: {{company.tin}}</div>
+  <div>Phone: {{company.phone}} | Email: {{company.email}}</div>
+  {{#if company.footerMessage}}
+  <div class="footer-note">{{company.footerMessage}}</div>
+  {{/if}}
+  <div>Page 1 of 1 | Generated on {{document.date}}</div>
+</div>

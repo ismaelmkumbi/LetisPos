@@ -4,9 +4,12 @@ import com.github.jknack.handlebars.Handlebars;
 import com.github.jknack.handlebars.io.ClassPathTemplateLoader;
 import com.github.jknack.handlebars.io.TemplateLoader;
 import io.smartpos.documents.infrastructure.qr.QRCodeGenerator;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+
+@Slf4j
 @Configuration
 public class HandlebarsConfig {
 
@@ -39,7 +42,17 @@ public class HandlebarsConfig {
                 return "<!-- QR error -->";
             }
         });
+
         hbs.setPrettyPrint(true);
+        return hbs;
+    }
+
+    /** Expose for DeliveryService to render email templates with the same engine. */
+    public static Handlebars createStandalone() {
+        Handlebars hbs = new Handlebars(new ClassPathTemplateLoader("/templates", ".hbs"));
+        hbs.registerHelper("inc", (context, options) -> 0);
+        hbs.registerHelper("eq", (c, o) -> java.util.Objects.equals(c, o.param(0)));
+        hbs.registerHelper("gt", (c, o) -> c instanceof Number a && o.param(0) instanceof Number b && a.doubleValue() > b.doubleValue());
         return hbs;
     }
 }

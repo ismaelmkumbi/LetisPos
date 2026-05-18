@@ -5,11 +5,11 @@
 <style>
   @page { size: A4; margin: 15mm; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 12px; color: #1a1a1a; }
-  .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 30px; border-bottom: 3px solid #16A34A; padding-bottom: 16px; }
-  .logo { font-size: 24px; font-weight: 700; color: #16A34A; }
+  body { font-family: {{company.fontFamily}}; font-size: 12px; color: #1a1a1a; }
+  .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 30px; border-bottom: 3px solid {{company.primaryColor}}; padding-bottom: 16px; }
+  .logo { font-size: 24px; font-weight: 700; color: {{company.primaryColor}}; }
   .company-info { text-align: right; font-size: 11px; color: #555; line-height: 1.5; }
-  .doc-title { font-size: 22px; font-weight: 700; color: #16A34A; margin-bottom: 4px; }
+  .doc-title { font-size: 22px; font-weight: 700; color: {{company.primaryColor}}; margin-bottom: 4px; }
   .doc-meta { display: flex; justify-content: space-between; margin-bottom: 24px; }
   .meta-box { flex: 1; }
   .meta-label { font-size: 10px; text-transform: uppercase; color: #888; letter-spacing: 1px; margin-bottom: 2px; }
@@ -20,18 +20,18 @@
   .text-right { text-align: right; }
   .totals { margin-left: auto; width: 280px; }
   .total-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 12px; }
-  .total-row.grand { border-top: 2px solid #16A34A; font-size: 16px; font-weight: 700; color: #16A34A; padding-top: 10px; margin-top: 4px; }
+  .total-row.grand { border-top: 2px solid {{company.primaryColor}}; font-size: 16px; font-weight: 700; color: {{company.primaryColor}}; padding-top: 10px; margin-top: 4px; }
   .footer { margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 16px; font-size: 10px; color: #888; line-height: 1.6; }
   .terms { margin-top: 20px; }
   .terms h4 { font-size: 11px; margin-bottom: 6px; }
   .terms p { font-size: 10px; color: #666; }
-  .validity { background: #ECFDF5; border: 1px solid #BBF7D0; border-radius: 6px; padding: 10px 14px; font-size: 11px; color: #15803D; margin-top: 16px; }
+  .validity { background: {{company.primaryColorLight}}; border: 1px solid {{company.primaryColorBorder}}; border-radius: 6px; padding: 10px 14px; font-size: 11px; color: {{company.primaryColorDark}}; margin-top: 16px; }
   .signature { display: flex; justify-content: space-between; margin-top: 50px; }
   .sig-block { text-align: center; }
   .sig-line { border-bottom: 1px solid #1a1a1a; width: 200px; margin-bottom: 6px; }
   .sig-label { font-size: 11px; color: #555; }
   .disclaimer { background: #fef3c7; border: 1px solid #fcd34d; border-radius: 6px; padding: 10px 14px; font-size: 11px; color: #92400e; margin-top: 16px; }
-  .info-box { background: #ECFDF5; border: 1px solid #BBF7D0; border-radius: 6px; padding: 10px 14px; font-size: 11px; color: #15803D; margin-top: 16px; }
+  .info-box { background: {{company.primaryColorLight}}; border: 1px solid {{company.primaryColorBorder}}; border-radius: 6px; padding: 10px 14px; font-size: 11px; color: {{company.primaryColorDark}}; margin-top: 16px; }
   .delivery-section { margin-top: 20px; }
   .delivery-section h4 { font-size: 11px; margin-bottom: 6px; color: #333; }
   .delivery-section p { font-size: 11px; color: #555; line-height: 1.6; }

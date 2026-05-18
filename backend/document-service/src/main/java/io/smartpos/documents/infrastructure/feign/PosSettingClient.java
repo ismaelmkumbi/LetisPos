@@ -29,7 +29,12 @@ public interface PosSettingClient {
         boolean showStoreName,
         boolean showStoreAddress,
         boolean showStorePhone,
-        boolean showStoreEmail
+        boolean showStoreEmail,
+        String primaryColor,
+        String accentColor,
+        String fontFamily,
+        String paperSize,
+        String footerMessage
     ) {}
 
     @GetMapping("/api/v1/pos-settings")

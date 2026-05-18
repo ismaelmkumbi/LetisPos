@@ -5,7 +5,7 @@
 <style>
   @page { size: A4; margin: 15mm; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 12px; color: #1a1a1a; }
+  body { font-family: {{company.fontFamily}}; font-size: 12px; color: #1a1a1a; }
   .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 30px; border-bottom: 3px solid #7c3aed; padding-bottom: 16px; }
   .logo { font-size: 24px; font-weight: 700; color: #7c3aed; }
   .company-info { text-align: right; font-size: 11px; color: #555; line-height: 1.5; }
@@ -26,7 +26,7 @@
   .sig-block { text-align: center; }
   .sig-line { border-bottom: 1px solid #1a1a1a; width: 200px; margin-bottom: 6px; }
   .sig-label { font-size: 11px; color: #555; }
-  .info-box { background: #ECFDF5; border: 1px solid #BBF7D0; border-radius: 6px; padding: 10px 14px; font-size: 11px; color: #15803D; margin-top: 16px; }
+  .info-box { background: {{company.primaryColorLight}}; border: 1px solid {{company.primaryColorBorder}}; border-radius: 6px; padding: 10px 14px; font-size: 11px; color: {{company.primaryColorDark}}; margin-top: 16px; }
   .carrier-info { background: #f5f3ff; border: 1px solid #ddd6fe; border-radius: 6px; padding: 14px; margin-bottom: 24px; }
   .carrier-info h4 { font-size: 11px; color: #6d28d9; margin-bottom: 8px; }
   .carrier-info p { font-size: 11px; color: #555; line-height: 1.6; }

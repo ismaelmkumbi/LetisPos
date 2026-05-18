@@ -5,6 +5,7 @@ import io.smartpos.documents.domain.model.Document;
 import io.smartpos.documents.domain.model.DocumentVersion;
 import io.smartpos.documents.domain.repository.DocumentRepository;
 import io.smartpos.documents.domain.repository.DocumentVersionRepository;
+import io.smartpos.documents.domain.repository.I18nLabelRepository;
 import io.smartpos.documents.infrastructure.gotenberg.GotenbergClient;
 import io.smartpos.documents.infrastructure.storage.MinioObjectStore;
 import io.smartpos.documents.infrastructure.template.TemplateRenderer;
@@ -42,6 +43,7 @@ public class DocumentService {
     private final io.smartpos.documents.infrastructure.feign.PosSettingClient posSettingClient;
     private final io.smartpos.documents.infrastructure.feign.CustomerClient customerClient;
     private final io.smartpos.documents.infrastructure.feign.ProductClient productClient;
+    private final I18nLabelRepository i18nRepo;
 
     private static final Map<String, String> TEMPLATE_FILES = Map.ofEntries(
         Map.entry("quotation", "quotation.hbs"),
@@ -115,6 +117,8 @@ public class DocumentService {
         // Enrich company context from PosSetting (or use client override if provided).
         if (!mergedContext.containsKey("company")) {
             mergedContext.put("company", resolveCompanyContext(mergedContext));
+            String locale = contextData != null ? String.valueOf(contextData.getOrDefault("locale", "en")) : "en";
+            mergedContext.put("i18n", loadI18nLabels(locale, tenantId));
         }
 
         mergedContext.put("qrData", buildQrData(documentType, referenceType, referenceId));
@@ -124,7 +128,9 @@ public class DocumentService {
         mergedContext.put("watermark", "DRAFT");
         String html = templateRenderer.render(templateContent, mergedContext);
 
-        byte[] pdfBytes = gotenbergClient.convertHtmlToPdf(html);
+        byte[] pdfBytes = gotenbergClient.convertHtmlToPdf(html,
+                String.valueOf(mergedContext.getOrDefault("paperWidth", "8.27")),
+                String.valueOf(mergedContext.getOrDefault("paperHeight", "11.69")));
 
         String docNumber = generateDocumentNumber(tenantId, documentType);
 
@@ -351,31 +357,43 @@ public class DocumentService {
 
         if (warehouseId != null) {
             try {
-                var branding = posSettingClient.get(warehouseId);
-                boolean hasCustomLogo = branding.showLogo() && branding.logoUrl() != null
-                    && !branding.logoUrl().isBlank();
-                return Map.of(
-                    "name", branding.storeName() != null && !branding.storeName().isBlank()
-                        ? branding.storeName() : "Letis POS",
-                    "logoUrl", hasCustomLogo ? branding.logoUrl() : letisLogoDataUri(),
-                    "address", branding.showStoreAddress() && branding.storeAddress() != null
-                        ? branding.storeAddress() : "",
-                    "phone", branding.showStorePhone() && branding.storePhone() != null
-                        ? branding.storePhone() : "",
-                    "email", branding.showStoreEmail() && branding.storeEmail() != null
-                        ? branding.storeEmail() : "",
-                    "tin", branding.storeTaxId() != null ? branding.storeTaxId() : "",
-                    "website", branding.storeWebsite() != null ? branding.storeWebsite() : "https://letispos.com",
-                    "showLogo", true,
-                    "logoSize", branding.logoSize() > 0 ? branding.logoSize() : 64
-                );
+                var b = posSettingClient.get(warehouseId);
+                boolean hasCustomLogo = b.showLogo() && b.logoUrl() != null
+                    && !b.logoUrl().isBlank();
+                String primary = (b.primaryColor() != null && !b.primaryColor().isBlank())
+                        ? b.primaryColor() : "#16A34A";
+                java.util.HashMap<String, Object> ctx = new java.util.HashMap<>();
+                ctx.put("name", b.storeName() != null && !b.storeName().isBlank()
+                        ? b.storeName() : "Letis POS");
+                ctx.put("logoUrl", hasCustomLogo ? b.logoUrl() : letisLogoDataUri());
+                ctx.put("address", b.showStoreAddress() && b.storeAddress() != null
+                        ? b.storeAddress() : "");
+                ctx.put("phone", b.showStorePhone() && b.storePhone() != null
+                        ? b.storePhone() : "");
+                ctx.put("email", b.showStoreEmail() && b.storeEmail() != null
+                        ? b.storeEmail() : "");
+                ctx.put("tin", b.storeTaxId() != null ? b.storeTaxId() : "");
+                ctx.put("website", b.storeWebsite() != null ? b.storeWebsite() : "https://letispos.com");
+                ctx.put("showLogo", true);
+                ctx.put("logoSize", b.logoSize() > 0 ? b.logoSize() : 64);
+                ctx.put("primaryColor", primary);
+                ctx.put("primaryColorDark", darken(primary, 0.15));
+                ctx.put("primaryColorLight", lighten(primary, 0.88));
+                ctx.put("primaryColorBorder", lighten(primary, 0.60));
+                ctx.put("accentColor", (b.accentColor() != null && !b.accentColor().isBlank())
+                        ? b.accentColor() : primary);
+                ctx.put("fontFamily", (b.fontFamily() != null && !b.fontFamily().isBlank())
+                        ? b.fontFamily() : "'Helvetica Neue', Arial, sans-serif");
+                ctx.put("paperWidth", mapPaperWidth(b.paperSize()));
+                ctx.put("paperHeight", mapPaperHeight(b.paperSize()));
+                ctx.put("footerMessage", b.footerMessage() != null ? b.footerMessage() : "");
+                return ctx;
             } catch (Exception e) {
                 log.warn("Failed to fetch PosSetting for warehouse {}: {}", warehouseId, e.getMessage());
             }
         }
 
-        // Default Letis POS branding — used when PosSetting is unavailable
-        // or the tenant has not configured custom branding.
+        // Default Letis POS branding
         java.util.HashMap<String, Object> defaults = new java.util.HashMap<>();
         defaults.put("name", "Letis POS");
         defaults.put("logoUrl", letisLogoDataUri());
@@ -390,6 +408,15 @@ public class DocumentService {
         defaults.put("showStorePhone", false);
         defaults.put("showStoreEmail", false);
         defaults.put("logoSize", 64);
+        defaults.put("primaryColor", "#16A34A");
+        defaults.put("primaryColorDark", "#15803D");
+        defaults.put("primaryColorLight", "#ECFDF5");
+        defaults.put("primaryColorBorder", "#BBF7D0");
+        defaults.put("accentColor", "#16A34A");
+        defaults.put("fontFamily", "'Helvetica Neue', Arial, sans-serif");
+        defaults.put("paperWidth", "8.27");
+        defaults.put("paperHeight", "11.69");
+        defaults.put("footerMessage", "");
         return defaults;
     }
 
@@ -419,6 +446,18 @@ public class DocumentService {
         }
     }
 
+    private Map<String, String> loadI18nLabels(String locale, UUID tenantId) {
+        if (locale == null || locale.isBlank()) locale = "en";
+        Map<String, String> labels = new java.util.HashMap<>();
+        try {
+            i18nRepo.findByLocaleWithFallback(locale, tenantId)
+                    .forEach(l -> labels.put(l.getLabelKey(), l.getLabelValue()));
+        } catch (Exception e) {
+            log.debug("I18n label load failed for locale {}: {}", locale, e.getMessage());
+        }
+        return labels;
+    }
+
     private String buildQrData(String documentType, String referenceType, UUID referenceId) {
         return switch (documentType) {
             case "tax-invoice", "proforma-invoice" ->
@@ -426,6 +465,49 @@ public class DocumentService {
             case "payment-receipt" ->
                 "https://pay.letispos.com/" + referenceType + "/" + referenceId;
             default -> "";
+        };
+    }
+
+    // ---- color helpers for template context ----
+
+    private static String darken(String hex, double factor) {
+        try {
+            int r = Integer.parseInt(hex.substring(1, 3), 16);
+            int g = Integer.parseInt(hex.substring(3, 5), 16);
+            int b = Integer.parseInt(hex.substring(5, 7), 16);
+            return String.format("#%02X%02X%02X",
+                    (int)(r * (1 - factor)), (int)(g * (1 - factor)), (int)(b * (1 - factor)));
+        } catch (Exception e) { return hex; }
+    }
+
+    private static String lighten(String hex, double factor) {
+        try {
+            int r = Integer.parseInt(hex.substring(1, 3), 16);
+            int g = Integer.parseInt(hex.substring(3, 5), 16);
+            int b = Integer.parseInt(hex.substring(5, 7), 16);
+            return String.format("#%02X%02X%02X",
+                    (int)(r + (255 - r) * factor), (int)(g + (255 - g) * factor), (int)(b + (255 - b) * factor));
+        } catch (Exception e) { return hex; }
+    }
+
+    private static String mapPaperWidth(String paperSize) {
+        if (paperSize == null || paperSize.isBlank()) return "8.27";
+        return switch (paperSize.toUpperCase()) {
+            case "LETTER" -> "8.5";
+            case "LEGAL" -> "8.5";
+            case "80MM", "88MM" -> "3.15";
+            case "58MM" -> "2.28";
+            default -> "8.27"; // A4
+        };
+    }
+
+    private static String mapPaperHeight(String paperSize) {
+        if (paperSize == null || paperSize.isBlank()) return "11.69";
+        return switch (paperSize.toUpperCase()) {
+            case "LETTER" -> "11.0";
+            case "LEGAL" -> "14.0";
+            case "80MM", "88MM", "58MM" -> "11.69";
+            default -> "11.69"; // A4
         };
     }
 }

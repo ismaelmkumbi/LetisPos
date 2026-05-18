@@ -29,8 +29,13 @@ public class GotenbergClient {
     }
 
     public byte[] convertHtmlToPdf(String html) throws IOException, InterruptedException {
+        return convertHtmlToPdf(html, "8.27", "11.69");
+    }
+
+    public byte[] convertHtmlToPdf(String html, String paperWidth, String paperHeight)
+            throws IOException, InterruptedException {
         String boundary = "----GotenbergFormBoundary" + System.currentTimeMillis();
-        String body = buildMultipartBody(html, boundary);
+        String body = buildMultipartBody(html, boundary, paperWidth, paperHeight);
 
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(gotenbergUrl + "/forms/chromium/convert/html"))
@@ -39,7 +44,8 @@ public class GotenbergClient {
                 .POST(HttpRequest.BodyPublishers.ofString(body, StandardCharsets.UTF_8))
                 .build();
 
-        log.debug("Sending HTML to Gotenberg, size={} bytes", html.length());
+        log.debug("Sending HTML to Gotenberg, size={} bytes, paper={}x{}in",
+                html.length(), paperWidth, paperHeight);
         HttpResponse<byte[]> response = httpClient.send(request,
                 HttpResponse.BodyHandlers.ofByteArray());
 
@@ -54,7 +60,8 @@ public class GotenbergClient {
         return response.body();
     }
 
-    private String buildMultipartBody(String html, String boundary) {
+    private String buildMultipartBody(String html, String boundary,
+                                       String paperWidth, String paperHeight) {
         StringBuilder sb = new StringBuilder();
         sb.append("--").append(boundary).append("\r\n");
         sb.append("Content-Disposition: form-data; name=\"files\"; filename=\"index.html\"\r\n");
@@ -62,10 +69,10 @@ public class GotenbergClient {
         sb.append(html).append("\r\n");
         sb.append("--").append(boundary).append("\r\n");
         sb.append("Content-Disposition: form-data; name=\"paperWidth\"\r\n\r\n");
-        sb.append("8.27\r\n");
+        sb.append(paperWidth).append("\r\n");
         sb.append("--").append(boundary).append("\r\n");
         sb.append("Content-Disposition: form-data; name=\"paperHeight\"\r\n\r\n");
-        sb.append("11.69\r\n");
+        sb.append(paperHeight).append("\r\n");
         sb.append("--").append(boundary).append("\r\n");
         sb.append("Content-Disposition: form-data; name=\"marginTop\"\r\n\r\n");
         sb.append("0.59\r\n");

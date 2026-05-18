@@ -12,4 +12,5 @@ public class GenerateDocumentRequest {
     private String referenceType;
     private UUID referenceId;
     private Map<String, Object> contextData;
+    private String locale = "en";
 }

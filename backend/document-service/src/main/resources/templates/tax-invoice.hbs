@@ -6,7 +6,7 @@
   @page { size: A4; margin: 15mm; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
-    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-family: {{company.fontFamily}};
     font-size: 12px;
     color: #0F172A;
   }
@@ -17,13 +17,13 @@
     justify-content: space-between;
     align-items: flex-start;
     margin-bottom: 24px;
-    border-bottom: 3px solid #16A34A;
+    border-bottom: 3px solid {{company.primaryColor}};
     padding-bottom: 16px;
   }
   .logo-text {
     font-size: 26px;
     font-weight: 900;
-    color: #16A34A;
+    color: {{company.primaryColor}};
     letter-spacing: -0.02em;
   }
   .company-info {
@@ -37,7 +37,7 @@
   .doc-title {
     font-size: 22px;
     font-weight: 900;
-    color: #16A34A;
+    color: {{company.primaryColor}};
     margin-bottom: 6px;
     letter-spacing: -0.01em;
   }
@@ -70,15 +70,15 @@
     margin-bottom: 24px;
   }
   thead th {
-    background: #ECFDF5;
+    background: {{company.primaryColorLight}};
     padding: 10px 12px;
     text-align: left;
     font-size: 10px;
     text-transform: uppercase;
     letter-spacing: 0.06em;
-    color: #15803D;
+    color: {{company.primaryColorDark}};
     font-weight: 700;
-    border-bottom: 2px solid #BBF7D0;
+    border-bottom: 2px solid {{company.primaryColorBorder}};
   }
   tbody td {
     padding: 10px 12px;
@@ -104,10 +104,10 @@
     color: #475569;
   }
   .total-row.grand {
-    border-top: 2px solid #16A34A;
+    border-top: 2px solid {{company.primaryColor}};
     font-size: 16px;
     font-weight: 900;
-    color: #16A34A;
+    color: {{company.primaryColor}};
     padding-top: 10px;
     margin-top: 4px;
   }
@@ -178,12 +178,12 @@
     margin-top: 16px;
   }
   .info-box {
-    background: #ECFDF5;
-    border: 1px solid #BBF7D0;
+    background: {{company.primaryColorLight}};
+    border: 1px solid {{company.primaryColorBorder}};
     border-radius: 6px;
     padding: 10px 14px;
     font-size: 11px;
-    color: #15803D;
+    color: {{company.primaryColorDark}};
     margin-top: 16px;
   }
 

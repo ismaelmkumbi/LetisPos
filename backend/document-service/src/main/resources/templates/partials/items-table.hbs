@@ -1,0 +1,24 @@
+<table>
+  <thead>
+    <tr>
+      <th style="width:40px;">#</th>
+      <th>Item / Description</th>
+      <th style="width:70px;" class="text-right">Qty</th>
+      <th style="width:100px;" class="text-right">Unit Price</th>
+      <th style="width:50px;" class="text-right">Tax %</th>
+      <th style="width:110px;" class="text-right">Total</th>
+    </tr>
+  </thead>
+  <tbody>
+    {{#each items}}
+    <tr>
+      <td>{{inc @index}}</td>
+      <td><strong>{{name}}</strong>{{#if description}}<br><span class="item-desc">{{description}}</span>{{/if}}</td>
+      <td class="text-right">{{quantity}}</td>
+      <td class="text-right">{{unitPrice}}</td>
+      <td class="text-right">{{taxRate}}%</td>
+      <td class="text-right"><strong>{{total}}</strong></td>
+    </tr>
+    {{/each}}
+  </tbody>
+</table>

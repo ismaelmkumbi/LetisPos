@@ -5,11 +5,11 @@
 <style>
   @page { size: A4; margin: 15mm; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 12px; color: #1a1a1a; }
-  .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 30px; border-bottom: 3px solid #16A34A; padding-bottom: 16px; }
-  .logo { font-size: 24px; font-weight: 700; color: #16A34A; }
+  body { font-family: {{company.fontFamily}}; font-size: 12px; color: #1a1a1a; }
+  .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 30px; border-bottom: 3px solid {{company.primaryColor}}; padding-bottom: 16px; }
+  .logo { font-size: 24px; font-weight: 700; color: {{company.primaryColor}}; }
   .company-info { text-align: right; font-size: 11px; color: #555; line-height: 1.5; }
-  .doc-title { font-size: 22px; font-weight: 700; color: #16A34A; margin-bottom: 4px; }
+  .doc-title { font-size: 22px; font-weight: 700; color: {{company.primaryColor}}; margin-bottom: 4px; }
   .doc-meta { display: flex; justify-content: space-between; margin-bottom: 24px; }
   .meta-box { flex: 1; }
   .meta-label { font-size: 10px; text-transform: uppercase; color: #888; letter-spacing: 1px; margin-bottom: 2px; }

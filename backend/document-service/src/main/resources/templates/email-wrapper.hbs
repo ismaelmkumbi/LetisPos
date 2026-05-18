@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"></head>
+<body style="margin:0;padding:0;">
+<div style="max-width:600px;margin:0 auto;font-family:{{company.fontFamily}};">
+  <div style="background:linear-gradient(135deg,{{company.primaryColor}},{{company.primaryColorDark}});color:#fff;padding:24px;text-align:center;border-radius:8px 8px 0 0;">
+    <h2 style="margin:0;font-weight:800;letter-spacing:-0.02em;">{{company.name}}</h2>
+    <p style="margin:4px 0 0;font-size:14px;opacity:0.9;">{{displayType}} &bull; #{{documentNumber}}</p>
+  </div>
+  <div style="padding:24px;border:1px solid #E2E8F0;border-top:none;border-radius:0 0 8px 8px;">
+    <p style="font-size:14px;color:#334155;">{{message}}</p>
+    <div style="text-align:center;margin:24px 0;">
+      <a href="{{downloadUrl}}" style="background:{{company.primaryColor}};color:#fff;padding:14px 36px;text-decoration:none;border-radius:8px;font-size:14px;font-weight:700;display:inline-block;">Download PDF</a>
+    </div>
+    <p style="font-size:12px;color:#94A3B8;text-align:center;">This link expires in 1 hour.</p>
+    <hr style="border:none;border-top:1px solid #E2E8F0;margin:20px 0;">
+    {{#if company.footerMessage}}
+    <p style="font-size:11px;color:{{company.primaryColor}};text-align:center;font-weight:600;">{{company.footerMessage}}</p>
+    {{/if}}
+    <p style="font-size:11px;color:#94A3B8;text-align:center;">{{company.name}} &bull; {{company.address}} &bull; {{company.email}}</p>
+  </div>
+</div>
+</body>
+</html>
