@@ -245,6 +245,70 @@ public class SaleService {
         return Map.of("updated", resp.get("updated"), "costsFound", items.size());
     }
 
+    /**
+     * Backfill unit_cost on historical CONFIRMED sale lines from the current
+     * weighted_avg_cost in the Inventory Service.
+     * Run once per tenant -- idempotent (skips lines with non-zero unitCost).
+     */
+    @Transactional
+    public Map<String, Object> backfillSaleCosts() {
+        UUID tenantId = TenantContext.require();
+        List<Object[]> rows = saleRepo.findLinesNeedingCostBackfill(tenantId);
+
+        if (rows.isEmpty()) return Map.of("updated", 0, "message", "All historical sales already have cost data");
+
+        // Group by warehouseId and collect productIds
+        Map<UUID, Set<UUID>> warehouseProducts = new LinkedHashMap<>();
+        for (Object[] row : rows) {
+            UUID warehouseId = (UUID) row[4];
+            UUID productId = (UUID) row[2];
+            warehouseProducts.computeIfAbsent(warehouseId, k -> new LinkedHashSet<>()).add(productId);
+        }
+
+        // Fetch WAC for each warehouse's products
+        Map<String, BigDecimal> costCache = new HashMap<>();
+        for (var entry : warehouseProducts.entrySet()) {
+            try {
+                var costs = inventory.getCosts(entry.getKey(), new ArrayList<>(entry.getValue()));
+                for (var c : costs) {
+                    String key = entry.getKey() + "-" + c.productId() + "-" + (c.variantId() != null ? c.variantId() : "null");
+                    costCache.put(key, c.weightedAvgCost());
+                }
+            } catch (Exception e) {
+                log.warn("Could not fetch costs for warehouse {}: {}", entry.getKey(), e.getMessage());
+            }
+        }
+
+        int updated = 0;
+        int skipped = 0;
+        for (Object[] row : rows) {
+            UUID saleId = (UUID) row[0];
+            UUID lineId = (UUID) row[1];
+            UUID productId = (UUID) row[2];
+            UUID variantId = (UUID) row[3];
+            UUID warehouseId = (UUID) row[4];
+            String key = warehouseId + "-" + productId + "-" + (variantId != null ? variantId : "null");
+            BigDecimal wac = costCache.get(key);
+
+            if (wac != null && wac.signum() > 0) {
+                Sale sale = saleRepo.findByIdWithLines(saleId).orElse(null);
+                if (sale != null) {
+                    for (var line : sale.getLines()) {
+                        if (line.getId().equals(lineId)) {
+                            line.setUnitCost(wac);
+                            updated++;
+                            break;
+                        }
+                    }
+                }
+            } else {
+                skipped++;
+            }
+        }
+
+        return Map.of("updated", updated, "skipped", skipped, "total", rows.size());
+    }
+
     // ---------- Create & confirm (back-office) ----------
 
     /**

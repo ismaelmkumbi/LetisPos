@@ -86,4 +86,14 @@ public interface SaleRepository extends JpaRepository<Sale, UUID> {
                                @Param("dateFrom") LocalDate dateFrom,
                                @Param("dateTo") LocalDate dateTo,
                                @Param("warehouseId") UUID warehouseId);
+
+    @Query("""
+        SELECT s.id, sl.id, sl.productId, sl.variantId, s.warehouseId
+        FROM Sale s JOIN s.lines sl
+        WHERE s.status = 'CONFIRMED'
+          AND sl.unitCost = 0
+          AND s.tenantId = :tenantId
+        ORDER BY s.date DESC
+        """)
+    List<Object[]> findLinesNeedingCostBackfill(@Param("tenantId") UUID tenantId);
 }

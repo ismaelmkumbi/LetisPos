@@ -120,6 +120,12 @@ public class SaleController {
         return ResponseEntity.ok(saleService.backfillWac());
     }
 
+    @PostMapping("/backfill-sale-costs")
+    @PreAuthorize("hasAuthority('sale.create')")
+    public ResponseEntity<Map<String, Object>> backfillSaleCosts() {
+        return ResponseEntity.ok(saleService.backfillSaleCosts());
+    }
+
     @PostMapping("/{id}/returns")
     @PreAuthorize("hasAuthority('sale.return')")
     public ResponseEntity<SaleReturnDto> createReturn(@PathVariable UUID id,
