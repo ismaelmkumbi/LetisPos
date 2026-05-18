@@ -25,10 +25,20 @@ export interface ChartOfAccount {
   description?: string | null;
 }
 
-export async function listAccounts(accountClass?: AccountClass): Promise<ChartOfAccount[]> {
+export async function listAccounts(accountClass?: AccountClass, includeInactive?: boolean): Promise<ChartOfAccount[]> {
   const { data } = await api.get<ChartOfAccount[]>('/api/v1/chart-of-accounts', {
-    params: { accountClass },
+    params: { accountClass, includeInactive },
   });
+  return data;
+}
+
+export async function listTemplates(): Promise<ChartOfAccount[]> {
+  const { data } = await api.get<ChartOfAccount[]>('/api/v1/chart-of-accounts/templates');
+  return data;
+}
+
+export async function activateAccount(id: UUID): Promise<ChartOfAccount> {
+  const { data } = await api.patch<ChartOfAccount>(`/api/v1/chart-of-accounts/${id}/activate`);
   return data;
 }
 
@@ -191,7 +201,22 @@ export async function getBalanceSheet(asOf: string): Promise<BalanceSheet> {
   return data;
 }
 
-// ─── Seed default Chart of Accounts ───────────────────────────────────────────
+// ─── Initialize Accounting for Tenant ─────────────────────────────────────────
+
+export interface AccountingSetupResult {
+  coaEntries: number;
+  operationalAccounts: number;
+  postingRules: number;
+  expenseCategories: number;
+  depositCategories: number;
+}
+
+export async function initializeAccounting(): Promise<AccountingSetupResult> {
+  const { data } = await api.post<AccountingSetupResult>('/api/v1/chart-of-accounts/initialize');
+  return data;
+}
+
+// ─── Seed default Chart of Accounts (client-side fallback) ────────────────────
 
 const DEFAULT_COA: CreateAccountBody[] = [
   // Assets (1-XXXX)
@@ -239,6 +264,14 @@ const DEFAULT_COA: CreateAccountBody[] = [
 ];
 
 export async function seedDefaultCOA(): Promise<ChartOfAccount[]> {
+  // Try the single-call backend initialization first
+  try {
+    await initializeAccounting();
+  } catch (err) {
+    console.warn('Backend initializeAccounting failed, falling back to client-side seeding:', err);
+  }
+
+  // Fallback: client-side individual creates
   const results: ChartOfAccount[] = [];
   for (const account of DEFAULT_COA) {
     try {

@@ -2,14 +2,15 @@
  * Chart of Accounts list — grouped by account class.
  * Quick add inline; clicking a row opens the edit drawer.
  */
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  Alert, Box, Card, Chip, MenuItem, Stack, TextField, Typography,
+  Alert, Box, Button, Card, Chip, Collapse, MenuItem, Stack, TextField, Typography,
 } from '@mui/material';
-import { IconPlus } from '@tabler/icons-react';
+import { IconChevronDown, IconChevronRight, IconPlus } from '@tabler/icons-react';
 
 import {
-  listAccounts, type AccountClass, type ChartOfAccount,
+  listAccounts, listTemplates, activateAccount, initializeAccounting,
+  type AccountClass, type ChartOfAccount, type AccountingSetupResult,
 } from 'src/api/smartpos/accounting';
 import PageHeader from 'src/components/smartpos/PageHeader';
 import FilterBar, { type ActiveFilter } from 'src/components/smartpos/FilterBar';
@@ -36,6 +37,11 @@ export default function ChartOfAccountsPage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editing, setEditing] = useState<ChartOfAccount | null>(null);
   const [refreshToken, setRefreshToken] = useState(0);
+  const [templates, setTemplates] = useState<ChartOfAccount[]>([]);
+  const [templatesOpen, setTemplatesOpen] = useState(false);
+  const [activating, setActivating] = useState<Set<string>>(new Set());
+  const [initializing, setInitializing] = useState(false);
+  const [initResult, setInitResult] = useState<AccountingSetupResult | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -46,6 +52,25 @@ export default function ChartOfAccountsPage() {
       .finally(() => !cancelled && setLoading(false));
     return () => { cancelled = true; };
   }, [filter, refreshToken, user?.tenantId]);
+
+  const loadTemplates = useCallback(() => {
+    listTemplates()
+      .then(setTemplates)
+      .catch(() => {});
+  }, []);
+
+  const handleActivate = useCallback(async (id: string) => {
+    setActivating((prev) => new Set(prev).add(id));
+    try {
+      await activateAccount(id);
+      setTemplates((prev) => prev.filter((t) => t.id !== id));
+      setRefreshToken((x) => x + 1);
+    } catch {
+      // ignore
+    } finally {
+      setActivating((prev) => { const next = new Set(prev); next.delete(id); return next; });
+    }
+  }, []);
 
   const grouped = useMemo(() => {
     const out: Record<string, ChartOfAccount[]> = {};
@@ -119,6 +144,49 @@ export default function ChartOfAccountsPage() {
 
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
 
+      {/* ── One-click accounting setup ─────────────────────────────────── */}
+      {!loading && rows.length === 0 && !initResult && (
+        <Alert
+          severity="info"
+          sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 2 }}
+          action={
+            <Button
+              variant="contained"
+              size="small"
+              disabled={initializing}
+              onClick={async () => {
+                setInitializing(true);
+                try {
+                  const result = await initializeAccounting();
+                  setInitResult(result);
+                  setRefreshToken((x) => x + 1);
+                } catch (e) {
+                  setError(e instanceof Error ? e.message : 'Setup failed');
+                } finally {
+                  setInitializing(false);
+                }
+              }}
+              sx={{ borderRadius: '8px', textTransform: 'none', fontWeight: 600, whiteSpace: 'nowrap' }}
+            >
+              {initializing ? 'Setting up…' : 'Initialize Accounting'}
+            </Button>
+          }
+        >
+          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+            No Chart of Accounts found for this business.
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            Click to create the full accounting setup — COA tree, cash accounts, posting rules, and categories.
+          </Typography>
+        </Alert>
+      )}
+
+      {initResult && (
+        <Alert severity="success" sx={{ mb: 2 }} onClose={() => setInitResult(null)}>
+          Accounting setup complete: {initResult.coaEntries} COA entries, {initResult.operationalAccounts} accounts, {initResult.postingRules} posting rules, {initResult.expenseCategories} expense categories, {initResult.depositCategories} deposit categories.
+        </Alert>
+      )}
+
       {filter ? (
         <DataTable
           columns={cols} rows={rows} loading={loading}
@@ -151,6 +219,59 @@ export default function ChartOfAccountsPage() {
             );
           })}
         </Stack>
+      )}
+
+      {/* ── Available templates ──────────────────────────────────────────── */}
+      {!filter && (
+        <Box sx={{ mt: 3 }}>
+          <Button
+            variant="text"
+            size="small"
+            onClick={() => { if (!templatesOpen) loadTemplates(); setTemplatesOpen(!templatesOpen); }}
+            endIcon={templatesOpen ? <IconChevronDown size={16} /> : <IconChevronRight size={16} />}
+            sx={{ color: brand.neutral[500], textTransform: 'none', fontWeight: 600 }}
+          >
+            Available account templates ({templates.length > 0 ? templates.length : '…'})
+          </Button>
+          <Collapse in={templatesOpen}>
+            {templates.length === 0 ? (
+              <Typography variant="body2" sx={{ mt: 1, color: brand.neutral[400], fontStyle: 'italic' }}>
+                No templates available. All accounts are active — you can create custom ones with "New account".
+              </Typography>
+            ) : (
+              <Card elevation={0} sx={{ mt: 1, border: `1px solid ${brand.neutral[200]}`, borderRadius: '8px', overflow: 'hidden' }}>
+                <Box sx={{ px: 2, py: 1, bgcolor: brand.warning.light, borderBottom: `1px solid ${brand.neutral[200]}` }}>
+                  <Typography variant="caption" sx={{ color: brand.warning.dark, fontWeight: 600 }}>
+                    These accounts are inactive. Activate the ones your business needs — you can rename them after.
+                  </Typography>
+                </Box>
+                <DataTable
+                  columns={[
+                    ...cols,
+                    {
+                      key: 'activate', label: '', align: 'center', width: 100,
+                      render: (a: ChartOfAccount) => (
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          disabled={activating.has(a.id)}
+                          onClick={(e) => { e.stopPropagation(); handleActivate(a.id); }}
+                          sx={{ borderRadius: '8px', textTransform: 'none', fontSize: '0.75rem', minWidth: 80 }}
+                        >
+                          {activating.has(a.id) ? '…' : 'Activate'}
+                        </Button>
+                      ),
+                    },
+                  ]}
+                  rows={templates}
+                  loading={false}
+                  getRowKey={(a) => a.id}
+                  tableKey="coa-templates"
+                />
+              </Card>
+            )}
+          </Collapse>
+        </Box>
       )}
 
       <AccountEditDrawer

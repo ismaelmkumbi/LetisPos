@@ -17,6 +17,8 @@ public interface JournalEntryRepository extends JpaRepository<JournalEntry, UUID
 
     boolean existsByRefIgnoreCaseAndTenantId(String ref, UUID tenantId);
 
+    long countByRefStartingWithAndTenantId(String prefix, UUID tenantId);
+
     @Query("""
            SELECT j FROM JournalEntry j
            WHERE (:status IS NULL OR j.status = :status)

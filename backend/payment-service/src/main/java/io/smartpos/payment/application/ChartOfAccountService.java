@@ -5,6 +5,7 @@ import io.smartpos.payment.api.dto.ChartOfAccountDto;
 import io.smartpos.payment.domain.model.AccountClass;
 import io.smartpos.payment.domain.model.ChartOfAccount;
 import io.smartpos.payment.domain.repository.ChartOfAccountRepository;
+import io.smartpos.payment.domain.repository.JournalEntryRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -12,7 +13,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -21,14 +24,36 @@ import java.util.UUID;
 public class ChartOfAccountService {
 
     private final ChartOfAccountRepository repo;
+    private final JournalEntryRepository journalRepo;
 
     @Transactional(readOnly = true)
-    public List<ChartOfAccountDto> list(AccountClass cls) {
+    public List<ChartOfAccountDto> list(AccountClass cls, boolean includeInactive) {
         UUID tenantId = TenantContext.require();
-        List<ChartOfAccount> list = (cls == null)
-                ? repo.findByActiveTrueAndTenantIdOrderByCodeAsc(tenantId)
-                : repo.findByAccountClassAndTenantIdOrderByCodeAsc(cls, tenantId);
+        List<ChartOfAccount> list;
+        if (includeInactive) {
+            list = repo.findByTenantIdOrderByCodeAsc(tenantId);
+        } else if (cls == null) {
+            list = repo.findByActiveTrueAndTenantIdOrderByCodeAsc(tenantId);
+        } else {
+            list = repo.findByAccountClassAndTenantIdOrderByCodeAsc(cls, tenantId);
+        }
         return list.stream().map(ChartOfAccountDto::from).toList();
+    }
+
+    /** List inactive template accounts the tenant can activate. */
+    @Transactional(readOnly = true)
+    public List<ChartOfAccountDto> templates() {
+        return repo.findByActiveFalseAndTenantIdOrderByCodeAsc(TenantContext.require())
+                .stream().map(ChartOfAccountDto::from).toList();
+    }
+
+    /** Activate a previously inactive account. */
+    @Transactional
+    public ChartOfAccountDto activate(UUID id) {
+        ChartOfAccount c = repo.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Account not found"));
+        c.setActive(true);
+        return ChartOfAccountDto.from(repo.save(c));
     }
 
     @Transactional(readOnly = true)
@@ -66,13 +91,20 @@ public class ChartOfAccountService {
     public List<ChartOfAccountSummary> summary() {
         UUID tenantId = TenantContext.require();
         List<ChartOfAccount> accounts = repo.findByActiveTrueAndTenantIdOrderByCodeAsc(tenantId);
-        // TODO: Compute real balances from account_ledger once ledger entries
-        // are linked to chart_of_accounts (currently ledger entries reference
-        // the operational Account entity, not COA nodes).
+        Map<UUID, BigDecimal[]> totals = new HashMap<>();
+        for (Object[] row : journalRepo.sumByAccount(null, null, tenantId)) {
+            totals.put((UUID) row[0],
+                    new BigDecimal[]{ (BigDecimal) row[1], (BigDecimal) row[2] });
+        }
         return accounts.stream()
-                .map(a -> new ChartOfAccountSummary(
-                        a.getCode(), a.getName(), a.getAccountClass().name(),
-                        BigDecimal.ZERO))
+                .map(a -> {
+                    BigDecimal[] drcr = totals.getOrDefault(a.getId(),
+                            new BigDecimal[]{ BigDecimal.ZERO, BigDecimal.ZERO });
+                    BigDecimal net = drcr[0].subtract(drcr[1]);
+                    BigDecimal balance = "DR".equals(a.getNormalBalance()) ? net : net.negate();
+                    return new ChartOfAccountSummary(
+                            a.getCode(), a.getName(), a.getAccountClass().name(), balance);
+                })
                 .toList();
     }
 

@@ -19,6 +19,7 @@ public class ExpenseCategory {
 
     @Column(name = "name", nullable = false) private String name;
     @Column(name = "description") private String description;
+    @Column(name = "coa_id") private UUID coaId;
     @Column(name = "tenant_id") private UUID tenantId;
     @Column(name = "created_at", nullable = false, updatable = false) private Instant createdAt;
 

@@ -42,6 +42,9 @@ public class Account {
     @Builder.Default
     private boolean active = true;
 
+    @Column(name = "coa_id")
+    private UUID coaId;
+
     @Column(name = "notes") private String notes;
     @Column(name = "tenant_id") private UUID tenantId;
 

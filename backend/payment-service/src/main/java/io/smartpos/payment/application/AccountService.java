@@ -7,6 +7,7 @@ import io.smartpos.payment.api.dto.LedgerDto;
 import io.smartpos.payment.domain.model.*;
 import io.smartpos.payment.domain.repository.*;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -22,6 +23,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AccountService {
@@ -29,6 +31,7 @@ public class AccountService {
     private final AccountRepository        accountRepo;
     private final LedgerRepository         ledgerRepo;
     private final AccountTransferRepository transferRepo;
+    private final AutoPostingService       autoPosting;
 
     @Transactional(readOnly = true)
     public List<AccountDto> list() {
@@ -51,6 +54,7 @@ public class AccountService {
                 .initialBalance(nz(req.initialBalance()))
                 .balance(nz(req.initialBalance()))
                 .notes(req.notes())
+                .coaId(req.coaId())
                 .active(true)
                 .tenantId(TenantContext.require())
                 .build();
@@ -66,6 +70,7 @@ public class AccountService {
         if (req.type()     != null) a.setType(req.type());
         if (req.currency() != null) a.setCurrency(req.currency());
         if (req.notes()    != null) a.setNotes(req.notes());
+        if (req.coaId()    != null) a.setCoaId(req.coaId());
         return AccountDto.from(accountRepo.save(a));
     }
 
@@ -135,6 +140,12 @@ public class AccountService {
                 .balanceAfter(newTo)
                 .tenantId(tenantId)
                 .build());
+
+        try {
+            autoPosting.postTransfer(saved, from, to);
+        } catch (Exception e) {
+            log.warn("Auto-post journal for transfer {} failed: {}", saved.getRef(), e.getMessage());
+        }
 
         return AccountTransferDto.from(saved);
     }

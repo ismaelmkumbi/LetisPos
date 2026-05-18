@@ -29,5 +29,5 @@ public record DepositDto(
             String notes
     ) {}
 
-    public record CategoryRequest(@NotBlank String name, String description) {}
+    public record CategoryRequest(@NotBlank String name, String description, UUID coaId) {}
 }

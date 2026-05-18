@@ -31,6 +31,7 @@ export interface Account {
   balance: number;
   active: boolean;
   notes: string | null;
+  coaId: UUID | null;
 }
 
 export interface AccountInput {
@@ -40,6 +41,7 @@ export interface AccountInput {
   currency?: string;
   initialBalance?: number;
   notes?: string;
+  coaId?: UUID;
 }
 
 export async function listAccounts(): Promise<Account[]> {
@@ -258,7 +260,7 @@ export async function listExpenseCategories(): Promise<
   return data;
 }
 
-export async function createExpenseCategory(body: { name: string; description?: string }) {
+export async function createExpenseCategory(body: { name: string; description?: string; coaId?: UUID }) {
   const { data } = await api.post('/api/v1/expenses/categories', body);
   return data;
 }
@@ -309,7 +311,7 @@ export async function listDepositCategories() {
   return data;
 }
 
-export async function createDepositCategory(body: { name: string; description?: string }) {
+export async function createDepositCategory(body: { name: string; description?: string; coaId?: UUID }) {
   const { data } = await api.post('/api/v1/deposits/categories', body);
   return data;
 }

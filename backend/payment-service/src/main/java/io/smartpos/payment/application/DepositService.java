@@ -8,6 +8,7 @@ import io.smartpos.payment.domain.repository.DepositCategoryRepository;
 import io.smartpos.payment.domain.repository.DepositRepository;
 import io.smartpos.payment.domain.repository.LedgerRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -21,6 +22,7 @@ import java.time.Year;
 import java.util.List;
 import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class DepositService {
@@ -30,6 +32,7 @@ public class DepositService {
     private final AccountRepository         accountRepo;
     private final LedgerRepository          ledgerRepo;
     private final OutboxPublisher           outbox;
+    private final AutoPostingService        autoPosting;
 
     @Transactional(readOnly = true)
     public Page<DepositDto> search(UUID accountId, UUID categoryId,
@@ -45,6 +48,7 @@ public class DepositService {
         DepositCategory c = DepositCategory.builder()
                 .name(req.name())
                 .description(req.description())
+                .coaId(req.coaId())
                 .tenantId(TenantContext.require())
                 .build();
         return catRepo.save(c);
@@ -86,6 +90,13 @@ public class DepositService {
                 java.util.Map.of("depositId", saved.getId(), "amount", saved.getAmount(),
                                  "accountId", saved.getAccountId()),
                 tenantId);
+
+        try {
+            autoPosting.postDeposit(saved, account);
+        } catch (Exception e) {
+            log.warn("Auto-post journal for deposit {} failed: {}", saved.getRef(), e.getMessage());
+        }
+
         return DepositDto.from(saved);
     }
 

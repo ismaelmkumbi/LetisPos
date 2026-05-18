@@ -7,21 +7,28 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "deposit_categories")
+@Table(name = "auto_posting_rules")
 @Getter @Setter
 @NoArgsConstructor @AllArgsConstructor
 @Builder
-public class DepositCategory {
+public class AutoPostingRule {
 
     @Id
     @Column(name = "id", nullable = false, updatable = false)
     private UUID id;
 
-    @Column(name = "name", nullable = false) private String name;
-    @Column(name = "description") private String description;
-    @Column(name = "coa_id") private UUID coaId;
-    @Column(name = "tenant_id") private UUID tenantId;
-    @Column(name = "created_at", nullable = false, updatable = false) private Instant createdAt;
+    @Column(name = "tenant_id")
+    private UUID tenantId;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "reference_type", nullable = false)
+    private ReferenceType referenceType;
+
+    @Column(name = "coa_id", nullable = false)
+    private UUID coaId;
+
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private Instant createdAt;
 
     @PrePersist
     void onCreate() {

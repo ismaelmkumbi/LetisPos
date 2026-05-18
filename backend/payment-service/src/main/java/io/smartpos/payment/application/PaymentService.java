@@ -43,6 +43,7 @@ public class PaymentService {
     private final LedgerRepository     ledgerRepo;
     private final SalesClient          salesClient;
     private final OutboxPublisher      outbox;
+    private final AutoPostingService   autoPosting;
 
     @Value("${smartpos.payment.default-currency:TZS}")
     private String defaultCurrency;
@@ -136,6 +137,12 @@ public class PaymentService {
         payload.put("currency",      saved.getCurrency());
         payload.put("tenantId",      saved.getTenantId() == null ? null : saved.getTenantId().toString());
         outbox.publish("Payment", saved.getId(), "PaymentReceived", payload, tenantId);
+
+        try {
+            autoPosting.postPayment(saved, account);
+        } catch (Exception e) {
+            log.warn("Auto-post journal for payment {} failed: {}", saved.getRef(), e.getMessage());
+        }
 
         return PaymentDto.from(saved);
     }

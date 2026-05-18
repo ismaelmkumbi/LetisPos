@@ -8,6 +8,7 @@ import io.smartpos.payment.domain.repository.ExpenseCategoryRepository;
 import io.smartpos.payment.domain.repository.ExpenseRepository;
 import io.smartpos.payment.domain.repository.LedgerRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -22,6 +23,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ExpenseService {
@@ -31,6 +33,7 @@ public class ExpenseService {
     private final AccountRepository         accountRepo;
     private final LedgerRepository          ledgerRepo;
     private final OutboxPublisher           outbox;
+    private final AutoPostingService        autoPosting;
 
     @Transactional(readOnly = true)
     public Page<ExpenseDto> search(UUID accountId, UUID categoryId,
@@ -46,6 +49,7 @@ public class ExpenseService {
         ExpenseCategory c = ExpenseCategory.builder()
                 .name(req.name())
                 .description(req.description())
+                .coaId(req.coaId())
                 .tenantId(TenantContext.require())
                 .build();
         return catRepo.save(c);
@@ -87,6 +91,13 @@ public class ExpenseService {
                 java.util.Map.of("expenseId", saved.getId(), "amount", saved.getAmount(),
                                  "accountId", saved.getAccountId()),
                 tenantId);
+
+        try {
+            autoPosting.postExpense(saved, account);
+        } catch (Exception ex) {
+            log.warn("Auto-post journal for expense {} failed: {}", saved.getRef(), ex.getMessage());
+        }
+
         return ExpenseDto.from(saved);
     }
 
