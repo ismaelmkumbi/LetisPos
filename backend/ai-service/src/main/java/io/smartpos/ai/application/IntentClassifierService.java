@@ -141,13 +141,14 @@ public class IntentClassifierService {
         String lower = message.toLowerCase().trim();
 
         Domain primary = classifyDomain(lower);
+        double confidence = computeConfidence(lower, primary);
         Set<Domain> secondaries = findSecondaryDomains(lower, primary);
         Language lang = detectLanguage(lower);
         ResolvedTime time = extractTime(lower);
         boolean isWrite = isWriteAction(lower);
         List<String> keywords = extractKeywords(lower);
 
-        return new IntentClassification(primary, secondaries, lang, time, isWrite, keywords);
+        return new IntentClassification(primary, secondaries, lang, time, isWrite, keywords, confidence);
     }
 
     /**
@@ -156,7 +157,7 @@ public class IntentClassifierService {
      * sending to the LLM, saving tokens and improving selection accuracy.
      */
     public Set<String> narrowTools(IntentClassification intent, Set<String> allToolNames) {
-        if (intent == null || intent.primaryDomain() == Domain.GENERAL) {
+        if (intent == null || intent.primaryDomain() == Domain.GENERAL || intent.confidence() < 0.5) {
             return allToolNames;
         }
         // Return tools whose names contain domain-identifying substrings
@@ -176,6 +177,17 @@ public class IntentClassifierService {
         }
         // If narrowing yields nothing useful, return all (safety)
         return narrowed.isEmpty() ? allToolNames : narrowed;
+    }
+
+    private double computeConfidence(String lower, Domain primary) {
+        if (primary == Domain.GENERAL) return 0.3; // uncertain
+        var keywords = DOMAIN_KEYWORDS.get(primary);
+        if (keywords == null || keywords.isEmpty()) return 0.3;
+        long matchCount = keywords.stream()
+            .filter(kw -> containsWord(lower, kw))
+            .count();
+        // More matches → higher confidence, capped at 0.95
+        return Math.min(0.95, 0.4 + (matchCount * 0.15));
     }
 
     // ── Classification logic ──
