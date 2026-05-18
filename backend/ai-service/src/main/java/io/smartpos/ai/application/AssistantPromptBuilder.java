@@ -1,5 +1,6 @@
 package io.smartpos.ai.application;
 
+import io.smartpos.ai.api.dto.IntentClassification;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Component;
 
@@ -65,5 +66,75 @@ public class AssistantPromptBuilder {
         }
 
         return prompt;
+    }
+
+    public String build(Jwt jwt, String language, IntentClassification intent,
+                        String conversationSummary, RoleProfile roleProfile) {
+        @SuppressWarnings("unchecked")
+        var roles = (List<String>) jwt.getClaims().get("roles");
+        String roleStr = roles != null && !roles.isEmpty()
+            ? String.join(", ", roles) : "USER";
+
+        String tenantName = jwt.getClaimAsString("tenantName");
+        String billingPlan = jwt.getClaimAsString("billingPlan");
+        String lang = resolveLanguage(language, intent);
+        RoleProfile profile = roleProfile != null ? roleProfile : RoleProfile.fromJwt(roles);
+
+        StringBuilder sb = new StringBuilder();
+
+        sb.append(String.format(BASE_PROMPT,
+            tenantName != null ? tenantName : "Unknown",
+            billingPlan != null ? billingPlan : "STARTER",
+            roleStr,
+            LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE),
+            lang
+        ));
+
+        // Role-specific tone
+        sb.append("\n").append(profile.toneInstruction());
+        sb.append("\nVerbosity: ").append(profile.verbosity());
+
+        // Domain hint from intent
+        if (intent != null && intent.primaryDomain() != IntentClassification.Domain.GENERAL
+            && intent.confidence() >= 0.5) {
+            sb.append("\nThe user is asking about ").append(intent.primaryDomain().name().toLowerCase())
+              .append(" management.");
+        }
+
+        // Resolved time
+        if (intent != null && intent.time() != null) {
+            var time = intent.time();
+            if (time.dateFrom() != null && time.dateTo() != null) {
+                sb.append("\nUser time reference resolves to: ").append(time.dateFrom())
+                  .append(" to ").append(time.dateTo()).append(".");
+            }
+        }
+
+        // Conversation summary
+        if (conversationSummary != null && !conversationSummary.isBlank()) {
+            sb.append("\nPrevious conversation: ").append(conversationSummary);
+        }
+
+        // Write intent priming
+        if (intent != null && intent.isWriteAction()) {
+            sb.append("\nThis is a write action. Explain what will happen before using the tool.");
+        }
+
+        // Super admin extra
+        if (roles != null && roles.contains("SUPER_ADMIN")) {
+            sb.append("\n").append(SUPER_ADMIN_EXTRA);
+        }
+
+        return sb.toString();
+    }
+
+    private String resolveLanguage(String clientLang, IntentClassification intent) {
+        if (intent != null && intent.language() == IntentClassification.Language.SWAHILI) {
+            return "Swahili";
+        }
+        if (intent != null && intent.language() == IntentClassification.Language.MIXED) {
+            return "Swahili or English, match the user's language";
+        }
+        return clientLang != null && clientLang.equals("sw") ? "Swahili" : "English";
     }
 }
