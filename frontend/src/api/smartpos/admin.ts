@@ -4,3 +4,8 @@ export async function runWacBackfill(): Promise<{ updated: number; costsFound: n
   const { data } = await api.post('/api/v1/sales/backfill-wac');
   return data;
 }
+
+export async function runSaleCostBackfill(): Promise<{ updated: number; skipped: number; total: number; message?: string }> {
+  const { data } = await api.post('/api/v1/sales/backfill-sale-costs');
+  return data;
+}

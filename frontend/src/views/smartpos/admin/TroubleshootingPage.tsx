@@ -3,8 +3,8 @@ import {
   Box, Typography, Grid, Card, CardContent, CardActions,
   Button, Alert, Chip, Stack, CircularProgress,
 } from '@mui/material';
-import { IconRefresh, IconCheck, IconAlertCircle } from '@tabler/icons-react';
-import { runWacBackfill } from 'src/api/smartpos/admin';
+import { IconRefresh, IconHistory, IconCheck, IconAlertCircle } from '@tabler/icons-react';
+import { runWacBackfill, runSaleCostBackfill } from 'src/api/smartpos/admin';
 import PageHeader from 'src/components/smartpos/PageHeader';
 
 type OpState = 'idle' | 'running' | 'success' | 'error';
@@ -19,6 +19,7 @@ const initialResult: OpResult = { state: 'idle', message: '', lastRun: null };
 
 export default function TroubleshootingPage() {
   const [wacResult, setWacResult] = useState<OpResult>(initialResult);
+  const [saleCostResult, setSaleCostResult] = useState<OpResult>(initialResult);
 
   const handleWacBackfill = useCallback(async () => {
     setWacResult({ state: 'running', message: '', lastRun: null });
@@ -54,6 +55,40 @@ export default function TroubleshootingPage() {
     }
   }, []);
 
+  const handleSaleCostBackfill = useCallback(async () => {
+    setSaleCostResult({ state: 'running', message: '', lastRun: null });
+    try {
+      const res = await runSaleCostBackfill();
+      const now = new Date().toLocaleString();
+      if (res.updated > 0) {
+        setSaleCostResult({
+          state: 'success',
+          message: `Fixed ${res.updated} historical sale lines with purchase cost data (${res.skipped} skipped, ${res.total} total lines checked)`,
+          lastRun: now,
+        });
+      } else if (res.total > 0) {
+        setSaleCostResult({
+          state: 'success',
+          message: `All ${res.total} historical sales already have cost data`,
+          lastRun: now,
+        });
+      } else {
+        setSaleCostResult({
+          state: 'success',
+          message: 'All historical sales already have cost data. Nothing to fix.',
+          lastRun: now,
+        });
+      }
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } }; message?: string };
+      setSaleCostResult({
+        state: 'error',
+        message: err?.response?.data?.message || err?.message || 'Backfill failed. Check server logs.',
+        lastRun: null,
+      });
+    }
+  }, []);
+
   const operations = [
     {
       title: 'Recalculate Product Costs',
@@ -62,6 +97,14 @@ export default function TroubleshootingPage() {
         'Seeds weighted average cost for existing stock from the most recent purchase costs. Run this if products are showing 0% or 100% margins on the Business Pulse card.',
       result: wacResult,
       onRun: handleWacBackfill,
+    },
+    {
+      title: 'Fix Historical Sale Costs',
+      icon: <IconHistory size={24} />,
+      description:
+        'Updates cost of goods sold on past sales that were recorded before the cost tracking feature. Run after \'Recalculate Product Costs\' if historical margins look wrong.',
+      result: saleCostResult,
+      onRun: handleSaleCostBackfill,
     },
   ];
 
