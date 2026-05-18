@@ -105,7 +105,7 @@ export function AssistantProvider({ children }: { children: React.ReactNode }) {
       setStreaming(false);
       abortRef.current = null;
     }
-  }, []);
+  }, [conversationId]);
 
   const stop = useCallback(() => {
     abortRef.current?.abort();
