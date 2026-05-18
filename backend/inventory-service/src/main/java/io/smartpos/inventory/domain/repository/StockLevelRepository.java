@@ -82,6 +82,17 @@ public interface StockLevelRepository extends JpaRepository<StockLevel, UUID> {
                                                 @Param("productIds") List<UUID> productIds,
                                                 @Param("tenantId") UUID tenantId);
 
+    /** Batch read for WAC values — no lock needed (reads at sale creation time). */
+    @Query("""
+           SELECT s FROM StockLevel s
+           WHERE s.warehouseId = :warehouseId
+             AND s.productId IN (:productIds)
+             AND s.tenantId = :tenantId
+           """)
+    List<StockLevel> findCostsByWarehouseAndProducts(@Param("warehouseId") UUID warehouseId,
+                                                      @Param("productIds") List<UUID> productIds,
+                                                      @Param("tenantId") UUID tenantId);
+
     /** All stock levels for a given tenant. */
     List<StockLevel> findByTenantId(UUID tenantId);
 }

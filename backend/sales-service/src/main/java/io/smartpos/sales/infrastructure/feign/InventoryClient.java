@@ -48,4 +48,12 @@ public interface InventoryClient {
 
     @PostMapping("/api/v1/adjustments")
     ResponseEntity<AdjustmentResponse> createAdjustment(@RequestBody CreateAdjustmentRequest req);
+
+    // --- Weighted average cost lookup for sale-time COGS ---
+
+    record StockCostDto(UUID productId, UUID variantId, BigDecimal weightedAvgCost) {}
+
+    @GetMapping("/api/v1/stock/costs")
+    List<StockCostDto> getCosts(@RequestParam("warehouseId") UUID warehouseId,
+                                @RequestParam("productIds") List<UUID> productIds);
 }
