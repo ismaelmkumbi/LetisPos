@@ -11,7 +11,6 @@ public final class AssistantDtos {
 
     public record ChatRequest(
         String message,
-        UUID conversationId,
         String language
     ) {}
 
@@ -23,6 +22,7 @@ public final class AssistantDtos {
     ) {}
 
     public sealed interface StreamEvent {
+        record MetaEvent(UUID conversationId) implements StreamEvent {}
         record TokenEvent(String token) implements StreamEvent {}
         record ToolStartEvent(String toolName) implements StreamEvent {}
         record ToolResultEvent(ToolResult result) implements StreamEvent {}

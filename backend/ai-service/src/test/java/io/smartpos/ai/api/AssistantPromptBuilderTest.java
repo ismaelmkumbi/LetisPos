@@ -90,9 +90,8 @@ class AssistantPromptBuilderTest {
     @Test
     void chatRequestDtosAreValid() {
         AssistantDtos.ChatRequest req = new AssistantDtos.ChatRequest(
-            "Hello", null, "en");
+            "Hello", "en");
         assertEquals("Hello", req.message());
         assertEquals("en", req.language());
-        assertNull(req.conversationId());
     }
 }
