@@ -16,6 +16,7 @@ interface AssistantState {
   messages: ChatMessage[];
   streaming: boolean;
   error: string | null;
+  conversationId: string | null;
 }
 
 interface AssistantActions {
@@ -36,6 +37,7 @@ export function AssistantProvider({ children }: { children: React.ReactNode }) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [streaming, setStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [conversationId, setConversationId] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
   const toggle = useCallback(() => setOpen(o => !o), []);
@@ -56,12 +58,15 @@ export function AssistantProvider({ children }: { children: React.ReactNode }) {
 
     try {
       let fullContent = '';
-      for await (const event of streamChat({ message }, controller.signal)) {
+      for await (const event of streamChat({ message }, conversationId, controller.signal)) {
         switch (event.type) {
           case 'token':
             fullContent += event.token;
             setMessages(prev => prev.map(m =>
               m.id === assistantMsg.id ? { ...m, content: fullContent } : m));
+            break;
+          case 'meta':
+            setConversationId(event.conversationId);
             break;
           case 'tool_start':
             // Could show loading indicator
@@ -126,11 +131,11 @@ export function AssistantProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const clearMessages = useCallback(() => setMessages([]), []);
+  const clearMessages = useCallback(() => { setMessages([]); setConversationId(null); }, []);
 
   return (
     <AssistantCtx.Provider value={{
-      open, messages, streaming, error,
+      open, messages, streaming, error, conversationId,
       toggle, send, stop, confirmDraftAction, rejectDraftAction, clearMessages,
     }}>
       {children}
