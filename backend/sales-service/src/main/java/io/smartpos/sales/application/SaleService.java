@@ -253,6 +253,30 @@ public class SaleService {
             sumTax      = sumTax.add(calc.tax());
         }
 
+        // Snapshot weighted average cost from Inventory for each line
+        List<UUID> productIds = sale.getLines().stream()
+                .map(SaleLine::getProductId)
+                .distinct()
+                .toList();
+        if (!productIds.isEmpty()) {
+            try {
+                var costs = inventory.getCosts(sale.getWarehouseId(), productIds);
+                var costMap = costs.stream().collect(java.util.stream.Collectors.toMap(
+                        c -> c.productId(),
+                        c -> c.weightedAvgCost(),
+                        (a, b) -> a));
+                for (SaleLine line : sale.getLines()) {
+                    BigDecimal wac = costMap.get(line.getProductId());
+                    if (wac != null && wac.signum() > 0) {
+                        line.setUnitCost(wac);
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("Could not fetch WAC for sale {}: {}", sale.getId(), e.getMessage());
+                // sale proceeds with unitCost = 0 (default) — non-blocking
+            }
+        }
+
         PricingEngine.DocCalc doc = pricing.calcDocument(sumSubtotal, sumTax, req.discount(), req.shipping());
         sale.setSubtotal(doc.subtotal());
         sale.setTaxTotal(doc.taxTotal());
