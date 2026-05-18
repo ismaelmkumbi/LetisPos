@@ -19,7 +19,7 @@ import { useContext } from 'react';
 import { CustomizerContext } from 'src/context/CustomizerContext';
 import { brand } from 'src/theme/smartpos/brand';
 import { formatMoney } from 'src/utils/smartpos/currency';
-import { cardSx, muted, formatSaleTime } from './utils';
+import { cardSx, darkToneBg, muted, formatSaleTime } from './utils';
 import EmptyPanel from './EmptyPanel';
 import type { Sale } from 'src/api/smartpos/sales';
 
@@ -129,7 +129,7 @@ export default function RecentTransactions({ rows, fraudAlertIds, fraudReasons }
                         width: 38,
                         height: 38,
                         borderRadius: '10px',
-                        bgcolor: isFraud ? '#FEF2F2' : (isDark ? `${palette.color}20` : palette.bg),
+                        bgcolor: isFraud ? (isDark ? darkToneBg.error : '#FEF2F2') : (isDark ? `${palette.color}20` : palette.bg),
                         color: isFraud ? brand.error.main : palette.color,
                         display: 'grid',
                         placeItems: 'center',
@@ -178,8 +178,8 @@ export default function RecentTransactions({ rows, fraudAlertIds, fraudReasons }
                             fontFamily: LBL_FONT,
                             fontWeight: 700,
                             letterSpacing: '0.03em',
-                            bgcolor: isDark ? `${statusStyle.color}20` : statusStyle.bg,
-                            color: statusStyle.color,
+                            bgcolor: isDark ? `${statusStyle.color}22` : statusStyle.bg,
+                            color: isDark && row.paymentStatus === 'PAID' ? brand.primary[300] : statusStyle.color,
                             border: 'none',
                             px: 0.25,
                             '& .MuiChip-label': { px: '5px' },

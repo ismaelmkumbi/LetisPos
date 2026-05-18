@@ -102,7 +102,11 @@ const FullLayout: FC = () => {
             sx={{
               width: '100%',
               pt: isSmartPosDashboard ? '10px' : isSmartPos ? '20px' : '28px',
-              pb: isSmartPosDashboard ? '18px' : '28px',
+              pb: isSmartPosDashboard
+                ? { xs: 'calc(112px + env(safe-area-inset-bottom, 0px))', md: '18px' }
+                : isSmartPos
+                ? { xs: 'calc(104px + env(safe-area-inset-bottom, 0px))', md: '28px' }
+                : '28px',
               maxWidth: isSmartPos
                 ? '100% !important'
                 : isLayout === 'boxed'

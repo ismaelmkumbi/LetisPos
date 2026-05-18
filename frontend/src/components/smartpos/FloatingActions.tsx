@@ -6,7 +6,7 @@
  */
 import { useState } from 'react';
 import {
-  Fab, Zoom, Tooltip, SpeedDial, SpeedDialAction, SpeedDialIcon
+  Fab, Zoom, Tooltip, SpeedDial, SpeedDialAction, SpeedDialIcon, useTheme
 } from '@mui/material';
 import {
   IconPlus, IconCashRegister, IconPackage, IconUsers,
@@ -51,6 +51,8 @@ export function FloatingActions() {
   const navigate = useNavigate();
   const location = useLocation();
   const [open, setOpen] = useState(false);
+  const theme = useTheme();
+  const isDark = theme.palette.mode === 'dark';
 
   // Get actions for current context
   const actions = CONTEXT_ACTIONS[location.pathname] || CONTEXT_ACTIONS.default;
@@ -67,8 +69,8 @@ export function FloatingActions() {
             onClick={() => navigate(primaryAction.path)}
             sx={{
               position: 'fixed',
-              bottom: 24,
-              right: 24,
+              bottom: { xs: 'calc(88px + env(safe-area-inset-bottom, 0px))', sm: 24 },
+              right: { xs: 18, sm: 24 },
               bgcolor: brand.primary[500],
               background: `linear-gradient(135deg, ${brand.primary[500]} 0%, ${brand.primary[600]} 100%)`,
               boxShadow: `0 8px 24px ${brand.primary[500]}40`,
@@ -91,8 +93,8 @@ export function FloatingActions() {
       ariaLabel="Quick actions"
       sx={{
         position: 'fixed',
-        bottom: 24,
-        right: 24,
+        bottom: { xs: 'calc(88px + env(safe-area-inset-bottom, 0px))', sm: 24 },
+        right: { xs: 18, sm: 24 },
         '& .MuiFab-root': {
           bgcolor: brand.primary[500],
           background: `linear-gradient(135deg, ${brand.primary[500]} 0%, ${brand.primary[600]} 100%)`,
@@ -103,12 +105,13 @@ export function FloatingActions() {
           },
         },
         '& .MuiSpeedDialAction-fab': {
-          bgcolor: 'white',
-          color: brand.neutral[700],
-          boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+          bgcolor: isDark ? brand.neutral[800] : 'white',
+          color: isDark ? brand.neutral[100] : brand.neutral[700],
+          border: `1px solid ${isDark ? brand.neutral[700] : 'transparent'}`,
+          boxShadow: isDark ? '0 8px 22px rgba(0,0,0,0.35)' : '0 4px 12px rgba(0,0,0,0.1)',
           '&:hover': {
-            bgcolor: brand.primary[50],
-            color: brand.primary[700],
+            bgcolor: isDark ? brand.neutral[700] : brand.primary[50],
+            color: brand.primary[isDark ? 300 : 700],
           },
         },
       }}

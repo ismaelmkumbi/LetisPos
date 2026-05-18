@@ -22,7 +22,10 @@ export default function ChatFAB() {
   return (
     <Box
       sx={{
-        position: 'fixed', bottom: 100, right: 28, zIndex: 1300,
+        position: 'fixed',
+        bottom: { xs: 'calc(154px + env(safe-area-inset-bottom, 0px))', sm: 100 },
+        right: { xs: 18, sm: 28 },
+        zIndex: 1300,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}
     >
@@ -48,7 +51,8 @@ export default function ChatFAB() {
         onClick={toggle}
         aria-label="Letis POS Assistant"
         sx={{
-          width: 56, height: 56,
+          width: { xs: 52, sm: 56 },
+          height: { xs: 52, sm: 56 },
           background: open
             ? c.accentBg
             : c.fabBg,

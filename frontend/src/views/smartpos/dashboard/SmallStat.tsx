@@ -12,7 +12,7 @@ import { IconArrowDown, IconArrowUp } from '@tabler/icons-react';
 import { useContext } from 'react';
 import { CustomizerContext } from 'src/context/CustomizerContext';
 import { brand } from 'src/theme/smartpos/brand';
-import { muted } from './utils';
+import { darkToneBg, muted } from './utils';
 import type { SmallStatProps } from './types';
 
 const NUM_FONT = "'JetBrains Mono', 'DM Mono', monospace";
@@ -108,11 +108,11 @@ export default function SmallStat({ label, value, tone, icon, delta, threshold }
               fontSize: 10,
               fontFamily: LBL_FONT,
               fontWeight: 700,
-              bgcolor: delta.positive ? brand.primary[50] : '#FEF2F2',
-              color: delta.positive ? brand.primary[700] : brand.error.main,
-              border: `1px solid ${delta.positive ? brand.primary[100] : '#FECACA'}`,
+              bgcolor: isDark ? (delta.positive ? darkToneBg.success : darkToneBg.error) : delta.positive ? brand.primary[50] : '#FEF2F2',
+              color: delta.positive ? brand.primary[isDark ? 300 : 700] : brand.error.main,
+              border: `1px solid ${isDark ? (delta.positive ? 'rgba(34,197,94,0.28)' : 'rgba(239,68,68,0.28)') : delta.positive ? brand.primary[100] : '#FECACA'}`,
               '& .MuiChip-icon': {
-                color: delta.positive ? brand.primary[700] : brand.error.main,
+                color: delta.positive ? brand.primary[isDark ? 300 : 700] : brand.error.main,
                 ml: '3px',
               },
             }}

@@ -9,7 +9,7 @@ import {
 import { IconTrendingDown, IconTrendingUp, IconMinus } from '@tabler/icons-react';
 import { brand } from 'src/theme/smartpos/brand';
 import type { DemandForecast, ForecastedProduct } from 'src/api/smartpos/dashboardIntelligence';
-import { cardSx, titleColor, muted, formatDateRange } from './utils';
+import { cardSx, darkToneBg, titleColor, muted, formatDateRange } from './utils';
 import EmptyPanel from './EmptyPanel';
 
 interface DemandForecastCardProps {
@@ -18,23 +18,23 @@ interface DemandForecastCardProps {
   isDark: boolean;
 }
 
-function trendChip(trend: ForecastedProduct['trend']) {
+function trendChip(trend: ForecastedProduct['trend'], isDark: boolean) {
   const config: Record<string, { bg: string; color: string; icon: React.ReactNode; label: string }> = {
     UP: {
-      bg: brand.success.light,
-      color: brand.success.dark,
+      bg: isDark ? darkToneBg.success : brand.success.light,
+      color: isDark ? brand.primary[300] : brand.success.dark,
       icon: <IconTrendingUp size={14} />,
       label: 'Up',
     },
     DOWN: {
-      bg: brand.error.light,
-      color: brand.error.dark,
+      bg: isDark ? darkToneBg.error : brand.error.light,
+      color: isDark ? brand.error.main : brand.error.dark,
       icon: <IconTrendingDown size={14} />,
       label: 'Down',
     },
     STABLE: {
-      bg: brand.neutral[100],
-      color: brand.neutral[700],
+      bg: isDark ? darkToneBg.neutral : brand.neutral[100],
+      color: isDark ? brand.neutral[300] : brand.neutral[700],
       icon: <IconMinus size={14} />,
       label: 'Stable',
     },
@@ -49,7 +49,7 @@ function ForecastRow({
   product: ForecastedProduct;
   isDark: boolean;
 }) {
-  const chip = trendChip(product.trend);
+  const chip = trendChip(product.trend, isDark);
   return (
     <Stack
       direction="row"

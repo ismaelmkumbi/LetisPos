@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useContext, useState } from 'react';
 import { Box, Button, IconButton, LinearProgress, Stack, Typography } from '@mui/material';
 import { IconChevronRight, IconX } from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
 import { useOnboarding } from 'src/context/smartpos/OnboardingContext';
 import { useAuth } from 'src/context/smartpos/AuthContext';
+import { CustomizerContext } from 'src/context/CustomizerContext';
 import { brand } from 'src/theme/smartpos/brand';
 import { authTheme as at } from 'src/theme/smartpos/authTheme';
 import SetupWizard from 'src/views/smartpos/onboarding/SetupWizard';
@@ -25,6 +26,8 @@ const SETUP_STEPS = [
 export default function OnboardingBanner() {
   const { state, dismissBanner, bannerDismissed } = useOnboarding();
   const { user, tenants, isTrialing, getTrialDaysLeft } = useAuth();
+  const { activeMode } = useContext(CustomizerContext);
+  const isDark = activeMode === 'dark';
   const navigate = useNavigate();
   const [wizardOpen, setWizardOpen] = useState(false);
 
@@ -43,12 +46,12 @@ export default function OnboardingBanner() {
       <Box
         sx={{
           mb: 1.5,
-          p: { xs: 1.5, md: 1.75 },
+          p: { xs: 1.25, sm: 1.5, md: 1.75 },
           borderRadius: '12px',
-          border: `1px solid ${isFirstLogin ? brand.primary[200] : brand.neutral[200]}`,
+          border: `1px solid ${isDark ? brand.neutral[700] : isFirstLogin ? brand.primary[200] : brand.neutral[200]}`,
           borderLeft: `4px solid ${brand.primary[600]}`,
-          bgcolor: isFirstLogin ? brand.primary[50] : '#FFFFFF',
-          color: brand.neutral[900],
+          bgcolor: isDark ? brand.neutral[800] : isFirstLogin ? brand.primary[50] : '#FFFFFF',
+          color: isDark ? brand.neutral[100] : brand.neutral[900],
           position: 'relative',
           overflow: 'hidden',
           boxShadow: at.shadow.sm,
@@ -58,7 +61,7 @@ export default function OnboardingBanner() {
           direction={{ xs: 'column', md: 'row' }}
           alignItems={{ xs: 'stretch', md: 'center' }}
           justifyContent="space-between"
-          gap={2}
+          gap={{ xs: 1.5, md: 2 }}
           sx={{ position: 'relative', zIndex: 1 }}
         >
           <Box sx={{ flex: 1, minWidth: 0 }}>
@@ -70,7 +73,7 @@ export default function OnboardingBanner() {
                     fontWeight: 700,
                     textTransform: 'uppercase',
                     letterSpacing: '0.06em',
-                    color: brand.primary[700],
+                    color: isDark ? brand.primary[300] : brand.primary[700],
                     mb: 0.35,
                   }}
                 >
@@ -79,20 +82,20 @@ export default function OnboardingBanner() {
                 <Typography
                   sx={{
                     fontFamily: at.fontDisplay,
-                    fontSize: { xs: '1rem', md: '1.08rem' },
+                    fontSize: { xs: '0.95rem', sm: '1rem', md: '1.08rem' },
                     fontWeight: 700,
                     mb: 0.35,
-                    color: brand.neutral[900],
+                    color: isDark ? brand.neutral[100] : brand.neutral[900],
                   }}
                 >
                   Finish your store setup{user?.firstName ? `, ${user.firstName}` : ''}
                 </Typography>
-                <Typography sx={{ fontSize: '0.78rem', lineHeight: 1.5, color: brand.neutral[500], mb: 1.2 }}>
+                <Typography sx={{ fontSize: '0.75rem', lineHeight: 1.45, color: isDark ? brand.neutral[400] : brand.neutral[500], mb: 1 }}>
                   Complete the essentials so your dashboard data stays accurate.
                 </Typography>
 
                 {/* Numbered steps */}
-                <Stack direction="row" spacing={1.5} sx={{ flexWrap: 'wrap' }}>
+                <Stack direction="row" spacing={{ xs: 1, sm: 1.5 }} sx={{ flexWrap: 'wrap' }}>
                   {SETUP_STEPS.map((step, i) => {
                     const done = state[step.key] === true;
                     const current = i === currentStepIndex;
@@ -100,15 +103,25 @@ export default function OnboardingBanner() {
                       <Stack key={step.key} direction="row" alignItems="center" spacing={0.75}>
                         <Box
                           sx={{
-                            width: 24, height: 24,
+                            width: { xs: 22, sm: 24 },
+                            height: { xs: 22, sm: 24 },
                             borderRadius: '50%',
                             display: 'grid', placeItems: 'center',
                             fontSize: '0.65rem', fontWeight: 700,
                             ...(done
                               ? { bgcolor: brand.primary[600], color: '#FFFFFF' }
                               : current
-                                ? { bgcolor: '#FFFFFF', color: brand.primary[700], border: `1px solid ${brand.primary[300]}`, boxShadow: `0 0 0 3px ${brand.primary[100]}` }
-                                : { bgcolor: '#FFFFFF', color: brand.neutral[400], border: `1px solid ${brand.neutral[200]}` }),
+                                ? {
+                                    bgcolor: isDark ? brand.neutral[900] : '#FFFFFF',
+                                    color: isDark ? brand.primary[300] : brand.primary[700],
+                                    border: `1px solid ${isDark ? brand.primary[700] : brand.primary[300]}`,
+                                    boxShadow: `0 0 0 3px ${isDark ? 'rgba(34,197,94,0.16)' : brand.primary[100]}`,
+                                  }
+                                : {
+                                    bgcolor: isDark ? brand.neutral[900] : '#FFFFFF',
+                                    color: isDark ? brand.neutral[500] : brand.neutral[400],
+                                    border: `1px solid ${isDark ? brand.neutral[700] : brand.neutral[200]}`,
+                                  }),
                           }}
                         >
                           {done ? '✓' : i + 1}
@@ -117,7 +130,7 @@ export default function OnboardingBanner() {
                           sx={{
                             fontSize: '0.72rem',
                             fontWeight: current ? 700 : 500,
-                            color: current ? brand.neutral[900] : done ? brand.primary[700] : brand.neutral[400],
+                            color: current ? (isDark ? brand.neutral[100] : brand.neutral[900]) : done ? brand.primary[isDark ? 300 : 700] : brand.neutral[400],
                             display: { xs: 'none', sm: 'inline' },
                           }}
                         >
@@ -130,7 +143,7 @@ export default function OnboardingBanner() {
               </>
             ) : (
               <>
-                <Typography sx={{ fontWeight: 800, fontSize: { xs: 14, md: 15 }, color: brand.neutral[900] }}>
+                  <Typography sx={{ fontWeight: 800, fontSize: { xs: 14, md: 15 }, color: isDark ? brand.neutral[100] : brand.neutral[900] }}>
                   🚀 {state.percent}% complete — {nextStep?.[1].label}
                 </Typography>
                 <LinearProgress
@@ -138,7 +151,7 @@ export default function OnboardingBanner() {
                   value={state.percent}
                   sx={{
                     mt: 1, height: 6, borderRadius: '3px',
-                    bgcolor: brand.neutral[100],
+                    bgcolor: isDark ? brand.neutral[700] : brand.neutral[100],
                     '& .MuiLinearProgress-bar': { bgcolor: brand.primary[600], borderRadius: '3px' },
                   }}
                 />
@@ -146,42 +159,42 @@ export default function OnboardingBanner() {
             )}
           </Box>
 
-          <Stack direction="row" spacing={1.5} alignItems="center">
+          <Stack direction="row" spacing={{ xs: 1, sm: 1.5 }} alignItems="center">
             {/* Plan + trial stat boxes (first login only) */}
             {isFirstLogin && (
               <Stack direction="row" spacing={1} sx={{ display: { xs: 'none', lg: 'flex' } }}>
                 <Box
                   sx={{
-                    bgcolor: '#FFFFFF',
-                    border: `1px solid ${brand.primary[200]}`,
+                    bgcolor: isDark ? brand.neutral[900] : '#FFFFFF',
+                    border: `1px solid ${isDark ? brand.neutral[700] : brand.primary[200]}`,
                     borderRadius: at.radius.md,
                     px: 2, py: 1.5,
                     textAlign: 'center',
                     minWidth: 80,
                   }}
                 >
-                  <Typography sx={{ fontSize: '0.62rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: brand.primary[700] }}>
+                  <Typography sx={{ fontSize: '0.62rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: isDark ? brand.primary[300] : brand.primary[700] }}>
                     Your plan
                   </Typography>
-                  <Typography sx={{ fontFamily: at.fontDisplay, fontSize: '1rem', fontWeight: 700, color: brand.neutral[900], lineHeight: 1 }}>
+                  <Typography sx={{ fontFamily: at.fontDisplay, fontSize: '1rem', fontWeight: 700, color: isDark ? brand.neutral[100] : brand.neutral[900], lineHeight: 1 }}>
                     {tenantPlan.charAt(0) + tenantPlan.slice(1).toLowerCase()}
                   </Typography>
                 </Box>
                 {isTrialing() && trialDays !== null && (
                   <Box
                     sx={{
-                      bgcolor: '#FFFFFF',
-                      border: `1px solid ${brand.primary[200]}`,
+                      bgcolor: isDark ? brand.neutral[900] : '#FFFFFF',
+                      border: `1px solid ${isDark ? brand.neutral[700] : brand.primary[200]}`,
                       borderRadius: at.radius.md,
                       px: 2, py: 1.5,
                       textAlign: 'center',
                       minWidth: 80,
                     }}
                   >
-                    <Typography sx={{ fontSize: '0.62rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: brand.primary[700] }}>
+                    <Typography sx={{ fontSize: '0.62rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: isDark ? brand.primary[300] : brand.primary[700] }}>
                       Trial ends
                     </Typography>
-                    <Typography sx={{ fontFamily: at.fontDisplay, fontSize: '1rem', fontWeight: 700, color: brand.neutral[900], lineHeight: 1 }}>
+                    <Typography sx={{ fontFamily: at.fontDisplay, fontSize: '1rem', fontWeight: 700, color: isDark ? brand.neutral[100] : brand.neutral[900], lineHeight: 1 }}>
                       {trialDays} days
                     </Typography>
                   </Box>
@@ -200,6 +213,8 @@ export default function OnboardingBanner() {
                 textTransform: 'none',
                 fontWeight: 700,
                 borderRadius: at.radius.md,
+                minHeight: 40,
+                px: { xs: 1.5, sm: 2 },
                 whiteSpace: 'nowrap',
                 '&:hover': {
                   bgcolor: brand.primary[700],

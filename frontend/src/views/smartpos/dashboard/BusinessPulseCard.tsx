@@ -13,7 +13,7 @@ import { IconArrowDown, IconArrowUp, IconTrendingUp, IconTrendingDown } from '@t
 import { useContext } from 'react';
 import { CustomizerContext } from 'src/context/CustomizerContext';
 import { formatMoney } from 'src/utils/smartpos/currency';
-import { PERIOD_LABELS, profitMargin } from './utils';
+import { darkToneBg, PERIOD_LABELS, profitMargin } from './utils';
 import type { Dashboard, Period } from 'src/api/smartpos/reports';
 import type { Delta } from './types';
 import { brand } from 'src/theme/smartpos/brand';
@@ -101,10 +101,11 @@ export default function BusinessPulseCard({ data, salesSeries, period, delta }: 
             sx={{
               fontFamily: LBL_FONT,
               color: isDark ? brand.neutral[400] : brand.neutral[500],
-              fontSize: 11,
+              fontSize: { xs: 10.5, sm: 11 },
               fontWeight: 700,
               textTransform: 'uppercase',
               letterSpacing: '0.06em',
+              pr: 1,
             }}
           >
             Business Pulse · {periodLabel}
@@ -129,13 +130,20 @@ export default function BusinessPulseCard({ data, salesSeries, period, delta }: 
         </Stack>
 
         {/* Net Profit — hero number */}
-        <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.6 }}>
+        <Stack
+          direction="row"
+          spacing={1}
+          alignItems="center"
+          sx={{ mb: 0.6, minWidth: 0, flexWrap: 'wrap' }}
+        >
           <Typography
             sx={{
               color: isDark ? '#F8FAFC' : isLoss ? brand.error.dark : brand.neutral[900],
               fontWeight: 800,
-              fontSize: { xs: 27, sm: 31 },
+              fontSize: { xs: 'clamp(1.7rem, 8vw, 2.05rem)', sm: 31 },
               lineHeight: 1,
+              maxWidth: '100%',
+              overflowWrap: 'anywhere',
             }}
           >
             {isLoss ? `−${formatMoney(Math.abs(profit))}` : formatMoney(profit)}
@@ -150,10 +158,10 @@ export default function BusinessPulseCard({ data, salesSeries, period, delta }: 
               fontFamily: LBL_FONT,
               fontSize: 11,
               fontWeight: 700,
-              bgcolor: delta.positive ? brand.primary[50] : '#FEF2F2',
-              color: delta.positive ? brand.primary[700] : brand.error.dark,
-              border: `1px solid ${delta.positive ? brand.primary[100] : '#FECACA'}`,
-              '& .MuiChip-icon': { color: delta.positive ? brand.primary[700] : brand.error.dark, ml: '4px' },
+              bgcolor: isDark ? (delta.positive ? darkToneBg.success : darkToneBg.error) : delta.positive ? brand.primary[50] : '#FEF2F2',
+              color: delta.positive ? brand.primary[isDark ? 300 : 700] : brand.error[isDark ? 'main' : 'dark'],
+              border: `1px solid ${isDark ? (delta.positive ? 'rgba(34,197,94,0.28)' : 'rgba(239,68,68,0.28)') : delta.positive ? brand.primary[100] : '#FECACA'}`,
+              '& .MuiChip-icon': { color: delta.positive ? brand.primary[isDark ? 300 : 700] : brand.error[isDark ? 'main' : 'dark'], ml: '4px' },
             }}
           />
         )}

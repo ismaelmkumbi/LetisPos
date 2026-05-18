@@ -61,7 +61,7 @@ export default function KpiGrid({
   return (
     <>
       {/* Cash in Hand */}
-      <Grid size={{ xs: 6, sm: 6, lg: 2 }} sx={{ minWidth: { xs: 0, lg: 'auto' }, scrollSnapAlign: 'start' }}>
+      <Grid size={{ xs: 6, sm: 6, lg: 2 }} sx={{ minWidth: 0 }}>
         <MetricCard
           label="Cash in Hand"
           value={formatMoney(data?.payments.totalIn ?? 0)}
@@ -75,7 +75,7 @@ export default function KpiGrid({
       </Grid>
 
       {/* Net Sales */}
-      <Grid size={{ xs: 6, sm: 6, lg: 2 }} sx={{ minWidth: { xs: 0, lg: 'auto' }, scrollSnapAlign: 'start' }}>
+      <Grid size={{ xs: 6, sm: 6, lg: 2 }} sx={{ minWidth: 0 }}>
         <MetricCard
           label="Net Sales"
           value={formatMoney(data?.sales.net ?? 0)}
@@ -89,7 +89,7 @@ export default function KpiGrid({
       </Grid>
 
       {/* Orders */}
-      <Grid size={{ xs: 6, sm: 6, lg: 2 }} sx={{ minWidth: { xs: 0, lg: 'auto' }, scrollSnapAlign: 'start' }}>
+      <Grid size={{ xs: 6, sm: 6, lg: 2 }} sx={{ minWidth: 0 }}>
         <MetricCard
           label="Orders"
           value={formatNumber(data?.sales.count ?? 0)}
@@ -103,7 +103,7 @@ export default function KpiGrid({
       </Grid>
 
       {/* Avg. Order Value (replaces Purchases — which lives in Financial Health) */}
-      <Grid size={{ xs: 6, sm: 6, lg: 2 }} sx={{ minWidth: { xs: 0, lg: 'auto' }, scrollSnapAlign: 'start' }}>
+      <Grid size={{ xs: 6, sm: 6, lg: 2 }} sx={{ minWidth: 0 }}>
         <MetricCard
           label="Avg. Order Value"
           value={formatMoney(aov)}

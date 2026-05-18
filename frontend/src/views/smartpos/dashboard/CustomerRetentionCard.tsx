@@ -16,7 +16,7 @@ import {
 import { useNavigate } from 'react-router';
 import { brand } from 'src/theme/smartpos/brand';
 import { formatMoney } from 'src/utils/smartpos/currency';
-import { cardSx, titleColor, muted } from './utils';
+import { cardSx, darkToneBg, titleColor, muted } from './utils';
 import EmptyPanel from './EmptyPanel';
 import type { CustomerRetention, AtRiskCustomer } from 'src/api/smartpos/dashboardIntelligence';
 
@@ -26,7 +26,7 @@ interface CustomerRetentionCardProps {
   isDark: boolean;
 }
 
-function segmentBadge(segment: string) {
+function segmentBadge(segment: string, isDark: boolean) {
   const isAtRisk = segment.toLowerCase().includes('at risk');
   return (
     <Chip
@@ -36,8 +36,8 @@ function segmentBadge(segment: string) {
         height: 22,
         fontSize: 11,
         fontWeight: 800,
-        bgcolor: isAtRisk ? '#FEF3C7' : '#FEE2E2',
-        color: isAtRisk ? '#B45309' : brand.error.main,
+        bgcolor: isDark ? (isAtRisk ? darkToneBg.warning : darkToneBg.error) : isAtRisk ? '#FEF3C7' : '#FEE2E2',
+        color: isAtRisk ? brand.warning.main : brand.error.main,
       }}
     />
   );
@@ -135,15 +135,15 @@ export default function CustomerRetentionCard({
                       {customer.name}
                     </TableCell>
                     <TableCell sx={{ py: 1 }}>
-                      {segmentBadge(customer.segment)}
+                      {segmentBadge(customer.segment, isDark)}
                     </TableCell>
-                    <TableCell sx={{ fontSize: 13, color: brand.neutral[600], py: 1 }}>
+                    <TableCell sx={{ fontSize: 13, color: muted(isDark), py: 1 }}>
                       {customer.lastVisitDays}d ago
                     </TableCell>
                     <TableCell align="right" sx={{ fontWeight: 700, fontSize: 13, color: titleColor, py: 1 }}>
                       {formatMoney(customer.lifetimeValue)}
                     </TableCell>
-                    <TableCell align="right" sx={{ fontSize: 13, color: brand.neutral[600], py: 1 }}>
+                    <TableCell align="right" sx={{ fontSize: 13, color: muted(isDark), py: 1 }}>
                       {customer.visits}
                     </TableCell>
                   </TableRow>
@@ -168,8 +168,8 @@ export default function CustomerRetentionCard({
                   height: 24,
                   fontSize: 11,
                   fontWeight: 800,
-                  bgcolor: brand.warning.light,
-                  color: brand.warning.dark,
+                  bgcolor: isDark ? darkToneBg.warning : brand.warning.light,
+                  color: isDark ? brand.warning.main : brand.warning.dark,
                 }}
               />
             </Stack>

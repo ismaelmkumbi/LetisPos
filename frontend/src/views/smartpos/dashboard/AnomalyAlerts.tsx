@@ -7,7 +7,7 @@
  * - On empty result: renders nothing (no "all clear" noise).
  * - Typography upgraded: Outfit labels, JetBrains Mono values.
  */
-import { useEffect, useState, useCallback } from 'react';
+import { useContext, useEffect, useState, useCallback } from 'react';
 import {
   Box, Card, CardActionArea, CardContent,
   LinearProgress, Stack, Typography,
@@ -18,6 +18,8 @@ import { brand } from 'src/theme/smartpos/brand';
 import { formatMoney, formatNumber } from 'src/utils/smartpos/currency';
 import { getAnomalies, type Anomaly } from 'src/api/smartpos/reports';
 import type { UUID } from 'src/api/smartpos/types';
+import { CustomizerContext } from 'src/context/CustomizerContext';
+import { darkToneBg } from './utils';
 
 const NUM_FONT = "'JetBrains Mono', 'DM Mono', monospace";
 const LBL_FONT = "'Outfit', 'DM Sans', sans-serif";
@@ -26,11 +28,11 @@ interface AnomalyAlertsProps {
   warehouseId: UUID | '';
 }
 
-function AnomalyCard({ anomaly }: { anomaly: Anomaly }) {
+function AnomalyCard({ anomaly, isDark }: { anomaly: Anomaly; isDark: boolean }) {
   const isError = anomaly.severity === 'error';
   const color  = isError ? brand.error.main    : brand.warning.main;
-  const bg     = isError ? '#FEF2F2'           : '#FFFBEB';
-  const border = isError ? brand.error.light   : brand.warning.light;
+  const bg     = isDark ? (isError ? darkToneBg.error : darkToneBg.warning) : isError ? '#FEF2F2' : '#FFFBEB';
+  const border = isDark ? (isError ? 'rgba(239,68,68,0.30)' : 'rgba(245,158,11,0.30)') : isError ? brand.error.light : brand.warning.light;
   const Icon   = isError ? IconInfoCircle      : IconAlertTriangle;
 
   const deviationLabel =
@@ -78,7 +80,7 @@ function AnomalyCard({ anomaly }: { anomaly: Anomaly }) {
               <Typography sx={{ fontFamily: LBL_FONT, color, fontWeight: 700, fontSize: 12.5 }}>
                 {anomaly.metric} anomaly
               </Typography>
-              <Typography sx={{ fontFamily: NUM_FONT, color: brand.neutral[700], fontSize: 11.5, mt: 0.15 }}>
+              <Typography sx={{ fontFamily: NUM_FONT, color: isDark ? brand.neutral[200] : brand.neutral[700], fontSize: 11.5, mt: 0.15 }}>
                 {valueLabel} vs avg {avgLabel}
               </Typography>
               <Typography sx={{ fontFamily: LBL_FONT, color, fontWeight: 600, fontSize: 10.5, mt: 0.2 }}>
@@ -94,6 +96,8 @@ function AnomalyCard({ anomaly }: { anomaly: Anomaly }) {
 }
 
 export default function AnomalyAlerts({ warehouseId }: AnomalyAlertsProps) {
+  const { activeMode } = useContext(CustomizerContext);
+  const isDark = activeMode === 'dark';
   const [anomalies, setAnomalies]   = useState<Anomaly[]>([]);
   const [loading, setLoading]       = useState(true);
   const [failed, setFailed]         = useState(false);
@@ -130,7 +134,7 @@ export default function AnomalyAlerts({ warehouseId }: AnomalyAlertsProps) {
               fontSize: 11,
               textTransform: 'uppercase',
               letterSpacing: '0.07em',
-              color: brand.warning.main,
+              color: isDark ? brand.warning.main : brand.warning.dark,
               mb: 1,
             }}
           >
@@ -138,7 +142,7 @@ export default function AnomalyAlerts({ warehouseId }: AnomalyAlertsProps) {
           </Typography>
           <Stack spacing={0.75}>
             {anomalies.slice(0, 3).map((a, i) => (
-              <AnomalyCard key={`${a.metric}-${i}`} anomaly={a} />
+              <AnomalyCard key={`${a.metric}-${i}`} anomaly={a} isDark={isDark} />
             ))}
           </Stack>
         </>

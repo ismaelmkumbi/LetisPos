@@ -10,7 +10,7 @@ import { IconShoppingCart } from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
 import { brand } from 'src/theme/smartpos/brand';
 import type { ReorderRecommendations, ReorderRecommendationItem } from 'src/api/smartpos/dashboardIntelligence';
-import { cardSx, titleColor, muted } from './utils';
+import { cardSx, darkToneBg, titleColor, muted } from './utils';
 import EmptyPanel from './EmptyPanel';
 
 interface ReorderRecommendationsCardProps {
@@ -19,11 +19,11 @@ interface ReorderRecommendationsCardProps {
   isDark: boolean;
 }
 
-function urgencyBadge(urgency: ReorderRecommendationItem['urgency']) {
+function urgencyBadge(urgency: ReorderRecommendationItem['urgency'], isDark: boolean) {
   const config: Record<string, { bg: string; color: string; label: string }> = {
-    HIGH: { bg: brand.error.light, color: brand.error.dark, label: 'HIGH' },
-    MEDIUM: { bg: brand.warning.light, color: brand.warning.dark, label: 'MED' },
-    LOW: { bg: brand.neutral[100], color: brand.neutral[700], label: 'LOW' },
+    HIGH: { bg: isDark ? darkToneBg.error : brand.error.light, color: isDark ? brand.error.main : brand.error.dark, label: 'HIGH' },
+    MEDIUM: { bg: isDark ? darkToneBg.warning : brand.warning.light, color: isDark ? brand.warning.main : brand.warning.dark, label: 'MED' },
+    LOW: { bg: isDark ? darkToneBg.neutral : brand.neutral[100], color: isDark ? brand.neutral[300] : brand.neutral[700], label: 'LOW' },
   };
   return config[urgency] ?? config.LOW;
 }
@@ -49,7 +49,7 @@ function RecommendationRow({
   onClick: () => void;
   isDark: boolean;
 }) {
-  const badge = urgencyBadge(item.urgency);
+  const badge = urgencyBadge(item.urgency, isDark);
   return (
     <Card
       elevation={0}
@@ -57,7 +57,7 @@ function RecommendationRow({
         borderRadius: '8px',
         border: 'none',
         bgcolor: 'transparent',
-        '&:hover': { bgcolor: isDark ? brand.neutral[800] : brand.neutral[50] },
+        '&:hover': { bgcolor: isDark ? brand.neutral[700] : brand.neutral[50] },
         transition: 'background-color 0.15s ease',
         cursor: 'pointer',
       }}

@@ -12,7 +12,7 @@ import Chart from 'react-apexcharts';
 import { useContext } from 'react';
 import { CustomizerContext } from 'src/context/CustomizerContext';
 import { brand } from 'src/theme/smartpos/brand';
-import { sparkOptions } from './utils';
+import { darkToneBg, sparkOptions } from './utils';
 import EmptyPanel from './EmptyPanel';
 import type { MetricCardProps } from './types';
 
@@ -107,11 +107,11 @@ export default function MetricCard({
               fontSize: 10.5,
               fontFamily: LBL_FONT,
               fontWeight: 700,
-              bgcolor: delta.positive ? brand.primary[50] : '#FEF2F2',
-              color: delta.positive ? brand.primary[700] : brand.error.dark,
-              border: `1px solid ${delta.positive ? brand.primary[100] : '#FECACA'}`,
+              bgcolor: isDark ? (delta.positive ? darkToneBg.success : darkToneBg.error) : delta.positive ? brand.primary[50] : '#FEF2F2',
+              color: delta.positive ? brand.primary[isDark ? 300 : 700] : brand.error[isDark ? 'main' : 'dark'],
+              border: `1px solid ${isDark ? (delta.positive ? 'rgba(34,197,94,0.28)' : 'rgba(239,68,68,0.28)') : delta.positive ? brand.primary[100] : '#FECACA'}`,
               '& .MuiChip-icon': {
-                color: delta.positive ? brand.primary[700] : brand.error.dark,
+                color: delta.positive ? brand.primary[isDark ? 300 : 700] : brand.error[isDark ? 'main' : 'dark'],
                 ml: '4px',
               },
             }}

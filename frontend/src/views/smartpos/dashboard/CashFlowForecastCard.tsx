@@ -13,7 +13,7 @@ import Chart from 'react-apexcharts';
 import type { ApexOptions } from 'apexcharts';
 import { brand } from 'src/theme/smartpos/brand';
 import { formatMoney } from 'src/utils/smartpos/currency';
-import { cardSx, titleColor, muted, chartFont } from './utils';
+import { cardSx, darkToneBg, titleColor, muted, chartFont } from './utils';
 import EmptyPanel from './EmptyPanel';
 import type { CashFlowForecast } from 'src/api/smartpos/dashboardIntelligence';
 
@@ -23,11 +23,11 @@ interface CashFlowForecastCardProps {
   isDark: boolean;
 }
 
-function statChip(label: string, value: string, tone: 'info' | 'error' | 'warning') {
+function statChip(label: string, value: string, tone: 'info' | 'error' | 'warning', isDark: boolean) {
   const colors = {
-    info: { bg: brand.info.light, color: brand.info.main },
-    error: { bg: brand.error.light, color: brand.error.main },
-    warning: { bg: brand.warning.light, color: brand.warning.main },
+    info: { bg: isDark ? darkToneBg.info : brand.info.light, color: brand.info.main, border: isDark ? 'rgba(59,130,246,0.28)' : brand.info.light },
+    error: { bg: isDark ? darkToneBg.error : brand.error.light, color: brand.error.main, border: isDark ? 'rgba(239,68,68,0.30)' : brand.error.light },
+    warning: { bg: isDark ? darkToneBg.warning : brand.warning.light, color: brand.warning.main, border: isDark ? 'rgba(245,158,11,0.30)' : brand.warning.light },
   };
   const c = colors[tone];
   return (
@@ -36,7 +36,7 @@ function statChip(label: string, value: string, tone: 'info' | 'error' | 'warnin
         px: 1.5,
         py: 1,
         borderRadius: '8px',
-        border: `1px solid ${c.bg}`,
+        border: `1px solid ${c.border}`,
         bgcolor: c.bg,
         minWidth: 0,
         flex: 1,
@@ -45,7 +45,7 @@ function statChip(label: string, value: string, tone: 'info' | 'error' | 'warnin
       <Typography sx={{ fontSize: 10, fontWeight: 700, color: c.color, textTransform: 'uppercase' }}>
         {label}
       </Typography>
-      <Typography sx={{ fontSize: 13, fontWeight: 900, color: brand.neutral[900], mt: 0.25 }}>
+      <Typography sx={{ fontSize: 13, fontWeight: 900, color: isDark ? brand.neutral[100] : brand.neutral[900], mt: 0.25 }}>
         {value}
       </Typography>
     </Box>
@@ -141,7 +141,7 @@ export default function CashFlowForecastCard({
                 height: 24,
                 fontSize: 11,
                 fontWeight: 800,
-                bgcolor: brand.error.light,
+                bgcolor: isDark ? darkToneBg.error : brand.error.light,
                 color: brand.error.main,
                 '& .MuiChip-icon': { color: brand.error.main, marginLeft: '4px' },
               }}
@@ -181,16 +181,19 @@ export default function CashFlowForecastCard({
                 'Opening Balance',
                 formatMoney(data.openingBalance),
                 'info',
+                isDark,
               )}
               {statChip(
                 'Lowest Balance',
                 `${formatMoney(data.lowestBalance)}`,
                 data.lowestBalance < data.safetyThreshold ? 'error' : 'warning',
+                isDark,
               )}
               {statChip(
                 'Safety Threshold',
                 formatMoney(data.safetyThreshold),
                 'info',
+                isDark,
               )}
             </Stack>
 

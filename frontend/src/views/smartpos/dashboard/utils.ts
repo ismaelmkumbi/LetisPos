@@ -67,7 +67,16 @@ export const cardSx = (isDark: boolean) =>
   }) as const;
 
 export const muted = (isDark: boolean) => (isDark ? brand.neutral[400] : brand.neutral[500]);
-export const titleColor = brand.neutral[900];
+export const titleColor = 'text.primary';
+export const headingColor = (isDark: boolean) => (isDark ? brand.neutral[100] : brand.neutral[900]);
+export const darkToneBg = {
+  success: 'rgba(34,197,94,0.16)',
+  warning: 'rgba(245,158,11,0.16)',
+  error: 'rgba(239,68,68,0.16)',
+  info: 'rgba(59,130,246,0.16)',
+  purple: 'rgba(139,92,246,0.16)',
+  neutral: 'rgba(148,163,184,0.14)',
+} as const;
 
 export function moneyShort(value: number): string {
   const abs = Math.abs(value);

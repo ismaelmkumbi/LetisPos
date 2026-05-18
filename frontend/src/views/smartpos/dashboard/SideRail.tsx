@@ -24,7 +24,7 @@ import {
 import { Link as RouterLink } from 'react-router';
 import { brand } from 'src/theme/smartpos/brand';
 import { formatMoney, formatNumber } from 'src/utils/smartpos/currency';
-import { cardSx, titleColor } from './utils';
+import { cardSx, darkToneBg, headingColor } from './utils';
 import type { Dashboard } from 'src/api/smartpos/reports';
 import type { Trend, AlertStripProps } from './types';
 
@@ -33,14 +33,16 @@ const NUM_FONT = "'JetBrains Mono', 'DM Mono', monospace";
 
 // ── Alert strip ──────────────────────────────────────────────────────────────
 const TONE = {
-  success: { color: brand.primary[600],  bg: brand.primary[50],   border: brand.primary[100]  },
-  warning: { color: brand.warning.main,  bg: '#FFFBEB',           border: brand.warning.light },
-  error:   { color: brand.error.main,    bg: '#FEF2F2',           border: brand.error.light   },
-  fraud:   { color: brand.error.main,    bg: '#FEF2F2',           border: brand.error.light   },
+  success: { color: brand.primary[600], darkColor: brand.primary[300], bg: brand.primary[50], darkBg: darkToneBg.success, border: brand.primary[100], darkBorder: 'rgba(34,197,94,0.28)' },
+  warning: { color: brand.warning.main, darkColor: brand.warning.main, bg: '#FFFBEB', darkBg: darkToneBg.warning, border: brand.warning.light, darkBorder: 'rgba(245,158,11,0.30)' },
+  error:   { color: brand.error.main, darkColor: brand.error.main, bg: '#FEF2F2', darkBg: darkToneBg.error, border: brand.error.light, darkBorder: 'rgba(239,68,68,0.30)' },
+  fraud:   { color: brand.error.main, darkColor: brand.error.main, bg: '#FEF2F2', darkBg: darkToneBg.error, border: brand.error.light, darkBorder: 'rgba(239,68,68,0.30)' },
 } as const;
 
-function AlertStrip({ tone, icon, title, subtitle, to }: AlertStripProps) {
-  const { color, border } = TONE[tone];
+function AlertStrip({ tone, icon, title, subtitle, to, isDark }: AlertStripProps & { isDark: boolean }) {
+  const config = TONE[tone];
+  const color = isDark ? config.darkColor : config.color;
+  const border = isDark ? config.darkBorder : config.border;
   return (
     <Card
       elevation={0}
@@ -48,7 +50,7 @@ function AlertStrip({ tone, icon, title, subtitle, to }: AlertStripProps) {
         borderRadius: '9px',
         border: `1px solid ${border}`,
         borderLeft: `3px solid ${color}`,
-        bgcolor: 'transparent',
+        bgcolor: isDark ? config.darkBg : 'transparent',
         transition: 'box-shadow 0.14s ease',
         '&:hover': { boxShadow: '0 6px 16px rgba(15,23,42,0.07)' },
       }}
@@ -68,7 +70,7 @@ function AlertStrip({ tone, icon, title, subtitle, to }: AlertStripProps) {
                 {title}
               </Typography>
               {subtitle && (
-                <Typography sx={{ fontFamily: LBL_FONT, color: brand.neutral[500], fontSize: 11, mt: 0.15, lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <Typography sx={{ fontFamily: LBL_FONT, color: isDark ? brand.neutral[400] : brand.neutral[500], fontSize: 11, mt: 0.15, lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {subtitle}
                 </Typography>
               )}
@@ -120,6 +122,7 @@ export default function DashboardSideRail({
         title={`${formatNumber(lowStock)} low-stock item${lowStock !== 1 ? 's' : ''}`}
         subtitle="Review stock levels before running out"
         to="/smartpos/stock"
+        isDark={isDark}
       />,
     );
   }
@@ -133,6 +136,7 @@ export default function DashboardSideRail({
         title={`${expiringBatchesCount} batch${expiringBatchesCount !== 1 ? 'es' : ''} expiring soon`}
         subtitle={`${formatNumber(expiringUnitsAtRisk)} units at risk within 30 days`}
         to="/smartpos/stock?expiring=30"
+        isDark={isDark}
       />,
     );
   }
@@ -146,6 +150,7 @@ export default function DashboardSideRail({
         title={`${atRiskCustomerCount} customer${atRiskCustomerCount !== 1 ? 's' : ''} at churn risk`}
         subtitle={`${formatMoney(atRiskRevenue)} lifetime value at stake`}
         to="/smartpos/customers?segment=at-risk"
+        isDark={isDark}
       />,
     );
   }
@@ -159,6 +164,7 @@ export default function DashboardSideRail({
         title="Profit is negative this period"
         subtitle="Review expenses vs sales in reports"
         to="/smartpos/reports"
+        isDark={isDark}
       />,
     );
   }
@@ -172,6 +178,7 @@ export default function DashboardSideRail({
         title={`Sales ${revenueTrend.positive ? 'up' : 'down'} ${revenueTrend.value.toFixed(0)}% vs prior`}
         subtitle={revenueTrend.positive ? 'Open the sales report' : 'Review contributing factors'}
         to="/smartpos/reports/sales"
+        isDark={isDark}
       />,
     );
   }
@@ -201,7 +208,7 @@ export default function DashboardSideRail({
         <Typography
           sx={{
             fontFamily: LBL_FONT,
-            color: isDark ? brand.neutral[300] : brand.neutral[700],
+              color: isDark ? brand.neutral[300] : brand.neutral[700],
             fontWeight: 700,
             fontSize: 13,
             mb: 1,
@@ -221,7 +228,7 @@ export default function DashboardSideRail({
             sx={{
               p: 1.5,
               borderRadius: '10px',
-              border: `1px solid ${brand.primary[100]}`,
+              border: `1px solid ${isDark ? 'rgba(34,197,94,0.28)' : brand.primary[100]}`,
               borderLeft: `3px solid ${brand.primary[500]}`,
               bgcolor: isDark ? '#052e16' : brand.primary[50],
             }}
@@ -229,10 +236,10 @@ export default function DashboardSideRail({
             <Stack direction="row" spacing={1} alignItems="center">
               <IconCircleCheck size={18} color={brand.primary[600]} />
               <Box>
-                <Typography sx={{ fontFamily: LBL_FONT, color: brand.primary[700], fontWeight: 700, fontSize: 12.5 }}>
+                <Typography sx={{ fontFamily: LBL_FONT, color: brand.primary[isDark ? 300 : 700], fontWeight: 700, fontSize: 12.5 }}>
                   All looks good
                 </Typography>
-                <Typography sx={{ fontFamily: LBL_FONT, color: brand.primary[600], fontSize: 11, mt: 0.1 }}>
+                <Typography sx={{ fontFamily: LBL_FONT, color: brand.primary[isDark ? 400 : 600], fontSize: 11, mt: 0.1 }}>
                   No issues detected today
                 </Typography>
               </Box>
@@ -260,7 +267,7 @@ export default function DashboardSideRail({
           <Typography
             sx={{
               fontFamily: NUM_FONT,
-              color: isDark ? '#F1F5F9' : titleColor,
+              color: headingColor(isDark),
               fontWeight: 700,
               fontSize: 22,
               letterSpacing: '-0.02em',

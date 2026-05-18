@@ -23,6 +23,7 @@ import { CustomizerContext } from 'src/context/CustomizerContext';
 import type { UUID } from 'src/api/smartpos/types';
 import { usePolling } from 'src/hooks/usePolling';
 import { authTheme as at } from 'src/theme/smartpos/authTheme';
+import { brand } from 'src/theme/smartpos/brand';
 import OnboardingBanner from './OnboardingBanner';
 import CelebrationModal from 'src/views/smartpos/onboarding/CelebrationModal';
 
@@ -383,7 +384,7 @@ export default function DashboardPage() {
     || showSection('recentTransactions');
 
   return (
-    <Box sx={{ pb: 1 }}>
+    <Box sx={{ pb: { xs: 'calc(96px + env(safe-area-inset-bottom, 0px))', md: 1 } }}>
       <DashboardGreetingBar
         period={period}
         warehouseId={warehouseId}
@@ -408,7 +409,16 @@ export default function DashboardPage() {
           return (
             <Alert
               severity="info"
-              sx={{ mb: 3, borderRadius: at.radius.md }}
+              sx={{
+                mb: 3,
+                borderRadius: at.radius.md,
+                ...(isDark && {
+                  bgcolor: 'rgba(59,130,246,0.14)',
+                  color: brand.neutral[100],
+                  border: '1px solid rgba(59,130,246,0.28)',
+                  '& .MuiAlert-icon': { color: brand.info.main },
+                }),
+              }}
               action={
                 <Button color="inherit" size="small" component={Link} to="/smartpos/billing">
                   Subscribe Now
@@ -428,7 +438,16 @@ export default function DashboardPage() {
         return (
           <Alert
             severity="warning"
-            sx={{ mb: 3, borderRadius: at.radius.md }}
+            sx={{
+              mb: 3,
+              borderRadius: at.radius.md,
+              ...(isDark && {
+                bgcolor: 'rgba(245,158,11,0.16)',
+                color: brand.neutral[100],
+                border: '1px solid rgba(245,158,11,0.30)',
+                '& .MuiAlert-icon': { color: brand.warning.main },
+              }),
+            }}
             action={
               <Button color="inherit" size="small" component={Link} to="/smartpos/billing">
                 Subscribe Now
@@ -488,30 +507,19 @@ export default function DashboardPage() {
                 <Box
                   sx={{
                     mb: 1.5,
-                    mx: { xs: -1.5, sm: 0 },
-                    px: { xs: 1.5, sm: 0 },
-                    overflow: { xs: 'auto', lg: 'visible' },
-                    WebkitOverflowScrolling: 'touch',
-                    scrollSnapType: { xs: 'x mandatory', lg: 'none' },
-                    '&::-webkit-scrollbar': { display: 'none' },
-                    scrollbarWidth: 'none',
+                    overflow: 'visible',
                   }}
                 >
                   <Grid
                     container
                     spacing={1.5}
                     sx={{
-                      flexWrap: { xs: 'nowrap', lg: 'wrap' },
                       mx: 0,
-                      width: { xs: 'max-content', lg: '100%' },
+                      width: '100%',
                     }}
                   >
                     <Grid
                       size={{ xs: 12, lg: 4 }}
-                      sx={{
-                        minWidth: { xs: 280, lg: 'auto' },
-                        scrollSnapAlign: 'start',
-                      }}
                     >
                       <BusinessPulseCard
                         data={data}
