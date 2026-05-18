@@ -30,6 +30,11 @@ public class AiRouter {
         log.info("AI providers registered: {}, active = {}", byName.keySet(), props.provider());
     }
 
+    /** Look up a specific provider by name, or null if not found. */
+    public AiProvider byName(String name) {
+        return byName.get(name);
+    }
+
     public AiProvider active() {
         AiProvider chosen = byName.getOrDefault(props.provider(), byName.get("stub"));
         // If a real provider was chosen but its key is missing, degrade to stub.
