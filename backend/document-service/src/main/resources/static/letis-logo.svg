@@ -1,6 +1,15 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect x="3" y="3" width="58" height="58" rx="15" fill="#16A34A"/>
-  <path d="M21 16 L21 40 L40 40 L46 34 L41 33 L31 33 L31 16 Z" fill="#fff" opacity="0.97"/>
-  <path d="M40 40 L51 29 L46 24 L46 34 L40 34 Z" fill="#fff" opacity="0.6"/>
-  <rect x="41" y="11" width="14" height="10" rx="3" fill="#BBF7D0" opacity="0.95"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="180" viewBox="0 0 640 180" role="img" aria-label="Letis POS">
+  <defs>
+    <linearGradient id="mark" x1="18" y1="18" x2="132" y2="132" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#16A34A"/>
+      <stop offset="1" stop-color="#0F8F4F"/>
+    </linearGradient>
+  </defs>
+  <rect x="18" y="18" width="114" height="114" rx="28" fill="url(#mark)"/>
+  <path d="M52 43h24v47h37l-17 24H52V43Z" fill="#fff"/>
+  <path d="M96 114l36-36-18-18v30H84v24h12Z" fill="#D1FAE5" opacity=".82"/>
+  <rect x="97" y="31" width="33" height="24" rx="8" fill="#BBF7D0"/>
+  <text x="158" y="93" fill="#0F172A" font-family="Inter, Arial, Helvetica, sans-serif" font-size="58" font-weight="800" letter-spacing="-.8">Letis</text>
+  <rect x="326" y="50" width="92" height="50" rx="25" fill="#16A34A"/>
+  <text x="372" y="84" text-anchor="middle" fill="#fff" font-family="Inter, Arial, Helvetica, sans-serif" font-size="25" font-weight="800" letter-spacing="1.6">POS</text>
 </svg>
