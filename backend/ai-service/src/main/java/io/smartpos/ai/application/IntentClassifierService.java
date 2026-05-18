@@ -160,22 +160,29 @@ public class IntentClassifierService {
         if (intent == null || intent.primaryDomain() == Domain.GENERAL || intent.confidence() < 0.5) {
             return allToolNames;
         }
-        // Return tools whose names contain domain-identifying substrings
         Set<String> narrowed = new HashSet<>();
         String domainLower = intent.primaryDomain().name().toLowerCase();
         for (String tool : allToolNames) {
             String t = tool.toLowerCase();
-            if (t.contains(domainLower) || t.contains("platform") || t.contains("tenant")) {
+            // Keep: domain-matching tools, platform/admin tools, cross-domain tools,
+            // and write actions (send*, email*, create*, update*, adjust*)
+            if (t.contains(domainLower)
+                || t.contains("platform") || t.contains("tenant")
+                || t.startsWith("send") || t.startsWith("email")
+                || t.startsWith("create") || t.startsWith("update")
+                || t.startsWith("adjust") || t.equals("searchdocuments")
+                || t.equals("getnotificationtemplates")
+                || t.equals("getexecutivebriefing")
+                || t.equals("getdailysnapshot")
+                || t.equals("getexpensesummary")) {
                 narrowed.add(tool);
             }
         }
-        // Always include HELP-related lookups for any domain
         if (intent.primaryDomain() == Domain.HELP) {
             allToolNames.stream()
                 .filter(t -> t.toLowerCase().contains("search") || t.toLowerCase().contains("get"))
                 .forEach(narrowed::add);
         }
-        // If narrowing yields nothing useful, return all (safety)
         return narrowed.isEmpty() ? allToolNames : narrowed;
     }
 
