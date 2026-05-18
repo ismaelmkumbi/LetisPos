@@ -147,7 +147,7 @@ public class TemplateService {
             "tin", "123-456-789",
             "website", "https://letispos.com",
             "showLogo", true,
-            "logoUrl", letisLogoSvgDataUri(),
+            "logoUrl", letisLogoDataUri(),
             "logoSize", 64
         ));
         data.put("document", Map.of(
@@ -178,11 +178,19 @@ public class TemplateService {
         return data;
     }
 
-    private String letisLogoSvgDataUri() {
-        try (InputStream in = getClass().getClassLoader().getResourceAsStream("static/letis-logo.svg")) {
+    private String letisLogoDataUri() {
+        String png = loadLogoDataUri("static/letis-logo.png", "image/png");
+        if (!png.isBlank()) {
+            return png;
+        }
+        return loadLogoDataUri("static/letis-logo.svg", "image/svg+xml");
+    }
+
+    private String loadLogoDataUri(String resourcePath, String mimeType) {
+        try (InputStream in = getClass().getClassLoader().getResourceAsStream(resourcePath)) {
             if (in == null) return "";
             String encoded = Base64.getEncoder().encodeToString(in.readAllBytes());
-            return "data:image/svg+xml;base64," + encoded;
+            return "data:" + mimeType + ";base64," + encoded;
         } catch (Exception e) {
             return "";
         }

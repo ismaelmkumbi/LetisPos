@@ -791,6 +791,7 @@ export function DataTable<T>({
             rows.map((row, ri) => {
               const rowKey = getRowKey ? getRowKey(row, ri) : String(ri);
               const rowStatus = getRowStatus?.(row) ?? null;
+              const actionColumn = columns.find((c) => c.key === 'actions');
               return (
                 <Card
                   key={rowKey}
@@ -871,6 +872,20 @@ export function DataTable<T>({
                         </Stack>
                       ))}
                   </Stack>
+                  {actionColumn?.render && (
+                    <Box
+                      onClick={(e) => e.stopPropagation()}
+                      sx={{
+                        mt: 1.5,
+                        pt: 1.25,
+                        borderTop: `1px solid ${isDark ? brand.neutral[700] : brand.neutral[100]}`,
+                        display: 'flex',
+                        justifyContent: 'flex-end',
+                      }}
+                    >
+                      {actionColumn.render(row, ri)}
+                    </Box>
+                  )}
                 </Card>
               );
             })

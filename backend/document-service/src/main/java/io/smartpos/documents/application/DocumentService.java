@@ -357,7 +357,7 @@ public class DocumentService {
                 return Map.of(
                     "name", branding.storeName() != null && !branding.storeName().isBlank()
                         ? branding.storeName() : "Letis POS",
-                    "logoUrl", hasCustomLogo ? branding.logoUrl() : letisLogoSvgDataUri(),
+                    "logoUrl", hasCustomLogo ? branding.logoUrl() : letisLogoDataUri(),
                     "address", branding.showStoreAddress() && branding.storeAddress() != null
                         ? branding.storeAddress() : "",
                     "phone", branding.showStorePhone() && branding.storePhone() != null
@@ -378,7 +378,7 @@ public class DocumentService {
         // or the tenant has not configured custom branding.
         java.util.HashMap<String, Object> defaults = new java.util.HashMap<>();
         defaults.put("name", "Letis POS");
-        defaults.put("logoUrl", letisLogoSvgDataUri());
+        defaults.put("logoUrl", letisLogoDataUri());
         defaults.put("address", "");
         defaults.put("phone", "");
         defaults.put("email", "");
@@ -393,17 +393,28 @@ public class DocumentService {
         return defaults;
     }
 
-    /** Letis POS logo embedded in the generated HTML so PDF conversion is self-contained. */
-    private String letisLogoSvgDataUri() {
-        try (InputStream in = getClass().getClassLoader().getResourceAsStream("static/letis-logo.svg")) {
+    /**
+     * Letis POS logo embedded in generated HTML so PDF conversion is self-contained.
+     * Prefer PNG because Gotenberg/Chromium handles raster data URIs more reliably than SVG.
+     */
+    private String letisLogoDataUri() {
+        String png = loadLogoDataUri("static/letis-logo.png", "image/png");
+        if (!png.isBlank()) {
+            return png;
+        }
+        return loadLogoDataUri("static/letis-logo.svg", "image/svg+xml");
+    }
+
+    private String loadLogoDataUri(String resourcePath, String mimeType) {
+        try (InputStream in = getClass().getClassLoader().getResourceAsStream(resourcePath)) {
             if (in == null) {
-                log.warn("Default Letis POS logo resource not found");
+                log.warn("Default Letis POS logo resource not found: {}", resourcePath);
                 return "";
             }
             String encoded = Base64.getEncoder().encodeToString(in.readAllBytes());
-            return "data:image/svg+xml;base64," + encoded;
+            return "data:" + mimeType + ";base64," + encoded;
         } catch (Exception e) {
-            log.warn("Failed to load default Letis POS logo: {}", e.getMessage());
+            log.warn("Failed to load default Letis POS logo {}: {}", resourcePath, e.getMessage());
             return "";
         }
     }
