@@ -61,6 +61,8 @@ public class FeatureGateFilter implements GlobalFilter, Ordered {
         PLAN_GATES.put("/api/v1/integrations/", planOrdinal("PROFESSIONAL"));
         PLAN_GATES.put("/api/v1/admin/audit", planOrdinal("PROFESSIONAL"));
         PLAN_GATES.put("/api/v1/admin/api-keys", planOrdinal("PROFESSIONAL"));
+        PLAN_GATES.put("/api/v1/admin/sessions", planOrdinal("PROFESSIONAL"));
+        PLAN_GATES.put("/api/v1/admin/data-retention", planOrdinal("PROFESSIONAL"));
 
         // Admin billing — STARTER+ (any paid plan)
         PLAN_GATES.put("/api/v1/billing/admin/", planOrdinal("STARTER"));

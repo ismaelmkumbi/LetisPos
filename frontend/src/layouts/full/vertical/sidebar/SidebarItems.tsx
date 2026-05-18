@@ -12,15 +12,13 @@ import NavGroup from './NavGroup/NavGroup';
 
 import { CustomizerContext } from 'src/context/CustomizerContext';
 import { useAuth } from 'src/context/smartpos/AuthContext';
-import { PLAN_LEVEL } from 'src/context/smartpos/AuthContext';
+import { planHasAccess } from 'src/config/planGates';
 
 function filterByPlan(items: MenuItem[], billingPlan: string, isAdmin: boolean): MenuItem[] {
-  const planLevel = PLAN_LEVEL[billingPlan] ?? 0;
   const visible: MenuItem[] = [];
   for (const item of items) {
     if (item.minPlan) {
-      const required = PLAN_LEVEL[item.minPlan] ?? 0;
-      if (planLevel < required) continue;
+      if (!planHasAccess(billingPlan, item.minPlan)) continue;
     }
     if (!isAdmin && item.requireAdmin) continue;
     if (item.children) {
@@ -56,7 +54,9 @@ const SidebarItems = () => {
   const hideMenu: any = lgUp ? isCollapse == "mini-sidebar" : '';
 
   const isAdmin = hasPermission('admin') || hasRole('SUPER_ADMIN');
-  const billingPlan = isAdmin ? 'ENTERPRISE' : (tenants[0]?.billingPlan ?? 'STARTER');
+  // Only SUPER_ADMIN bypasses plan gates — consistent with PlanGate, hasPlan, and FeatureGateFilter.
+  // Regular admins still see admin-only items (requireAdmin) via the isAdmin flag in filterByPlan.
+  const billingPlan = hasRole('SUPER_ADMIN') ? 'ENTERPRISE' : (tenants[0]?.billingPlan ?? 'STARTER');
 
   const isSmartPos = pathname.startsWith('/smartpos');
   const rawItems = isSmartPos

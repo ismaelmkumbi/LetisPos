@@ -52,6 +52,7 @@ import {
 import { PageHeader } from 'src/components/smartpos/PageHeader';
 import DataTable, { type Column, StatusBadge } from 'src/components/smartpos/DataTable';
 import { brand } from 'src/theme/smartpos/brand';
+import { useAuth } from 'src/context/smartpos/AuthContext';
 
 /* ── helpers ── */
 
@@ -112,6 +113,7 @@ const menuItemSx = {
 
 export default function TenantListPage() {
   const navigate = useNavigate();
+  const { forceTokenRefresh } = useAuth();
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -200,6 +202,7 @@ export default function TenantListPage() {
     try {
       await updateTenant(planTarget.id, { billingPlan: newPlan });
       setPlanDialogOpen(false);
+      await forceTokenRefresh();
       fetch();
     } catch {
       /* handled silently */

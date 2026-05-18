@@ -50,6 +50,7 @@ import {
 import { PageHeader } from 'src/components/smartpos/PageHeader';
 import DataTable, { type Column, StatusBadge } from 'src/components/smartpos/DataTable';
 import { brand } from 'src/theme/smartpos/brand';
+import { useAuth } from 'src/context/smartpos/AuthContext';
 
 /* ── helpers ── */
 
@@ -147,6 +148,7 @@ function formatTzs(amount: number) {
 export default function TenantDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { forceTokenRefresh } = useAuth();
 
   const [tenant, setTenant] = useState<Tenant | null>(null);
   const [subscription, setSubscription] = useState<Subscription | null>(null);
@@ -204,6 +206,7 @@ export default function TenantDetailPage() {
     setChangingPlan(true);
     try {
       await updateSubscription(subscription.id, { planCode: newPlanCode });
+      await forceTokenRefresh();
       fetchData();
     } catch {
       /* silently */

@@ -135,7 +135,7 @@ async function doRefresh(): Promise<string | null> {
   return navigator.locks.request('smartpos-auth-refresh', { mode: 'exclusive' }, run);
 }
 
-async function refreshAccessToken(): Promise<string | null> {
+export async function refreshAccessToken(): Promise<string | null> {
   if (!refreshInFlight) {
     refreshInFlight = doRefresh().finally(() => {
       refreshInFlight = null;

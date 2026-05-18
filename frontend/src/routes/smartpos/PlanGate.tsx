@@ -1,4 +1,5 @@
-import { useAuth, PLAN_LEVEL } from 'src/context/smartpos/AuthContext';
+import { useAuth } from 'src/context/smartpos/AuthContext';
+import { planHasAccess } from 'src/config/planGates';
 import { Box, Typography, Button } from '@mui/material';
 import { IconLock } from '@tabler/icons-react';
 import { Link } from 'react-router';
@@ -12,8 +13,7 @@ interface PlanGateProps {
 export default function PlanGate({ minPlan, featureName, children }: PlanGateProps) {
   const { tenants, isTrialing, hasRole } = useAuth();
   const currentPlan = tenants[0]?.billingPlan ?? 'STARTER';
-  const hasAccess = hasRole('SUPER_ADMIN') ||
-    (PLAN_LEVEL[currentPlan] ?? 0) >= (PLAN_LEVEL[minPlan] ?? 0);
+  const hasAccess = hasRole('SUPER_ADMIN') || planHasAccess(currentPlan, minPlan);
 
   if (!hasAccess) {
     return (

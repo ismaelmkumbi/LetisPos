@@ -5,10 +5,11 @@ import {
   CurrentUser, fetchMe, fetchMyProfile, fetchTenants, login as apiLogin, logout as apiLogout,
   type Tenant,
 } from 'src/api/smartpos/auth';
-import { bootstrapAuthSession, tokenStore } from 'src/api/smartpos/client';
+import { bootstrapAuthSession, tokenStore, refreshAccessToken } from 'src/api/smartpos/client';
+import { planHasAccess } from 'src/config/planGates';
 
 export const PLAN_LEVEL: Record<string, number> = {
-  STARTER: 1, BUSINESS: 2, PROFESSIONAL: 3, ENTERPRISE: 4,
+  FREE: 0, STARTER: 1, BUSINESS: 2, PROFESSIONAL: 3, ENTERPRISE: 4,
 };
 
 interface AuthContextValue {
@@ -21,6 +22,7 @@ interface AuthContextValue {
   hasPermission: (perm: string) => boolean;
   hasRole: (role: string) => boolean;
   refreshMe: () => Promise<void>;
+  forceTokenRefresh: () => Promise<void>;
   hasPlan: (minPlan: string) => boolean;
   isTrialing: () => boolean;
   getTrialDaysLeft: () => number | null;
@@ -100,9 +102,7 @@ export function SmartPosAuthProvider({ children }: { children: React.ReactNode }
     if (user?.roles?.includes('SUPER_ADMIN')) return true;
     const tenant = tenants[0];
     if (!tenant) return false;
-    const current = PLAN_LEVEL[tenant.billingPlan] ?? 0;
-    const required = PLAN_LEVEL[minPlan] ?? 0;
-    return current >= required;
+    return planHasAccess(tenant.billingPlan, minPlan);
   }, [tenants, user?.roles]);
 
   const isTrialing = useCallback((): boolean => {
@@ -118,11 +118,16 @@ export function SmartPosAuthProvider({ children }: { children: React.ReactNode }
     return Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
   }, [tenants]);
 
+  const forceTokenRefresh = useCallback(async () => {
+    await refreshAccessToken();
+    await loadMe();
+  }, [loadMe]);
+
   const value = useMemo<AuthContextValue>(() => ({
     user, loading, tenants, login, logout, switchTenant, hasPermission, hasRole, refreshMe: loadMe,
-    hasPlan, isTrialing, getTrialDaysLeft,
+    forceTokenRefresh, hasPlan, isTrialing, getTrialDaysLeft,
   }), [user, loading, tenants, login, logout, switchTenant, hasPermission, hasRole, loadMe,
-    hasPlan, isTrialing, getTrialDaysLeft]);
+    forceTokenRefresh, hasPlan, isTrialing, getTrialDaysLeft]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
