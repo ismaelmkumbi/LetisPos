@@ -83,7 +83,7 @@ spring:
         - id: report-service
           uri: ${REPORT_URI:http://localhost:8087}
           predicates:
-            - Path=/api/v1/reports/**
+            - Path=/api/v1/reports/**,/api/v1/dashboard/**
 
         # ---- Notification Service (8089) ----
         - id: notification-service
