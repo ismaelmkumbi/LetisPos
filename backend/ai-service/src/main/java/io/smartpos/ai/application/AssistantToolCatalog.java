@@ -4,6 +4,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Component
 public class AssistantToolCatalog {
@@ -15,6 +16,12 @@ public class AssistantToolCatalog {
         boolean write,
         String requiredPermission
     ) {}
+
+    private final IntentClassifierService classifier;
+
+    public AssistantToolCatalog(IntentClassifierService classifier) {
+        this.classifier = classifier;
+    }
 
     @SuppressWarnings("unchecked")
     public List<ToolDef> scopedTools(Jwt jwt) {
@@ -36,6 +43,23 @@ public class AssistantToolCatalog {
             !isSuperAdmin && t.requiredPermission() != null
             && !permSet.contains(t.requiredPermission()));
         return tools;
+    }
+
+    /**
+     * Narrow tools using intent classification. When confidence is >= 0.5,
+     * only tools matching the primary domain are sent. Falls back to all
+     * scoped tools when uncertain.
+     */
+    public List<ToolDef> scopedTools(Jwt jwt, String message) {
+        List<ToolDef> allScoped = scopedTools(jwt);
+        var intent = classifier.classify(message);
+        Set<String> allNames = allScoped.stream()
+            .map(ToolDef::name).collect(Collectors.toSet());
+        Set<String> narrowed = classifier.narrowTools(intent, allNames);
+        if (narrowed.size() == allNames.size()) return allScoped;
+        return allScoped.stream()
+            .filter(t -> narrowed.contains(t.name()))
+            .toList();
     }
 
     private List<ToolDef> readTools() {
