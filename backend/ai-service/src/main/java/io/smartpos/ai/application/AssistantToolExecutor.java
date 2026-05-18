@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 
 import io.smartpos.common.context.TenantContext;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
@@ -63,6 +64,10 @@ public class AssistantToolExecutor {
             case "getProductDetail" -> getProductDetail(args);
             case "getDailySnapshot" -> getDailySnapshot(args);
             case "getExpenseSummary" -> getExpenseSummary(args);
+            case "getSalesByPaymentMethod" -> getSalesByPaymentMethod(args);
+            case "getSalesComparison" -> getSalesComparison(args);
+            case "getDiscountSummary" -> getDiscountSummary(args);
+            case "getTaxSummary" -> getTaxSummary(args);
             case "getTenantList" -> getTenantList(args);
             case "listTenants" -> getTenantList(args); // backwards compat
             case "getPlatformStats" -> getPlatformStats(args);
@@ -481,6 +486,117 @@ public class AssistantToolExecutor {
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("message", "Expense tracking via assistant is coming soon. For now, use the Finance page to view and record expenses. I can record an expense for you — just tell me the category, amount, and description.");
         return new AssistantDtos.ToolResult("text", "Expense Summary", data);
+    }
+
+    private AssistantDtos.ToolResult getSalesByPaymentMethod(Map<String, Object> args) {
+        LocalDate from = dateArg(args, "dateFrom", LocalDate.now().minusDays(30));
+        LocalDate to = dateArg(args, "dateTo", LocalDate.now());
+        var page = salesFeign.search(from, to, null, null, null, 0, 1000);
+        var sales = page.content();
+        Map<String, BigDecimal> byMethod = sales.stream()
+            .collect(Collectors.groupingBy(
+                s -> s.paymentStatus() != null ? s.paymentStatus() : "UNKNOWN",
+                LinkedHashMap::new,
+                Collectors.reducing(BigDecimal.ZERO, SalesFeign.SaleSummary::grandTotal, BigDecimal::add)));
+        Map<String, Long> counts = sales.stream()
+            .collect(Collectors.groupingBy(
+                s -> s.paymentStatus() != null ? s.paymentStatus() : "UNKNOWN",
+                LinkedHashMap::new,
+                Collectors.counting()));
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("from", from.toString());
+        data.put("to", to.toString());
+        data.put("currency", "TZS");
+        data.put("columns", List.of("Payment Status", "Total", "Count"));
+        List<List<Object>> rows = new ArrayList<>();
+        for (String method : byMethod.keySet()) {
+            rows.add(List.of(method, byMethod.get(method), counts.getOrDefault(method, 0L)));
+        }
+        data.put("rows", rows);
+        return new AssistantDtos.ToolResult("table",
+            "Sales by Payment Method " + from + " to " + to, data);
+    }
+
+    private AssistantDtos.ToolResult getSalesComparison(Map<String, Object> args) {
+        LocalDate p1From = dateArg(args, "period1From", LocalDate.now().minusDays(7));
+        LocalDate p1To = dateArg(args, "period1To", LocalDate.now());
+        LocalDate p2From = dateArg(args, "period2From", LocalDate.now().minusDays(14));
+        LocalDate p2To = dateArg(args, "period2To", LocalDate.now().minusDays(8));
+        var p1 = reportFeign.salesSummary(p1From.toString(), p1To.toString(), null, null);
+        var p2 = reportFeign.salesSummary(p2From.toString(), p2To.toString(), null, null);
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("currency", "TZS");
+        data.put("columns", List.of("Metric", "Period 1", "Period 2", "Change"));
+        data.put("rows", List.of(
+            List.of("Gross Sales", p1.gross(), p2.gross(),
+                String.format("%+.1f%%", percentChange(p1.gross(), p2.gross()))),
+            List.of("Transactions", p1.salesCount(), p2.salesCount(),
+                String.format("%+.1f%%", percentChange(p1.salesCount(), p2.salesCount()))),
+            List.of("Avg Basket", p1.averageBasket(), p2.averageBasket(),
+                String.format("%+.1f%%", percentChange(p1.averageBasket(), p2.averageBasket())))
+        ));
+        data.put("period1Label", p1From + " to " + p1To);
+        data.put("period2Label", p2From + " to " + p2To);
+        return new AssistantDtos.ToolResult("table",
+            "Sales Comparison: " + p1From + " to " + p1To + " vs " + p2From + " to " + p2To, data);
+    }
+
+    private AssistantDtos.ToolResult getDiscountSummary(Map<String, Object> args) {
+        LocalDate from = dateArg(args, "dateFrom", LocalDate.now().minusDays(30));
+        LocalDate to = dateArg(args, "dateTo", LocalDate.now());
+        var page = salesFeign.search(from, to, null, null, null, 0, 1000);
+        var sales = page.content();
+        BigDecimal totalDiscount = sales.stream()
+            .map(SalesFeign.SaleSummary::discountTotal)
+            .filter(Objects::nonNull)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+        long salesWithDiscount = sales.stream()
+            .filter(s -> s.discountTotal() != null && s.discountTotal().compareTo(BigDecimal.ZERO) > 0)
+            .count();
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("from", from.toString());
+        data.put("to", to.toString());
+        data.put("currency", "TZS");
+        data.put("items", List.of(
+            Map.of("name", "Total discounts", "value", totalDiscount, "subtitle", "Across " + sales.size() + " sales"),
+            Map.of("name", "Sales with discounts", "value", salesWithDiscount, "subtitle",
+                sales.size() > 0 ? String.format("%.0f%%", (double) salesWithDiscount / sales.size() * 100) : "0%"),
+            Map.of("name", "Avg discount per sale", "value",
+                salesWithDiscount > 0 ? totalDiscount.divide(BigDecimal.valueOf(salesWithDiscount), 2, java.math.RoundingMode.HALF_UP) : BigDecimal.ZERO,
+                "subtitle", "Per discounted sale")
+        ));
+        return new AssistantDtos.ToolResult("metric",
+            "Discount Summary " + from + " to " + to, data);
+    }
+
+    private AssistantDtos.ToolResult getTaxSummary(Map<String, Object> args) {
+        LocalDate from = dateArg(args, "dateFrom", LocalDate.now().minusDays(30));
+        LocalDate to = dateArg(args, "dateTo", LocalDate.now());
+        var page = salesFeign.search(from, to, null, null, null, 0, 1000);
+        var sales = page.content();
+        BigDecimal totalTax = sales.stream()
+            .map(SalesFeign.SaleSummary::taxTotal)
+            .filter(Objects::nonNull)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal totalSales = sales.stream()
+            .map(SalesFeign.SaleSummary::grandTotal)
+            .filter(Objects::nonNull)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("from", from.toString());
+        data.put("to", to.toString());
+        data.put("currency", "TZS");
+        data.put("items", List.of(
+            Map.of("name", "Total tax collected", "value", totalTax, "subtitle", sales.size() + " sales"),
+            Map.of("name", "Total sales (incl. tax)", "value", totalSales, "subtitle", "Gross revenue"),
+            Map.of("name", "Effective tax rate", "value",
+                totalSales.compareTo(BigDecimal.ZERO) > 0
+                    ? totalTax.divide(totalSales, 4, java.math.RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(100)).setScale(1, java.math.RoundingMode.HALF_UP) + "%"
+                    : "0%",
+                "subtitle", "Tax as percentage of gross")
+        ));
+        return new AssistantDtos.ToolResult("metric",
+            "Tax Summary " + from + " to " + to, data);
     }
 
     // ── Admin tools ──

@@ -93,6 +93,20 @@ public class AssistantToolCatalog {
                     "limit", Map.of("type","integer","description","Max results, default 25")
                 ),"required",List.of("status")), false, null),
 
+            new ToolDef("getSalesByPaymentMethod", "Get sales broken down by payment method (cash, mobile money, credit, etc.). Use this for 'how are customers paying?', payment mix analysis, and cash vs credit questions.",
+                Map.of("type","object","properties", Map.of(
+                    "dateFrom", Map.of("type","string","description","Start date YYYY-MM-DD"),
+                    "dateTo", Map.of("type","string","description","End date YYYY-MM-DD")
+                ),"required",List.of("dateFrom","dateTo")), false, null),
+
+            new ToolDef("getSalesComparison", "Compare sales between two time periods. Use this for 'how are we doing vs last week/month?', period-over-period comparisons, and trend analysis.",
+                Map.of("type","object","properties", Map.of(
+                    "period1From", Map.of("type","string","description","First period start YYYY-MM-DD"),
+                    "period1To", Map.of("type","string","description","First period end YYYY-MM-DD"),
+                    "period2From", Map.of("type","string","description","Second period start YYYY-MM-DD"),
+                    "period2To", Map.of("type","string","description","Second period end YYYY-MM-DD")
+                ),"required",List.of("period1From","period1To","period2From","period2To")), false, null),
+
             new ToolDef("getTopProducts", "Get top selling products by revenue for a date range. Use this for best sellers, product ranking, and product performance chart questions.",
                 Map.of("type","object","properties", Map.of(
                     "limit", Map.of("type","integer","description","Number of products, max 20"),
@@ -120,6 +134,18 @@ public class AssistantToolCatalog {
                 ),"required",List.of("limit")), false, null),
 
             new ToolDef("getFinancialSummary", "Get financial summary for a date range. Use this for finance, revenue mix, and high-level money questions.",
+                Map.of("type","object","properties", Map.of(
+                    "dateFrom", Map.of("type","string","description","Start date YYYY-MM-DD"),
+                    "dateTo", Map.of("type","string","description","End date YYYY-MM-DD")
+                ),"required",List.of("dateFrom","dateTo")), false, null),
+
+            new ToolDef("getDiscountSummary", "Get total discounts given in a period — total amount, how many sales had discounts, and average discount. Use this for discount analysis and promotion effectiveness questions.",
+                Map.of("type","object","properties", Map.of(
+                    "dateFrom", Map.of("type","string","description","Start date YYYY-MM-DD"),
+                    "dateTo", Map.of("type","string","description","End date YYYY-MM-DD")
+                ),"required",List.of("dateFrom","dateTo")), false, null),
+
+            new ToolDef("getTaxSummary", "Get total tax collected in a period, broken down by tax rate. Use this for tax filing preparation, VAT questions, and tax reporting.",
                 Map.of("type","object","properties", Map.of(
                     "dateFrom", Map.of("type","string","description","Start date YYYY-MM-DD"),
                     "dateTo", Map.of("type","string","description","End date YYYY-MM-DD")
