@@ -1,15 +1,15 @@
 package io.smartpos.ai.application;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
-import java.time.Instant;
 import java.util.*;
 
+@Slf4j
 @Component
 public class ConversationStore {
 
@@ -35,7 +35,8 @@ public class ConversationStore {
     }
 
     public List<Map<String, Object>> loadMessages(UUID tenantId, UUID conversationId) {
-        String json = redis.opsForValue().get(key(tenantId, conversationId));
+        String redisKey = key(tenantId, conversationId);
+        String json = redis.opsForValue().get(redisKey);
         if (json == null || json.isBlank()) return List.of();
         try {
             Conversation conv = om.readValue(json, Conversation.class);
@@ -52,19 +53,28 @@ public class ConversationStore {
                 if (m.toolCallId != null) entry.put("tool_call_id", m.toolCallId);
                 messages.add(entry);
             }
+            // Refresh TTL on read so active conversations persist
+            redis.expire(redisKey, TTL);
             return messages;
         } catch (JsonProcessingException e) {
+            log.warn("Failed to deserialize conversation {} for tenant {}", conversationId, tenantId, e);
             return List.of();
         }
     }
 
     public void save(UUID tenantId, UUID conversationId,
                      List<Message> messages, String summary) {
-        Conversation conv = new Conversation(summary, messages);
+        // Enforce sliding window — keep only the most recent messages
+        List<Message> trimmed = messages.size() > MAX_RECENT
+            ? messages.subList(messages.size() - MAX_RECENT, messages.size())
+            : messages;
+        Conversation conv = new Conversation(summary, trimmed);
         try {
             String json = om.writeValueAsString(conv);
             redis.opsForValue().set(key(tenantId, conversationId), json, TTL);
-        } catch (JsonProcessingException ignored) {
+        } catch (JsonProcessingException e) {
+            log.error("Failed to serialize conversation {} for tenant {}", conversationId, tenantId, e);
+            throw new RuntimeException("Failed to save conversation", e);
         }
     }
 
