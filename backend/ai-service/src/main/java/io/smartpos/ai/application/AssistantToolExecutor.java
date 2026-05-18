@@ -62,6 +62,14 @@ public class AssistantToolExecutor {
             case "getSalesByCustomer" -> getSalesByCustomer(args);
             case "getSalesByStatus" -> getSalesByStatus(args);
             case "getProductDetail" -> getProductDetail(args);
+            case "getProductsByCategory" -> getProductsByCategory(args);
+            case "getProductsByBrand" -> getProductsByBrand(args);
+            case "getInactiveProducts" -> getInactiveProducts(args);
+            case "getProductCounts" -> getProductCounts(args);
+            case "getProductMargins" -> getProductMargins(args);
+            case "getProductPriceRange" -> getProductPriceRange(args);
+            case "getProductInventory" -> getProductInventory(args);
+            case "getProductSearch" -> getProductSearch(args);
             case "getDailySnapshot" -> getDailySnapshot(args);
             case "getExpenseSummary" -> getExpenseSummary(args);
             case "getSalesByPaymentMethod" -> getSalesByPaymentMethod(args);
@@ -451,6 +459,190 @@ public class AssistantToolExecutor {
             data.put("note", products.size() + " products matched. Showing first match: " + product.name());
         }
         return new AssistantDtos.ToolResult("table", "Product: " + product.name(), data);
+    }
+
+    private AssistantDtos.ToolResult getProductsByCategory(Map<String, Object> args) {
+        UUID categoryId = UUID.fromString((String) args.get("categoryId"));
+        int limit = intArg(args, "limit", 50, 1, 200);
+        var page = productFeign.search(null, categoryId, null, null,
+            org.springframework.data.domain.Pageable.ofSize(limit));
+        var products = page.getContent();
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("columns", List.of("Name","SKU","Price","Status"));
+        data.put("rows", products.stream().map(p -> List.of(
+            p.name(), p.sku() != null ? p.sku() : "",
+            p.price(), p.status() ? "Active" : "Inactive"))
+            .collect(Collectors.toList()));
+        data.put("totalInCategory", page.getTotalElements());
+        return new AssistantDtos.ToolResult("table",
+            "Products in Category (" + products.size() + " of " + page.getTotalElements() + ")", data);
+    }
+
+    private AssistantDtos.ToolResult getProductsByBrand(Map<String, Object> args) {
+        UUID brandId = UUID.fromString((String) args.get("brandId"));
+        int limit = intArg(args, "limit", 50, 1, 200);
+        var page = productFeign.search(null, null, brandId, null,
+            org.springframework.data.domain.Pageable.ofSize(limit));
+        var products = page.getContent();
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("columns", List.of("Name","SKU","Price","Status"));
+        data.put("rows", products.stream().map(p -> List.of(
+            p.name(), p.sku() != null ? p.sku() : "",
+            p.price(), p.status() ? "Active" : "Inactive"))
+            .collect(Collectors.toList()));
+        return new AssistantDtos.ToolResult("table",
+            "Products by Brand (" + products.size() + ")", data);
+    }
+
+    private AssistantDtos.ToolResult getInactiveProducts(Map<String, Object> args) {
+        int limit = intArg(args, "limit", 50, 1, 200);
+        var page = productFeign.search(null, null, null, false,
+            org.springframework.data.domain.Pageable.ofSize(limit));
+        var products = page.getContent();
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("columns", List.of("Name","SKU","Price"));
+        data.put("rows", products.stream().map(p -> List.of(
+            p.name(), p.sku() != null ? p.sku() : "", p.price()))
+            .collect(Collectors.toList()));
+        return new AssistantDtos.ToolResult("table",
+            "Inactive Products (" + products.size() + ")", data);
+    }
+
+    private AssistantDtos.ToolResult getProductCounts(Map<String, Object> args) {
+        var activePage = productFeign.search(null, null, null, true,
+            org.springframework.data.domain.Pageable.ofSize(1));
+        var inactivePage = productFeign.search(null, null, null, false,
+            org.springframework.data.domain.Pageable.ofSize(1));
+        long totalActive = activePage.getTotalElements();
+        long totalInactive = inactivePage.getTotalElements();
+        long totalAll = totalActive + totalInactive;
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("columns", List.of("Metric","Count"));
+        data.put("rows", List.of(
+            List.of("Total Products", totalAll),
+            List.of("Active", totalActive),
+            List.of("Inactive", totalInactive)
+        ));
+        return new AssistantDtos.ToolResult("table",
+            "Product Counts — " + totalAll + " total", data);
+    }
+
+    private AssistantDtos.ToolResult getProductMargins(Map<String, Object> args) {
+        int limit = intArg(args, "limit", 10, 1, 50);
+        var page = productFeign.search(null, null, null, true,
+            org.springframework.data.domain.Pageable.ofSize(200));
+        var products = page.getContent();
+        // Compute margins
+        record MarginInfo(String name, BigDecimal price, BigDecimal cost, BigDecimal margin, double marginPct) {}
+        var margins = products.stream()
+            .filter(p -> p.cost() != null && p.cost().compareTo(BigDecimal.ZERO) > 0)
+            .map(p -> {
+                BigDecimal margin = p.price().subtract(p.cost());
+                double pct = p.cost().compareTo(BigDecimal.ZERO) > 0
+                    ? margin.divide(p.price(), 4, java.math.RoundingMode.HALF_UP)
+                        .multiply(BigDecimal.valueOf(100)).doubleValue()
+                    : 0;
+                return new MarginInfo(p.name(), p.price(), p.cost(), margin, pct);
+            })
+            .sorted((a, b) -> Double.compare(b.marginPct, a.marginPct))
+            .toList();
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("currency", "TZS");
+        data.put("columns", List.of("Product","Price","Cost","Margin","Margin %"));
+        data.put("rows", margins.stream().limit(limit).map(m -> List.of(
+            m.name, m.price, m.cost, m.margin, String.format("%.1f%%", m.marginPct)))
+            .collect(Collectors.toList()));
+        if (margins.size() > limit) {
+            // Also show worst margins
+            var worst = margins.subList(Math.max(0, margins.size() - 5), margins.size());
+            data.put("worstMargins", worst.stream().map(m -> List.of(
+                m.name, m.margin, String.format("%.1f%%", m.marginPct)))
+                .collect(Collectors.toList()));
+        }
+        return new AssistantDtos.ToolResult("table",
+            "Product Margins — Top " + Math.min(limit, margins.size()), data);
+    }
+
+    private AssistantDtos.ToolResult getProductPriceRange(Map<String, Object> args) {
+        var page = productFeign.search(null, null, null, true,
+            org.springframework.data.domain.Pageable.ofSize(500));
+        var products = page.getContent();
+        if (products.isEmpty()) {
+            return new AssistantDtos.ToolResult("text", "Price Range",
+                Map.of("message", "No active products found."));
+        }
+        BigDecimal min = products.stream().map(ProductFeign.ProductDto::price)
+            .filter(Objects::nonNull).min(BigDecimal::compareTo).orElse(BigDecimal.ZERO);
+        BigDecimal max = products.stream().map(ProductFeign.ProductDto::price)
+            .filter(Objects::nonNull).max(BigDecimal::compareTo).orElse(BigDecimal.ZERO);
+        BigDecimal avg = products.stream().map(ProductFeign.ProductDto::price)
+            .filter(Objects::nonNull)
+            .reduce(BigDecimal.ZERO, BigDecimal::add)
+            .divide(BigDecimal.valueOf(products.stream().filter(p -> p.price() != null).count()),
+                2, java.math.RoundingMode.HALF_UP);
+        // Price ranges
+        long under5k = products.stream().filter(p -> p.price().compareTo(new BigDecimal("5000")) < 0).count();
+        long between5k20k = products.stream().filter(p -> p.price().compareTo(new BigDecimal("5000")) >= 0
+            && p.price().compareTo(new BigDecimal("20000")) <= 0).count();
+        long above20k = products.stream().filter(p -> p.price().compareTo(new BigDecimal("20000")) > 0).count();
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("currency", "TZS");
+        data.put("totalProducts", products.size());
+        data.put("items", List.of(
+            Map.of("name", "Cheapest product", "value", min, "subtitle", "Minimum price"),
+            Map.of("name", "Most expensive", "value", max, "subtitle", "Maximum price"),
+            Map.of("name", "Average price", "value", avg, "subtitle", "Mean across " + products.size() + " products")
+        ));
+        data.put("distribution", List.of(
+            item("Under TZS 5,000", under5k, under5k + " products"),
+            item("TZS 5,000 - 20,000", between5k20k, between5k20k + " products"),
+            item("Above TZS 20,000", above20k, above20k + " products")
+        ));
+        return new AssistantDtos.ToolResult("metric",
+            "Product Price Range", data);
+    }
+
+    private AssistantDtos.ToolResult getProductInventory(Map<String, Object> args) {
+        int limit = intArg(args, "limit", 50, 1, 100);
+        var page = productFeign.search(null, null, null, true,
+            org.springframework.data.domain.Pageable.ofSize(limit));
+        var products = page.getContent();
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("columns", List.of("Product","SKU","Price","In Stock"));
+        List<List<Object>> rows = new ArrayList<>();
+        for (var product : products) {
+            String stockStr = "?";
+            try {
+                var stock = inventoryFeign.stockLevel(product.id(), null);
+                stockStr = String.valueOf(stock.getOrDefault("available", stock.getOrDefault("quantity", "?")));
+            } catch (Exception ignored) {}
+            rows.add(List.of(product.name(), product.sku() != null ? product.sku() : "", product.price(), stockStr));
+        }
+        data.put("rows", rows);
+        data.put("totalShown", products.size());
+        return new AssistantDtos.ToolResult("table",
+            "Product Inventory (" + products.size() + " items)", data);
+    }
+
+    private AssistantDtos.ToolResult getProductSearch(Map<String, Object> args) {
+        String query = (String) args.get("query");
+        UUID categoryId = args.containsKey("categoryId") && args.get("categoryId") != null
+            ? UUID.fromString((String) args.get("categoryId")) : null;
+        UUID brandId = args.containsKey("brandId") && args.get("brandId") != null
+            ? UUID.fromString((String) args.get("brandId")) : null;
+        int limit = intArg(args, "limit", 25, 1, 100);
+        var page = productFeign.search(query, categoryId, brandId, true,
+            org.springframework.data.domain.Pageable.ofSize(limit));
+        var products = page.getContent();
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("columns", List.of("Name","SKU","Price","Category"));
+        data.put("rows", products.stream().map(p -> List.of(
+            p.name(), p.sku() != null ? p.sku() : "", p.price(),
+            p.categoryId() != null ? p.categoryId().toString() : ""))
+            .collect(Collectors.toList()));
+        data.put("totalResults", page.getTotalElements());
+        return new AssistantDtos.ToolResult("table",
+            "Search: " + query + " (" + products.size() + " of " + page.getTotalElements() + ")", data);
     }
 
     private AssistantDtos.ToolResult getDailySnapshot(Map<String, Object> args) {

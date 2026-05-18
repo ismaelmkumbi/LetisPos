@@ -180,6 +180,47 @@ public class AssistantToolCatalog {
                     "query", Map.of("type","string","description","Product name, SKU, or barcode")
                 ),"required",List.of("query")), false, null),
 
+            new ToolDef("getProductsByCategory", "List products in a specific category. Use this when asked about products in a category, category inventory, or what's available under a category.",
+                Map.of("type","object","properties", Map.of(
+                    "categoryId", Map.of("type","string","description","Category UUID"),
+                    "limit", Map.of("type","integer","description","Max results, default 50")
+                ),"required",List.of("categoryId")), false, null),
+
+            new ToolDef("getProductsByBrand", "List products from a specific brand. Use this for brand queries, checking a brand's product line, or brand performance questions.",
+                Map.of("type","object","properties", Map.of(
+                    "brandId", Map.of("type","string","description","Brand UUID"),
+                    "limit", Map.of("type","integer","description","Max results, default 50")
+                ),"required",List.of("brandId")), false, null),
+
+            new ToolDef("getInactiveProducts", "List disabled or inactive products. Use this for product cleanup, reactivation, or checking which products are hidden from POS.",
+                Map.of("type","object","properties", Map.of(
+                    "limit", Map.of("type","integer","description","Max results, default 50")
+                ),"required",List.of()), false, null),
+
+            new ToolDef("getProductCounts", "Get product counts: total products, active vs inactive, and products per category. Use this for catalog overview and product portfolio questions.",
+                Map.of("type","object","properties", Map.of()), false, null),
+
+            new ToolDef("getProductMargins", "Get product profit margins (price minus cost) across the catalog. Shows highest and lowest margin products. Use this for profitability analysis, pricing review, and margin questions.",
+                Map.of("type","object","properties", Map.of(
+                    "limit", Map.of("type","integer","description","Number of top/bottom margin products, default 10")
+                ),"required",List.of()), false, null),
+
+            new ToolDef("getProductPriceRange", "Get price distribution across the product catalog: cheapest, most expensive, average price, and products grouped by price range. Use this for pricing overview and price analysis questions.",
+                Map.of("type","object","properties", Map.of()), false, null),
+
+            new ToolDef("getProductInventory", "Get a combined view of all products with their current stock levels. Shows product name, price, and available quantity. Use this for 'show me all products with stock', 'what do we have in stock right now?', or combined product+inventory queries.",
+                Map.of("type","object","properties", Map.of(
+                    "limit", Map.of("type","integer","description","Max products, default 50")
+                ),"required",List.of()), false, null),
+
+            new ToolDef("getProductSearch", "Advanced product search with optional category and brand filters. Use this for multi-filter product queries or when the user asks to find products matching multiple criteria.",
+                Map.of("type","object","properties", Map.of(
+                    "query", Map.of("type","string","description","Search term (name, SKU, or barcode)"),
+                    "categoryId", Map.of("type","string","description","Category UUID, optional"),
+                    "brandId", Map.of("type","string","description","Brand UUID, optional"),
+                    "limit", Map.of("type","integer","description","Max results, default 25")
+                ),"required",List.of("query")), false, null),
+
             new ToolDef("getRecentSales", "Get recent sales transactions. Use this for latest orders, recent receipts, transaction lookup, and last sales questions.",
                 Map.of("type","object","properties", Map.of(
                     "limit", Map.of("type","integer","description","Number of sales, max 25")
