@@ -88,6 +88,17 @@ public class AssistantToolExecutor {
             case "getTenantDetail" -> getTenantDetail(args);
             case "getNotificationTemplates" -> getNotificationTemplates(args);
             case "searchDocuments" -> searchDocuments(args);
+            // Write tools — needed here for super admin auto-confirm path
+            case "createProduct" -> createProduct(args);
+            case "updateProductPrice" -> updateProductPrice(args);
+            case "createCustomer" -> createCustomer(args);
+            case "updateCustomer" -> updateCustomer(args);
+            case "createPurchaseOrder" -> createPurchaseOrder(args, userId);
+            case "adjustStock" -> adjustStock(args);
+            case "createExpense" -> createExpense(args, userId);
+            case "sendEmail" -> sendEmail(args);
+            case "sendSMS" -> sendSMS(args);
+            case "emailDocument" -> emailDocument(args);
             default -> throw new IllegalArgumentException("Unknown tool: " + toolName);
         };
     }
