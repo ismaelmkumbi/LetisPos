@@ -35,6 +35,7 @@ public class AssistantService {
     private final ConversationStore conversationStore;
     private final ConversationSummarizer summarizer;
     private final IntentClassifierService classifier;
+    private final KnowledgeBase knowledgeBase;
     private final ObjectMapper om = new ObjectMapper();
 
     public AssistantService(AiRouter aiRouter, AssistantPromptBuilder promptBuilder,
@@ -43,7 +44,8 @@ public class AssistantService {
                             AiInvocationRepository invocations,
                             ConversationStore conversationStore,
                             ConversationSummarizer summarizer,
-                            IntentClassifierService classifier) {
+                            IntentClassifierService classifier,
+                            KnowledgeBase knowledgeBase) {
         this.aiRouter = aiRouter;
         this.promptBuilder = promptBuilder;
         this.toolCatalog = toolCatalog;
@@ -52,6 +54,7 @@ public class AssistantService {
         this.conversationStore = conversationStore;
         this.summarizer = summarizer;
         this.classifier = classifier;
+        this.knowledgeBase = knowledgeBase;
     }
 
     public SseEmitter chat(AssistantDtos.ChatRequest request, Jwt jwt,
@@ -63,6 +66,14 @@ public class AssistantService {
 
         // 1. Classify intent
         IntentClassification intent = classifier.classify(request.message());
+
+        // Search knowledge base when user is asking a HELP question or confidence is low
+        final List<String> knowledgeChunks;
+        if (intent.primaryDomain() == IntentClassification.Domain.HELP || intent.confidence() < 0.6) {
+            knowledgeChunks = knowledgeBase.search(request.message(), intent.primaryDomain().name());
+        } else {
+            knowledgeChunks = List.of();
+        }
 
         // 2. Determine role profile
         RoleProfile profile = RoleProfile.fromJwt(roles);
@@ -100,7 +111,18 @@ public class AssistantService {
         cleanHistory.add(Map.of("role", "user", "content", request.message()));
 
         // 5. Build enhanced prompt
-        String systemPrompt = promptBuilder.build(jwt, effectiveLanguage, intent, summary, profile);
+        String basePrompt = promptBuilder.build(jwt, effectiveLanguage, intent, summary, profile);
+        final String systemPrompt;
+        if (!knowledgeChunks.isEmpty()) {
+            StringBuilder sb = new StringBuilder(basePrompt);
+            sb.append("\nUse the following knowledge to answer:\n");
+            for (int i = 0; i < knowledgeChunks.size(); i++) {
+                sb.append("[").append(i + 1).append("] ").append(knowledgeChunks.get(i)).append("\n");
+            }
+            systemPrompt = sb.toString();
+        } else {
+            systemPrompt = basePrompt;
+        }
 
         // 6. Narrowed tools using intent
         List<AssistantToolCatalog.ToolDef> tools = toolCatalog.scopedTools(jwt, request.message());
