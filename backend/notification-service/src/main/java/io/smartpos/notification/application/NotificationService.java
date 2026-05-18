@@ -95,6 +95,12 @@ public class NotificationService {
         String renderedSubject = renderer.render(subject, data);
         String renderedBody    = renderer.render(body, data);
 
+        HashMap<String, Object> meta = new HashMap<>(data);
+        if (req.attachmentBase64() != null && !req.attachmentBase64().isBlank()) {
+            meta.put("_attachmentBase64", req.attachmentBase64());
+            meta.put("_attachmentName", req.attachmentName() != null ? req.attachmentName() : "attachment.pdf");
+        }
+
         NotificationDelivery delivery = deliveryRepo.save(NotificationDelivery.builder()
                 .channel(req.channel())
                 .templateCode(req.templateCode())
@@ -105,7 +111,7 @@ public class NotificationService {
                 .relatedAggregate(req.relatedAggregate())
                 .relatedAggregateId(req.relatedAggregateId())
                 .tenantId(TenantContext.require())
-                .payloadMeta(new HashMap<>(data))
+                .payloadMeta(meta)
                 .build());
 
         dispatch(delivery);

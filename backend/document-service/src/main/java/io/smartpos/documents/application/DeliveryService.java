@@ -10,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -29,18 +30,32 @@ public class DeliveryService {
             .map(w -> w.substring(0, 1).toUpperCase() + w.substring(1))
             .collect(Collectors.joining(" "));
 
+        // Include PDF as attachment
+        String attachmentB64 = "";
+        String attachmentName = doc.getDocumentNumber() + ".pdf";
+        try {
+            byte[] pdfBytes = documentService.downloadPdf(doc);
+            attachmentB64 = Base64.getEncoder().encodeToString(pdfBytes);
+        } catch (Exception e) {
+            log.warn("Could not read PDF bytes for attachment, sending link only: {}", e.getMessage());
+        }
+
         String htmlBody = renderEmailWrapper(companyContext, displayType,
                 doc.getDocumentNumber(), message, pdfUrl);
 
-        Map<String, Object> request = Map.of(
-            "channel", "EMAIL",
-            "recipient", to,
-            "subject", subject,
-            "body", htmlBody,
-            "html", true
-        );
+        Map<String, Object> request = new java.util.HashMap<>();
+        request.put("channel", "EMAIL");
+        request.put("recipient", to);
+        request.put("subject", subject);
+        request.put("body", htmlBody);
+        request.put("html", true);
+        if (!attachmentB64.isEmpty()) {
+            request.put("attachmentBase64", attachmentB64);
+            request.put("attachmentName", attachmentName);
+        }
         notificationClient.send(request);
-        log.info("Sent document {} via email to {}", doc.getDocumentNumber(), to);
+        log.info("Sent document {} via email to {} (attachment: {} KB)",
+                doc.getDocumentNumber(), to, attachmentB64.length() / 1365);
 
         if ("draft".equals(doc.getStatus())) {
             doc.setStatus("sent");

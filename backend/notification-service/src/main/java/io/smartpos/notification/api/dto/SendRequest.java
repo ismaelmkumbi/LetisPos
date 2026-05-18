@@ -24,5 +24,7 @@ public record SendRequest(
         Boolean html,
         Map<String, Object> data,
         String relatedAggregate,
-        UUID relatedAggregateId
+        UUID relatedAggregateId,
+        String attachmentBase64,
+        String attachmentName
 ) {}
