@@ -30,7 +30,7 @@ public record QuotationDto(
                 q.getLines().stream().map(l -> new SaleDto.Line(
                         l.getId(), l.getProductId(), l.getVariantId(),
                         l.getProductNameSnapshot(), l.getProductCodeSnapshot(),
-                        l.getUnitPrice(), l.getQty(),
+                        l.getUnitPrice(), BigDecimal.ZERO, l.getQty(),
                         l.getDiscount(), l.getDiscountType(),
                         l.getTaxRate(), l.getTaxMethod(),
                         l.getLineSubtotal(), l.getLineTax(), l.getLineTotal()

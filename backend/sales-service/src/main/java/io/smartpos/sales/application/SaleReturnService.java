@@ -97,7 +97,7 @@ public class SaleReturnService {
 
         // Push stock back via Inventory adjustment
         List<InventoryClient.AdjustmentLine> lines = saved.getLines().stream()
-                .map(l -> new InventoryClient.AdjustmentLine(l.getProductId(), l.getVariantId(), l.getQty()))
+                .map(l -> new InventoryClient.AdjustmentLine(l.getProductId(), l.getVariantId(), l.getQty(), null))
                 .toList();
         try {
             inventory.createAdjustment(new InventoryClient.CreateAdjustmentRequest(
