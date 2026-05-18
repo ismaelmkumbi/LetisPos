@@ -25,9 +25,10 @@ public class AssistantController {
     @PostMapping(value = "/chat", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     @PreAuthorize("isAuthenticated()")
     public SseEmitter chat(@Valid @RequestBody AssistantDtos.ChatRequest request,
-                            @AuthenticationPrincipal Jwt jwt) {
+                            @AuthenticationPrincipal Jwt jwt,
+                            @RequestParam(required = false) UUID conversationId) {
         UUID userId = principal(jwt);
-        return assistantService.chat(request, jwt, userId);
+        return assistantService.chat(request, jwt, userId, conversationId);
     }
 
     @PostMapping("/confirm/{draftId}")
