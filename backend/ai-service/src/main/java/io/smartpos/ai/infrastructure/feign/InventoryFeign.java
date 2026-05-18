@@ -5,6 +5,7 @@ import org.springframework.web.bind.annotation.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @FeignClient(name = "inventory-service",
@@ -36,4 +37,7 @@ public interface InventoryFeign {
     @GetMapping("/api/v1/stock/summary")
     java.util.Map<String, Object> warehouseSummary(
         @RequestParam(required = false) UUID warehouseId);
+
+    @PostMapping("/api/v1/stock/adjust")
+    Map<String, Object> adjustStock(@RequestBody Map<String, Object> body);
 }

@@ -124,6 +124,10 @@ public class AssistantToolExecutor {
 
     private AssistantDtos.ToolResult executeWrite(String toolName, Map<String, Object> args, UUID userId) {
         return switch (toolName) {
+            case "createProduct" -> createProduct(args);
+            case "updateProductPrice" -> updateProductPrice(args);
+            case "createCustomer" -> createCustomer(args);
+            case "updateCustomer" -> updateCustomer(args);
             case "createPurchaseOrder" -> createPurchaseOrder(args, userId);
             case "adjustStock" -> adjustStock(args);
             case "createExpense" -> createExpense(args, userId);
@@ -675,9 +679,21 @@ public class AssistantToolExecutor {
     }
 
     private AssistantDtos.ToolResult getExpenseSummary(Map<String, Object> args) {
+        LocalDate from = dateArg(args, "dateFrom", LocalDate.now().minusDays(30));
+        LocalDate to = dateArg(args, "dateTo", LocalDate.now());
+        java.util.List<Map<String, Object>> expenses = paymentFeign.listExpenses(from.toString(), to.toString());
         Map<String, Object> data = new LinkedHashMap<>();
-        data.put("message", "Expense tracking via assistant is coming soon. For now, use the Finance page to view and record expenses. I can record an expense for you — just tell me the category, amount, and description.");
-        return new AssistantDtos.ToolResult("text", "Expense Summary", data);
+        data.put("from", from.toString());
+        data.put("to", to.toString());
+        data.put("count", expenses.size());
+        data.put("columns", List.of("Category","Amount","Description"));
+        data.put("rows", expenses.stream().map(e -> List.of(
+            e.getOrDefault("category", ""),
+            e.getOrDefault("amount", ""),
+            e.getOrDefault("description", "")
+        )).collect(Collectors.toList()));
+        return new AssistantDtos.ToolResult("table",
+            "Expenses " + from + " to " + to + " (" + expenses.size() + ")", data);
     }
 
     private AssistantDtos.ToolResult getSalesByPaymentMethod(Map<String, Object> args) {
@@ -900,9 +916,84 @@ public class AssistantToolExecutor {
     }
 
     private AssistantDtos.ToolResult adjustStock(Map<String, Object> args) {
-        Map<String, Object> data = Map.of("status", "not_implemented",
-            "message", "Stock adjustment via assistant coming soon. Use the Inventory page.");
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("productId", args.get("productId"));
+        body.put("warehouseId", args.get("warehouseId"));
+        body.put("quantity", args.get("quantity"));
+        body.put("reason", args.get("reason"));
+        Map<String, Object> result = inventoryFeign.adjustStock(body);
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("status", "adjusted");
+        data.put("message", "Stock adjusted successfully");
+        data.put("result", result);
         return new AssistantDtos.ToolResult("text", "Stock Adjustment", data);
+    }
+
+    private AssistantDtos.ToolResult createProduct(Map<String, Object> args) {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("name", args.get("name"));
+        body.put("price", args.get("price"));
+        body.put("cost", args.get("cost"));
+        if (args.containsKey("sku")) body.put("sku", args.get("sku"));
+        if (args.containsKey("categoryId")) body.put("categoryId", args.get("categoryId"));
+        if (args.containsKey("brandId")) body.put("brandId", args.get("brandId"));
+        Map<String, Object> result = productFeign.createProduct(body);
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("status", "created");
+        data.put("product", result);
+        return new AssistantDtos.ToolResult("text", "Product Created", data);
+    }
+
+    private AssistantDtos.ToolResult updateProductPrice(Map<String, Object> args) {
+        // Resolve productId from name if needed
+        String productIdStr = (String) args.get("productId");
+        if ((productIdStr == null || productIdStr.isBlank()) && args.containsKey("productName")) {
+            var page = productFeign.search((String) args.get("productName"), null, null, true,
+                org.springframework.data.domain.Pageable.ofSize(1));
+            if (!page.getContent().isEmpty()) {
+                productIdStr = page.getContent().get(0).id().toString();
+            }
+        }
+        if (productIdStr == null || productIdStr.isBlank()) {
+            return new AssistantDtos.ToolResult("text", "Product Not Found",
+                Map.of("message", "Could not find the product. Please provide a productId or exact product name."));
+        }
+        UUID productId = UUID.fromString(productIdStr);
+        Map<String, Object> body = new LinkedHashMap<>();
+        if (args.containsKey("price")) body.put("price", args.get("price"));
+        if (args.containsKey("cost")) body.put("cost", args.get("cost"));
+        Map<String, Object> result = productFeign.updateProduct(productId, body);
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("status", "updated");
+        data.put("product", result);
+        return new AssistantDtos.ToolResult("text", "Price Updated", data);
+    }
+
+    private AssistantDtos.ToolResult createCustomer(Map<String, Object> args) {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("name", args.get("name"));
+        if (args.containsKey("phone")) body.put("phone", args.get("phone"));
+        if (args.containsKey("email")) body.put("email", args.get("email"));
+        if (args.containsKey("address")) body.put("address", args.get("address"));
+        Map<String, Object> result = customerFeign.createCustomer(body);
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("status", "created");
+        data.put("customer", result);
+        return new AssistantDtos.ToolResult("text", "Customer Created", data);
+    }
+
+    private AssistantDtos.ToolResult updateCustomer(Map<String, Object> args) {
+        UUID customerId = UUID.fromString((String) args.get("customerId"));
+        Map<String, Object> body = new LinkedHashMap<>();
+        if (args.containsKey("name")) body.put("name", args.get("name"));
+        if (args.containsKey("phone")) body.put("phone", args.get("phone"));
+        if (args.containsKey("email")) body.put("email", args.get("email"));
+        if (args.containsKey("address")) body.put("address", args.get("address"));
+        Map<String, Object> result = customerFeign.updateCustomer(customerId, body);
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("status", "updated");
+        data.put("customer", result);
+        return new AssistantDtos.ToolResult("text", "Customer Updated", data);
     }
 
     private AssistantDtos.ToolResult createExpense(Map<String, Object> args, UUID userId) {

@@ -240,6 +240,41 @@ public class AssistantToolCatalog {
 
     private List<ToolDef> writeTools() {
         return List.of(
+            new ToolDef("createProduct", "Create a new product. Provide name, price, cost, category (optional), brand (optional), and SKU (optional). Use this when the merchant wants to add a new product to their catalog.",
+                Map.of("type","object","properties", Map.of(
+                    "name", Map.of("type","string","description","Product name"),
+                    "price", Map.of("type","number","description","Selling price in TZS"),
+                    "cost", Map.of("type","number","description","Cost price in TZS"),
+                    "sku", Map.of("type","string","description","SKU code, optional"),
+                    "categoryId", Map.of("type","string","description","Category UUID, optional"),
+                    "brandId", Map.of("type","string","description","Brand UUID, optional")
+                ),"required",List.of("name","price","cost")), true, "product.create"),
+
+            new ToolDef("updateProductPrice", "Update a product's selling price and/or cost price. Provide the product UUID or name, and the new price or cost. Use this when the merchant wants to change prices.",
+                Map.of("type","object","properties", Map.of(
+                    "productId", Map.of("type","string","description","Product UUID"),
+                    "productName", Map.of("type","string","description","Product name (used to look up UUID)"),
+                    "price", Map.of("type","number","description","New selling price in TZS"),
+                    "cost", Map.of("type","number","description","New cost price in TZS")
+                ),"required",List.of()), true, "product.update"),
+
+            new ToolDef("createCustomer", "Create a new customer. Provide name and at least one contact method (phone, email, or address). Use this when the merchant wants to add a new customer.",
+                Map.of("type","object","properties", Map.of(
+                    "name", Map.of("type","string","description","Customer full name"),
+                    "phone", Map.of("type","string","description","Phone number"),
+                    "email", Map.of("type","string","description","Email address"),
+                    "address", Map.of("type","string","description","Physical address")
+                ),"required",List.of("name")), true, "customer.manage"),
+
+            new ToolDef("updateCustomer", "Update a customer's details. Provide the customer UUID and any fields to update.",
+                Map.of("type","object","properties", Map.of(
+                    "customerId", Map.of("type","string","description","Customer UUID"),
+                    "name", Map.of("type","string","description","Updated name"),
+                    "phone", Map.of("type","string","description","Updated phone"),
+                    "email", Map.of("type","string","description","Updated email"),
+                    "address", Map.of("type","string","description","Updated address")
+                ),"required",List.of("customerId")), true, "customer.manage"),
+
             new ToolDef("createPurchaseOrder", "Create a purchase order for restocking",
                 Map.of("type","object","properties", Map.of(
                     "supplierId", Map.of("type","string","description","Supplier UUID"),

@@ -5,6 +5,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.web.bind.annotation.*;
 import java.math.BigDecimal;
+import java.util.Map;
 import java.util.UUID;
 
 @FeignClient(name = "product-service",
@@ -21,4 +22,10 @@ public interface ProductFeign {
                             @RequestParam(required = false) UUID brandId,
                             @RequestParam(required = false) Boolean status,
                             Pageable pageable);
+
+    @PostMapping("/api/v1/products")
+    Map<String, Object> createProduct(@RequestBody Map<String, Object> body);
+
+    @PutMapping("/api/v1/products/{id}")
+    Map<String, Object> updateProduct(@PathVariable UUID id, @RequestBody Map<String, Object> body);
 }
