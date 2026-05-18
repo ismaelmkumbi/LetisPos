@@ -261,12 +261,12 @@ public class SaleService {
         if (!productIds.isEmpty()) {
             try {
                 var costs = inventory.getCosts(sale.getWarehouseId(), productIds);
-                var costMap = costs.stream().collect(java.util.stream.Collectors.toMap(
-                        c -> c.productId(),
+                var costMap = costs.stream().collect(Collectors.toMap(
+                        c -> new AbstractMap.SimpleEntry<>(c.productId(), c.variantId()),
                         c -> c.weightedAvgCost(),
                         (a, b) -> a));
                 for (SaleLine line : sale.getLines()) {
-                    BigDecimal wac = costMap.get(line.getProductId());
+                    BigDecimal wac = costMap.get(new AbstractMap.SimpleEntry<>(line.getProductId(), line.getVariantId()));
                     if (wac != null && wac.signum() > 0) {
                         line.setUnitCost(wac);
                     }
