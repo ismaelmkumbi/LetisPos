@@ -178,10 +178,10 @@ FROM chart_of_accounts p WHERE p.code = '5000';
 --    References COA entries by code for deterministic lookups.
 -- ==================================================================
 INSERT INTO auto_posting_rules (id, tenant_id, reference_type, coa_id)
-SELECT uuid_generate_v4(), NULL, 'SALE',            c.id FROM chart_of_accounts c WHERE c.code = '4100' AND c.tenant_id IS NULL
+SELECT uuid_generate_v4(), NULL::uuid, 'SALE',            c.id FROM chart_of_accounts c WHERE c.code = '4100' AND c.tenant_id IS NULL
 UNION ALL
-SELECT uuid_generate_v4(), NULL, 'PURCHASE',        c.id FROM chart_of_accounts c WHERE c.code = '5100' AND c.tenant_id IS NULL
+SELECT uuid_generate_v4(), NULL::uuid, 'PURCHASE',        c.id FROM chart_of_accounts c WHERE c.code = '5100' AND c.tenant_id IS NULL
 UNION ALL
-SELECT uuid_generate_v4(), NULL, 'SALE_RETURN',     c.id FROM chart_of_accounts c WHERE c.code = '4400' AND c.tenant_id IS NULL
+SELECT uuid_generate_v4(), NULL::uuid, 'SALE_RETURN',     c.id FROM chart_of_accounts c WHERE c.code = '4400' AND c.tenant_id IS NULL
 UNION ALL
-SELECT uuid_generate_v4(), NULL, 'PURCHASE_RETURN', c.id FROM chart_of_accounts c WHERE c.code = '5100' AND c.tenant_id IS NULL;
+SELECT uuid_generate_v4(), NULL::uuid, 'PURCHASE_RETURN', c.id FROM chart_of_accounts c WHERE c.code = '5100' AND c.tenant_id IS NULL;
