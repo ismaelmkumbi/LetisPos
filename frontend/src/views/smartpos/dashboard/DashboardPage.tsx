@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, useContext, useCallback } from 'react';
-import { Alert, Box, Button, Grid, LinearProgress, Typography } from '@mui/material';
+import { Alert, Box, Button, Grid, LinearProgress, Stack, Typography } from '@mui/material';
 import { useSearchParams, Link } from 'react-router';
 
 import {
@@ -373,6 +373,14 @@ export default function DashboardPage() {
   }, [customerRetention]);
 
   const showSection = (key: SectionKey) => visibleSections.has(key);
+  const rightColumnVisible =
+    showSection('sideRail')
+    || showSection('paymentMix')
+    || showSection('goalProgress')
+    || showSection('profitOpportunities')
+    || showSection('reorderRecommendations')
+    || showSection('cashFlowForecast')
+    || showSection('recentTransactions');
 
   return (
     <Box sx={{ pb: 1 }}>
@@ -474,7 +482,7 @@ export default function DashboardPage() {
       ) : (
         <>
           <Grid container spacing={1.5} alignItems="flex-start">
-            <Grid size={{ xs: 12, xl: 9 }}>
+            <Grid size={{ xs: 12, xl: rightColumnVisible ? 9 : 12 }}>
               {/* KPI Grid */}
               {showSection('kpiGrid') && (
                 <Box
@@ -525,7 +533,7 @@ export default function DashboardPage() {
                 </Box>
               )}
 
-              {/* ── ROW 2: Revenue chart — full width now that transactions moved to side rail ── */}
+              {/* ── ROW 2: Revenue chart ── */}
               {showSection('revenueChart') && (
                 <Box sx={{ mb: 1.5 }}>
                   <RevenueChart
@@ -542,11 +550,11 @@ export default function DashboardPage() {
                 </Box>
               )}
 
-              {/* ── ROW 3: Financial Health + Operations + Payment Mix ── */}
-              {(showSection('financialHealth') || showSection('operationsOverview') || showSection('paymentMix')) && (
+              {/* ── ROW 3: Financial Health + Operations ── */}
+              {(showSection('financialHealth') || showSection('operationsOverview')) && (
                 <Grid container spacing={1.5} sx={{ mb: 1.5 }}>
                   {showSection('financialHealth') && (
-                    <Grid size={{ xs: 12, lg: showSection('operationsOverview') && showSection('paymentMix') ? 4 : showSection('paymentMix') ? 5 : 6 }}>
+                    <Grid size={{ xs: 12, lg: showSection('operationsOverview') ? 6 : 12 }}>
                       <FinancialHealth
                         data={data}
                         expensesDelta={expensesDelta}
@@ -558,22 +566,13 @@ export default function DashboardPage() {
                     </Grid>
                   )}
                   {showSection('operationsOverview') && (
-                    <Grid size={{ xs: 12, lg: showSection('financialHealth') && showSection('paymentMix') ? 3 : showSection('paymentMix') ? 5 : 6 }}>
+                    <Grid size={{ xs: 12, lg: showSection('financialHealth') ? 6 : 12 }}>
                       <OperationsOverview
                         data={data}
                         inventoryValueDelta={inventoryValueDelta}
                         stockAtRiskDelta={stockAtRiskDelta}
                         totalSkusDelta={totalSkusDelta}
                         stockMovementDelta={stockMovementDelta}
-                      />
-                    </Grid>
-                  )}
-                  {showSection('paymentMix') && (
-                    <Grid size={{ xs: 12, lg: showSection('financialHealth') && showSection('operationsOverview') ? 5 : 6 }}>
-                      <PaymentMixCard
-                        paymentMix={paymentMix}
-                        paymentMixUnavailable={paymentMixUnavailable}
-                        isDark={isDark}
                       />
                     </Grid>
                   )}
@@ -591,87 +590,87 @@ export default function DashboardPage() {
                 </Box>
               )}
 
-              {/* ── ROW 5: Customer Retention + Top Performers ── */}
-              {(showSection('customerRetention') || showSection('topPerformers')) && (
+              {/* ── ROW 5: Customer Retention ── */}
+              {showSection('customerRetention') && (
                 <Grid container spacing={1.5} sx={{ mb: 1.5 }}>
-                  {showSection('customerRetention') && (
-                    <Grid size={{ xs: 12, lg: 6 }}>
-                      <CustomerRetentionCard
-                        data={customerRetention}
-                        loading={retentionLoading}
-                        isDark={isDark}
-                      />
-                    </Grid>
-                  )}
-                  {showSection('topPerformers') && (
-                    <Grid size={{ xs: 12, lg: 6 }}>
-                      <TopPerformers period={period} warehouseId={warehouseId} limit={5} />
-                    </Grid>
-                  )}
+                  <Grid size={{ xs: 12 }}>
+                    <CustomerRetentionCard
+                      data={customerRetention}
+                      loading={retentionLoading}
+                      isDark={isDark}
+                    />
+                  </Grid>
                 </Grid>
               )}
 
-              {/* ── ROW 6: Recent Transactions + Profit Opportunities ── */}
-              {(showSection('recentTransactions') || showSection('profitOpportunities')) && (
-                <Grid container spacing={1.5} sx={{ mb: 1.5 }}>
-                  {showSection('recentTransactions') && (
-                    <Grid size={{ xs: 12, lg: 7 }}>
-                      <RecentTransactions rows={recentSales} />
-                    </Grid>
-                  )}
-                  {showSection('profitOpportunities') && (
-                    <Grid size={{ xs: 12, lg: 5 }}>
-                      <ProfitOpportunitiesCard data={profitOpps} loading={profitLoading} isDark={isDark} />
-                    </Grid>
-                  )}
-                </Grid>
-              )}
-
-              {/* ── ROW 7: Reorder Recommendations + Cash Flow Forecast ── */}
-              {(showSection('reorderRecommendations') || showSection('cashFlowForecast')) && (
-                <Grid container spacing={1.5} sx={{ mb: 1.5 }}>
-                  {showSection('reorderRecommendations') && (
-                    <Grid size={{ xs: 12, lg: 6 }}>
-                      <ReorderRecommendationsCard data={reorderRecs} loading={reorderLoading} isDark={isDark} />
-                    </Grid>
-                  )}
-                  {showSection('cashFlowForecast') && (
-                    <Grid size={{ xs: 12, lg: 6 }}>
-                      <CashFlowForecastCard data={cashFlowForecast} loading={cashFlowLoading} isDark={isDark} />
-                    </Grid>
-                  )}
-                </Grid>
-              )}
-
-              {/* ── ROW 8: Goal Progress — full width ── */}
-              {showSection('goalProgress') && (
+              {/* ── Bottom: Top Performers ── */}
+              {showSection('topPerformers') && (
                 <Box sx={{ mb: 1.5 }}>
-                  <GoalProgress
-                    currentRevenue={data?.sales.net ?? 0}
-                    currentOrders={data?.sales.count ?? 0}
-                    currentMargin={profitMargin(data)}
-                    tenantId={user?.tenantId ?? ''}
-                  />
+                  <TopPerformers period={period} warehouseId={warehouseId} limit={5} />
                 </Box>
               )}
+
             </Grid>
 
-            {/* ── Right column: SideRail — lean: only alerts + payments ── */}
-            {showSection('sideRail') && (
+            {rightColumnVisible && (
               <Grid size={{ xs: 12, xl: 3 }}>
-                <DashboardSideRail
-                  data={data}
-                  revenueTrend={revenueTrend}
-                  isDark={isDark}
-                  paymentTotal={paymentTotal}
-                  expiringBatchesCount={expiringBatchesCount}
-                  expiringUnitsAtRisk={expiringUnitsAtRisk}
-                  atRiskCustomerCount={atRiskStats.count}
-                  atRiskRevenue={atRiskStats.revenue}
-                  anomalySlot={
-                    <AnomalyAlerts warehouseId={warehouseId} />
-                  }
-                />
+                {/* Right rail: compact decision cards first, expandable lists lower. */}
+                <Stack
+                  spacing={1.5}
+                  sx={{
+                    pb: 2,
+                  }}
+                >
+                  {showSection('sideRail') && (
+                    <DashboardSideRail
+                      data={data}
+                      revenueTrend={revenueTrend}
+                      isDark={isDark}
+                      paymentTotal={paymentTotal}
+                      expiringBatchesCount={expiringBatchesCount}
+                      expiringUnitsAtRisk={expiringUnitsAtRisk}
+                      atRiskCustomerCount={atRiskStats.count}
+                      atRiskRevenue={atRiskStats.revenue}
+                      anomalySlot={
+                        <AnomalyAlerts warehouseId={warehouseId} />
+                      }
+                    />
+                  )}
+
+                  {showSection('paymentMix') && (
+                    <PaymentMixCard
+                      paymentMix={paymentMix}
+                      paymentMixUnavailable={paymentMixUnavailable}
+                      isDark={isDark}
+                      layout="rail"
+                    />
+                  )}
+
+                  {showSection('cashFlowForecast') && (
+                    <CashFlowForecastCard data={cashFlowForecast} loading={cashFlowLoading} isDark={isDark} />
+                  )}
+
+                  {showSection('goalProgress') && (
+                    <GoalProgress
+                      currentRevenue={data?.sales.net ?? 0}
+                      currentOrders={data?.sales.count ?? 0}
+                      currentMargin={profitMargin(data)}
+                      tenantId={user?.tenantId ?? ''}
+                    />
+                  )}
+
+                  {showSection('profitOpportunities') && (
+                    <ProfitOpportunitiesCard data={profitOpps} loading={profitLoading} isDark={isDark} />
+                  )}
+
+                  {showSection('reorderRecommendations') && (
+                    <ReorderRecommendationsCard data={reorderRecs} loading={reorderLoading} isDark={isDark} />
+                  )}
+
+                  {showSection('recentTransactions') && (
+                    <RecentTransactions rows={recentSales} />
+                  )}
+                </Stack>
               </Grid>
             )}
           </Grid>

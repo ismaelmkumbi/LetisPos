@@ -42,26 +42,16 @@ export default function OnboardingBanner() {
     <>
       <Box
         sx={{
-          mb: 3,
-          p: { xs: 2.5, md: 3 },
-          borderRadius: at.radius.xl,
-          border: isFirstLogin ? 'none' : `1px solid ${brand.neutral[200]}`,
-          bgcolor: isFirstLogin ? brand.primary[800] : '#FFFFFF',
-          color: isFirstLogin ? '#FFFFFF' : brand.neutral[900],
+          mb: 1.5,
+          p: { xs: 1.5, md: 1.75 },
+          borderRadius: '12px',
+          border: `1px solid ${isFirstLogin ? brand.primary[200] : brand.neutral[200]}`,
+          borderLeft: `4px solid ${brand.primary[600]}`,
+          bgcolor: isFirstLogin ? brand.primary[50] : '#FFFFFF',
+          color: brand.neutral[900],
           position: 'relative',
           overflow: 'hidden',
-          boxShadow: isFirstLogin ? at.shadow.elevated : at.shadow.sm,
-          ...(isFirstLogin && {
-            '&::before': {
-              content: '""',
-              position: 'absolute',
-              inset: 0,
-              background:
-                `radial-gradient(ellipse at 20% 30%, ${brand.primary[400]}30 0%, transparent 50%),
-                 radial-gradient(ellipse at 80% 70%, ${brand.primary[600]}20 0%, transparent 50%)`,
-              pointerEvents: 'none',
-            },
-          }),
+          boxShadow: at.shadow.sm,
         }}
       >
         <Stack
@@ -79,31 +69,30 @@ export default function OnboardingBanner() {
                     fontSize: '0.62rem',
                     fontWeight: 700,
                     textTransform: 'uppercase',
-                    letterSpacing: '0.08em',
-                    color: brand.primary[300],
-                    mb: 0.75,
+                    letterSpacing: '0.06em',
+                    color: brand.primary[700],
+                    mb: 0.35,
                   }}
                 >
-                  Your workspace is ready
+                  Setup checklist
                 </Typography>
                 <Typography
                   sx={{
                     fontFamily: at.fontDisplay,
-                    fontSize: { xs: '1.15rem', md: '1.3rem' },
-                    fontWeight: 600,
-                    letterSpacing: '-0.015em',
-                    mb: 0.75,
-                    color: '#FFFFFF',
+                    fontSize: { xs: '1rem', md: '1.08rem' },
+                    fontWeight: 700,
+                    mb: 0.35,
+                    color: brand.neutral[900],
                   }}
                 >
-                  Welcome{user?.firstName ? `, ${user.firstName}` : ''}
+                  Finish your store setup{user?.firstName ? `, ${user.firstName}` : ''}
                 </Typography>
-                <Typography sx={{ fontSize: '0.78rem', lineHeight: 1.5, color: 'rgba(255,255,255,0.7)', mb: 2 }}>
-                  Set up your store and make your first sale. Three quick steps.
+                <Typography sx={{ fontSize: '0.78rem', lineHeight: 1.5, color: brand.neutral[500], mb: 1.2 }}>
+                  Complete the essentials so your dashboard data stays accurate.
                 </Typography>
 
                 {/* Numbered steps */}
-                <Stack direction="row" spacing={2} sx={{ mb: 2 }}>
+                <Stack direction="row" spacing={1.5} sx={{ flexWrap: 'wrap' }}>
                   {SETUP_STEPS.map((step, i) => {
                     const done = state[step.key] === true;
                     const current = i === currentStepIndex;
@@ -116,10 +105,10 @@ export default function OnboardingBanner() {
                             display: 'grid', placeItems: 'center',
                             fontSize: '0.65rem', fontWeight: 700,
                             ...(done
-                              ? { bgcolor: brand.primary[500], color: '#FFFFFF' }
+                              ? { bgcolor: brand.primary[600], color: '#FFFFFF' }
                               : current
-                                ? { bgcolor: brand.primary[400], color: '#FFFFFF', boxShadow: `0 0 0 3px ${brand.primary[400]}40` }
-                                : { bgcolor: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.4)' }),
+                                ? { bgcolor: '#FFFFFF', color: brand.primary[700], border: `1px solid ${brand.primary[300]}`, boxShadow: `0 0 0 3px ${brand.primary[100]}` }
+                                : { bgcolor: '#FFFFFF', color: brand.neutral[400], border: `1px solid ${brand.neutral[200]}` }),
                           }}
                         >
                           {done ? '✓' : i + 1}
@@ -127,8 +116,8 @@ export default function OnboardingBanner() {
                         <Typography
                           sx={{
                             fontSize: '0.72rem',
-                            fontWeight: current ? 600 : 400,
-                            color: current ? '#FFFFFF' : done ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.35)',
+                            fontWeight: current ? 700 : 500,
+                            color: current ? brand.neutral[900] : done ? brand.primary[700] : brand.neutral[400],
                             display: { xs: 'none', sm: 'inline' },
                           }}
                         >
@@ -163,36 +152,36 @@ export default function OnboardingBanner() {
               <Stack direction="row" spacing={1} sx={{ display: { xs: 'none', lg: 'flex' } }}>
                 <Box
                   sx={{
-                    bgcolor: 'rgba(255,255,255,0.1)',
-                    border: '1px solid rgba(255,255,255,0.12)',
+                    bgcolor: '#FFFFFF',
+                    border: `1px solid ${brand.primary[200]}`,
                     borderRadius: at.radius.md,
                     px: 2, py: 1.5,
                     textAlign: 'center',
                     minWidth: 80,
                   }}
                 >
-                  <Typography sx={{ fontSize: '0.62rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'rgba(255,255,255,0.55)' }}>
+                  <Typography sx={{ fontSize: '0.62rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: brand.primary[700] }}>
                     Your plan
                   </Typography>
-                  <Typography sx={{ fontFamily: at.fontDisplay, fontSize: '1rem', fontWeight: 600, color: '#FFFFFF', lineHeight: 1 }}>
+                  <Typography sx={{ fontFamily: at.fontDisplay, fontSize: '1rem', fontWeight: 700, color: brand.neutral[900], lineHeight: 1 }}>
                     {tenantPlan.charAt(0) + tenantPlan.slice(1).toLowerCase()}
                   </Typography>
                 </Box>
                 {isTrialing() && trialDays !== null && (
                   <Box
                     sx={{
-                      bgcolor: 'rgba(255,255,255,0.1)',
-                      border: '1px solid rgba(255,255,255,0.12)',
+                      bgcolor: '#FFFFFF',
+                      border: `1px solid ${brand.primary[200]}`,
                       borderRadius: at.radius.md,
                       px: 2, py: 1.5,
                       textAlign: 'center',
                       minWidth: 80,
                     }}
                   >
-                    <Typography sx={{ fontSize: '0.62rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'rgba(255,255,255,0.55)' }}>
+                    <Typography sx={{ fontSize: '0.62rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: brand.primary[700] }}>
                       Trial ends
                     </Typography>
-                    <Typography sx={{ fontFamily: at.fontDisplay, fontSize: '1rem', fontWeight: 600, color: '#FFFFFF', lineHeight: 1 }}>
+                    <Typography sx={{ fontFamily: at.fontDisplay, fontSize: '1rem', fontWeight: 700, color: brand.neutral[900], lineHeight: 1 }}>
                       {trialDays} days
                     </Typography>
                   </Box>
@@ -206,14 +195,14 @@ export default function OnboardingBanner() {
               endIcon={<IconChevronRight size={16} />}
               onClick={() => (isFirstLogin ? setWizardOpen(true) : navigate(nextStep![1].path))}
               sx={{
-                bgcolor: isFirstLogin ? '#FFFFFF' : brand.primary[600],
-                color: isFirstLogin ? brand.neutral[900] : '#FFFFFF',
+                bgcolor: brand.primary[600],
+                color: '#FFFFFF',
                 textTransform: 'none',
                 fontWeight: 700,
                 borderRadius: at.radius.md,
                 whiteSpace: 'nowrap',
                 '&:hover': {
-                  bgcolor: isFirstLogin ? brand.neutral[100] : brand.primary[700],
+                  bgcolor: brand.primary[700],
                 },
               }}
             >
@@ -224,9 +213,9 @@ export default function OnboardingBanner() {
               size="small"
               onClick={dismissBanner}
               sx={{
-                color: isFirstLogin ? 'rgba(255,255,255,0.4)' : brand.neutral[400],
+                color: brand.neutral[400],
                 flexShrink: 0,
-                '&:hover': { color: isFirstLogin ? 'rgba(255,255,255,0.7)' : brand.neutral[600] },
+                '&:hover': { color: brand.neutral[600] },
               }}
             >
               <IconX size={16} />

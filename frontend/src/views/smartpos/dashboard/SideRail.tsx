@@ -180,11 +180,6 @@ export default function DashboardSideRail({
     <Stack
       spacing={1.5}
       sx={{
-        position: { xl: 'sticky' },
-        top: { xl: 82 },
-        maxHeight: { xl: 'calc(100vh - 96px)' },
-        overflowY: { xl: 'auto' },
-        overflowX: 'visible',
         pr: { xl: 0.5 },
         /* thin custom scrollbar */
         '&::-webkit-scrollbar': { width: 4 },

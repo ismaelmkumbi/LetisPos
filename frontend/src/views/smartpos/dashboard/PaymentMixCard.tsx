@@ -25,6 +25,7 @@ interface PaymentMixCardProps {
   paymentMix: PaymentMethodMixRow[];
   paymentMixUnavailable: boolean;
   isDark: boolean;
+  layout?: 'wide' | 'rail';
 }
 
 const PAYMENT_COLORS = [
@@ -43,6 +44,7 @@ function PaymentRow({
   color,
   total,
   isDark,
+  compact = false,
 }: {
   label: string;
   value: number;
@@ -50,8 +52,64 @@ function PaymentRow({
   color: string;
   total: number;
   isDark: boolean;
+  compact?: boolean;
 }) {
   const pct = total ? Math.round((value / total) * 100) : 0;
+
+  if (compact) {
+    return (
+      <Box
+        sx={{
+          minWidth: 0,
+          p: 1,
+          borderRadius: '9px',
+          border: `1px solid ${isDark ? brand.neutral[700] : brand.neutral[100]}`,
+          bgcolor: isDark ? brand.neutral[900] : brand.neutral[50],
+        }}
+      >
+        <Stack direction="row" spacing={0.75} alignItems="center" sx={{ mb: 0.6 }}>
+          <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: color, flexShrink: 0 }} />
+          <Typography
+            noWrap
+            sx={{
+              fontFamily: LBL_FONT,
+              color: isDark ? brand.neutral[300] : brand.neutral[700],
+              fontSize: 11.5,
+              fontWeight: 700,
+              minWidth: 0,
+            }}
+          >
+            {label}
+          </Typography>
+        </Stack>
+        <Typography
+          sx={{
+            fontFamily: NUM_FONT,
+            color: isDark ? brand.neutral[100] : brand.neutral[900],
+            fontSize: 12,
+            fontWeight: 800,
+            lineHeight: 1.15,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {formatMoney(value)}
+        </Typography>
+        <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mt: 0.45 }}>
+          <Typography sx={{ fontFamily: NUM_FONT, color, fontSize: 10.5, fontWeight: 800 }}>
+            {pct}%
+          </Typography>
+          {count !== undefined && (
+            <Typography sx={{ fontFamily: LBL_FONT, color: isDark ? brand.neutral[500] : brand.neutral[400], fontSize: 10.5 }}>
+              {count} txns
+            </Typography>
+          )}
+        </Stack>
+      </Box>
+    );
+  }
+
   return (
     <Stack direction="row" alignItems="center" spacing={1} sx={{ py: 0.5 }}>
       {/* Color swatch */}
@@ -132,7 +190,9 @@ export default function PaymentMixCard({
   paymentMix,
   paymentMixUnavailable,
   isDark,
+  layout = 'wide',
 }: PaymentMixCardProps) {
+  const isRail = layout === 'rail';
   const paymentSeries = paymentMix.map((row) => row.total);
   const paymentTotal = paymentSeries.reduce((sum, v) => sum + v, 0);
   const paymentLabels = paymentMix.map((row) => methodLabel(row.method));
@@ -196,7 +256,7 @@ export default function PaymentMixCard({
 
   return (
     <Card elevation={0} sx={{ ...cardSx(isDark), height: '100%' }}>
-      <CardContent sx={{ p: { xs: 2, sm: 2.5 } }}>
+      <CardContent sx={{ p: { xs: 2, sm: isRail ? 2 : 2.5 } }}>
 
         {/* Header */}
         <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1.75 }}>
@@ -205,7 +265,7 @@ export default function PaymentMixCard({
               fontFamily: LBL_FONT,
               fontWeight: 800,
               color: isDark ? '#F1F5F9' : brand.neutral[900],
-              fontSize: { xs: 15, sm: 17 },
+              fontSize: { xs: 15, sm: isRail ? 16 : 17 },
               letterSpacing: '-0.01em',
             }}
           >
@@ -227,15 +287,15 @@ export default function PaymentMixCard({
           </Typography>
         </Stack>
 
-        <Grid container spacing={2} alignItems="center">
+        <Grid container spacing={isRail ? 1.5 : 2} alignItems="center">
           {/* Donut */}
-          <Grid size={{ xs: 12, sm: 5 }}>
+          <Grid size={{ xs: 12, sm: isRail ? 12 : 5 }}>
             {paymentSeries.length ? (
               <Chart
                 options={paymentOptions}
                 series={paymentSeries}
                 type="donut"
-                height={200}
+                height={isRail ? 166 : 200}
               />
             ) : (
               <EmptyPanel
@@ -245,28 +305,51 @@ export default function PaymentMixCard({
                     ? 'Dashboard data is still live.'
                     : 'Completed payments will build this mix.'
                 }
-                height={200}
+                height={isRail ? 166 : 200}
               />
             )}
           </Grid>
 
           {/* Rows */}
-          <Grid size={{ xs: 12, sm: 7 }}>
-            <Stack spacing={0.25} divider={
-              <Box sx={{ height: '1px', bgcolor: isDark ? brand.neutral[700] : brand.neutral[100] }} />
-            }>
-              {paymentMix.map((row, index) => (
-                <PaymentRow
-                  key={row.method}
-                  label={methodLabel(row.method)}
-                  value={row.total}
-                  count={row.count}
-                  color={PAYMENT_COLORS[index % PAYMENT_COLORS.length]}
-                  total={paymentTotal || 1}
-                  isDark={isDark}
-                />
-              ))}
-            </Stack>
+          <Grid size={{ xs: 12, sm: isRail ? 12 : 7 }}>
+            {isRail ? (
+              <Box
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                  gap: 0.75,
+                }}
+              >
+                {paymentMix.map((row, index) => (
+                  <PaymentRow
+                    key={row.method}
+                    label={methodLabel(row.method)}
+                    value={row.total}
+                    count={row.count}
+                    color={PAYMENT_COLORS[index % PAYMENT_COLORS.length]}
+                    total={paymentTotal || 1}
+                    isDark={isDark}
+                    compact
+                  />
+                ))}
+              </Box>
+            ) : (
+              <Stack spacing={0.25} divider={
+                <Box sx={{ height: '1px', bgcolor: isDark ? brand.neutral[700] : brand.neutral[100] }} />
+              }>
+                {paymentMix.map((row, index) => (
+                  <PaymentRow
+                    key={row.method}
+                    label={methodLabel(row.method)}
+                    value={row.total}
+                    count={row.count}
+                    color={PAYMENT_COLORS[index % PAYMENT_COLORS.length]}
+                    total={paymentTotal || 1}
+                    isDark={isDark}
+                  />
+                ))}
+              </Stack>
+            )}
           </Grid>
         </Grid>
       </CardContent>

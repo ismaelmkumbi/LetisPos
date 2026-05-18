@@ -180,10 +180,10 @@ export default function DashboardGreetingBar({
   };
 
   const pillSx = (active: boolean) => ({
-    height: { xs: 32, sm: 34 },
-    px: { xs: 1.2, sm: 1.6 },
+    height: { xs: 30, sm: 32 },
+    px: { xs: 1.1, sm: 1.35 },
     borderRadius: '8px',
-    fontSize: { xs: 12, sm: 13 },
+    fontSize: { xs: 12, sm: 12.5 },
     fontWeight: active ? 700 : 500,
     textTransform: 'none' as const,
     bgcolor: active ? brand.primary[600] : 'transparent',
@@ -204,7 +204,7 @@ export default function DashboardGreetingBar({
       <Box
         sx={{
           mb: 1.5,
-          p: { xs: 1.75, md: 2 },
+          p: { xs: 1.4, md: 1.5 },
           borderRadius: '12px',
           border: `1px solid ${isDark ? brand.neutral[700] : brand.neutral[200]}`,
           bgcolor: isDark ? brand.neutral[800] : '#FFFFFF',
@@ -212,7 +212,7 @@ export default function DashboardGreetingBar({
           display: 'flex',
           flexDirection: { xs: 'column', md: 'row' },
           alignItems: { xs: 'flex-start', md: 'center' },
-          gap: 1.5,
+          gap: 1.25,
         }}
       >
         {/* Greeting */}
@@ -222,7 +222,7 @@ export default function DashboardGreetingBar({
               sx={{
                 fontFamily: "'Outfit', 'DM Sans', sans-serif",
                 fontWeight: 800,
-                fontSize: { xs: 19, md: 21 },
+                fontSize: { xs: 18, md: 20 },
                 color: isDark ? '#F1F5F9' : brand.neutral[900],
                 letterSpacing: '-0.025em',
                 lineHeight: 1.1,
@@ -236,16 +236,16 @@ export default function DashboardGreetingBar({
                 {name}
               </Box>
             </Typography>
-            <Box component="span" sx={{ fontSize: 20, lineHeight: 1, ml: 0.5 }}>
+            <Box component="span" sx={{ fontSize: 18, lineHeight: 1, ml: 0.5 }}>
               {wave}
             </Box>
           </Stack>
-          <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mt: 0.4 }}>
+          <Stack direction="row" spacing={1.1} alignItems="center" sx={{ mt: 0.25 }}>
             <Typography
               sx={{
                 fontFamily: "'Outfit', 'DM Sans', sans-serif",
                 color: isDark ? brand.neutral[500] : brand.neutral[500],
-                fontSize: 13,
+                fontSize: 12.5,
                 fontWeight: 400,
               }}
             >
@@ -275,7 +275,7 @@ export default function DashboardGreetingBar({
         {/* Controls */}
         <Stack
           direction={{ xs: 'column', sm: 'row' }}
-          spacing={1}
+          spacing={0.75}
           alignItems={{ xs: 'stretch', sm: 'center' }}
           useFlexGap
           sx={{
@@ -292,7 +292,7 @@ export default function DashboardGreetingBar({
               display: 'flex',
               alignItems: 'center',
               gap: 0.4,
-              p: 0.5,
+              p: 0.35,
               borderRadius: '10px',
               bgcolor: isDark ? brand.neutral[900] : brand.neutral[50],
               border: `1px solid ${isDark ? brand.neutral[700] : brand.neutral[200]}`,
@@ -327,7 +327,7 @@ export default function DashboardGreetingBar({
               sx={{
                 minWidth: 160,
                 '& .MuiOutlinedInput-root': {
-                  height: 38,
+                  height: 36,
                   borderRadius: '9px',
                   fontWeight: 600,
                   fontSize: 13.5,
@@ -351,14 +351,14 @@ export default function DashboardGreetingBar({
             variant="outlined"
             startIcon={<IconCalendar size={15} stroke={1.8} />}
             sx={{
-              height: 38,
+              height: 36,
               px: 1.6,
               maxWidth: { xs: '100%', sm: 220 },
               borderRadius: '9px',
               borderColor: isDark ? brand.neutral[700] : brand.neutral[200],
               color: brand.neutral[700],
               fontWeight: 700,
-              fontSize: 13,
+              fontSize: 12.5,
               textTransform: 'none',
               whiteSpace: 'nowrap',
               overflow: 'hidden',
@@ -379,8 +379,8 @@ export default function DashboardGreetingBar({
             size="small"
             onClick={() => setCustomizeOpen(true)}
             sx={{
-              height: 38,
-              width: 38,
+              height: 36,
+              width: 36,
               borderRadius: '9px',
               border: `1px solid ${isDark ? brand.neutral[700] : brand.neutral[200]}`,
               color: brand.neutral[600],

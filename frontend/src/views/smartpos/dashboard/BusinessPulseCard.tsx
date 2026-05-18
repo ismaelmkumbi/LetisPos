@@ -1,27 +1,23 @@
 /**
- * BusinessPulseCard — redesigned as the HERO card of the dashboard.
+ * BusinessPulseCard — executive profit card.
  *
  * Design intent:
- * - Full-bleed deep gradient (green when profitable, red when loss)
- * - White text throughout — contrast on dark bg
- * - LARGE net profit number (36px Mono) as the dominant focal point
- * - Three supporting stats below: Revenue | Expenses | Margin
- * - Profit sparkline at card bottom (white/semi-transparent)
- * - Status pill at top-right
+ * - Profit is the lead business signal, but the surface stays calm.
+ * - Loss uses a soft semantic red treatment with a strong value color.
+ * - Same card language as the KPI strip so the dashboard reads as one system.
  */
 import {
   Box, Card, CardContent, Chip, Stack, Typography,
 } from '@mui/material';
 import { IconArrowDown, IconArrowUp, IconTrendingUp, IconTrendingDown } from '@tabler/icons-react';
-import Chart from 'react-apexcharts';
-import { useContext, useMemo } from 'react';
+import { useContext } from 'react';
 import { CustomizerContext } from 'src/context/CustomizerContext';
 import { formatMoney } from 'src/utils/smartpos/currency';
-import { PERIOD_LABELS, sparkOptions, profitMargin } from './utils';
+import { PERIOD_LABELS, profitMargin } from './utils';
 import type { Dashboard, Period } from 'src/api/smartpos/reports';
 import type { Delta } from './types';
+import { brand } from 'src/theme/smartpos/brand';
 
-const NUM_FONT = "'JetBrains Mono', 'DM Mono', monospace";
 const LBL_FONT = "'Outfit', 'DM Sans', sans-serif";
 
 interface BusinessPulseCardProps {
@@ -41,28 +37,28 @@ export default function BusinessPulseCard({ data, salesSeries, period, delta }: 
   const margin      = profitMargin(data);
   const revenue     = data?.sales.net ?? 0;
   const expenses    = data?.expenses.total ?? 0;
+  const pulseBars   = salesSeries.slice(-12);
+  const pulseMax    = Math.max(...pulseBars, 1);
 
-  // Gradient backgrounds
-  const bg = isLoss
-    ? isDark
-      ? 'linear-gradient(135deg, #450a0a 0%, #7f1d1d 55%, #991b1b 100%)'
-      : 'linear-gradient(135deg, #b91c1c 0%, #dc2626 60%, #ef4444 100%)'
-    : isDark
-      ? 'linear-gradient(135deg, #052e16 0%, #14532d 55%, #166534 100%)'
-      : 'linear-gradient(135deg, #14532d 0%, #15803d 60%, #16a34a 100%)';
+  const tone = isLoss
+    ? {
+        accent: brand.error.dark,
+        accentSoft: '#FEF2F2',
+        border: '#FCA5A5',
+        text: '#7F1D1D',
+        muted: '#B45353',
+      }
+    : {
+        accent: brand.primary[700],
+        accentSoft: brand.primary[50],
+        border: brand.primary[200],
+        text: brand.primary[900],
+        muted: brand.primary[700],
+      };
 
-  const sparkColor = 'rgba(255,255,255,0.7)';
-  const spkOpts = useMemo(() => ({
-    ...sparkOptions(sparkColor),
-    chart: { type: 'area' as const, sparkline: { enabled: true }, toolbar: { show: false } },
-    fill: {
-      type: 'gradient' as const,
-      gradient: { shadeIntensity: 1, opacityFrom: 0.28, opacityTo: 0.02, stops: [0, 100] },
-    },
-    colors: [sparkColor],
-    stroke: { curve: 'smooth' as const, width: 2 },
-    tooltip: { y: { formatter: (v: number) => formatMoney(v) } },
-  }), []);
+  const surface = isDark
+    ? isLoss ? '#2A1113' : '#0B2418'
+    : isLoss ? '#FFF7F7' : '#F7FDF9';
 
   const supportStats = [
     {
@@ -87,54 +83,28 @@ export default function BusinessPulseCard({ data, salesSeries, period, delta }: 
       elevation={0}
       sx={{
         height: '100%',
-        minHeight: { xs: 200, sm: 204 },
-        borderRadius: '14px',
-        background: bg,
-        border: 'none',
+        minHeight: { xs: 164, sm: 170 },
+        borderRadius: '12px',
+        background: surface,
+        border: `1px solid ${isDark ? brand.neutral[700] : tone.border}`,
+        borderLeft: `4px solid ${tone.accent}`,
         overflow: 'hidden',
         position: 'relative',
+        boxShadow: isDark ? 'none' : '0 10px 30px rgba(15,23,42,0.055)',
       }}
     >
-      {/* Decorative circle — top-right */}
-      <Box
-        aria-hidden="true"
-        sx={{
-          position: 'absolute',
-          top: -40,
-          right: -40,
-          width: 160,
-          height: 160,
-          borderRadius: '50%',
-          bgcolor: 'rgba(255,255,255,0.06)',
-          pointerEvents: 'none',
-        }}
-      />
-      <Box
-        aria-hidden="true"
-        sx={{
-          position: 'absolute',
-          bottom: 24,
-          right: -20,
-          width: 90,
-          height: 90,
-          borderRadius: '50%',
-          bgcolor: 'rgba(255,255,255,0.04)',
-          pointerEvents: 'none',
-        }}
-      />
-
-      <CardContent sx={{ p: { xs: 2, sm: 2.5 }, height: '100%', display: 'flex', flexDirection: 'column', position: 'relative', zIndex: 1 }}>
+      <CardContent sx={{ p: { xs: 2, sm: 2.25 }, height: '100%', display: 'flex', flexDirection: 'column' }}>
 
         {/* Header row */}
-        <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 0.5 }}>
+        <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 1.25 }}>
           <Typography
             sx={{
               fontFamily: LBL_FONT,
-              color: 'rgba(255,255,255,0.7)',
+              color: isDark ? brand.neutral[400] : brand.neutral[500],
               fontSize: 11,
               fontWeight: 700,
               textTransform: 'uppercase',
-              letterSpacing: '0.08em',
+              letterSpacing: '0.06em',
             }}
           >
             Business Pulse · {periodLabel}
@@ -150,26 +120,22 @@ export default function BusinessPulseCard({ data, salesSeries, period, delta }: 
               fontFamily: LBL_FONT,
               fontSize: 11,
               fontWeight: 700,
-              bgcolor: 'rgba(255,255,255,0.15)',
-              color: '#fff',
-              backdropFilter: 'blur(4px)',
-              border: '1px solid rgba(255,255,255,0.22)',
-              '& .MuiChip-icon': { color: '#fff', ml: '4px' },
+              bgcolor: isDark ? `${tone.accent}22` : tone.accentSoft,
+              color: tone.accent,
+              border: `1px solid ${tone.border}`,
+              '& .MuiChip-icon': { color: tone.accent, ml: '4px' },
             }}
           />
         </Stack>
 
         {/* Net Profit — hero number */}
-        <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 1.25, mb: 0.5 }}>
+        <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.6 }}>
           <Typography
             sx={{
-              fontFamily: NUM_FONT,
-              color: '#ffffff',
-              fontWeight: 700,
-              fontSize: { xs: 28, sm: 34 },
+              color: isDark ? '#F8FAFC' : isLoss ? brand.error.dark : brand.neutral[900],
+              fontWeight: 800,
+              fontSize: { xs: 27, sm: 31 },
               lineHeight: 1,
-              letterSpacing: '-0.03em',
-              textShadow: '0 2px 12px rgba(0,0,0,0.25)',
             }}
           >
             {isLoss ? `−${formatMoney(Math.abs(profit))}` : formatMoney(profit)}
@@ -180,67 +146,69 @@ export default function BusinessPulseCard({ data, salesSeries, period, delta }: 
               icon={delta.positive ? <IconArrowUp size={11} /> : <IconArrowDown size={11} />}
               label={`${delta.positive ? '+' : '−'}${delta.value.toFixed(1)}%`}
               sx={{
-                height: 22,
-                fontFamily: LBL_FONT,
-                fontSize: 11,
-                fontWeight: 700,
-                bgcolor: 'rgba(255,255,255,0.2)',
-                color: '#fff',
-                border: '1px solid rgba(255,255,255,0.25)',
-                '& .MuiChip-icon': { color: '#fff', ml: '4px' },
-              }}
-            />
-          )}
+              height: 22,
+              fontFamily: LBL_FONT,
+              fontSize: 11,
+              fontWeight: 700,
+              bgcolor: delta.positive ? brand.primary[50] : '#FEF2F2',
+              color: delta.positive ? brand.primary[700] : brand.error.dark,
+              border: `1px solid ${delta.positive ? brand.primary[100] : '#FECACA'}`,
+              '& .MuiChip-icon': { color: delta.positive ? brand.primary[700] : brand.error.dark, ml: '4px' },
+            }}
+          />
+        )}
         </Stack>
         <Typography
           sx={{
             fontFamily: LBL_FONT,
-            color: 'rgba(255,255,255,0.6)',
+            color: isDark ? brand.neutral[400] : tone.muted,
             fontSize: 12,
-            mb: 1.75,
+            mb: 1.5,
           }}
         >
-          {data ? 'Net profit · selected period' : 'Waiting for data…'}
+          {data ? (isLoss ? 'Net loss needs review this period' : 'Net profit for selected period') : 'Waiting for data...'}
         </Typography>
 
         {/* Supporting stats */}
-        <Stack direction="row" spacing={0} sx={{ mb: 'auto' }}>
+        <Stack direction="row" spacing={0} sx={{ mt: 'auto' }}>
           {supportStats.map((stat, i) => (
             <Box
               key={stat.label}
               sx={{
                 flex: 1,
-                px: 1.5,
-                py: 1,
-                borderLeft: i > 0 ? '1px solid rgba(255,255,255,0.15)' : 'none',
+                px: i === 0 ? 0 : 1.3,
+                py: 0.75,
+                borderLeft: i > 0 ? `1px solid ${isDark ? brand.neutral[700] : brand.neutral[200]}` : 'none',
               }}
             >
-              <Typography sx={{ fontFamily: LBL_FONT, color: 'rgba(255,255,255,0.55)', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              <Typography sx={{ fontFamily: LBL_FONT, color: isDark ? brand.neutral[500] : brand.neutral[500], fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 {stat.label}
               </Typography>
-              <Typography sx={{ fontFamily: NUM_FONT, color: '#fff', fontSize: 14, fontWeight: 700, mt: 0.3, lineHeight: 1.2 }}>
+              <Typography sx={{ color: isDark ? '#F8FAFC' : tone.text, fontSize: 14, fontWeight: 800, mt: 0.3, lineHeight: 1.2 }}>
                 {stat.value}
               </Typography>
-              <Typography sx={{ fontFamily: LBL_FONT, color: 'rgba(255,255,255,0.45)', fontSize: 10, mt: 0.2 }}>
+              <Typography sx={{ fontFamily: LBL_FONT, color: isDark ? brand.neutral[500] : brand.neutral[400], fontSize: 10, mt: 0.2 }}>
                 {stat.sub}
               </Typography>
             </Box>
           ))}
         </Stack>
 
-        {/* Profit sparkline — edge-to-edge */}
-        <Box sx={{ mx: -2.5, mb: -2.5, mt: 1.5 }}>
-          {salesSeries.length > 1 ? (
-            <Chart
-              options={spkOpts}
-              series={[{ name: 'Revenue', data: salesSeries }]}
-              type="area"
-              height={52}
-            />
-          ) : (
-            <Box sx={{ height: 52, bgcolor: 'rgba(255,255,255,0.04)', borderRadius: '0 0 14px 14px' }} />
-          )}
-        </Box>
+        {pulseBars.length > 1 && (
+          <Stack direction="row" spacing={0.4} alignItems="flex-end" sx={{ height: 18, mt: 1.15 }}>
+            {pulseBars.map((value, index) => (
+              <Box
+                key={`${value}-${index}`}
+                sx={{
+                  flex: 1,
+                  height: `${Math.max(18, (value / pulseMax) * 100)}%`,
+                  borderRadius: '2px 2px 0 0',
+                  bgcolor: isDark ? `${tone.accent}77` : `${tone.accent}33`,
+                }}
+              />
+            ))}
+          </Stack>
+        )}
       </CardContent>
     </Card>
   );

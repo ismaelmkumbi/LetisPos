@@ -1,10 +1,7 @@
 /**
- * MetricCard — redesigned for visual authority.
- * - Outfit for label, JetBrains Mono for the number
- * - Left accent strip per metric color
- * - Taller sparkline (58px) fills the card bottom edge-to-edge
- * - Delta chip inline with value
- * - Hover: translateY(-3px) + depth shadow
+ * MetricCard — compact executive KPI tile.
+ * Keeps the metric scannable, leaves room for the actual dashboard, and uses
+ * color as a light accent instead of a decorative block.
  */
 import {
   Box, Card, CardActionArea, CardContent, Chip,
@@ -19,7 +16,6 @@ import { sparkOptions } from './utils';
 import EmptyPanel from './EmptyPanel';
 import type { MetricCardProps } from './types';
 
-const NUM_FONT  = "'JetBrains Mono', 'DM Mono', 'Fira Code', monospace";
 const LBL_FONT  = "'Outfit', 'DM Sans', sans-serif";
 
 export default function MetricCard({
@@ -29,7 +25,7 @@ export default function MetricCard({
   const isDark = activeMode === 'dark';
   const theme   = useTheme();
   const isXs    = useMediaQuery(theme.breakpoints.down('sm'));
-  const spkH    = isXs ? 44 : 58;
+  const spkH    = isXs ? 34 : 40;
 
   const borderColor = isDark ? brand.neutral[700] : brand.neutral[200];
 
@@ -37,12 +33,12 @@ export default function MetricCard({
     position: 'relative' as const,
     height: '100%',
     border: `1px solid ${borderColor}`,
-    borderLeft: `3px solid ${color}`,
-    borderRadius: '14px',
+    borderLeft: `4px solid ${color}`,
+    borderRadius: '12px',
     bgcolor: isDark ? brand.neutral[800] : '#FFFFFF',
     boxShadow: isDark
       ? 'none'
-      : '0 1px 4px rgba(15,23,42,0.05), 0 4px 16px rgba(15,23,42,0.04)',
+      : '0 10px 30px rgba(15,23,42,0.05)',
     overflow: 'hidden' as const,
     transition: 'transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease',
   };
@@ -50,24 +46,24 @@ export default function MetricCard({
   const content = (
     <CardContent
       sx={{
-        p: { xs: '14px 14px 0', sm: '18px 18px 0' },
+        p: { xs: '13px 13px 0', sm: '16px 16px 0' },
         display: 'flex',
         flexDirection: 'column',
         height: '100%',
-        minHeight: { xs: 168, sm: 200 },
+        minHeight: { xs: 148, sm: 170 },
       }}
     >
       {/* Icon */}
       <Box
         sx={{
-          width: { xs: 34, sm: 40 },
-          height: { xs: 34, sm: 40 },
-          borderRadius: '10px',
+          width: { xs: 32, sm: 36 },
+          height: { xs: 32, sm: 36 },
+          borderRadius: '9px',
           bgcolor: `${color}15`,
           color,
           display: 'grid',
           placeItems: 'center',
-          mb: 1.5,
+          mb: 1.25,
           flexShrink: 0,
         }}
       >
@@ -80,7 +76,7 @@ export default function MetricCard({
           fontFamily: LBL_FONT,
           color: isDark ? brand.neutral[400] : brand.neutral[500],
           fontWeight: 600,
-          fontSize: { xs: 10.5, sm: 11.5 },
+          fontSize: { xs: 10.5, sm: 11 },
           textTransform: 'uppercase',
           letterSpacing: '0.07em',
           mb: 0.6,
@@ -93,12 +89,10 @@ export default function MetricCard({
       <Stack direction="row" alignItems="center" spacing={0.75} flexWrap="wrap">
         <Typography
           sx={{
-            fontFamily: NUM_FONT,
             color: isDark ? '#F1F5F9' : brand.neutral[900],
-            fontWeight: 700,
-            fontSize: { xs: 19, sm: 23 },
+            fontWeight: 800,
+            fontSize: { xs: 18, sm: 21 },
             lineHeight: 1.1,
-            letterSpacing: '-0.02em',
           }}
         >
           {value}
@@ -131,14 +125,14 @@ export default function MetricCard({
           color: isDark ? brand.neutral[600] : brand.neutral[400],
           fontSize: 11,
           mt: 0.5,
-          mb: 1,
+          mb: 0.75,
         }}
       >
         vs. previous period
       </Typography>
 
       {/* Sparkline — edge-to-edge bottom */}
-      <Box sx={{ mt: 'auto', mx: '-18px', mb: 0 }}>
+      <Box sx={{ mt: 'auto', mx: { xs: '-13px', sm: '-16px' }, mb: 0 }}>
         {series.length > 1 ? (
           <Chart
             options={{
@@ -148,7 +142,7 @@ export default function MetricCard({
                 type: 'gradient',
                 gradient: { shadeIntensity: 1, opacityFrom: 0.22, opacityTo: 0.02, stops: [0, 95] },
               },
-              stroke: { curve: 'smooth', width: 2 },
+              stroke: { curve: 'smooth', width: 1.8 },
             }}
             series={[{ name: label, data: series }]}
             type="area"
