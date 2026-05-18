@@ -68,6 +68,7 @@ public class AdjustmentService {
                     .productId(l.productId())
                     .variantId(l.variantId())
                     .qtyDelta(l.qtyDelta())
+                    .unitCost(l.unitCost())
                     .build();
             a.getLines().add(line);
         });
@@ -75,6 +76,10 @@ public class AdjustmentService {
 
         for (AdjustmentLine l : saved.getLines()) {
             StockLevel s = stockService.upsert(l.getProductId(), l.getVariantId(), a.getWarehouseId());
+            // Recalculate WAC if this is a stock-in with a known unit cost (e.g. from purchase receipt)
+            if (l.getQtyDelta().signum() > 0 && l.getUnitCost() != null && l.getUnitCost().signum() > 0) {
+                s.recalculateWac(l.getQtyDelta(), l.getUnitCost());
+            }
             try { s.applyDelta(l.getQtyDelta()); }
             catch (IllegalStateException e) {
                 throw new ResponseStatusException(HttpStatus.CONFLICT, e.getMessage());

@@ -35,7 +35,7 @@ public interface InventoryClient {
 
     // --- For purchase receipt — create an ADJUSTMENT that increments stock ---
 
-    record AdjustmentLine(UUID productId, UUID variantId, BigDecimal qtyDelta) {}
+    record AdjustmentLine(UUID productId, UUID variantId, BigDecimal qtyDelta, BigDecimal unitCost) {}
 
     record CreateAdjustmentRequest(
             UUID warehouseId,
