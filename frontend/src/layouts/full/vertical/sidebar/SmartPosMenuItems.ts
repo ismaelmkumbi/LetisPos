@@ -107,8 +107,8 @@ export function buildSmartPosMenu(t: TFunction): MenuItem[] {
     // ── Dashboard ───────────────────────────────────────────────────────
     { id: uid(), title: t('smartpos:nav.dashboard'), icon: IconDashboard, href: '/smartpos/dashboard' },
 
-    // ── Operate ─────────────────────────────────────────────────────────
-    { subheader: 'Operate' },
+    // ── Sales Desk ──────────────────────────────────────────────────────
+    { subheader: 'Sales Desk' },
     {
       id: uid(), title: t('smartpos:nav.pos_terminal'), icon: IconCashRegister, href: '/smartpos/sales/pos',
       chip: 'LIVE', chipColor: 'secondary',
@@ -134,8 +134,8 @@ export function buildSmartPosMenu(t: TFunction): MenuItem[] {
     { id: uid(), title: 'Opening Stock', icon: IconUpload, href: '/smartpos/products/opening-stock' },
     { id: uid(), title: 'Import Products', icon: IconFileImport, href: '/smartpos/products/import-update' },
 
-    // ── Inventory ───────────────────────────────────────────────────────
-    { subheader: 'Inventory' },
+    // ── Stock Management ────────────────────────────────────────────────
+    { subheader: 'Stock Management' },
     { id: uid(), title: t('smartpos:nav.warehouses'), icon: IconBuildingWarehouse, href: '/smartpos/warehouses' },
     { id: uid(), title: 'Stock Levels', icon: IconBox, href: '/smartpos/stock' },
     { id: uid(), title: 'Stock Adjustments', icon: IconAdjustmentsAlt, href: '/smartpos/stock/adjustments' },
@@ -146,32 +146,26 @@ export function buildSmartPosMenu(t: TFunction): MenuItem[] {
     { id: uid(), title: 'Batch / Lot Tracking', icon: IconBookmarks, href: '/smartpos/stock/batches' },
     { id: uid(), title: 'Damage & Waste', icon: IconAlertTriangle, href: '/smartpos/stock/damage' },
 
-    // ── Purchases ───────────────────────────────────────────────────────
-    { subheader: 'Purchases', minPlan: 'STARTER' },
+    // ── Purchasing ──────────────────────────────────────────────────────
+    { subheader: 'Purchasing', minPlan: 'STARTER' },
     { id: uid(), title: t('smartpos:nav.purchases'), icon: IconShoppingCart, href: '/smartpos/purchases', minPlan: 'STARTER' },
     { id: uid(), title: 'Goods Received', icon: IconPackage, href: '/smartpos/purchases/received', minPlan: 'STARTER' },
     { id: uid(), title: 'Supplier Returns', icon: IconArrowBackUp, href: '/smartpos/purchases/returns', minPlan: 'STARTER' },
     { id: uid(), title: 'Supplier Payments', icon: IconCoin, href: '/smartpos/supplier-payments', minPlan: 'STARTER' },
-
-    // ── Documents ────────────────────────────────────────────────────────
-    { subheader: 'Documents' },
     { id: uid(), title: 'Document Search', icon: IconSearch, href: '/smartpos/documents/search', minPlan: 'STARTER' },
 
-    // ── Customers ───────────────────────────────────────────────────────
-    { subheader: 'Customers' },
+    // ── Customers & Suppliers ───────────────────────────────────────────
+    { subheader: 'Customers & Suppliers' },
     { id: uid(), title: t('smartpos:nav.customers'), icon: IconUsers, href: '/smartpos/customers' },
     { id: uid(), title: 'Customer Groups', icon: IconUsersGroup, href: '/smartpos/customers/groups' },
     { id: uid(), title: 'Loyalty Program', icon: IconGift, href: '/smartpos/settings/loyalty' },
     { id: uid(), title: 'Gift Cards', icon: IconCreditCard, href: '/smartpos/customers/gift-cards' },
     { id: uid(), title: 'Store Credit', icon: IconWallet, href: '/smartpos/customers/store-credit' },
-
-    // ── Suppliers ───────────────────────────────────────────────────────
-    { subheader: 'Suppliers' },
     { id: uid(), title: t('smartpos:nav.suppliers'), icon: IconTruck, href: '/smartpos/suppliers' },
     { id: uid(), title: 'Supplier Groups', icon: IconUsersGroup, ...soon, minPlan: 'STARTER' },
 
     // ── Finance ─────────────────────────────────────────────────────────
-    { subheader: 'Money' },
+    { subheader: 'Finance' },
     { id: uid(), title: t('smartpos:nav.accounts'), icon: IconWallet, href: '/smartpos/accounts' },
     { id: uid(), title: t('smartpos:nav.payments'), icon: IconCoin, href: '/smartpos/payments' },
     { id: uid(), title: t('smartpos:nav.expenses'), icon: IconReceipt2, href: '/smartpos/expenses' },
@@ -189,6 +183,7 @@ export function buildSmartPosMenu(t: TFunction): MenuItem[] {
         { id: uid(), title: 'Taxes', icon: IconPercentage, href: '/smartpos/taxes', minPlan: 'STARTER' },
       ],
     },
+
     // ── Reports ─────────────────────────────────────────────────────────
     { subheader: 'Reports' },
     { id: uid(), title: 'Reports Hub', icon: IconChartBar, href: '/smartpos/reports' },
@@ -203,12 +198,6 @@ export function buildSmartPosMenu(t: TFunction): MenuItem[] {
     { id: uid(), title: 'Operations Report', icon: IconClipboardCheck, href: '/smartpos/reports/operations', minPlan: 'STARTER' },
     { id: uid(), title: 'Export Center', icon: IconDownload, href: '/smartpos/reports/exports', minPlan: 'STARTER' },
 
-    // ── People ──────────────────────────────────────────────────────────
-    { subheader: 'People', minPlan: 'PROFESSIONAL', requireAdmin: true },
-    { id: uid(), title: t('smartpos:nav.employees'), icon: IconUsersGroup, href: '/smartpos/hrm/employees', minPlan: 'PROFESSIONAL', requireAdmin: true },
-    { id: uid(), title: t('smartpos:nav.attendance'), icon: IconClock, href: '/smartpos/hrm/attendance', minPlan: 'PROFESSIONAL', requireAdmin: true },
-    { id: uid(), title: t('smartpos:nav.leave_requests'), icon: IconBeach, href: '/smartpos/hrm/leave', minPlan: 'PROFESSIONAL', requireAdmin: true },
-    { id: uid(), title: t('smartpos:nav.payroll'), icon: IconWallet, href: '/smartpos/hrm/payroll', minPlan: 'PROFESSIONAL', requireAdmin: true },
     // ── Marketing ───────────────────────────────────────────────────────
     { subheader: 'Marketing', minPlan: 'STARTER' },
     { id: uid(), title: 'Promotions', icon: IconGift, href: '/smartpos/marketing/promotions', minPlan: 'STARTER' },
@@ -216,6 +205,13 @@ export function buildSmartPosMenu(t: TFunction): MenuItem[] {
     { id: uid(), title: 'SMS Campaigns', icon: IconSend, href: '/smartpos/marketing/sms-campaigns', minPlan: 'STARTER' },
     { id: uid(), title: 'Email Campaigns', icon: IconMail, href: '/smartpos/marketing/email-campaigns', minPlan: 'STARTER' },
     { id: uid(), title: 'WhatsApp Campaigns', icon: IconBrandWhatsapp, href: '/smartpos/marketing/whatsapp-campaigns', minPlan: 'STARTER' },
+
+    // ── HR & Payroll ────────────────────────────────────────────────────
+    { subheader: 'HR & Payroll', minPlan: 'PROFESSIONAL', requireAdmin: true },
+    { id: uid(), title: t('smartpos:nav.employees'), icon: IconUsersGroup, href: '/smartpos/hrm/employees', minPlan: 'PROFESSIONAL', requireAdmin: true },
+    { id: uid(), title: t('smartpos:nav.attendance'), icon: IconClock, href: '/smartpos/hrm/attendance', minPlan: 'PROFESSIONAL', requireAdmin: true },
+    { id: uid(), title: t('smartpos:nav.leave_requests'), icon: IconBeach, href: '/smartpos/hrm/leave', minPlan: 'PROFESSIONAL', requireAdmin: true },
+    { id: uid(), title: t('smartpos:nav.payroll'), icon: IconWallet, href: '/smartpos/hrm/payroll', minPlan: 'PROFESSIONAL', requireAdmin: true },
 
     // ── CRM ─────────────────────────────────────────────────────────────
     { subheader: 'CRM', minPlan: 'PROFESSIONAL', requireAdmin: true },
@@ -239,7 +235,28 @@ export function buildSmartPosMenu(t: TFunction): MenuItem[] {
     { id: uid(), title: 'Website Settings', icon: IconWorld, ...soon, minPlan: 'STARTER' },
     { id: uid(), title: 'Marketplace Sync', icon: IconBuildingStore, ...soon, minPlan: 'PROFESSIONAL', requireAdmin: true },
 
-    // ── Integrations ────────────────────────────────────────────────────
+    // ── AI & Insights ───────────────────────────────────────────────────
+    { subheader: 'AI & Insights', minPlan: 'PROFESSIONAL', requireAdmin: true },
+    { id: uid(), title: t('smartpos:nav.ai_insights'), icon: IconSparkles, href: '/smartpos/ai', minPlan: 'PROFESSIONAL', requireAdmin: true },
+    { id: uid(), title: 'Demand Forecasting', icon: IconBrain, href: '/smartpos/ai/forecasting', minPlan: 'PROFESSIONAL', requireAdmin: true },
+    { id: uid(), title: 'Reorder Suggestions', icon: IconAlertTriangle, href: '/smartpos/ai/reorder-suggestions', minPlan: 'PROFESSIONAL', requireAdmin: true },
+    { id: uid(), title: 'Customer Analytics', icon: IconUsers, href: '/smartpos/ai/customer-analytics', minPlan: 'PROFESSIONAL', requireAdmin: true },
+    { id: uid(), title: 'Fraud Detection', icon: IconAlertTriangle, href: '/smartpos/ai/fraud-detection', minPlan: 'PROFESSIONAL', requireAdmin: true },
+    { id: uid(), title: 'Smart Recommendations', icon: IconBrain, ...soon, minPlan: 'PROFESSIONAL', requireAdmin: true },
+
+    // ── Settings & Admin ────────────────────────────────────────────────
+    { subheader: 'Settings & Admin' },
+    { id: uid(), title: t('smartpos:nav.preferences'), icon: IconSettings, href: '/smartpos/settings' },
+    { id: uid(), title: t('smartpos:nav.users_roles'), icon: IconUserShield, href: '/smartpos/settings/users' },
+    { id: uid(), title: 'Branches', icon: IconBuilding, href: '/smartpos/admin/branches', requireAdmin: true },
+    { id: uid(), title: t('smartpos:nav.pos_terminals'), icon: IconDeviceDesktop, href: '/smartpos/pos/terminals' },
+    { id: uid(), title: t('smartpos:nav.receipt_settings'), icon: IconReceipt, href: '/smartpos/settings/receipt' },
+    { id: uid(), title: 'Printer Settings', icon: IconPrinter, href: '/smartpos/settings/printers' },
+    { id: uid(), title: 'Tax & Pricing', icon: IconPercentage, href: '/smartpos/settings/tax-pricing' },
+    { id: uid(), title: t('smartpos:nav.languages_admin'), icon: IconLanguage, href: '/smartpos/settings/i18n' },
+    { id: uid(), title: t('smartpos:nav.localization'), icon: IconWorld, href: '/smartpos/settings/locale' },
+    { id: uid(), title: 'Notifications', icon: IconBellRinging, href: '/smartpos/settings/notifications' },
+    // Integrations
     { subheader: 'Integrations', minPlan: 'PROFESSIONAL', requireAdmin: true },
     { id: uid(), title: t('smartpos:nav.integrations'), icon: IconPlug, href: '/smartpos/integrations', minPlan: 'PROFESSIONAL', requireAdmin: true },
     { id: uid(), title: 'Payment Gateways', icon: IconCreditCard, href: '/smartpos/integrations/payment-gateways', minPlan: 'PROFESSIONAL', requireAdmin: true },
@@ -250,27 +267,13 @@ export function buildSmartPosMenu(t: TFunction): MenuItem[] {
     { id: uid(), title: 'Webhooks', icon: IconWebhook, href: '/smartpos/integrations/webhooks', minPlan: 'PROFESSIONAL', requireAdmin: true },
     { id: uid(), title: 'SEO', icon: IconSearch, href: '/smartpos/admin/commerce/seo', minPlan: 'PROFESSIONAL', requireAdmin: true },
     { id: uid(), title: 'Domains', icon: IconWorld, href: '/smartpos/admin/commerce/domains', minPlan: 'PROFESSIONAL', requireAdmin: true },
-
-    // ── AI Assistant ────────────────────────────────────────────────────
-    { subheader: 'AI Assistant', minPlan: 'PROFESSIONAL', requireAdmin: true },
-    { id: uid(), title: t('smartpos:nav.ai_insights'), icon: IconSparkles, href: '/smartpos/ai', minPlan: 'PROFESSIONAL', requireAdmin: true },
-    { id: uid(), title: 'Demand Forecasting', icon: IconBrain, href: '/smartpos/ai/forecasting', minPlan: 'PROFESSIONAL', requireAdmin: true },
-    { id: uid(), title: 'Reorder Suggestions', icon: IconAlertTriangle, href: '/smartpos/ai/reorder-suggestions', minPlan: 'PROFESSIONAL', requireAdmin: true },
-    { id: uid(), title: 'Customer Analytics', icon: IconUsers, href: '/smartpos/ai/customer-analytics', minPlan: 'PROFESSIONAL', requireAdmin: true },
-    { id: uid(), title: 'Fraud Detection', icon: IconAlertTriangle, href: '/smartpos/ai/fraud-detection', minPlan: 'PROFESSIONAL', requireAdmin: true },
-    { id: uid(), title: 'Smart Recommendations', icon: IconBrain, ...soon, minPlan: 'PROFESSIONAL', requireAdmin: true },
-
-    // ── Administration ──────────────────────────────────────────────────
-    { subheader: 'Administration' },
-    { id: uid(), title: t('smartpos:nav.preferences'), icon: IconSettings, href: '/smartpos/settings' },
-    { id: uid(), title: t('smartpos:nav.users_roles'), icon: IconUserShield, href: '/smartpos/settings/users' },
-    { id: uid(), title: 'Branches', icon: IconBuilding, href: '/smartpos/admin/branches', requireAdmin: true },
-    { id: uid(), title: t('smartpos:nav.pos_terminals'), icon: IconDeviceDesktop, href: '/smartpos/pos/terminals' },
-    { id: uid(), title: t('smartpos:nav.receipt_settings'), icon: IconReceipt, href: '/smartpos/settings/receipt' },
-    { id: uid(), title: 'Printer Settings', icon: IconPrinter, href: '/smartpos/settings/printers' },
-    { id: uid(), title: 'Tax & Pricing', icon: IconPercentage, href: '/smartpos/settings/tax-pricing' },
-    { id: uid(), title: t('smartpos:nav.languages_admin'), icon: IconLanguage, href: '/smartpos/settings/i18n' },
-    { id: uid(), title: t('smartpos:nav.localization'), icon: IconWorld, href: '/smartpos/settings/locale' },
+    // System
+    { subheader: 'System' },
+    { id: uid(), title: 'Subscription & Billing', icon: IconCreditCard, href: '/smartpos/admin/billing', requireAdmin: true },
+    { id: uid(), title: 'Dashboard', icon: IconDashboard, href: '/smartpos/admin/tenants', requireAdmin: true },
+    { id: uid(), title: 'All Tenants', icon: IconBuilding, href: '/smartpos/admin/tenants/list', requireAdmin: true },
+    { id: uid(), title: 'Plans', icon: IconReceipt2, href: '/smartpos/admin/billing/plans', requireAdmin: true },
+    { id: uid(), title: 'Invoices', icon: IconFileInvoice, href: '/smartpos/admin/billing/invoices', requireAdmin: true },
     { id: uid(), title: 'Audit Logs', icon: IconHistory, href: '/smartpos/admin/audit-logs', minPlan: 'PROFESSIONAL', requireAdmin: true },
     { id: uid(), title: 'Data Retention', icon: IconDatabase, href: '/smartpos/admin/data-retention', minPlan: 'PROFESSIONAL', requireAdmin: true },
     { id: uid(), title: 'Sessions', icon: IconDeviceMobile, href: '/smartpos/admin/sessions', minPlan: 'PROFESSIONAL', requireAdmin: true },
@@ -278,16 +281,6 @@ export function buildSmartPosMenu(t: TFunction): MenuItem[] {
     { id: uid(), title: 'Error Logs', icon: IconBug, href: '/smartpos/admin/error-logs', requireAdmin: true },
     { id: uid(), title: 'Backups', icon: IconDownload, href: '/smartpos/admin/backups', requireAdmin: true },
     { id: uid(), title: 'Troubleshooting', icon: IconTools, href: '/smartpos/admin/troubleshooting', requireAdmin: true },
-    { id: uid(), title: 'Subscription & Billing', icon: IconCreditCard, href: '/smartpos/admin/billing', requireAdmin: true },
-    // ── Tenants & Subscriptions ─────────────────────────────────────────
-    {
-      subheader: 'Tenants & Subscriptions',
-    },
-    { id: uid(), title: 'Dashboard', icon: IconDashboard, href: '/smartpos/admin/tenants', requireAdmin: true },
-    { id: uid(), title: 'All Tenants', icon: IconBuilding, href: '/smartpos/admin/tenants/list', requireAdmin: true },
-    { id: uid(), title: 'Plans', icon: IconReceipt2, href: '/smartpos/admin/billing/plans', requireAdmin: true },
-    { id: uid(), title: 'Invoices', icon: IconFileInvoice, href: '/smartpos/admin/billing/invoices', requireAdmin: true },
-    { id: uid(), title: 'Notifications', icon: IconBellRinging, href: '/smartpos/settings/notifications' },
 
     // ── Support ─────────────────────────────────────────────────────────
     { subheader: 'Support' },
