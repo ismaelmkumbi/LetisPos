@@ -6,6 +6,7 @@ import io.smartpos.sales.api.dto.SaleDto;
 import io.smartpos.sales.api.dto.SaleLineInput;
 import io.smartpos.sales.api.dto.SalesByUserDto;
 import io.smartpos.sales.domain.model.*;
+import io.smartpos.sales.domain.repository.PurchaseRepository;
 import io.smartpos.sales.domain.repository.SalePaymentAppliedRepository;
 import io.smartpos.sales.domain.repository.SaleRepository;
 import io.smartpos.sales.infrastructure.feign.InventoryClient;
@@ -57,6 +58,7 @@ import java.util.stream.Collectors;
 public class SaleService {
 
     private final SaleRepository   saleRepo;
+    private final PurchaseRepository purchaseRepo;
     private final PricingEngine    pricing;
     private final InventoryClient  inventory;
     private final OutboxPublisher  outbox;
@@ -208,6 +210,39 @@ public class SaleService {
     public BigDecimal costOfGoodsSold(LocalDate dateFrom, LocalDate dateTo, UUID warehouseId) {
         UUID tenantId = TenantContext.require();
         return saleRepo.costOfGoodsSold(tenantId, dateFrom, dateTo, warehouseId);
+    }
+
+    // ---------- WAC backfill ----------
+
+    /**
+     * Backfill weighted average cost on stock_levels for existing products.
+     * Uses the most recent RECEIVED purchase cost per product.
+     * Only updates rows where weighted_avg_cost is currently 0.
+     * Run once per tenant — idempotent.
+     */
+    @Transactional
+    public Map<String, Object> backfillWac() {
+        UUID tenantId = TenantContext.require();
+        List<Object[]> rows = purchaseRepo.findLatestCostsByTenant(tenantId);
+
+        Set<String> seen = new HashSet<>();
+        List<InventoryClient.WacUpdateItem> items = new ArrayList<>();
+
+        for (Object[] row : rows) {
+            UUID productId = (UUID) row[0];
+            UUID variantId = (UUID) row[1];
+            UUID warehouseId = (UUID) row[2];
+            BigDecimal unitCost = (BigDecimal) row[3];
+            String key = productId + "-" + (variantId != null ? variantId : "null") + "-" + warehouseId;
+            if (seen.add(key)) {
+                items.add(new InventoryClient.WacUpdateItem(productId, variantId, warehouseId, unitCost));
+            }
+        }
+
+        if (items.isEmpty()) return Map.of("updated", 0, "message", "No purchase data to backfill for this tenant");
+
+        var resp = inventory.backfillWac(new InventoryClient.WacUpdateRequest(items));
+        return Map.of("updated", resp.get("updated"), "costsFound", items.size());
     }
 
     // ---------- Create & confirm (back-office) ----------

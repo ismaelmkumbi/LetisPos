@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.*;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -56,4 +57,12 @@ public interface InventoryClient {
     @GetMapping("/api/v1/stock/costs")
     List<StockCostDto> getCosts(@RequestParam("warehouseId") UUID warehouseId,
                                 @RequestParam("productIds") List<UUID> productIds);
+
+    // --- WAC backfill ---
+
+    record WacUpdateItem(UUID productId, UUID variantId, UUID warehouseId, BigDecimal weightedAvgCost) {}
+    record WacUpdateRequest(List<WacUpdateItem> items) {}
+
+    @PostMapping("/api/v1/stock/wac/backfill")
+    Map<String, Object> backfillWac(@RequestBody WacUpdateRequest req);
 }

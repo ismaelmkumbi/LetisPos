@@ -18,6 +18,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+
+import java.util.Map;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -111,6 +113,13 @@ public class SaleController {
     }
 
     // ---- Returns ----
+
+    @PostMapping("/backfill-wac")
+    @PreAuthorize("hasAuthority('sale.create')")
+    public ResponseEntity<Map<String, Object>> backfillWac() {
+        return ResponseEntity.ok(saleService.backfillWac());
+    }
+
     @PostMapping("/{id}/returns")
     @PreAuthorize("hasAuthority('sale.return')")
     public ResponseEntity<SaleReturnDto> createReturn(@PathVariable UUID id,

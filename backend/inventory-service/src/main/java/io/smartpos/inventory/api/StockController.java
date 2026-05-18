@@ -4,6 +4,7 @@ import io.smartpos.common.context.TenantContext;
 import io.smartpos.inventory.api.dto.ReservationDto;
 import io.smartpos.inventory.api.dto.StockCostDto;
 import io.smartpos.inventory.api.dto.StockLevelDto;
+import io.smartpos.inventory.api.dto.WacUpdateRequest;
 import io.smartpos.inventory.application.InventoryStatsService;
 import io.smartpos.inventory.application.StockService;
 import io.smartpos.inventory.domain.repository.StockLevelRepository;
@@ -67,6 +68,13 @@ public class StockController {
                 .stream()
                 .map(StockCostDto::from)
                 .toList();
+    }
+
+    @PostMapping("/wac/backfill")
+    @PreAuthorize("hasAuthority('stock.adjust')")
+    public ResponseEntity<Map<String, Object>> backfillWac(@Valid @RequestBody WacUpdateRequest req) {
+        int updated = service.backfillWac(req);
+        return ResponseEntity.ok(Map.of("updated", updated));
     }
 
     @GetMapping("/summary")

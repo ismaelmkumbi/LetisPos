@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -55,4 +56,14 @@ public interface PurchaseRepository extends JpaRepository<Purchase, UUID> {
 
     @Query("SELECT COUNT(p) FROM Purchase p WHERE p.ref LIKE CONCAT(:prefix, '%') AND p.tenantId = :tenantId")
     long countByRefStartingWith(@Param("prefix") String prefix, @Param("tenantId") UUID tenantId);
+
+    @Query("""
+        SELECT pl.productId, pl.variantId, p.warehouseId, pl.unitCost, p.tenantId
+        FROM Purchase p JOIN p.lines pl
+        WHERE p.status = 'RECEIVED'
+          AND p.tenantId = :tenantId
+          AND pl.unitCost > 0
+        ORDER BY p.receivedAt DESC
+        """)
+    List<Object[]> findLatestCostsByTenant(@Param("tenantId") UUID tenantId);
 }

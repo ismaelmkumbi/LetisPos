@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.smartpos.common.context.TenantContext;
 import io.smartpos.inventory.api.dto.ReservationDto;
 import io.smartpos.inventory.api.dto.StockLevelDto;
+import io.smartpos.inventory.api.dto.WacUpdateRequest;
 import io.smartpos.inventory.domain.model.*;
 import io.smartpos.inventory.domain.repository.*;
 import lombok.RequiredArgsConstructor;
@@ -239,6 +240,24 @@ public class StockService {
                     .build();
             return stockRepo.save(s);
         });
+    }
+
+    // ---- WAC backfill ----
+
+    @Transactional
+    public int backfillWac(WacUpdateRequest req) {
+        int count = 0;
+        for (var item : req.items()) {
+            StockLevel s = upsert(item.productId(), item.variantId(), item.warehouseId());
+            // Only update if current WAC is 0 (don't overwrite already-calculated WAC)
+            if (s.getWeightedAvgCost().compareTo(BigDecimal.ZERO) == 0
+                    && item.weightedAvgCost().compareTo(BigDecimal.ZERO) > 0) {
+                s.setWeightedAvgCost(item.weightedAvgCost());
+                stockRepo.save(s);
+                count++;
+            }
+        }
+        return count;
     }
 
     // ---- JSON helpers ----
