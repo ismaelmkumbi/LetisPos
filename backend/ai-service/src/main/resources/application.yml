@@ -56,6 +56,8 @@ smartpos:
     payment-service-url: ${PAYMENT_SERVICE_URL:http://localhost:8086}
     customer-service-url: ${CUSTOMER_SERVICE_URL:http://localhost:8085}
     auth-service-url: ${AUTH_SERVICE_URL:http://localhost:8081}
+    notification-service-url: ${NOTIFICATION_SERVICE_URL:http://localhost:8089}
+    document-service-url: ${DOCUMENT_SERVICE_URL:http://localhost:8093}
     # Active provider — one of: anthropic | openai | deepseek | stub
     provider: ${AI_PROVIDER:stub}
     anthropic:

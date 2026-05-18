@@ -234,7 +234,18 @@ public class AssistantToolCatalog {
                 Map.of("type","object","properties", Map.of(
                     "dateFrom", Map.of("type","string","description","Start date YYYY-MM-DD"),
                     "dateTo", Map.of("type","string","description","End date YYYY-MM-DD")
-                ),"required",List.of("dateFrom","dateTo")), false, null)
+                ),"required",List.of("dateFrom","dateTo")), false, null),
+
+            new ToolDef("getNotificationTemplates", "List available notification templates (email and SMS). Use this before sending templated emails or SMS to find the right template code.",
+                Map.of("type","object","properties", Map.of(
+                    "channel", Map.of("type","string","enum",List.of("EMAIL","SMS","WHATSAPP"))
+                ),"required",List.of()), false, null),
+
+            new ToolDef("searchDocuments", "Search for generated documents (invoices, receipts, quotations, credit notes). Use this to find a document by type or status before emailing it.",
+                Map.of("type","object","properties", Map.of(
+                    "documentType", Map.of("type","string","enum",List.of("INVOICE","RECEIPT","QUOTATION","CREDIT_NOTE","PURCHASE_ORDER","DELIVERY_NOTE")),
+                    "status", Map.of("type","string","description","Document status")
+                ),"required",List.of()), false, null)
         );
     }
 
@@ -299,7 +310,31 @@ public class AssistantToolCatalog {
                     "amount", Map.of("type","number"),
                     "description", Map.of("type","string"),
                     "date", Map.of("type","string","description","Date YYYY-MM-DD, defaults to today")
-                ),"required",List.of("category","amount")), true, "finance.write")
+                ),"required",List.of("category","amount")), true, "finance.write"),
+
+            new ToolDef("sendEmail", "Send an email. You can send a simple email with subject and body, or use a template code for pre-designed emails. Use this when the merchant asks to email a customer.",
+                Map.of("type","object","properties", Map.of(
+                    "recipient", Map.of("type","string","description","Email address to send to"),
+                    "subject", Map.of("type","string","description","Email subject line"),
+                    "body", Map.of("type","string","description","Email body text"),
+                    "templateCode", Map.of("type","string","description","Template code (e.g. 'welcome', 'receipt') — use this instead of body for templated emails"),
+                    "html", Map.of("type","boolean","description","Whether body is HTML, default false")
+                ),"required",List.of("recipient","subject")), true, "notification.send"),
+
+            new ToolDef("sendSMS", "Send an SMS message. Use this when the merchant asks to text a customer.",
+                Map.of("type","object","properties", Map.of(
+                    "recipient", Map.of("type","string","description","Phone number to send to"),
+                    "body", Map.of("type","string","description","SMS message text"),
+                    "templateCode", Map.of("type","string","description","Template code for pre-designed messages")
+                ),"required",List.of("recipient")), true, "notification.send"),
+
+            new ToolDef("emailDocument", "Email a document (invoice, receipt, quotation) to a customer. The document is sent as a PDF attachment. Use this when a customer asks to receive their invoice or receipt by email.",
+                Map.of("type","object","properties", Map.of(
+                    "documentId", Map.of("type","string","description","Document UUID (find via searchDocuments first)"),
+                    "to", Map.of("type","string","description","Recipient email address"),
+                    "subject", Map.of("type","string","description","Email subject line"),
+                    "message", Map.of("type","string","description","Optional personal message to include")
+                ),"required",List.of("documentId","to")), true, "notification.send")
         );
     }
 

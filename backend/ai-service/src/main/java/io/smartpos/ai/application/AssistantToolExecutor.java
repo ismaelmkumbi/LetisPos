@@ -27,13 +27,16 @@ public class AssistantToolExecutor {
     private final PaymentFeign paymentFeign;
     private final CustomerFeign customerFeign;
     private final AdminFeign adminFeign;
+    private final NotificationFeign notificationFeign;
+    private final DocumentFeign documentFeign;
     private final AssistantDraftRepository draftRepo;
     private final ObjectMapper om = new ObjectMapper();
 
     public AssistantToolExecutor(ReportFeign reportFeign, SalesFeign salesFeign,
                                   InventoryFeign inventoryFeign, ProductFeign productFeign,
                                   PaymentFeign paymentFeign, CustomerFeign customerFeign,
-                                  AdminFeign adminFeign, AssistantDraftRepository draftRepo) {
+                                  AdminFeign adminFeign, NotificationFeign notificationFeign,
+                                  DocumentFeign documentFeign, AssistantDraftRepository draftRepo) {
         this.reportFeign = reportFeign;
         this.salesFeign = salesFeign;
         this.inventoryFeign = inventoryFeign;
@@ -41,6 +44,8 @@ public class AssistantToolExecutor {
         this.paymentFeign = paymentFeign;
         this.customerFeign = customerFeign;
         this.adminFeign = adminFeign;
+        this.notificationFeign = notificationFeign;
+        this.documentFeign = documentFeign;
         this.draftRepo = draftRepo;
     }
 
@@ -81,6 +86,8 @@ public class AssistantToolExecutor {
             case "getPlatformStats" -> getPlatformStats(args);
             case "getPlatformSales" -> getPlatformSales(args);
             case "getTenantDetail" -> getTenantDetail(args);
+            case "getNotificationTemplates" -> getNotificationTemplates(args);
+            case "searchDocuments" -> searchDocuments(args);
             default -> throw new IllegalArgumentException("Unknown tool: " + toolName);
         };
     }
@@ -131,6 +138,9 @@ public class AssistantToolExecutor {
             case "createPurchaseOrder" -> createPurchaseOrder(args, userId);
             case "adjustStock" -> adjustStock(args);
             case "createExpense" -> createExpense(args, userId);
+            case "sendEmail" -> sendEmail(args);
+            case "sendSMS" -> sendSMS(args);
+            case "emailDocument" -> emailDocument(args);
             default -> throw new IllegalArgumentException("Unknown write tool: " + toolName);
         };
     }
@@ -1003,6 +1013,110 @@ public class AssistantToolExecutor {
             (String) args.get("description"));
         Map<String, Object> data = Map.of("status", "recorded", "amount", amount);
         return new AssistantDtos.ToolResult("text", "Expense Recorded", data);
+    }
+
+    // ── Notification & Document tools ──
+
+    private AssistantDtos.ToolResult getNotificationTemplates(Map<String, Object> args) {
+        String channel = (String) args.get("channel");
+        var templates = notificationFeign.listTemplates(null, channel);
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("columns", List.of("Code","Name","Channel","Subject"));
+        data.put("rows", templates.stream().map(t -> List.of(
+            t.getOrDefault("code", ""),
+            t.getOrDefault("name", ""),
+            t.getOrDefault("channel", ""),
+            t.getOrDefault("subject", "")
+        )).collect(Collectors.toList()));
+        String title = "Templates" + (channel != null ? " (" + channel + ")" : "") + " — " + templates.size();
+        return new AssistantDtos.ToolResult("table", title, data);
+    }
+
+    private AssistantDtos.ToolResult searchDocuments(Map<String, Object> args) {
+        String documentType = (String) args.get("documentType");
+        String status = (String) args.get("status");
+        int page = args.containsKey("page") ? ((Number) args.get("page")).intValue() : 0;
+        int size = args.containsKey("size") ? ((Number) args.get("size")).intValue() : 25;
+        var result = documentFeign.search(documentType, status, page, size);
+        Map<String, Object> data = new LinkedHashMap<>();
+        // Handle paginated response — content might be in "content" key or at top level
+        Object contentObj = result.getOrDefault("content", result.get("data"));
+        if (contentObj instanceof List<?> docs) {
+            data.put("columns", List.of("ID","Type","Ref","Date","Status"));
+            data.put("rows", docs.stream().map(d -> {
+                if (d instanceof Map<?,?> m) {
+                    Object id = m.get("id");
+                    Object type = m.get("documentType");
+                    Object ref = m.get("reference");
+                    Object createdAt = m.get("createdAt");
+                    Object docStatus = m.get("status");
+                    return List.of(
+                        id != null ? id.toString() : "",
+                        type != null ? type.toString() : "",
+                        ref != null ? ref.toString() : "",
+                        createdAt != null ? createdAt.toString() : "",
+                        docStatus != null ? docStatus.toString() : "");
+                }
+                return List.of(d.toString());
+            }).collect(Collectors.toList()));
+            data.put("totalResults", result.getOrDefault("totalElements", docs.size()));
+        }
+        return new AssistantDtos.ToolResult("table",
+            "Documents" + (documentType != null ? " (" + documentType + ")" : ""), data);
+    }
+
+    private AssistantDtos.ToolResult sendEmail(Map<String, Object> args) {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("channel", "EMAIL");
+        body.put("recipient", args.get("recipient"));
+        body.put("subject", args.get("subject"));
+        if (args.containsKey("templateCode")) {
+            body.put("templateCode", args.get("templateCode"));
+        }
+        if (args.containsKey("body")) {
+            body.put("body", args.get("body"));
+            body.put("html", args.getOrDefault("html", false));
+        }
+        if (args.containsKey("data")) body.put("data", args.get("data"));
+        Map<String, Object> result = notificationFeign.send(body);
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("status", "sent");
+        data.put("recipient", args.get("recipient"));
+        data.put("deliveryId", result.getOrDefault("id", ""));
+        return new AssistantDtos.ToolResult("text", "Email Sent", data);
+    }
+
+    private AssistantDtos.ToolResult sendSMS(Map<String, Object> args) {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("channel", "SMS");
+        body.put("recipient", args.get("recipient"));
+        if (args.containsKey("templateCode")) {
+            body.put("templateCode", args.get("templateCode"));
+        }
+        if (args.containsKey("body")) {
+            body.put("body", args.get("body"));
+        }
+        Map<String, Object> result = notificationFeign.send(body);
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("status", "sent");
+        data.put("recipient", args.get("recipient"));
+        data.put("deliveryId", result.getOrDefault("id", ""));
+        return new AssistantDtos.ToolResult("text", "SMS Sent", data);
+    }
+
+    private AssistantDtos.ToolResult emailDocument(Map<String, Object> args) {
+        UUID documentId = UUID.fromString((String) args.get("documentId"));
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("to", args.get("to"));
+        if (args.containsKey("subject")) body.put("subject", args.get("subject"));
+        if (args.containsKey("message")) body.put("message", args.get("message"));
+        Map<String, String> result = documentFeign.emailDocument(documentId, body);
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("status", "sent");
+        data.put("documentId", documentId.toString());
+        data.put("to", args.get("to"));
+        result.forEach(data::put);
+        return new AssistantDtos.ToolResult("text", "Document Emailed", data);
     }
 
     private String toJson(Map<String, Object> map) {
