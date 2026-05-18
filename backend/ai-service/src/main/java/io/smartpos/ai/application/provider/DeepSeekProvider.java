@@ -7,6 +7,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -87,6 +88,79 @@ public class DeepSeekProvider implements AiProvider {
         Integer pTok = usage == null ? null : asInt(usage.get("prompt_tokens"));
         Integer cTok = usage == null ? null : asInt(usage.get("completion_tokens"));
         return new Result(text, pTok, cTok);
+    }
+
+    @Override
+    public ToolCallResult completeWithTools(String systemPrompt, String userPrompt,
+                                             List<Map<String, Object>> tools) {
+        List<Map<String, Object>> messages = new ArrayList<>();
+        messages.add(Map.of("role", "system", "content", systemPrompt != null ? systemPrompt : ""));
+        messages.add(Map.of("role", "user", "content", userPrompt));
+        return completeWithTools(systemPrompt, messages, tools);
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public ToolCallResult completeWithTools(String systemPrompt,
+                                             List<Map<String, Object>> messages,
+                                             List<Map<String, Object>> tools) {
+        if (props.deepseek().apiKey() == null || props.deepseek().apiKey().isBlank()) {
+            throw new IllegalStateException("DEEPSEEK_API_KEY not configured");
+        }
+        Map<String, Object> body = new HashMap<>();
+        body.put("model", props.deepseek().model());
+        List<Map<String, Object>> fullMessages = new ArrayList<>();
+        fullMessages.add(Map.of("role", "system", "content",
+            systemPrompt != null ? systemPrompt : ""));
+        fullMessages.addAll(messages);
+        body.put("messages", fullMessages);
+        body.put("tools", tools);
+        body.put("tool_choice", "auto");
+
+        Map<String, Object> resp = http.post()
+                .uri(props.deepseek().baseUrl() + "/chat/completions")
+                .header("Authorization", "Bearer " + props.deepseek().apiKey())
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(body)
+                .retrieve()
+                .bodyToMono(Map.class)
+                .timeout(Duration.ofSeconds(60))
+                .block();
+
+        if (resp == null) throw new IllegalStateException("Empty response from DeepSeek");
+
+        List<Map<String, Object>> choices =
+            (List<Map<String, Object>>) resp.get("choices");
+        String text = "";
+        List<ToolCall> toolCalls = List.of();
+
+        if (choices != null && !choices.isEmpty()) {
+            Map<String, Object> message =
+                (Map<String, Object>) choices.get(0).get("message");
+            if (message != null) {
+                Object content = message.get("content");
+                if (content != null) text = String.valueOf(content);
+
+                List<Map<String, Object>> rawCalls =
+                    (List<Map<String, Object>>) message.get("tool_calls");
+                if (rawCalls != null) {
+                    toolCalls = new ArrayList<>();
+                    for (var rc : rawCalls) {
+                        Map<String, Object> fn =
+                            (Map<String, Object>) rc.get("function");
+                        toolCalls.add(new ToolCall(
+                            String.valueOf(rc.get("id")),
+                            fn != null ? String.valueOf(fn.get("name")) : "",
+                            fn != null ? String.valueOf(fn.get("arguments")) : "{}"));
+                    }
+                }
+            }
+        }
+
+        Map<String, Object> usage = (Map<String, Object>) resp.get("usage");
+        Integer pTok = usage == null ? null : asInt(usage.get("prompt_tokens"));
+        Integer cTok = usage == null ? null : asInt(usage.get("completion_tokens"));
+        return new ToolCallResult(text, toolCalls, pTok, cTok);
     }
 
     private static Integer asInt(Object v) {
