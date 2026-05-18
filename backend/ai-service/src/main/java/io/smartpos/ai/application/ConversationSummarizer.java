@@ -2,11 +2,13 @@ package io.smartpos.ai.application;
 
 import io.smartpos.ai.application.provider.AiProvider;
 import io.smartpos.ai.application.provider.AiRouter;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Component
 public class ConversationSummarizer {
 
@@ -33,14 +35,23 @@ public class ConversationSummarizer {
             .map(m -> m.role() + ": " + truncateContent(m.content()))
             .collect(Collectors.joining("\n"));
 
-        if (transcript.length() < 500) return ""; // too short to need summarizing
+        // Short conversations don't need AI summarization
+        if (transcript.length() < 500) return transcript;
 
         try {
             AiProvider provider = aiRouter.byName("deepseek");
-            if (provider == null) return truncateFallback(messages);
+            if (provider == null) {
+                log.warn("DeepSeek provider not available for conversation summarization, using fallback");
+                return truncateFallback(messages);
+            }
             AiProvider.Result result = provider.complete(SUMMARIZE_PROMPT, transcript);
-            return result.text() != null ? result.text().trim() : truncateFallback(messages);
+            if (result.text() == null) {
+                log.warn("DeepSeek summarization returned null text, using fallback");
+                return truncateFallback(messages);
+            }
+            return result.text().trim();
         } catch (Exception e) {
+            log.warn("Conversation summarization failed, using fallback", e);
             return truncateFallback(messages);
         }
     }
