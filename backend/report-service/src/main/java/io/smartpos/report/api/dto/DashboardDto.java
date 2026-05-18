@@ -14,7 +14,8 @@ public record DashboardDto(
         Inventory inventory,
         List<SeriesPoint> salesSeries,
         List<TopProduct> topProducts,
-        BigDecimal netProfit         // sales.net - expenses.total - purchases.net(cost)
+        BigDecimal netProfit,        // sales.net - cogs - expenses.total
+        BigDecimal cogs
 ) {
     public record Sales(long count, BigDecimal gross, BigDecimal tax,
                         BigDecimal discount, BigDecimal net,

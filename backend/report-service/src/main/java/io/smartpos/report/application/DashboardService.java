@@ -56,7 +56,7 @@ public class DashboardService {
         List<SalesFeign.TopProduct>       tp     = safeTopProducts(from, to, warehouseId);
 
         // Net profit (rough) = sales.net - purchases.net (≈cogs) - expenses.total
-        BigDecimal cogs = nz(p.gross()).subtract(BigDecimal.ZERO);   // purchases gross treated as cost
+        BigDecimal cogs = safeCogs(from, to, warehouseId);
         BigDecimal netProfit = nz(s.net()).subtract(cogs).subtract(nz(exp.total()));
 
         return new DashboardDto(
@@ -71,7 +71,8 @@ public class DashboardService {
                 series.stream().map(pt -> new DashboardDto.SeriesPoint(pt.date(), nz(pt.net()), pt.count())).toList(),
                 tp.stream().map(x -> new DashboardDto.TopProduct(
                         x.productId().toString(), x.productName(), nz(x.qty()), nz(x.revenue()))).toList(),
-                netProfit
+                netProfit,
+                cogs
         );
     }
 
@@ -108,6 +109,11 @@ public class DashboardService {
     private List<SalesFeign.TopProduct> safeTopProducts(LocalDate from, LocalDate to, UUID warehouseId) {
         try { return sales.topProducts(from, to, warehouseId, 5); }
         catch (Exception e) { log.warn("sales.topProducts failed: {}", e.getMessage()); return Collections.emptyList(); }
+    }
+    private BigDecimal safeCogs(LocalDate from, LocalDate to, UUID warehouseId) {
+        try { return sales.costOfGoodsSold(from, to, warehouseId); }
+        catch (Exception e) { log.warn("sales.costOfGoodsSold failed: {}", e.getMessage());
+            return BigDecimal.ZERO; }
     }
 
     private static SalesFeign.SaleStats empty() {
