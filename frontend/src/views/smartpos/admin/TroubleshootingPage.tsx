@@ -44,10 +44,11 @@ export default function TroubleshootingPage() {
           lastRun: now,
         });
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } }; message?: string };
       setWacResult({
         state: 'error',
-        message: e?.response?.data?.message || e?.message || 'Backfill failed. Check server logs.',
+        message: err?.response?.data?.message || err?.message || 'Backfill failed. Check server logs.',
         lastRun: null,
       });
     }
