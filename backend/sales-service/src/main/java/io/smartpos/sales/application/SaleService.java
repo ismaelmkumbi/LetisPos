@@ -204,6 +204,12 @@ public class SaleService {
         }
     }
 
+    @Transactional(readOnly = true)
+    public BigDecimal costOfGoodsSold(LocalDate dateFrom, LocalDate dateTo, UUID warehouseId) {
+        UUID tenantId = TenantContext.require();
+        return saleRepo.costOfGoodsSold(tenantId, dateFrom, dateTo, warehouseId);
+    }
+
     // ---------- Create & confirm (back-office) ----------
 
     /**

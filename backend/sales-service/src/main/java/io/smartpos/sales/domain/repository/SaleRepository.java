@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
@@ -72,4 +73,17 @@ public interface SaleRepository extends JpaRepository<Sale, UUID> {
     List<io.smartpos.sales.api.dto.SalesByUserDto> findSalesByUser(@Param("tenantId") UUID tenantId,
                                                       @Param("dateFrom") LocalDate dateFrom,
                                                       @Param("dateTo") LocalDate dateTo);
+
+    @Query("""
+           SELECT COALESCE(SUM(sl.unitCost * sl.qty), 0)
+           FROM Sale s JOIN s.lines sl
+           WHERE s.status = 'CONFIRMED'
+             AND s.date BETWEEN :dateFrom AND :dateTo
+             AND (:warehouseId IS NULL OR s.warehouseId = :warehouseId)
+             AND s.tenantId = :tenantId
+           """)
+    BigDecimal costOfGoodsSold(@Param("tenantId") UUID tenantId,
+                               @Param("dateFrom") LocalDate dateFrom,
+                               @Param("dateTo") LocalDate dateTo,
+                               @Param("warehouseId") UUID warehouseId);
 }
