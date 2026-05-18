@@ -141,6 +141,7 @@ const SmartPosApiKeys = Loadable(lazy(() => import('../views/smartpos/admin/ApiK
 const SmartPosSessions = Loadable(lazy(() => import('../views/smartpos/admin/SessionsPage')));
 const SmartPosDataRetention = Loadable(lazy(() => import('../views/smartpos/admin/DataRetentionPage')));
 const SmartPosBackups = Loadable(lazy(() => import('../views/smartpos/admin/BackupsPage')));
+const SmartPosTroubleshooting = Loadable(lazy(() => import('../views/smartpos/admin/TroubleshootingPage')));
 const TenantDashboardPage = Loadable(
   lazy(() => import('../views/smartpos/admin/TenantDashboardPage')),
 );
@@ -693,6 +694,7 @@ const Router = [
       { path: 'admin/error-logs', element: <RequireAuth><RequireAdmin><SmartPosErrorLogs /></RequireAdmin></RequireAuth> },
       { path: 'admin/data-retention', element: <RequireAuth><RequireAdmin><PlanGate minPlan="PROFESSIONAL" featureName="Data Retention"><SmartPosDataRetention /></PlanGate></RequireAdmin></RequireAuth> },
       { path: 'admin/backups', element: <RequireAuth><RequireAdmin><SmartPosBackups /></RequireAdmin></RequireAuth> },
+      { path: 'admin/troubleshooting', element: <RequireAuth><RequireAdmin><SmartPosTroubleshooting /></RequireAdmin></RequireAuth> },
       // Commerce admin
       commerceAdminRoutes,
       // Marketing
