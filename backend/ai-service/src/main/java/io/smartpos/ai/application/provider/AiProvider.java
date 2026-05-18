@@ -4,6 +4,9 @@ package io.smartpos.ai.application.provider;
  * Single point of contact for whichever LLM is configured.
  * Implementations: AnthropicProvider, OpenAiProvider, StubProvider.
  */
+import java.util.List;
+import java.util.Map;
+
 public interface AiProvider {
 
     String name();
@@ -41,6 +44,23 @@ public interface AiProvider {
             java.util.List<java.util.Map<String, Object>> tools) {
         throw new UnsupportedOperationException(
                 "Provider " + name() + " does not support tool calling");
+    }
+
+    /** Multi-turn variant: accepts full conversation messages array. */
+    default ToolCallResult completeWithTools(
+            String systemPrompt,
+            List<Map<String, Object>> messages,
+            List<Map<String, Object>> tools) {
+        throw new UnsupportedOperationException(
+                "Provider " + name() + " does not support multi-turn tool calling");
+    }
+
+    /** Multi-turn variant: accepts full conversation messages array. */
+    default Result complete(
+            String systemPrompt,
+            List<Map<String, Object>> messages) {
+        throw new UnsupportedOperationException(
+                "Provider " + name() + " does not support multi-turn");
     }
 
     record ToolCallResult(String text, java.util.List<ToolCall> toolCalls,
