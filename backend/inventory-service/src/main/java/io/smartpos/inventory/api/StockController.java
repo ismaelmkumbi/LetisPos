@@ -71,7 +71,7 @@ public class StockController {
     }
 
     @PostMapping("/wac/backfill")
-    @PreAuthorize("hasAuthority('stock.adjust')")
+    @PreAuthorize("hasAuthority('admin')")
     public ResponseEntity<Map<String, Object>> backfillWac(@Valid @RequestBody WacUpdateRequest req) {
         int updated = service.backfillWac(req);
         return ResponseEntity.ok(Map.of("updated", updated));

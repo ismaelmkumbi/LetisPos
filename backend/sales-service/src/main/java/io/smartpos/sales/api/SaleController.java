@@ -115,13 +115,13 @@ public class SaleController {
     // ---- Returns ----
 
     @PostMapping("/backfill-wac")
-    @PreAuthorize("hasAuthority('sale.create')")
+    @PreAuthorize("hasAuthority('admin')")
     public ResponseEntity<Map<String, Object>> backfillWac() {
         return ResponseEntity.ok(saleService.backfillWac());
     }
 
     @PostMapping("/backfill-sale-costs")
-    @PreAuthorize("hasAuthority('sale.create')")
+    @PreAuthorize("hasAuthority('admin')")
     public ResponseEntity<Map<String, Object>> backfillSaleCosts() {
         return ResponseEntity.ok(saleService.backfillSaleCosts());
     }
