@@ -156,6 +156,9 @@ public class AssistantService {
                 // Send as initial message in the stream
                 emitter.send(SseEmitter.event().name("token")
                     .data(Map.of("token", alert)));
+                // Also prepend to conversation history so follow-up questions have context
+                cleanHistory.add(cleanHistory.size() - 1,
+                    Map.of("role", "assistant", "content", alert));
             } catch (Exception e) {
                 // Silent — briefing is a bonus, not required
                 log.debug("Proactive alert skipped: {}", e.getMessage());
@@ -218,9 +221,17 @@ public class AssistantService {
             log.warn("AI provider tool call failed, falling back to simple completion", e);
             error = e.getMessage();
             // Fallback: simple completion without tools
+            // Use single-turn complete() — extract the last user message from the messages array.
+            // Multi-turn complete(String, List) is not implemented on all providers,
+            // but the single-turn complete(String, String) always works.
+            String fallbackUserMessage = messages.stream()
+                .filter(m -> "user".equals(m.get("role")))
+                .map(m -> String.valueOf(m.getOrDefault("content", "")))
+                .reduce((first, second) -> second)
+                .orElse("");
             AiProvider.Result simpleResult = null;
             try {
-                simpleResult = provider.complete(systemPrompt, messages);
+                simpleResult = provider.complete(systemPrompt, fallbackUserMessage);
             } catch (Exception e2) {
                 error = e2.getMessage();
                 simpleResult = new AiProvider.Result(
@@ -332,25 +343,48 @@ public class AssistantService {
             }
         }
 
-        // Save conversation history
+        // Save conversation history — messages go in as-is (they already include
+        // role, content, tool_calls, and tool_call_id from previous rounds)
         List<ConversationStore.Message> savedMessages = new ArrayList<>();
         for (Map<String, Object> msg : messages) {
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> tcList = (List<Map<String, Object>>) msg.get("tool_calls");
             savedMessages.add(new ConversationStore.Message(
                 String.valueOf(msg.get("role")),
                 String.valueOf(msg.getOrDefault("content", "")),
-                null, null, null));
+                tcList,
+                String.valueOf(msg.getOrDefault("tool_call_id", null)),
+                null));
         }
-        // Also save the assistant's response
-        if (result.text() != null && !result.text().isBlank()) {
+        // Save assistant response — with tool_calls in OpenAI format if present
+        if (result.text() != null && !result.text().isBlank() || !result.toolCalls().isEmpty()) {
+            List<Map<String, Object>> tcSave = null;
+            if (!result.toolCalls().isEmpty()) {
+                tcSave = new ArrayList<>();
+                for (var tc : result.toolCalls()) {
+                    tcSave.add(Map.of(
+                        "id", tc.id(),
+                        "type", "function",
+                        "function", Map.of("name", tc.name(), "arguments", tc.arguments())));
+                }
+            }
             savedMessages.add(new ConversationStore.Message(
-                "assistant", result.text(), null, null, null));
+                "assistant", result.text() != null ? result.text() : "",
+                tcSave, null, null));
         }
-        // Also save tool calls
-        for (var tc : result.toolCalls()) {
-            savedMessages.add(new ConversationStore.Message(
-                "assistant", "",
-                List.of(Map.of("id", tc.id(), "name", tc.name(), "arguments", tc.arguments())),
-                tc.id(), null));
+        // Save tool result messages so the LLM sees them on the next turn
+        for (int i = 0; i < result.toolCalls().size(); i++) {
+            var tc = result.toolCalls().get(i);
+            if (i < collectedToolResults.size()) {
+                try {
+                    String resultJson = om.writeValueAsString(collectedToolResults.get(i));
+                    savedMessages.add(new ConversationStore.Message(
+                        "tool", resultJson, null, tc.id(), null));
+                } catch (Exception e) {
+                    savedMessages.add(new ConversationStore.Message(
+                        "tool", "{}", null, tc.id(), null));
+                }
+            }
         }
         conversationStore.save(tenantId, conversationId, savedMessages, null);
 

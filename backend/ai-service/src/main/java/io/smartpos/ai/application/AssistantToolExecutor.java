@@ -56,6 +56,7 @@ public class AssistantToolExecutor {
             case "getLowStock" -> getLowStock(args);
             case "searchProducts" -> searchProducts(args);
             case "getRecentSales" -> getRecentSales(args);
+            case "getStockOverview" -> getStockOverview(args);
             case "getTenantList" -> getTenantList(args);
             case "listTenants" -> getTenantList(args); // backwards compat
             case "getPlatformStats" -> getPlatformStats(args);
@@ -333,6 +334,36 @@ public class AssistantToolExecutor {
             s.grandTotal())).collect(Collectors.toList()));
         return new AssistantDtos.ToolResult("table",
             "Recent Sales (" + sales.size() + ")", data);
+    }
+
+    private AssistantDtos.ToolResult getStockOverview(Map<String, Object> args) {
+        int limit = intArg(args, "limit", 50, 1, 200);
+        var page = productFeign.search(null, null, null, null,
+            org.springframework.data.domain.Pageable.ofSize(limit));
+        var products = page.getContent();
+        Map<String, Object> data = new LinkedHashMap<>();
+        // Summary metrics
+        long totalProducts = page.getTotalElements();
+        data.put("totalProducts", totalProducts);
+        data.put("displayedProducts", products.size());
+        data.put("columns", List.of("Product","SKU","Price","Stock"));
+        List<List<Object>> rows = new ArrayList<>();
+        for (var product : products) {
+            try {
+                var stock = inventoryFeign.stockLevel(product.id(), null);
+                rows.add(List.of(
+                    product.name(),
+                    product.sku() != null ? product.sku() : "",
+                    product.price(),
+                    String.valueOf(stock.getOrDefault("available", stock.getOrDefault("quantity", "?")))
+                ));
+            } catch (Exception e) {
+                rows.add(List.of(product.name(), product.sku(), product.price(), "?"));
+            }
+        }
+        data.put("rows", rows);
+        return new AssistantDtos.ToolResult("table",
+            "Stock Overview (" + totalProducts + " products)", data);
     }
 
     // ── Admin tools ──

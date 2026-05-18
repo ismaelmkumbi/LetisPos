@@ -118,6 +118,11 @@ public class AssistantToolCatalog {
             new ToolDef("getLowStock", "Get products below reorder threshold. Use this for low stock, reorder, stockout risk, and replenishment questions.",
                 Map.of("type","object","properties", Map.of()), false, null),
 
+            new ToolDef("getStockOverview", "Get a complete stock overview: total products, total stock value, available vs on-hand counts, and a list of all products with their current stock levels. Use this for 'all stock', 'stock overview', 'show me everything in stock', and general inventory overview questions.",
+                Map.of("type","object","properties", Map.of(
+                    "limit", Map.of("type","integer","description","Max products to list, default 50")
+                ),"required",List.of()), false, null),
+
             new ToolDef("searchProducts", "Search products by name, SKU, or barcode. Use this before stock checks when the user does not provide a UUID.",
                 Map.of("type","object","properties", Map.of(
                     "query", Map.of("type","string","description","Search term"),
