@@ -14,7 +14,7 @@ import { CustomizerContext } from 'src/context/CustomizerContext';
 import { useAuth } from 'src/context/smartpos/AuthContext';
 import { PLAN_LEVEL } from 'src/context/smartpos/AuthContext';
 
-function filterByPlan(items: MenuItem[], billingPlan: string): MenuItem[] {
+function filterByPlan(items: MenuItem[], billingPlan: string, isAdmin: boolean): MenuItem[] {
   const planLevel = PLAN_LEVEL[billingPlan] ?? 0;
   const visible: MenuItem[] = [];
   for (const item of items) {
@@ -22,8 +22,9 @@ function filterByPlan(items: MenuItem[], billingPlan: string): MenuItem[] {
       const required = PLAN_LEVEL[item.minPlan] ?? 0;
       if (planLevel < required) continue;
     }
+    if (!isAdmin && item.requireAdmin) continue;
     if (item.children) {
-      const filteredChildren = filterByPlan(item.children, billingPlan);
+      const filteredChildren = filterByPlan(item.children, billingPlan, isAdmin);
       if (filteredChildren.length === 0) continue;
       visible.push({ ...item, children: filteredChildren });
     } else {
@@ -64,7 +65,7 @@ const SidebarItems = () => {
 
   const Menuitems = useMemo(() => {
     if (isSmartPos) {
-      return filterByPlan(rawItems as MenuItem[], billingPlan);
+      return filterByPlan(rawItems as MenuItem[], billingPlan, isAdmin);
     }
     return rawItems;
   }, [rawItems, billingPlan, isSmartPos]);
