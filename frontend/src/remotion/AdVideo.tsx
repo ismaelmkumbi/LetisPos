@@ -5,6 +5,7 @@ import { BrandOpen } from './scenes/BrandOpen';
 import { TheProblem } from './scenes/TheProblem';
 import { DashboardReveal } from './scenes/DashboardReveal';
 import { InventoryModule } from './scenes/InventoryModule';
+import { PosModule } from './scenes/PosModule';
 
 export const AdVideo: React.FC = () => {
   return (
@@ -22,7 +23,7 @@ export const AdVideo: React.FC = () => {
         <InventoryModule />
       </Sequence>
       <Sequence from={SCENES.posModule.start} durationInFrames={SCENES.posModule.end - SCENES.posModule.start}>
-        <AbsoluteFill style={{ backgroundColor: COLORS.bg }} />
+        <PosModule />
       </Sequence>
       <Sequence from={SCENES.reportsAI.start} durationInFrames={SCENES.reportsAI.end - SCENES.reportsAI.start}>
         <AbsoluteFill style={{ backgroundColor: COLORS.bg }} />
