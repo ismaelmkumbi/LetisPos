@@ -2,7 +2,9 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Box,
+  Button,
   Chip,
+  Divider,
   FormControl,
   InputLabel,
   MenuItem,
@@ -15,7 +17,7 @@ import {
   Typography,
   IconButton,
 } from '@mui/material';
-import { IconGripVertical, IconSearch, IconX } from '@tabler/icons-react';
+import { IconCheck, IconEye, IconEyeOff, IconGripVertical, IconListTree, IconSearch, IconX } from '@tabler/icons-react';
 import {
   DndContext,
   closestCenter,
@@ -32,8 +34,10 @@ import {
   getAssignments,
   createAssignment,
   deleteAssignment,
+  getFullMenu,
   type FeatureDefinition,
   type FeatureAssignment,
+  type MenuDefinition,
 } from 'src/api/smartpos/features';
 import { brand } from 'src/theme/smartpos/brand';
 
@@ -54,6 +58,25 @@ function featureMatches(feature: FeatureDefinition, search: string) {
     feature.key.toLowerCase().includes(q) ||
     feature.category.toLowerCase().includes(q)
   );
+}
+
+type MenuDefinitionWithDepth = MenuDefinition & { depth: number };
+
+function flattenMenuBranch(items: MenuDefinition[], depth = 0): MenuDefinitionWithDepth[] {
+  return items.flatMap((item) => [
+    { ...item, depth },
+    ...flattenMenuBranch(item.children ?? [], depth + 1),
+  ]);
+}
+
+function collectMenuFeatureKeys(items: MenuDefinition[]) {
+  return [
+    ...new Set(
+      flattenMenuBranch(items)
+        .map((item) => item.requiredFeatureKey)
+        .filter((key): key is string => Boolean(key)),
+    ),
+  ];
 }
 
 function DraggableFeature({ feature }: { feature: FeatureDefinition }) {
@@ -203,6 +226,8 @@ function DroppablePlan({
 export default function PlanComparison() {
   const [features, setFeatures] = useState<FeatureDefinition[]>([]);
   const [assignments, setAssignments] = useState<FeatureAssignment[]>([]);
+  const [menu, setMenu] = useState<MenuDefinition[]>([]);
+  const [selectedSectionId, setSelectedSectionId] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [category, setCategory] = useState('');
@@ -213,9 +238,15 @@ export default function PlanComparison() {
   const fetch = useCallback(async () => {
     setLoading(true);
     try {
-      const [featureData, assignmentData] = await Promise.all([getAllFeatures(), getAssignments()]);
+      const [featureData, assignmentData, menuData] = await Promise.all([
+        getAllFeatures(),
+        getAssignments(),
+        getFullMenu(),
+      ]);
       setFeatures(featureData);
       setAssignments(assignmentData);
+      setMenu(menuData);
+      setSelectedSectionId((current) => current || menuData[0]?.id || '');
       setError(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load feature assignments');
@@ -260,6 +291,34 @@ export default function PlanComparison() {
     return map;
   }, [assignments]);
 
+  const featureByKey = useMemo(() => {
+    const map = new Map<string, FeatureDefinition>();
+    features.forEach((feature) => {
+      map.set(feature.key, feature);
+    });
+    return map;
+  }, [features]);
+
+  const menuSections = useMemo(
+    () => menu.filter((item) => item.sectionHeader || item.children.length > 0),
+    [menu],
+  );
+
+  const selectedSection = useMemo(
+    () => menuSections.find((item) => item.id === selectedSectionId) ?? menuSections[0] ?? null,
+    [menuSections, selectedSectionId],
+  );
+
+  const selectedSectionItems = useMemo(
+    () => (selectedSection ? flattenMenuBranch(selectedSection.children ?? []) : []),
+    [selectedSection],
+  );
+
+  const selectedSectionFeatureKeys = useMemo(
+    () => (selectedSection ? collectMenuFeatureKeys(selectedSection.children ?? []) : []),
+    [selectedSection],
+  );
+
   const assignedKeys = useMemo(() => {
     const keys = new Set<string>();
     Object.values(planAssignments).forEach((set) => set.forEach((key) => keys.add(key)));
@@ -296,6 +355,69 @@ export default function PlanComparison() {
       }
     },
     [fetch, planAssignments],
+  );
+
+  const handleTogglePlanFeature = useCallback(
+    async (featureKey: string, planCode: string) => {
+      try {
+        if (planAssignments[planCode]?.has(featureKey)) {
+          const assignmentId = assignmentMap.get(`${featureKey}_${planCode}`);
+          if (assignmentId) {
+            await deleteAssignment(assignmentId);
+          }
+        } else {
+          await createAssignment({
+            featureKey,
+            assignmentLevel: 'PLAN',
+            targetId: planCode,
+            granted: true,
+          });
+        }
+        await fetch();
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Failed to update menu visibility');
+      }
+    },
+    [assignmentMap, fetch, planAssignments],
+  );
+
+  const handleGrantSection = useCallback(
+    async (planCode: string) => {
+      const missingKeys = selectedSectionFeatureKeys.filter((key) => !planAssignments[planCode]?.has(key));
+      if (missingKeys.length === 0) return;
+      try {
+        await Promise.all(
+          missingKeys.map((featureKey) =>
+            createAssignment({
+              featureKey,
+              assignmentLevel: 'PLAN',
+              targetId: planCode,
+              granted: true,
+            }),
+          ),
+        );
+        await fetch();
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Failed to grant section');
+      }
+    },
+    [fetch, planAssignments, selectedSectionFeatureKeys],
+  );
+
+  const handleRemoveSection = useCallback(
+    async (planCode: string) => {
+      const assignmentIds = selectedSectionFeatureKeys
+        .map((featureKey) => assignmentMap.get(`${featureKey}_${planCode}`))
+        .filter((id): id is string => Boolean(id));
+      if (assignmentIds.length === 0) return;
+      try {
+        await Promise.all(assignmentIds.map((id) => deleteAssignment(id)));
+        await fetch();
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Failed to remove section');
+      }
+    },
+    [assignmentMap, fetch, selectedSectionFeatureKeys],
   );
 
   const handleRemove = useCallback(
@@ -376,6 +498,237 @@ export default function PlanComparison() {
             />
           ))}
         </Stack>
+
+        {selectedSection && (
+          <Paper
+            elevation={0}
+            sx={{
+              p: 1.5,
+              mb: 2.5,
+              borderRadius: '10px',
+              border: `1px solid ${brand.neutral[200]}`,
+              bgcolor: '#FFFFFF',
+            }}
+          >
+            <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1.5 }}>
+              <Box
+                sx={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: '8px',
+                  display: 'grid',
+                  placeItems: 'center',
+                  bgcolor: brand.primary[50],
+                  color: brand.primary[700],
+                }}
+              >
+                <IconListTree size={18} />
+              </Box>
+              <Box sx={{ minWidth: 0 }}>
+                <Typography sx={{ color: brand.neutral[900], fontWeight: 900, fontSize: '0.94rem' }}>
+                  Menu section visibility
+                </Typography>
+                <Typography sx={{ color: brand.neutral[500], fontWeight: 650, fontSize: '0.76rem' }}>
+                  Open a legacy-style section, then grant the full section or individual menu items per plan.
+                </Typography>
+              </Box>
+            </Stack>
+
+            <Stack direction={{ xs: 'column', lg: 'row' }} spacing={1.5}>
+              <Stack
+                spacing={0.75}
+                sx={{
+                  width: { xs: '100%', lg: 240 },
+                  flexShrink: 0,
+                }}
+              >
+                {menuSections.map((section) => {
+                  const keys = collectMenuFeatureKeys(section.children ?? []);
+                  const isSelected = selectedSection.id === section.id;
+                  return (
+                    <Button
+                      key={section.id}
+                      fullWidth
+                      onClick={() => setSelectedSectionId(section.id)}
+                      variant={isSelected ? 'contained' : 'outlined'}
+                      sx={{
+                        justifyContent: 'space-between',
+                        minHeight: 38,
+                        borderRadius: '8px',
+                        textTransform: 'none',
+                        fontWeight: 850,
+                        boxShadow: 'none',
+                        bgcolor: isSelected ? brand.primary[600] : '#FFFFFF',
+                        borderColor: isSelected ? brand.primary[600] : brand.neutral[200],
+                        color: isSelected ? '#FFFFFF' : brand.neutral[700],
+                        '&:hover': {
+                          boxShadow: 'none',
+                          bgcolor: isSelected ? brand.primary[700] : brand.primary[50],
+                          borderColor: brand.primary[300],
+                        },
+                      }}
+                      endIcon={
+                        <Chip
+                          label={keys.length}
+                          size="small"
+                          sx={{
+                            height: 20,
+                            minWidth: 28,
+                            borderRadius: '6px',
+                            bgcolor: isSelected ? 'rgba(255,255,255,0.16)' : brand.neutral[100],
+                            color: isSelected ? '#FFFFFF' : brand.neutral[600],
+                            fontWeight: 850,
+                          }}
+                        />
+                      }
+                    >
+                      <Box component="span" sx={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {section.label}
+                      </Box>
+                    </Button>
+                  );
+                })}
+              </Stack>
+
+              <Divider orientation="vertical" flexItem sx={{ display: { xs: 'none', lg: 'block' } }} />
+
+              <Box sx={{ flex: 1, minWidth: 0 }}>
+                <Stack
+                  direction={{ xs: 'column', md: 'row' }}
+                  justifyContent="space-between"
+                  alignItems={{ xs: 'stretch', md: 'flex-start' }}
+                  spacing={1}
+                  sx={{ mb: 1.25 }}
+                >
+                  <Box sx={{ minWidth: 0 }}>
+                    <Typography sx={{ color: brand.neutral[900], fontWeight: 900, fontSize: '0.9rem' }}>
+                      {selectedSection.label}
+                    </Typography>
+                    <Typography sx={{ color: brand.neutral[500], fontWeight: 650, fontSize: '0.74rem' }}>
+                      {selectedSectionFeatureKeys.length} permission keys control this section
+                    </Typography>
+                  </Box>
+                  <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
+                    {PLANS.map((plan) => {
+                      const grantedCount = selectedSectionFeatureKeys.filter((key) =>
+                        planAssignments[plan]?.has(key),
+                      ).length;
+                      return (
+                        <Stack key={plan} direction="row" spacing={0.5}>
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            startIcon={<IconCheck size={14} />}
+                            onClick={() => handleGrantSection(plan)}
+                            disabled={selectedSectionFeatureKeys.length === 0 || grantedCount === selectedSectionFeatureKeys.length}
+                            sx={{ borderRadius: '7px', textTransform: 'none', fontWeight: 800 }}
+                          >
+                            {plan}
+                          </Button>
+                          <Button
+                            size="small"
+                            variant="text"
+                            onClick={() => handleRemoveSection(plan)}
+                            disabled={grantedCount === 0}
+                            sx={{ borderRadius: '7px', textTransform: 'none', fontWeight: 800, color: brand.error.main }}
+                          >
+                            Clear
+                          </Button>
+                        </Stack>
+                      );
+                    })}
+                  </Stack>
+                </Stack>
+
+                <Stack spacing={0.75}>
+                  {selectedSectionItems.map((item) => {
+                    const feature = item.requiredFeatureKey ? featureByKey.get(item.requiredFeatureKey) : null;
+                    return (
+                      <Box
+                        key={item.id}
+                        sx={{
+                          display: 'grid',
+                          gridTemplateColumns: { xs: '1fr', xl: 'minmax(260px, 1fr) repeat(4, minmax(108px, 128px))' },
+                          gap: 0.75,
+                          alignItems: 'center',
+                          px: 1,
+                          py: 0.85,
+                          borderRadius: '8px',
+                          border: `1px solid ${brand.neutral[200]}`,
+                          bgcolor: item.visible ? '#FFFFFF' : brand.neutral[50],
+                        }}
+                      >
+                        <Box sx={{ minWidth: 0, pl: item.depth * 1.25 }}>
+                          <Stack direction="row" alignItems="center" spacing={0.75}>
+                            <Typography
+                              sx={{
+                                color: item.visible ? brand.neutral[800] : brand.neutral[500],
+                                fontWeight: 850,
+                                fontSize: '0.82rem',
+                              }}
+                              noWrap
+                            >
+                              {item.label}
+                            </Typography>
+                            {!item.visible && <Chip label="Hidden globally" size="small" sx={{ height: 20, borderRadius: '6px' }} />}
+                          </Stack>
+                          <Typography sx={{ color: brand.neutral[500], fontWeight: 650, fontSize: '0.7rem' }} noWrap>
+                            {item.route || 'Group'} · {item.requiredFeatureKey || 'No plan permission key'}
+                            {feature ? ` · ${feature.label}` : ''}
+                          </Typography>
+                        </Box>
+
+                        {PLANS.map((plan) => {
+                          const enabled = Boolean(item.requiredFeatureKey && planAssignments[plan]?.has(item.requiredFeatureKey));
+                          return item.requiredFeatureKey ? (
+                            <Button
+                              key={plan}
+                              size="small"
+                              variant={enabled ? 'contained' : 'outlined'}
+                              startIcon={enabled ? <IconEye size={14} /> : <IconEyeOff size={14} />}
+                              onClick={() => handleTogglePlanFeature(item.requiredFeatureKey as string, plan)}
+                              sx={{
+                                minHeight: 30,
+                                borderRadius: '7px',
+                                textTransform: 'none',
+                                fontWeight: 850,
+                                boxShadow: 'none',
+                                bgcolor: enabled ? PLAN_STYLES[plan].color : '#FFFFFF',
+                                borderColor: enabled ? PLAN_STYLES[plan].color : brand.neutral[200],
+                                color: enabled ? '#FFFFFF' : brand.neutral[600],
+                                '&:hover': {
+                                  boxShadow: 'none',
+                                  bgcolor: enabled ? PLAN_STYLES[plan].color : brand.primary[50],
+                                  borderColor: enabled ? PLAN_STYLES[plan].color : brand.primary[300],
+                                },
+                              }}
+                            >
+                              {enabled ? 'Visible' : 'Hidden'}
+                            </Button>
+                          ) : (
+                            <Chip
+                              key={plan}
+                              label="Always visible"
+                              size="small"
+                              sx={{
+                                justifySelf: 'stretch',
+                                height: 30,
+                                borderRadius: '7px',
+                                bgcolor: brand.neutral[100],
+                                color: brand.neutral[600],
+                                fontWeight: 800,
+                              }}
+                            />
+                          );
+                        })}
+                      </Box>
+                    );
+                  })}
+                </Stack>
+              </Box>
+            </Stack>
+          </Paper>
+        )}
 
         <Paper
           elevation={0}
