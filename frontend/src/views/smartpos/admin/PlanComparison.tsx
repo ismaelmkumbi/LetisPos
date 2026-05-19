@@ -544,6 +544,7 @@ export default function PlanComparison() {
               >
                 {menuSections.map((section) => {
                   const keys = collectMenuFeatureKeys(section.children ?? []);
+                  const itemCount = flattenMenuBranch(section.children ?? []).length;
                   const isSelected = selectedSection.id === section.id;
                   return (
                     <Button
@@ -553,7 +554,7 @@ export default function PlanComparison() {
                       variant={isSelected ? 'contained' : 'outlined'}
                       sx={{
                         justifyContent: 'space-between',
-                        minHeight: 38,
+                        minHeight: 48,
                         borderRadius: '8px',
                         textTransform: 'none',
                         fontWeight: 850,
@@ -569,11 +570,11 @@ export default function PlanComparison() {
                       }}
                       endIcon={
                         <Chip
-                          label={keys.length}
+                          label={`${keys.length} keys`}
                           size="small"
                           sx={{
-                            height: 20,
-                            minWidth: 28,
+                            height: 22,
+                            minWidth: 48,
                             borderRadius: '6px',
                             bgcolor: isSelected ? 'rgba(255,255,255,0.16)' : brand.neutral[100],
                             color: isSelected ? '#FFFFFF' : brand.neutral[600],
@@ -582,8 +583,24 @@ export default function PlanComparison() {
                         />
                       }
                     >
-                      <Box component="span" sx={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {section.label}
+                      <Box component="span" sx={{ minWidth: 0, textAlign: 'left' }}>
+                        <Box component="span" sx={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {section.label}
+                        </Box>
+                        <Box
+                          component="span"
+                          sx={{
+                            display: 'block',
+                            mt: 0.2,
+                            color: 'inherit',
+                            opacity: 0.68,
+                            fontSize: '0.68rem',
+                            fontWeight: 800,
+                            lineHeight: 1,
+                          }}
+                        >
+                          {itemCount} menu items
+                        </Box>
                       </Box>
                     </Button>
                   );
@@ -605,7 +622,7 @@ export default function PlanComparison() {
                       {selectedSection.label}
                     </Typography>
                     <Typography sx={{ color: brand.neutral[500], fontWeight: 650, fontSize: '0.74rem' }}>
-                      {selectedSectionFeatureKeys.length} permission keys control this section
+                      {selectedSectionItems.length} menu items controlled by {selectedSectionFeatureKeys.length} permission keys
                     </Typography>
                   </Box>
                   <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
