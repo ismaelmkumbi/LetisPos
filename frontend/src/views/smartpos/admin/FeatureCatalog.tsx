@@ -69,13 +69,13 @@ export default function FeatureCatalog() {
     fetch();
   }, [fetch]);
 
-  const openCreate = () => {
+  const openCreate = useCallback(() => {
     setEditing(null);
     setForm(initialForm);
     setDialogOpen(true);
-  };
+  }, []);
 
-  const openEdit = (feature: FeatureDefinition) => {
+  const openEdit = useCallback((feature: FeatureDefinition) => {
     setEditing(feature);
     setForm({
       key: feature.key,
@@ -85,13 +85,13 @@ export default function FeatureCatalog() {
       sortOrder: feature.sortOrder,
     });
     setDialogOpen(true);
-  };
+  }, []);
 
-  const closeDialog = () => {
+  const closeDialog = useCallback(() => {
     if (!saving) setDialogOpen(false);
-  };
+  }, [saving]);
 
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     if (!form.key.trim() || !form.label.trim() || !form.category.trim()) return;
     setSaving(true);
     setError(null);
@@ -122,9 +122,9 @@ export default function FeatureCatalog() {
     } finally {
       setSaving(false);
     }
-  };
+  }, [editing, fetch, form]);
 
-  const handleDelete = async (feature: FeatureDefinition) => {
+  const handleDelete = useCallback(async (feature: FeatureDefinition) => {
     if (!window.confirm(`Delete "${feature.label}"? Assigned plans and overrides may lose access.`)) return;
     try {
       await deleteFeature(feature.id);
@@ -132,7 +132,7 @@ export default function FeatureCatalog() {
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to delete feature');
     }
-  };
+  }, [fetch]);
 
   const columns: Column<FeatureDefinition>[] = useMemo(
     () => [
@@ -240,7 +240,7 @@ export default function FeatureCatalog() {
         ),
       },
     ],
-    [],
+    [handleDelete, openEdit],
   );
 
   return (
