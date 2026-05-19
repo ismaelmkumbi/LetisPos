@@ -4,6 +4,7 @@ import { SCENES, COLORS } from './config';
 import { BrandOpen } from './scenes/BrandOpen';
 import { TheProblem } from './scenes/TheProblem';
 import { DashboardReveal } from './scenes/DashboardReveal';
+import { InventoryModule } from './scenes/InventoryModule';
 
 export const AdVideo: React.FC = () => {
   return (
@@ -18,7 +19,7 @@ export const AdVideo: React.FC = () => {
         <DashboardReveal />
       </Sequence>
       <Sequence from={SCENES.inventoryModule.start} durationInFrames={SCENES.inventoryModule.end - SCENES.inventoryModule.start}>
-        <AbsoluteFill style={{ backgroundColor: COLORS.bg }} />
+        <InventoryModule />
       </Sequence>
       <Sequence from={SCENES.posModule.start} durationInFrames={SCENES.posModule.end - SCENES.posModule.start}>
         <AbsoluteFill style={{ backgroundColor: COLORS.bg }} />
