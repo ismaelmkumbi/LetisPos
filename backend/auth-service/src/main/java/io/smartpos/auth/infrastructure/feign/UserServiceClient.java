@@ -3,6 +3,7 @@ package io.smartpos.auth.infrastructure.feign;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
 import java.util.Set;
@@ -31,4 +32,9 @@ public interface UserServiceClient {
 
     @GetMapping("/api/internal/users/{id}/auth-claims")
     AuthClaims authClaims(@PathVariable("id") UUID id);
+
+    @GetMapping("/api/internal/features/resolved")
+    Set<String> resolvedFeatures(@RequestParam("tenantId") String tenantId,
+                                 @RequestParam("userId") String userId,
+                                 @RequestParam("planCode") String planCode);
 }
