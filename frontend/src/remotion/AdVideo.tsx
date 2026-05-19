@@ -1,12 +1,13 @@
 import React from 'react';
 import { AbsoluteFill, Sequence } from 'remotion';
 import { SCENES, COLORS } from './config';
+import { BrandOpen } from './scenes/BrandOpen';
 
 export const AdVideo: React.FC = () => {
   return (
     <AbsoluteFill style={{ backgroundColor: COLORS.bg }}>
       <Sequence from={SCENES.brandOpen.start} durationInFrames={SCENES.brandOpen.end - SCENES.brandOpen.start}>
-        <AbsoluteFill style={{ backgroundColor: COLORS.bg }} />
+        <BrandOpen />
       </Sequence>
       <Sequence from={SCENES.theProblem.start} durationInFrames={SCENES.theProblem.end - SCENES.theProblem.start}>
         <AbsoluteFill style={{ backgroundColor: COLORS.bg }} />
