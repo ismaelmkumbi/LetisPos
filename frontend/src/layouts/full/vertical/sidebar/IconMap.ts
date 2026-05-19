@@ -1,14 +1,16 @@
 /**
  * Maps icon key strings (from the API menu response) to Tabler icon components.
  *
- * The API returns `icon: "IconDashboard"` etc. — this registry converts those
- * strings to the actual React components that NavItem / NavCollapse render.
+ * The API returns kebab-case icon names like "layout-dashboard", "cash-register".
+ * This module converts them to Tabler PascalCase and resolves to React components.
  */
 import type { ElementType } from 'react';
 import {
   IconDashboard,
+  IconLayoutDashboard,
   IconSearch,
   IconCashBanknote,
+  IconCash,
   IconCashRegister,
   IconReceipt,
   IconFileInvoice,
@@ -17,6 +19,7 @@ import {
   IconPackage,
   IconUsers,
   IconTruck,
+  IconTruckDelivery,
   IconBuildingWarehouse,
   IconBox,
   IconCoin,
@@ -59,6 +62,7 @@ import {
   IconAlertTriangle,
   IconHistory,
   IconHelp,
+  IconHelpCircle,
   IconKey,
   IconBrain,
   IconDeviceMobile,
@@ -73,12 +77,16 @@ import {
   IconPalette,
   IconAd,
   IconTools,
+  IconAddressBook,
+  IconSpeakerphone,
 } from '@tabler/icons-react';
 
 const iconRegistry: Record<string, ElementType> = {
   IconDashboard,
+  IconLayoutDashboard,
   IconSearch,
   IconCashBanknote,
+  IconCash,
   IconCashRegister,
   IconReceipt,
   IconFileInvoice,
@@ -87,8 +95,10 @@ const iconRegistry: Record<string, ElementType> = {
   IconPackage,
   IconUsers,
   IconTruck,
+  IconTruckDelivery,
   IconBuildingWarehouse,
   IconBox,
+  IconBoxes: IconBox,
   IconCoin,
   IconWallet,
   IconArrowsTransferDown,
@@ -129,6 +139,7 @@ const iconRegistry: Record<string, ElementType> = {
   IconAlertTriangle,
   IconHistory,
   IconHelp,
+  IconHelpCircle,
   IconKey,
   IconBrain,
   IconDeviceMobile,
@@ -143,10 +154,28 @@ const iconRegistry: Record<string, ElementType> = {
   IconPalette,
   IconAd,
   IconTools,
+  IconAddressBook,
+  IconMegaphone: IconSpeakerphone,
 };
+
+/**
+ * Convert a kebab-case icon name from the database to a Tabler PascalCase name.
+ * "layout-dashboard" → "IconLayoutDashboard"
+ * "cash-register" → "IconCashRegister"
+ */
+function toTablerName(key: string): string {
+  return 'Icon' + key
+    .split('-')
+    .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+    .join('');
+}
 
 /** Resolve an icon key string to a React component, or undefined if not found. */
 export function mapIcon(key: string | null | undefined): ElementType | undefined {
   if (!key) return undefined;
-  return iconRegistry[key] ?? undefined;
+  // Try direct lookup first (handles "IconDashboard" format)
+  if (iconRegistry[key]) return iconRegistry[key];
+  // Convert kebab-case to Tabler format and try again
+  const tablerName = toTablerName(key);
+  return iconRegistry[tablerName] ?? undefined;
 }
