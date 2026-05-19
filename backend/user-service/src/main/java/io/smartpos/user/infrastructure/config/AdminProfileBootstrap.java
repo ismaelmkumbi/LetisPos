@@ -44,6 +44,13 @@ public class AdminProfileBootstrap {
                 log.info("Admin profile already present for id={}", id);
                 return;
             }
+            if (userRepo.findByEmailIgnoreCase(adminEmail).isPresent()) {
+                log.warn("Admin profile already exists for email={} but with different id; "
+                         + "skipping bootstrap — update SMARTPOS_USER_BOOTSTRAP_ADMIN_USER_ID "
+                         + "to match the existing profile or remove the duplicate",
+                         adminEmail);
+                return;
+            }
             Role admin = roleRepo.findById(ADMIN_ROLE_ID).orElseThrow();
             UserProfile profile = UserProfile.builder()
                     .id(id)
