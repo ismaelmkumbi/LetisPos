@@ -6,10 +6,16 @@ import {
   type Tenant,
 } from 'src/api/smartpos/auth';
 import { bootstrapAuthSession, tokenStore, refreshAccessToken } from 'src/api/smartpos/client';
-import { planHasAccess, PLAN_LEVEL } from 'src/config/planGates';
 import { getMyMenu } from 'src/api/smartpos/features';
 
-export { PLAN_LEVEL };
+/** Plan hierarchy — higher ordinal = more features. Mirrors backend BillingPlan.java. */
+export const PLAN_LEVEL: Record<string, number> = {
+  FREE: 0, STARTER: 1, BUSINESS: 2, PROFESSIONAL: 3, ENTERPRISE: 4,
+};
+
+function planHasAccess(currentPlan: string, minPlan: string): boolean {
+  return (PLAN_LEVEL[currentPlan] ?? 0) >= (PLAN_LEVEL[minPlan] ?? 0);
+}
 
 interface AuthContextValue {
   user: CurrentUser | null;

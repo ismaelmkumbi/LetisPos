@@ -17,22 +17,11 @@ import {
 } from '@mui/material';
 import { IconArrowRight, IconSearch, IconX } from '@tabler/icons-react';
 import { Link, useLocation } from 'react-router';
-import { useTranslation } from 'react-i18next';
 
 import DemoMenuitems from '../sidebar/MenuItems';
-import { buildSmartPosMenu } from '../sidebar/SmartPosMenuItems';
 import { brand } from 'src/theme/smartpos/brand';
-
-interface MenuNode {
-  id?: string;
-  title?: string;
-  subheader?: string;
-  icon?: any;
-  href?: string;
-  children?: MenuNode[];
-  chip?: string;
-  chipColor?: any;
-}
+import { useAuth } from 'src/context/smartpos/AuthContext';
+import type { MenuNode } from 'src/api/smartpos/features';
 
 interface SearchRoute {
   id: string;
@@ -50,26 +39,22 @@ function flattenMenu(items: MenuNode[], group = 'Navigation'): SearchRoute[] {
   const routes: SearchRoute[] = [];
 
   items.forEach((item) => {
-    if (item.subheader) {
-      activeGroup = item.subheader;
-      return;
+    if (item.sectionHeader) {
+      activeGroup = item.label;
     }
 
-    if (item.title && item.href) {
+    if (item.label && item.route) {
       routes.push({
-        id: item.id || item.href,
-        title: item.title,
-        href: item.href,
+        id: item.id || item.route,
+        title: item.label,
+        href: item.route,
         group: activeGroup,
-        icon: item.icon,
-        chip: item.chip,
-        chipColor: item.chipColor,
-        haystack: `${item.title} ${item.href} ${activeGroup}`.toLowerCase(),
+        haystack: `${item.label} ${item.route} ${activeGroup}`.toLowerCase(),
       });
     }
 
-    if (item.children) {
-      routes.push(...flattenMenu(item.children, item.title || activeGroup));
+    if (item.children && item.children.length > 0) {
+      routes.push(...flattenMenu(item.children, item.label || activeGroup));
     }
   });
 
@@ -80,13 +65,18 @@ const Search = () => {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   const { pathname } = useLocation();
-  const { t } = useTranslation('smartpos');
+  const { user }= useAuth();
   const onSmartPos = pathname.startsWith('/smartpos');
 
   const routes = useMemo(() => {
-    const menu = onSmartPos ? buildSmartPosMenu(t as any) : DemoMenuitems;
-    return flattenMenu(menu as MenuNode[]);
-  }, [onSmartPos, t]);
+    if (onSmartPos) {
+      const apiMenu: MenuNode[] = (user as any)?.menu ?? [];
+      if (apiMenu.length > 0) {
+        return flattenMenu(apiMenu);
+      }
+    }
+    return flattenMenu(DemoMenuitems as any);
+  }, [onSmartPos, user]);
 
   const results = useMemo(() => {
     const q = search.trim().toLowerCase();
