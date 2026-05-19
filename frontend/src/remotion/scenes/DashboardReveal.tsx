@@ -1,5 +1,5 @@
 import React from 'react';
-import { useCurrentFrame, useVideoConfig } from 'remotion';
+import { useCurrentFrame } from 'remotion';
 import { COLORS } from '../config';
 import { SceneFrame } from '../components/SceneFrame';
 import { KineticText } from '../components/KineticText';
@@ -10,7 +10,6 @@ import { GlowEffect } from '../components/GlowEffect';
 
 export const DashboardReveal: React.FC = () => {
   const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
   const totalFrames = 300;
 
   const widgets = [
