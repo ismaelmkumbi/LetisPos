@@ -19,11 +19,13 @@ import { mapIcon } from './IconMap';
  */
 function transformNode(node: MenuNode): Record<string, unknown> {
   const children: Record<string, unknown>[] = node.children.map((c) => transformNode(c));
+  // Strip leading / so routes are relative and resolve under /smartpos
+  const href = node.route ? node.route.replace(/^\//, '') : undefined;
   return {
     id: node.id,
     title: node.label,
     icon: mapIcon(node.icon),
-    href: node.route,
+    href,
     children: children.length > 0 ? children : undefined,
   };
 }
