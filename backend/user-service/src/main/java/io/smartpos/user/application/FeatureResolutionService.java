@@ -5,6 +5,8 @@ import io.smartpos.user.domain.model.FeatureAssignment.AssignmentLevel;
 import io.smartpos.user.domain.model.FeatureAssignmentRepository;
 import io.smartpos.user.domain.model.FeatureDefinition;
 import io.smartpos.user.domain.model.FeatureDefinitionRepository;
+import io.smartpos.user.domain.model.UserProfile;
+import io.smartpos.user.domain.repository.UserProfileRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
@@ -23,6 +25,7 @@ public class FeatureResolutionService {
 
     private final FeatureAssignmentRepository assignmentRepository;
     private final FeatureDefinitionRepository featureDefinitionRepository;
+    private final UserProfileRepository userProfileRepository;
 
     @Cacheable(value = "features:plan", key = "#planCode")
     public Set<String> getPlanFeatures(String planCode) {
@@ -46,6 +49,15 @@ public class FeatureResolutionService {
     }
 
     public Set<String> resolveFeatures(String planCode, String tenantId, String userId) {
+        // SUPER_ADMIN is platform-level — gets every feature regardless of plan
+        if (userId != null && isSuperAdmin(userId)) {
+            Set<String> all = new HashSet<>();
+            for (FeatureDefinition fd : featureDefinitionRepository.findByActiveTrueOrderBySortOrderAsc()) {
+                all.add(fd.getKey());
+            }
+            return all;
+        }
+
         Set<String> features = new HashSet<>(getPlanFeatures(planCode));
 
         // Apply tenant overrides (add or remove)
@@ -55,6 +67,17 @@ public class FeatureResolutionService {
         applyAssignments(features, assignmentRepository.findByAssignmentLevelAndTargetId(AssignmentLevel.USER, userId));
 
         return features;
+    }
+
+    private boolean isSuperAdmin(String userId) {
+        try {
+            UUID id = UUID.fromString(userId);
+            return userProfileRepository.findById(id)
+                    .map(u -> u.getRoles().stream().anyMatch(r -> "SUPER_ADMIN".equals(r.getName())))
+                    .orElse(false);
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
     }
 
     @CacheEvict(value = "features:plan", key = "#planCode")

@@ -211,10 +211,12 @@ public class LoginUseCase {
             List<String> features = List.of();
             if (billingPlan != null && user.getTenantId() != null) {
                 try {
+                    // FREE is legacy STARTER — map to STARTER for feature resolution
+                    String planForFeatures = "FREE".equals(billingPlan) ? "STARTER" : billingPlan;
                     java.util.Set<String> resolved = userServiceClient.resolvedFeatures(
                             user.getTenantId().toString(),
                             user.getId().toString(),
-                            billingPlan);
+                            planForFeatures);
                     features = resolved != null ? List.copyOf(resolved) : List.of();
                 } catch (Exception fe) {
                     log.warn("Could not resolve features from user-service for {}: {}",
