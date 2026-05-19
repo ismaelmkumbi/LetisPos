@@ -72,6 +72,7 @@
     "react-top-loading-bar": "^3.0.2",
     "remark": "^15.0.1",
     "remark-html": "^16.0.1",
+    "remotion": "^4.0.463",
     "sharp": "^0.32.6",
     "simplebar": "^6.3.0",
     "simplebar-react": "^3.3.0",
@@ -83,6 +84,7 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.59.1",
+    "@remotion/cli": "^4.0.463",
     "@types/chance": "^1.1.6",
     "@types/fslightbox-react": "^1.7.8",
     "@types/lodash": "^4.17.24",
