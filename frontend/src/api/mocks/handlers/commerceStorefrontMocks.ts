@@ -315,6 +315,124 @@ export const commerceStorefrontMocks = [
       ]},
     ])
   ),
+
+  // ── Feature & Menu Admin ──
+  http.get('http://localhost:8080/api/v1/admin/features', () =>
+    HttpResponse.json([
+      { id: 'f001', key: 'pos.use', label: 'POS Terminal Access', description: 'Access the POS terminal', category: 'SALES', active: true, sortOrder: 1 },
+      { id: 'f002', key: 'sale.view', label: 'View Sales', description: null, category: 'SALES', active: true, sortOrder: 2 },
+      { id: 'f003', key: 'sale.create', label: 'Create Sales', description: null, category: 'SALES', active: true, sortOrder: 3 },
+      { id: 'f004', key: 'sale.return', label: 'Sales Returns', description: null, category: 'SALES', active: true, sortOrder: 4 },
+      { id: 'f005', key: 'product.view', label: 'View Products', description: null, category: 'PRODUCTS', active: true, sortOrder: 5 },
+      { id: 'f006', key: 'product.create', label: 'Create Products', description: null, category: 'PRODUCTS', active: true, sortOrder: 6 },
+      { id: 'f007', key: 'category.manage', label: 'Manage Categories', description: null, category: 'PRODUCTS', active: true, sortOrder: 7 },
+      { id: 'f008', key: 'stock.view', label: 'View Stock', description: null, category: 'STOCK', active: true, sortOrder: 8 },
+      { id: 'f009', key: 'stock.transfer', label: 'Stock Transfers', description: null, category: 'STOCK', active: true, sortOrder: 9 },
+      { id: 'f010', key: 'purchase.view', label: 'View Purchases', description: null, category: 'PURCHASING', active: true, sortOrder: 10 },
+      { id: 'f011', key: 'purchase.create', label: 'Create Purchases', description: null, category: 'PURCHASING', active: true, sortOrder: 11 },
+      { id: 'f012', key: 'purchase.return', label: 'Purchase Returns', description: null, category: 'PURCHASING', active: true, sortOrder: 12 },
+      { id: 'f013', key: 'payment.view', label: 'View Payments', description: null, category: 'FINANCE', active: true, sortOrder: 13 },
+      { id: 'f014', key: 'payment.record', label: 'Record Payments', description: null, category: 'FINANCE', active: true, sortOrder: 14 },
+      { id: 'f015', key: 'payment.refund', label: 'Refund Payments', description: null, category: 'FINANCE', active: true, sortOrder: 15 },
+      { id: 'f016', key: 'account.manage', label: 'Manage Accounts', description: null, category: 'FINANCE', active: true, sortOrder: 16 },
+      { id: 'f017', key: 'expense.manage', label: 'Manage Expenses', description: null, category: 'FINANCE', active: true, sortOrder: 17 },
+      { id: 'f018', key: 'accounting.module', label: 'Accounting Module', description: null, category: 'FINANCE', active: true, sortOrder: 18 },
+      { id: 'f019', key: 'hrm.module', label: 'HR & Payroll Module', description: null, category: 'HRM', active: true, sortOrder: 19 },
+      { id: 'f020', key: 'hrm.view', label: 'View HR', description: null, category: 'HRM', active: true, sortOrder: 20 },
+      { id: 'f021', key: 'hrm.manage', label: 'Manage HR', description: null, category: 'HRM', active: true, sortOrder: 21 },
+      { id: 'f022', key: 'hrm.attendance.write', label: 'Write Attendance', description: null, category: 'HRM', active: true, sortOrder: 22 },
+      { id: 'f023', key: 'hrm.leave.request', label: 'Request Leave', description: null, category: 'HRM', active: true, sortOrder: 23 },
+      { id: 'f024', key: 'hrm.leave.approve', label: 'Approve Leave', description: null, category: 'HRM', active: true, sortOrder: 24 },
+      { id: 'f025', key: 'hrm.payroll.view', label: 'View Payroll', description: null, category: 'HRM', active: true, sortOrder: 25 },
+      { id: 'f026', key: 'hrm.payroll.manage', label: 'Manage Payroll', description: null, category: 'HRM', active: true, sortOrder: 26 },
+      { id: 'f027', key: 'crm.module', label: 'CRM Module', description: null, category: 'CRM', active: true, sortOrder: 27 },
+      { id: 'f028', key: 'marketing.module', label: 'Marketing Module', description: null, category: 'MARKETING', active: true, sortOrder: 28 },
+      { id: 'f029', key: 'ai.module', label: 'AI & Insights Module', description: null, category: 'AI', active: true, sortOrder: 29 },
+      { id: 'f030', key: 'ai.insight', label: 'AI Insights', description: null, category: 'AI', active: true, sortOrder: 30 },
+      { id: 'f031', key: 'ai.chat', label: 'AI Chat', description: null, category: 'AI', active: true, sortOrder: 31 },
+      { id: 'f032', key: 'admin', label: 'Admin Access', description: null, category: 'ADMIN', active: true, sortOrder: 32 },
+      { id: 'f033', key: 'user.view', label: 'View Users', description: null, category: 'ADMIN', active: true, sortOrder: 33 },
+      { id: 'f034', key: 'role.manage', label: 'Manage Roles', description: null, category: 'ADMIN', active: true, sortOrder: 34 },
+      { id: 'f035', key: 'billing.manage', label: 'Manage Billing', description: null, category: 'ADMIN', active: true, sortOrder: 35 },
+      { id: 'f036', key: 'audit.view', label: 'View Audit Logs', description: null, category: 'ADMIN', active: true, sortOrder: 36 },
+      { id: 'f037', key: 'session.manage', label: 'Manage Sessions', description: null, category: 'ADMIN', active: true, sortOrder: 37 },
+      { id: 'f038', key: 'integration.module', label: 'Integration Module', description: null, category: 'INTEGRATIONS', active: true, sortOrder: 38 },
+      { id: 'f039', key: 'integration.woo', label: 'WooCommerce', description: null, category: 'INTEGRATIONS', active: true, sortOrder: 39 },
+      { id: 'f040', key: 'report.sales', label: 'Sales Reports', description: null, category: 'REPORTS', active: true, sortOrder: 40 },
+      { id: 'f041', key: 'report.financial', label: 'Financial Reports', description: null, category: 'REPORTS', active: true, sortOrder: 41 },
+      { id: 'f042', key: 'report.custom', label: 'Custom Reports', description: null, category: 'REPORTS', active: true, sortOrder: 42 },
+      { id: 'f043', key: 'notification.view', label: 'View Notifications', description: null, category: 'NOTIFICATIONS', active: true, sortOrder: 43 },
+      { id: 'f044', key: 'notification.send', label: 'Send Notifications', description: null, category: 'NOTIFICATIONS', active: true, sortOrder: 44 },
+    ])
+  ),
+
+  http.get('http://localhost:8080/api/v1/admin/features/assignments', () =>
+    HttpResponse.json([
+      // STARTER plan features
+      { id: 'a001', featureKey: 'pos.use', assignmentLevel: 'PLAN', targetId: 'STARTER', granted: true, createdBy: null, createdAt: '2026-05-19T00:00:00Z' },
+      { id: 'a002', featureKey: 'sale.view', assignmentLevel: 'PLAN', targetId: 'STARTER', granted: true, createdBy: null, createdAt: '2026-05-19T00:00:00Z' },
+      { id: 'a003', featureKey: 'sale.create', assignmentLevel: 'PLAN', targetId: 'STARTER', granted: true, createdBy: null, createdAt: '2026-05-19T00:00:00Z' },
+      { id: 'a004', featureKey: 'sale.return', assignmentLevel: 'PLAN', targetId: 'STARTER', granted: true, createdBy: null, createdAt: '2026-05-19T00:00:00Z' },
+      { id: 'a005', featureKey: 'product.view', assignmentLevel: 'PLAN', targetId: 'STARTER', granted: true, createdBy: null, createdAt: '2026-05-19T00:00:00Z' },
+      { id: 'a006', featureKey: 'product.create', assignmentLevel: 'PLAN', targetId: 'STARTER', granted: true, createdBy: null, createdAt: '2026-05-19T00:00:00Z' },
+      { id: 'a007', featureKey: 'category.manage', assignmentLevel: 'PLAN', targetId: 'STARTER', granted: true, createdBy: null, createdAt: '2026-05-19T00:00:00Z' },
+      { id: 'a008', featureKey: 'stock.view', assignmentLevel: 'PLAN', targetId: 'STARTER', granted: true, createdBy: null, createdAt: '2026-05-19T00:00:00Z' },
+      { id: 'a009', featureKey: 'stock.transfer', assignmentLevel: 'PLAN', targetId: 'STARTER', granted: true, createdBy: null, createdAt: '2026-05-19T00:00:00Z' },
+      { id: 'a010', featureKey: 'payment.view', assignmentLevel: 'PLAN', targetId: 'STARTER', granted: true, createdBy: null, createdAt: '2026-05-19T00:00:00Z' },
+      { id: 'a011', featureKey: 'payment.record', assignmentLevel: 'PLAN', targetId: 'STARTER', granted: true, createdBy: null, createdAt: '2026-05-19T00:00:00Z' },
+      { id: 'a012', featureKey: 'report.sales', assignmentLevel: 'PLAN', targetId: 'STARTER', granted: true, createdBy: null, createdAt: '2026-05-19T00:00:00Z' },
+      { id: 'a013', featureKey: 'notification.view', assignmentLevel: 'PLAN', targetId: 'STARTER', granted: true, createdBy: null, createdAt: '2026-05-19T00:00:00Z' },
+      // BUSINESS additions
+      { id: 'a014', featureKey: 'purchase.view', assignmentLevel: 'PLAN', targetId: 'BUSINESS', granted: true, createdBy: null, createdAt: '2026-05-19T00:00:00Z' },
+      { id: 'a015', featureKey: 'purchase.create', assignmentLevel: 'PLAN', targetId: 'BUSINESS', granted: true, createdBy: null, createdAt: '2026-05-19T00:00:00Z' },
+      { id: 'a016', featureKey: 'purchase.return', assignmentLevel: 'PLAN', targetId: 'BUSINESS', granted: true, createdBy: null, createdAt: '2026-05-19T00:00:00Z' },
+      { id: 'a017', featureKey: 'payment.refund', assignmentLevel: 'PLAN', targetId: 'BUSINESS', granted: true, createdBy: null, createdAt: '2026-05-19T00:00:00Z' },
+      { id: 'a018', featureKey: 'account.manage', assignmentLevel: 'PLAN', targetId: 'BUSINESS', granted: true, createdBy: null, createdAt: '2026-05-19T00:00:00Z' },
+      { id: 'a019', featureKey: 'expense.manage', assignmentLevel: 'PLAN', targetId: 'BUSINESS', granted: true, createdBy: null, createdAt: '2026-05-19T00:00:00Z' },
+      { id: 'a020', featureKey: 'accounting.module', assignmentLevel: 'PLAN', targetId: 'BUSINESS', granted: true, createdBy: null, createdAt: '2026-05-19T00:00:00Z' },
+      { id: 'a021', featureKey: 'marketing.module', assignmentLevel: 'PLAN', targetId: 'BUSINESS', granted: true, createdBy: null, createdAt: '2026-05-19T00:00:00Z' },
+      // PROFESSIONAL additions
+      { id: 'a022', featureKey: 'hrm.module', assignmentLevel: 'PLAN', targetId: 'PROFESSIONAL', granted: true, createdBy: null, createdAt: '2026-05-19T00:00:00Z' },
+      { id: 'a023', featureKey: 'hrm.view', assignmentLevel: 'PLAN', targetId: 'PROFESSIONAL', granted: true, createdBy: null, createdAt: '2026-05-19T00:00:00Z' },
+      { id: 'a024', featureKey: 'hrm.manage', assignmentLevel: 'PLAN', targetId: 'PROFESSIONAL', granted: true, createdBy: null, createdAt: '2026-05-19T00:00:00Z' },
+      { id: 'a025', featureKey: 'hrm.attendance.write', assignmentLevel: 'PLAN', targetId: 'PROFESSIONAL', granted: true, createdBy: null, createdAt: '2026-05-19T00:00:00Z' },
+      { id: 'a026', featureKey: 'hrm.leave.request', assignmentLevel: 'PLAN', targetId: 'PROFESSIONAL', granted: true, createdBy: null, createdAt: '2026-05-19T00:00:00Z' },
+      { id: 'a027', featureKey: 'hrm.leave.approve', assignmentLevel: 'PLAN', targetId: 'PROFESSIONAL', granted: true, createdBy: null, createdAt: '2026-05-19T00:00:00Z' },
+      { id: 'a028', featureKey: 'hrm.payroll.view', assignmentLevel: 'PLAN', targetId: 'PROFESSIONAL', granted: true, createdBy: null, createdAt: '2026-05-19T00:00:00Z' },
+      { id: 'a029', featureKey: 'hrm.payroll.manage', assignmentLevel: 'PLAN', targetId: 'PROFESSIONAL', granted: true, createdBy: null, createdAt: '2026-05-19T00:00:00Z' },
+      { id: 'a030', featureKey: 'crm.module', assignmentLevel: 'PLAN', targetId: 'PROFESSIONAL', granted: true, createdBy: null, createdAt: '2026-05-19T00:00:00Z' },
+      { id: 'a031', featureKey: 'ai.module', assignmentLevel: 'PLAN', targetId: 'PROFESSIONAL', granted: true, createdBy: null, createdAt: '2026-05-19T00:00:00Z' },
+      { id: 'a032', featureKey: 'ai.insight', assignmentLevel: 'PLAN', targetId: 'PROFESSIONAL', granted: true, createdBy: null, createdAt: '2026-05-19T00:00:00Z' },
+      { id: 'a033', featureKey: 'ai.chat', assignmentLevel: 'PLAN', targetId: 'PROFESSIONAL', granted: true, createdBy: null, createdAt: '2026-05-19T00:00:00Z' },
+      { id: 'a034', featureKey: 'integration.module', assignmentLevel: 'PLAN', targetId: 'PROFESSIONAL', granted: true, createdBy: null, createdAt: '2026-05-19T00:00:00Z' },
+      { id: 'a035', featureKey: 'integration.woo', assignmentLevel: 'PLAN', targetId: 'PROFESSIONAL', granted: true, createdBy: null, createdAt: '2026-05-19T00:00:00Z' },
+      { id: 'a036', featureKey: 'audit.view', assignmentLevel: 'PLAN', targetId: 'PROFESSIONAL', granted: true, createdBy: null, createdAt: '2026-05-19T00:00:00Z' },
+      { id: 'a037', featureKey: 'session.manage', assignmentLevel: 'PLAN', targetId: 'PROFESSIONAL', granted: true, createdBy: null, createdAt: '2026-05-19T00:00:00Z' },
+      { id: 'a038', featureKey: 'notification.send', assignmentLevel: 'PLAN', targetId: 'PROFESSIONAL', granted: true, createdBy: null, createdAt: '2026-05-19T00:00:00Z' },
+      // ENTERPRISE additions
+      { id: 'a039', featureKey: 'admin', assignmentLevel: 'PLAN', targetId: 'ENTERPRISE', granted: true, createdBy: null, createdAt: '2026-05-19T00:00:00Z' },
+      { id: 'a040', featureKey: 'role.manage', assignmentLevel: 'PLAN', targetId: 'ENTERPRISE', granted: true, createdBy: null, createdAt: '2026-05-19T00:00:00Z' },
+      { id: 'a041', featureKey: 'billing.manage', assignmentLevel: 'PLAN', targetId: 'ENTERPRISE', granted: true, createdBy: null, createdAt: '2026-05-19T00:00:00Z' },
+      { id: 'a042', featureKey: 'report.custom', assignmentLevel: 'PLAN', targetId: 'ENTERPRISE', granted: true, createdBy: null, createdAt: '2026-05-19T00:00:00Z' },
+    ])
+  ),
+
+  http.post('http://localhost:8080/api/v1/admin/features/assignments', async ({ request }) => {
+    const body = await request.json() as Record<string, unknown>;
+    return HttpResponse.json({
+      id: 'a-new-' + Date.now(),
+      featureKey: body.featureKey,
+      assignmentLevel: body.assignmentLevel,
+      targetId: body.targetId,
+      granted: body.granted ?? true,
+      createdBy: null,
+      createdAt: new Date().toISOString(),
+    }, { status: 201 });
+  }),
+
+  http.delete('http://localhost:8080/api/v1/admin/features/assignments/:id', () =>
+    new HttpResponse(null, { status: 204 })
+  ),
 ];
 
 function getProductRating(productId: string): number {
