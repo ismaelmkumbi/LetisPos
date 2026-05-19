@@ -1,5 +1,5 @@
 import React from 'react';
-import { interpolate, useCurrentFrame, useVideoConfig } from 'remotion';
+import { interpolate, useCurrentFrame } from 'remotion';
 import { COLORS, FONT } from '../config';
 import { SceneFrame } from '../components/SceneFrame';
 import { KineticText } from '../components/KineticText';
@@ -16,7 +16,6 @@ const PRODUCTS = [
 
 export const InventoryModule: React.FC = () => {
   const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
   const totalFrames = 240;
 
   const alertOpacity = interpolate(frame, [20, 50], [1, 0], { extrapolateRight: 'clamp' });
