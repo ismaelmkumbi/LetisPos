@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "ai-podcast": {
+      "source": "inference-sh-skills/skills",
+      "sourceType": "github",
+      "skillPath": "ai-podcast/SKILL.md",
+      "computedHash": "1ff39211eae6ebb2c7516b8473f1d7b851b6cfa380891e6da2bca45aebe52040"
+    }
+  }
+}

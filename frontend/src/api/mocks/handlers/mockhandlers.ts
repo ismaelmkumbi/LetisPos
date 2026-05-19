@@ -10,6 +10,7 @@ import { Emailhandlers } from 'src/api/email/EmailData';
 import { InvoiceHandlers } from 'src/api/invoice/invoceLists';
 import { Kanbanhandlers } from 'src/api/kanban/KanbanData';
 import { dashboardMockHandlers } from './dashboardMocks';
+import { commerceStorefrontMocks } from './commerceStorefrontMocks';
 
 export const mockHandlers = [
   ...dashboardMockHandlers,
@@ -24,4 +25,5 @@ export const mockHandlers = [
   ...Emailhandlers,
   ...InvoiceHandlers,
   ...Kanbanhandlers,
+  ...commerceStorefrontMocks,
 ];

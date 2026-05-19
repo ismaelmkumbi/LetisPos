@@ -17,12 +17,14 @@ const Footer: React.FC = () => {
   const [contactEmail, setContactEmail] = useState('');
   const [contactMsg, setContactMsg] = useState('');
   const [contactSent, setContactSent] = useState(false);
+  const [contactError, setContactError] = useState(false);
   const [contactSending, setContactSending] = useState(false);
 
   const handleContact = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!contactName.trim() || !contactEmail.trim() || !contactMsg.trim()) return;
     setContactSending(true);
+    setContactError(false);
     try {
       await createDemoRequest({
         name: contactName,
@@ -32,7 +34,7 @@ const Footer: React.FC = () => {
       });
       setContactSent(true);
     } catch {
-      setContactSent(true); // don't block on failure
+      setContactError(true);
     } finally {
       setContactSending(false);
     }
@@ -85,15 +87,10 @@ const Footer: React.FC = () => {
                 {links.map((link) => (
                   <Typography
                     key={link}
-                    component="a"
-                    href="#"
                     sx={{
                       fontFamily: 'var(--lp-font-body)',
                       fontSize: '0.875rem',
-                      color: 'var(--lp-text)',
-                      textDecoration: 'none',
-                      '&:hover': { color: 'var(--lp-accent)' },
-                      transition: 'color 0.2s ease',
+                      color: 'var(--lp-text-muted)',
                     }}
                   >
                     {link}
@@ -121,6 +118,10 @@ const Footer: React.FC = () => {
             {contactSent ? (
               <Alert severity="success" sx={{ fontFamily: 'var(--lp-font-body)' }}>
                 Message sent. We'll get back to you soon.
+              </Alert>
+            ) : contactError ? (
+              <Alert severity="error" sx={{ fontFamily: 'var(--lp-font-body)' }}>
+                Something went wrong. Please try again or email us directly.
               </Alert>
             ) : (
               <form onSubmit={handleContact}>

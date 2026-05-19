@@ -3,6 +3,7 @@ import { Box } from '@mui/material';
 import { IconArrowRight, IconLogin2 } from '@tabler/icons-react';
 import { LpThemeProvider } from './LandingpageTheme';
 import { DemoDialogProvider } from './components/DemoDialog';
+import LazySection from './components/LazySection';
 import ThemeToggle from './components/ThemeToggle';
 import Header from './sections/Header';
 import Hero from './sections/Hero';
@@ -49,11 +50,11 @@ const Landingpage: React.FC = () => {
             <TrustBar />
             <ModulesGrid />
             <HowItWorks />
-            <AiHighlight />
-            <Testimonials />
-            <Pricing variant="default" />
-            <Faq />
-            <FinalCta />
+            <LazySection minHeight="300px"><AiHighlight /></LazySection>
+            <LazySection minHeight="250px"><Testimonials /></LazySection>
+            <LazySection minHeight="400px"><Pricing variant="default" /></LazySection>
+            <LazySection minHeight="300px"><Faq /></LazySection>
+            <LazySection minHeight="200px"><FinalCta /></LazySection>
           </main>
           <Footer />
           <ThemeToggle />

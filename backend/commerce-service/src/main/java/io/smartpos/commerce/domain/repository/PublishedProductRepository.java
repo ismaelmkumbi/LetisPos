@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -17,6 +18,9 @@ public interface PublishedProductRepository extends JpaRepository<PublishedProdu
     Optional<PublishedProduct> findByStoreIdAndSlug(UUID storeId, String slug);
     Page<PublishedProduct> findByStoreIdAndTenantId(UUID storeId, UUID tenantId, Pageable pageable);
     Page<PublishedProduct> findByStoreIdAndFeaturedTrue(UUID storeId, Pageable pageable);
+
+    @Query("SELECT pp FROM PublishedProduct pp WHERE pp.storeId = :storeId ORDER BY pp.displayOrder ASC, pp.publishedAt DESC")
+    List<PublishedProduct> findByStoreId(@Param("storeId") UUID storeId);
 
     @Query(value = """
         SELECT pp FROM PublishedProduct pp

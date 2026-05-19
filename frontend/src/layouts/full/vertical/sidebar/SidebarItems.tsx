@@ -19,8 +19,10 @@ import { mapIcon } from './IconMap';
  */
 function transformNode(node: MenuNode): Record<string, unknown> {
   const children: Record<string, unknown>[] = node.children.map((c) => transformNode(c));
-  // Strip leading / so routes are relative and resolve under /smartpos
-  const href = node.route ? node.route.replace(/^\//, '') : undefined;
+  // Ensure routes are absolute under /smartpos so NavLink resolves correctly
+  const href = node.route
+    ? node.route.startsWith('/') ? node.route : `/smartpos/${node.route}`
+    : undefined;
   return {
     id: node.id,
     title: node.label,

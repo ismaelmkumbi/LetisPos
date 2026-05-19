@@ -33,7 +33,7 @@ public class ProductPublishingController {
         Pageable pageable) {
         UUID tenantId = TenantContext.require();
         Store store = storeService.getByTenant(tenantId);
-        return publishingService.listPublished(store.getId(), search, pageable)
+        return publishingService.listPublished(store.getId(), search, null, pageable)
             .map(PublishedProductDto::from);
     }
 

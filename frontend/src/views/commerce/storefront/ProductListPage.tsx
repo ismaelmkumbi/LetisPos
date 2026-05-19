@@ -1,85 +1,135 @@
-import React, { useEffect, useState } from 'react';
-import { Container, Typography, Box, Select, MenuItem, FormControl, InputLabel } from '@mui/material';
-import { useParams, useSearchParams } from 'react-router';
+import React, { useEffect, useState, useMemo } from 'react';
+import { Container, Box } from '@mui/material';
+import { useParams } from 'react-router';
 import ProductGrid from '../../../components/commerce/ProductGrid';
+import ProductFilterSidebar from '../../../components/commerce/ProductFilterSidebar';
+import ProductResultsHeader from '../../../components/commerce/ProductResultsHeader';
+import ActiveFilterChips from '../../../components/commerce/ActiveFilterChips';
 import { storefront } from '../../../api/smartpos/commerce';
+import { useProductFilters } from '../../../hooks/useProductFilters';
 import type { StorefrontProduct } from '../../../types/commerce';
 
 const ProductListPage: React.FC = () => {
   const { slug, categoryId } = useParams<{ slug: string; categoryId: string }>();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const { filters, setFilter, toggleBrand, setPriceRange, clearAllFilters, activeFilterChips, apiParams, PRICE_RANGES, RATING_OPTIONS } =
+    useProductFilters();
   const [products, setProducts] = useState<StorefrontProduct[]>([]);
   const [loading, setLoading] = useState(true);
-  const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
 
-  const currentPage = parseInt(searchParams.get('page') || '0', 10);
-  const sort = searchParams.get('sort') || 'newest';
+  // Sync categoryId from URL param into filters
+  useEffect(() => {
+    if (categoryId && categoryId !== 'all' && categoryId !== filters.categoryId) {
+      setFilter('categoryId', categoryId);
+    }
+  }, [categoryId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const effectiveApiParams = useMemo(
+    () => ({
+      ...apiParams,
+      categoryId: apiParams.categoryId || (categoryId && categoryId !== 'all' ? categoryId : undefined),
+    }),
+    [apiParams, categoryId],
+  );
 
   useEffect(() => {
     setLoading(true);
-    storefront.getProducts(slug!, {
-      categoryId: categoryId !== 'all' ? categoryId : undefined,
-      sort,
-      page: currentPage,
-      size: 20,
-    })
-      .then(data => {
+    storefront
+      .getProducts(slug!, effectiveApiParams)
+      .then((data) => {
         setProducts(data.content);
         setTotalPages(data.totalPages);
         setTotalElements(data.totalElements);
       })
       .catch(() => setProducts([]))
       .finally(() => setLoading(false));
-  }, [slug, categoryId, currentPage, sort]);
+  }, [slug, effectiveApiParams]);
+
+  const availableBrands = useMemo(() => {
+    const brands = new Set<string>();
+    products.forEach((p) => {
+      if (p.brand?.name) brands.add(p.brand.name);
+    });
+    return Array.from(brands).sort();
+  }, [products]);
+
+  const categories = useMemo(
+    () => [
+      { id: 'cat-electronics', name: 'Electronics', slug: 'electronics' },
+      { id: 'cat-fashion', name: 'Fashion', slug: 'fashion' },
+      { id: 'cat-home', name: 'Home & Living', slug: 'home' },
+      { id: 'cat-sports', name: 'Sports & Outdoors', slug: 'sports' },
+    ],
+    [],
+  );
+
+  const filtersActive = activeFilterChips.length > 0;
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
-        <Typography variant="h4" component="h1"
-          sx={{ fontFamily: 'var(--commerce-font-heading, inherit)', color: 'var(--commerce-text, inherit)' }}>
-          {categoryId && categoryId !== 'all' ? 'Category' : 'All Products'}
-          {totalElements > 0 && (
-            <Typography component="span" variant="body1" color="text.secondary" sx={{ ml: 2 }}>
-              ({totalElements} products)
-            </Typography>
-          )}
-        </Typography>
-        <FormControl size="small" sx={{ minWidth: 150 }}>
-          <InputLabel>Sort By</InputLabel>
-          <Select
-            value={sort}
-            label="Sort By"
-            onChange={(e) => {
-              setSearchParams(prev => { prev.set('sort', e.target.value); prev.set('page', '0'); return prev; });
-            }}
-          >
-            <MenuItem value="newest">Newest</MenuItem>
-            <MenuItem value="priceAsc">Price: Low to High</MenuItem>
-            <MenuItem value="priceDesc">Price: High to Low</MenuItem>
-            <MenuItem value="name">Name</MenuItem>
-          </Select>
-        </FormControl>
-      </Box>
-      <ProductGrid products={products} loading={loading} emptyMessage="No products found in this category." />
-      {/* Simple pagination */}
-      {totalPages > 1 && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1, mt: 4 }}>
-          {Array.from({ length: totalPages }, (_, i) => (
-            <Box
-              key={i}
-              onClick={() => setSearchParams(prev => { prev.set('page', String(i)); return prev; })}
-              sx={{
-                px: 2, py: 1, cursor: 'pointer', borderRadius: 1,
-                bgcolor: currentPage === i ? 'var(--commerce-primary, #1976d2)' : 'grey.100',
-                color: currentPage === i ? 'white' : 'inherit',
-              }}
-            >
-              {i + 1}
+    <Container maxWidth="xl" sx={{ py: 4 }}>
+      <Box sx={{ display: 'flex', gap: 3 }}>
+        {/* Sidebar */}
+        <ProductFilterSidebar
+          open={mobileFilterOpen}
+          onClose={() => setMobileFilterOpen(false)}
+          filters={filters}
+          categories={categories}
+          availableBrands={availableBrands}
+          setFilter={setFilter}
+          toggleBrand={toggleBrand}
+          setPriceRange={setPriceRange}
+          clearAllFilters={clearAllFilters}
+          PRICE_RANGES={PRICE_RANGES}
+          RATING_OPTIONS={RATING_OPTIONS}
+        />
+
+        {/* Main content area */}
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          <ProductResultsHeader
+            totalElements={totalElements}
+            sort={filters.sort}
+            onSortChange={(v) => setFilter('sort', v)}
+            onFilterToggle={() => setMobileFilterOpen(true)}
+            filtersActive={filtersActive}
+          />
+
+          <Box sx={{ mb: 2 }}>
+            <ActiveFilterChips chips={activeFilterChips} onClearAll={clearAllFilters} />
+          </Box>
+
+          <ProductGrid
+            products={products}
+            loading={loading}
+            emptyMessage="No products found. Try adjusting your filters."
+          />
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1, mt: 4 }}>
+              {Array.from({ length: totalPages }, (_, i) => (
+                <Box
+                  key={i}
+                  onClick={() => setFilter('page', i)}
+                  sx={{
+                    px: 2,
+                    py: 1,
+                    cursor: 'pointer',
+                    borderRadius: 2,
+                    fontWeight: 600,
+                    bgcolor: filters.page === i ? 'var(--commerce-primary, #1a1a2e)' : 'grey.100',
+                    color: filters.page === i ? 'white' : 'inherit',
+                    '&:hover': { bgcolor: filters.page === i ? undefined : 'grey.200' },
+                  }}
+                >
+                  {i + 1}
+                </Box>
+              ))}
             </Box>
-          ))}
+          )}
         </Box>
-      )}
+      </Box>
     </Container>
   );
 };

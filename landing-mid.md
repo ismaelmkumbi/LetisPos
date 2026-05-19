@@ -1,0 +1,276 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e6]:
+      - link "Letis POS" [ref=e7] [cursor=pointer]:
+        - /url: /
+        - generic [ref=e9]:
+          - img "Letis POS" [ref=e10]
+          - generic [ref=e16]:
+            - generic [ref=e17]: Letis
+            - generic [ref=e18]: POS
+      - generic [ref=e19]:
+        - link "Product" [ref=e20] [cursor=pointer]:
+          - /url: "#product"
+        - link "Trusted teams" [ref=e21] [cursor=pointer]:
+          - /url: "#trusted"
+        - link "Features" [ref=e22] [cursor=pointer]:
+          - /url: "#features"
+        - link "Pricing" [ref=e23] [cursor=pointer]:
+          - /url: "#pricing"
+        - generic [ref=e24]:
+          - link "Sign in" [ref=e25] [cursor=pointer]:
+            - /url: /auth/login
+          - link "Start free trial" [ref=e26] [cursor=pointer]:
+            - /url: /auth/register?plan=starter
+  - main [ref=e27]:
+    - generic [ref=e29]:
+      - generic [ref=e30]:
+        - generic [ref=e31]:
+          - generic [ref=e32]:
+            - img [ref=e33]
+            - text: AI Powered
+          - heading "Smarter POS. Stronger Business." [level=1] [ref=e40]:
+            - text: Smarter POS.
+            - generic [ref=e41]: Stronger Business.
+          - paragraph [ref=e42]: Letis POS helps you manage sales, inventory, customers, and finances with AI insights and a real-time dashboard.
+          - generic [ref=e43]:
+            - link "Start free trial" [ref=e44] [cursor=pointer]:
+              - /url: /auth/register?plan=starter
+              - text: Start free trial
+              - img [ref=e46]
+            - button "Book a demo" [ref=e49] [cursor=pointer]
+          - generic [ref=e50]:
+            - generic [ref=e51]:
+              - img [ref=e53]
+              - generic [ref=e60]:
+                - paragraph [ref=e61]: AI business insights
+                - paragraph [ref=e62]: Understand sales, profit, and trends in real time.
+            - generic [ref=e63]:
+              - img [ref=e65]
+              - generic [ref=e70]:
+                - paragraph [ref=e71]: Smart inventory alerts
+                - paragraph [ref=e72]: Know what to restock before the shelf goes empty.
+            - generic [ref=e73]:
+              - img [ref=e75]
+              - generic [ref=e78]:
+                - paragraph [ref=e79]: Sales recommendations
+                - paragraph [ref=e80]: See products to upsell and actions to grow revenue.
+            - generic [ref=e81]:
+              - img [ref=e83]
+              - generic [ref=e88]:
+                - paragraph [ref=e89]: Customer intelligence
+                - paragraph [ref=e90]: Build stronger relationships from every transaction.
+        - generic [ref=e92]:
+          - generic [ref=e93]:
+            - img [ref=e94]
+            - text: "System status:"
+            - generic [ref=e97]: Online
+          - generic [ref=e98]:
+            - generic [ref=e99]:
+              - generic:
+                - generic:
+                  - generic:
+                    - img "Letis POS"
+                    - generic:
+                      - generic: Letis
+                      - generic: POS
+              - generic [ref=e103]:
+                - generic [ref=e104]:
+                  - img "Letis POS" [ref=e105]
+                  - paragraph [ref=e111]: Letis POS
+                - generic [ref=e112]:
+                  - generic [ref=e113]: "Reference : INV-2026-000433"
+                  - generic [ref=e114]: "Date : 04/05/2026, 12:32:57"
+                - generic [ref=e116]:
+                  - generic [ref=e117]: PRODUCT
+                  - generic [ref=e118]: TOTAL
+                - generic [ref=e119]:
+                  - generic [ref=e120]:
+                    - generic [ref=e121]:
+                      - generic [ref=e122]: Sukari Kilo
+                      - generic [ref=e123]: 22.4K
+                    - paragraph [ref=e124]: x7 unit x 4,100.00
+                  - generic [ref=e125]:
+                    - generic [ref=e126]:
+                      - generic [ref=e127]: Mchele Mbeya
+                      - generic [ref=e128]: 68.4K
+                    - paragraph [ref=e129]: x4 unit x 4,100.00
+                  - generic [ref=e130]:
+                    - generic [ref=e131]:
+                      - generic [ref=e132]: Unga Ngano
+                      - generic [ref=e133]: 25K
+                    - paragraph [ref=e134]: x4 unit x 4,100.00
+            - img "Letis POS dashboard preview for the selected month" [ref=e140]
+      - generic [ref=e144]:
+        - generic [ref=e145]:
+          - img [ref=e147]
+          - generic [ref=e150]:
+            - paragraph [ref=e151]: Secure & Reliable
+            - paragraph [ref=e152]: Tenant-safe data and protected business records.
+        - generic [ref=e153]:
+          - img [ref=e155]
+          - generic [ref=e158]:
+            - paragraph [ref=e159]: Cloud Access
+            - paragraph [ref=e160]: Run the business from any branch or device.
+        - generic [ref=e161]:
+          - img [ref=e163]
+          - generic [ref=e170]:
+            - paragraph [ref=e171]: AI Powered
+            - paragraph [ref=e172]: Insights and automation for faster decisions.
+        - generic [ref=e173]:
+          - img [ref=e175]
+          - generic [ref=e179]:
+            - paragraph [ref=e180]: POS Ready
+            - paragraph [ref=e181]: Works for counters, receipts, and daily sales.
+    - generic [ref=e183]:
+      - generic [ref=e184]:
+        - generic [ref=e185]:
+          - paragraph [ref=e186]: Trusted by growing retail teams
+          - paragraph [ref=e187]: Built for the counters, shelves, branches, and managers who need clear numbers now.
+        - generic [ref=e188]:
+          - generic [ref=e189]: IM
+          - generic [ref=e190]: AN
+          - generic [ref=e191]: SK
+          - generic [ref=e192]: JT
+          - paragraph [ref=e193]: operators already onboarded
+      - generic [ref=e194]:
+        - generic [ref=e195]:
+          - img [ref=e197]
+          - generic [ref=e200]:
+            - paragraph [ref=e201]: Mlimani Mart
+            - paragraph [ref=e202]: Mini market
+        - generic [ref=e203]:
+          - img [ref=e205]
+          - generic [ref=e208]:
+            - paragraph [ref=e209]: Afya Pharmacy
+            - paragraph [ref=e210]: Pharmacy
+        - generic [ref=e211]:
+          - img [ref=e213]
+          - generic [ref=e215]:
+            - paragraph [ref=e216]: Urban Electronics
+            - paragraph [ref=e217]: Electronics
+        - generic [ref=e218]:
+          - img [ref=e220]
+          - generic [ref=e222]:
+            - paragraph [ref=e223]: Zanzi Fashion
+            - paragraph [ref=e224]: Boutique
+        - generic [ref=e225]:
+          - img [ref=e227]
+          - generic [ref=e229]:
+            - paragraph [ref=e230]: Kijiji Kitchen
+            - paragraph [ref=e231]: Restaurant
+        - generic [ref=e232]:
+          - img [ref=e234]
+          - generic [ref=e238]:
+            - paragraph [ref=e239]: Mwanza Wholesale
+            - paragraph [ref=e240]: Warehouse
+    - generic [ref=e242]:
+      - generic [ref=e243]:
+        - paragraph [ref=e244]: Everything included
+        - paragraph [ref=e245]: All core modules included. Advanced features unlock as you scale.
+      - generic [ref=e246]:
+        - generic [ref=e248]:
+          - img [ref=e250]
+          - paragraph [ref=e254]: Point of Sale
+          - paragraph [ref=e255]: Fast checkout, barcode scanning, customer display, and receipt printing — online or offline.
+        - generic [ref=e257]:
+          - img [ref=e259]
+          - paragraph [ref=e268]: Inventory Management
+          - paragraph [ref=e269]: Track stock across every warehouse, serial number, and shelf in real time.
+        - generic [ref=e271]:
+          - img [ref=e273]
+          - paragraph [ref=e276]: Accounting
+          - paragraph [ref=e277]: Double-entry ledger, chart of accounts, journal entries, and financial statements.
+        - generic [ref=e279]:
+          - img [ref=e281]
+          - paragraph [ref=e285]: Purchases & Suppliers
+          - paragraph [ref=e286]: Purchase orders, supplier management, and procurement workflow from order to payment.
+        - generic [ref=e288]:
+          - img [ref=e290]
+          - paragraph [ref=e293]: Reports & Analytics
+          - paragraph [ref=e294]: Sales, inventory, tax, customer, and payment reports — filterable and exportable.
+        - generic [ref=e296]:
+          - img [ref=e298]
+          - paragraph [ref=e305]: AI Insights
+          - paragraph [ref=e306]: Smart predictions, reorder alerts, trend detection, and automated report summaries.
+        - generic [ref=e308]:
+          - img [ref=e310]
+          - paragraph [ref=e315]: HRM & Payroll
+          - paragraph [ref=e316]: Employee records, attendance tracking, leave management, and payroll processing.
+        - generic [ref=e318]:
+          - img [ref=e320]
+          - paragraph [ref=e323]: Multi-store Management
+          - paragraph [ref=e324]: Centralized control across unlimited locations with consolidated reporting.
+    - generic [ref=e326]:
+      - generic [ref=e327]:
+        - paragraph [ref=e328]: Get running in minutes
+        - paragraph [ref=e329]: From sign-up to first sale — no training required.
+      - generic [ref=e330]:
+        - generic [ref=e331]:
+          - paragraph [ref=e332]: "01"
+          - img [ref=e334]
+          - paragraph [ref=e337]: Create your account
+          - paragraph [ref=e338]: Sign up in 30 seconds. Choose your plan. No credit card needed to start.
+        - generic [ref=e339]:
+          - paragraph [ref=e340]: "02"
+          - img [ref=e342]
+          - paragraph [ref=e351]: Add your products
+          - paragraph [ref=e352]: Import your inventory, set prices, configure taxes. Bulk import supported.
+        - generic [ref=e353]:
+          - paragraph [ref=e354]: "03"
+          - img [ref=e356]
+          - paragraph [ref=e360]: Start selling
+          - paragraph [ref=e361]: Open the POS terminal and start processing sales. Your inventory and accounts update automatically.
+  - contentinfo [ref=e367]:
+    - generic [ref=e368]:
+      - generic [ref=e369]:
+        - generic [ref=e370]:
+          - generic [ref=e373]:
+            - img "Letis POS" [ref=e374]
+            - generic [ref=e380]:
+              - generic [ref=e381]: Letis
+              - generic [ref=e382]: POS
+          - paragraph [ref=e383]: The all-in-one POS platform for modern retail. Run your entire business from one place.
+        - generic [ref=e384]:
+          - paragraph [ref=e385]: Product
+          - generic [ref=e386]:
+            - paragraph [ref=e387]: Point of Sale
+            - paragraph [ref=e388]: Inventory
+            - paragraph [ref=e389]: Accounting
+            - paragraph [ref=e390]: Reports
+            - paragraph [ref=e391]: AI Insights
+            - paragraph [ref=e392]: Integrations
+        - generic [ref=e393]:
+          - paragraph [ref=e394]: Company
+          - generic [ref=e395]:
+            - paragraph [ref=e396]: About
+            - paragraph [ref=e397]: Careers
+            - paragraph [ref=e398]: Blog
+            - paragraph [ref=e399]: Press
+        - generic [ref=e400]:
+          - paragraph [ref=e401]: Legal
+          - generic [ref=e402]:
+            - paragraph [ref=e403]: Terms of Service
+            - paragraph [ref=e404]: Privacy Policy
+            - paragraph [ref=e405]: Security
+        - generic [ref=e406]:
+          - paragraph [ref=e407]: Contact Us
+          - generic [ref=e409]:
+            - generic [ref=e411]:
+              - textbox "Your name" [ref=e412]
+              - group
+            - generic [ref=e414]:
+              - textbox "Your email" [ref=e415]
+              - group
+            - generic [ref=e417]:
+              - textbox "Message" [ref=e418]
+              - group
+            - button "Send message" [ref=e419] [cursor=pointer]
+      - paragraph [ref=e421]: © 2026 Letis. All rights reserved.
+  - generic [ref=e423]:
+    - img [ref=e425]
+    - button "Use Refined Enterprise theme" [pressed] [ref=e430] [cursor=pointer]:
+      - generic [ref=e435]: Refined
+      - img [ref=e437]
+    - button "Use Bright Retail theme" [ref=e439] [cursor=pointer]:
+      - generic [ref=e444]: Bright
