@@ -1,17 +1,20 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Box,
   Button,
+  Card,
   Chip,
   IconButton,
-  Paper,
+  InputAdornment,
   Stack,
   TextField,
+  ToggleButton,
+  ToggleButtonGroup,
   Tooltip,
   Typography,
 } from '@mui/material';
-import { IconPlus, IconX, IconSearch } from '@tabler/icons-react';
+import { IconCircleCheck, IconCircleX, IconSearch, IconX } from '@tabler/icons-react';
 
 import {
   getAllFeatures,
@@ -21,56 +24,134 @@ import {
   type FeatureDefinition,
   type FeatureAssignment,
 } from 'src/api/smartpos/features';
-
-/* ── Theme colours (Catppuccin Mocha) ── */
-
-const COLORS = {
-  bg: '#1e1e2e',
-  bgAlt: '#313244',
-  bgBase: '#11111b',
-  text: '#cdd6f4',
-  textMuted: '#a6adc8',
-  textDim: '#6c7086',
-  blue: '#89b4fa',
-  green: '#a6e3a1',
-  red: '#f38ba8',
-  yellow: '#f9e2af',
-  purple: '#cba6f7',
-};
+import { brand } from 'src/theme/smartpos/brand';
 
 type Level = 'TENANT' | 'USER';
 
-/* ── Main component ── */
+function OverrideList({
+  title,
+  tone,
+  features,
+  emptyText,
+  onRemove,
+}: {
+  title: string;
+  tone: 'success' | 'error';
+  features: FeatureDefinition[];
+  emptyText: string;
+  onRemove: (featureKey: string) => void;
+}) {
+  const color = tone === 'success' ? brand.success.dark : brand.error.dark;
+  const bg = tone === 'success' ? brand.success.light : brand.error.light;
+
+  return (
+    <Card
+      elevation={0}
+      sx={{
+        flex: 1,
+        p: 1.5,
+        borderRadius: '10px',
+        border: `1px solid ${brand.neutral[200]}`,
+        minHeight: 260,
+      }}
+    >
+      <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1.25 }}>
+        <Typography sx={{ color, fontWeight: 850, fontSize: '0.82rem' }}>{title}</Typography>
+        <Chip
+          label={features.length}
+          size="small"
+          sx={{ height: 22, borderRadius: '6px', bgcolor: bg, color, fontWeight: 850 }}
+        />
+      </Stack>
+
+      <Stack spacing={0.75}>
+        {features.map((feature) => (
+          <Box
+            key={feature.id}
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 1,
+              px: 1,
+              py: 0.85,
+              borderRadius: '8px',
+              bgcolor: brand.neutral[50],
+              border: `1px solid ${brand.neutral[200]}`,
+            }}
+          >
+            <Box sx={{ minWidth: 0 }}>
+              <Typography sx={{ color: brand.neutral[800], fontWeight: 800, fontSize: '0.82rem' }} noWrap>
+                {feature.label}
+              </Typography>
+              <Typography sx={{ color: brand.neutral[500], fontWeight: 600, fontSize: '0.7rem' }} noWrap>
+                {feature.key} · {feature.category}
+              </Typography>
+            </Box>
+            <Tooltip title="Remove override">
+              <IconButton
+                size="small"
+                aria-label={`Remove ${feature.label} override`}
+                onClick={() => onRemove(feature.key)}
+                sx={{ color: brand.error.main, flexShrink: 0 }}
+              >
+                <IconX size={15} />
+              </IconButton>
+            </Tooltip>
+          </Box>
+        ))}
+        {features.length === 0 && (
+          <Box
+            sx={{
+              border: `1px dashed ${brand.neutral[300]}`,
+              borderRadius: '10px',
+              px: 1.5,
+              py: 4,
+              textAlign: 'center',
+            }}
+          >
+            <Typography sx={{ color: brand.neutral[500], fontWeight: 650, fontSize: '0.82rem' }}>
+              {emptyText}
+            </Typography>
+          </Box>
+        )}
+      </Stack>
+    </Card>
+  );
+}
 
 export default function TenantUserOverrides() {
-  // Feature catalogue reference
   const [allFeatures, setAllFeatures] = useState<FeatureDefinition[]>([]);
-
-  // Search
   const [level, setLevel] = useState<Level>('TENANT');
   const [targetId, setTargetId] = useState('');
   const [searchValue, setSearchValue] = useState('');
-
-  // Override data
+  const [filter, setFilter] = useState('');
   const [overrides, setOverrides] = useState<FeatureAssignment[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searched, setSearched] = useState(false);
 
-  /* ── Load feature catalogue once ── */
-
   useEffect(() => {
     getAllFeatures()
-      .then(setAllFeatures)
-      .catch(() => { /* reference is best-effort */ });
+      .then((features) => setAllFeatures(features.sort((a, b) => a.label.localeCompare(b.label))))
+      .catch(() => {
+        setAllFeatures([]);
+      });
   }, []);
 
-  /* ── Fetch overrides for target ── */
+  const refreshOverrides = useCallback(
+    async (target = targetId) => {
+      if (!target) return;
+      const results = await getAssignments({ level, targetId: target });
+      setOverrides(results);
+    },
+    [level, targetId],
+  );
 
   const search = useCallback(async () => {
     const id = searchValue.trim();
     if (!id) {
-      setError('Enter a tenant or user ID');
+      setError('Enter a tenant ID, user ID, slug, or email before searching.');
       return;
     }
     setTargetId(id);
@@ -88,16 +169,16 @@ export default function TenantUserOverrides() {
     }
   }, [level, searchValue]);
 
-  /* ── Toggle override ── */
-
   const handleToggleOverride = useCallback(
     async (featureKey: string, granted: boolean) => {
       if (!targetId) return;
       setError(null);
 
-      // Check if override already exists
       const existing = overrides.find(
-        (o) => o.featureKey === featureKey && o.assignmentLevel === level && o.targetId === targetId,
+        (override) =>
+          override.featureKey === featureKey &&
+          override.assignmentLevel === level &&
+          override.targetId === targetId,
       );
 
       try {
@@ -111,29 +192,36 @@ export default function TenantUserOverrides() {
             granted,
           });
         }
-        // Refresh
-        const results = await getAssignments({ level, targetId });
-        setOverrides(results);
+        await refreshOverrides();
       } catch (e) {
-        setError(e instanceof Error ? e.message : 'Failed to toggle override');
+        setError(e instanceof Error ? e.message : 'Failed to update override');
       }
     },
-    [level, targetId, overrides],
+    [level, targetId, overrides, refreshOverrides],
   );
 
-  /* ── Derived ── */
-
-  const extraFeatureKeys = new Set(
-    overrides.filter((o) => o.granted).map((o) => o.featureKey),
+  const extraFeatureKeys = useMemo(
+    () => new Set(overrides.filter((override) => override.granted).map((override) => override.featureKey)),
+    [overrides],
   );
-  const deniedFeatureKeys = new Set(
-    overrides.filter((o) => !o.granted).map((o) => o.featureKey),
+  const deniedFeatureKeys = useMemo(
+    () => new Set(overrides.filter((override) => !override.granted).map((override) => override.featureKey)),
+    [overrides],
   );
 
-  const extraFeatures = allFeatures.filter((f) => extraFeatureKeys.has(f.key));
-  const deniedFeatures = allFeatures.filter((f) => deniedFeatureKeys.has(f.key));
-
-  /* ── Render ── */
+  const extraFeatures = allFeatures.filter((feature) => extraFeatureKeys.has(feature.key));
+  const deniedFeatures = allFeatures.filter((feature) => deniedFeatureKeys.has(feature.key));
+  const availableFeatures = allFeatures
+    .filter((feature) => !extraFeatureKeys.has(feature.key) && !deniedFeatureKeys.has(feature.key))
+    .filter((feature) => {
+      const q = filter.trim().toLowerCase();
+      if (!q) return true;
+      return (
+        feature.label.toLowerCase().includes(q) ||
+        feature.key.toLowerCase().includes(q) ||
+        feature.category.toLowerCase().includes(q)
+      );
+    });
 
   return (
     <Box>
@@ -143,285 +231,183 @@ export default function TenantUserOverrides() {
         </Alert>
       )}
 
-      {/* Search section */}
-      <Paper
+      <Card
+        elevation={0}
         sx={{
-          p: 2,
-          mb: 3,
-          bgcolor: COLORS.bg,
-          borderRadius: '12px',
-          border: `1px solid ${COLORS.bgAlt}`,
+          p: 1.5,
+          mb: 2,
+          borderRadius: '10px',
+          border: `1px solid ${brand.neutral[200]}`,
+          bgcolor: brand.neutral[50],
         }}
       >
-        <Typography variant="subtitle2" sx={{ color: COLORS.text, mb: 1.5, fontWeight: 600 }}>
-          Search Tenant or User
-        </Typography>
-        <Stack direction="row" spacing={1.5} alignItems="center" sx={{ flexWrap: 'wrap', gap: 1 }}>
-          <Chip
-            label="Tenant"
-            onClick={() => setLevel('TENANT')}
-            sx={{
-              fontWeight: 700,
-              bgcolor: level === 'TENANT' ? COLORS.blue : COLORS.bgAlt,
-              color: level === 'TENANT' ? COLORS.bgBase : COLORS.textMuted,
-              '&:hover': { bgcolor: level === 'TENANT' ? COLORS.blue : '#45475a' },
-            }}
-          />
-          <Chip
-            label="User"
-            onClick={() => setLevel('USER')}
-            sx={{
-              fontWeight: 700,
-              bgcolor: level === 'USER' ? COLORS.blue : COLORS.bgAlt,
-              color: level === 'USER' ? COLORS.bgBase : COLORS.textMuted,
-              '&:hover': { bgcolor: level === 'USER' ? COLORS.blue : '#45475a' },
-            }}
-          />
-          <TextField
+        <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.25} alignItems={{ xs: 'stretch', md: 'center' }}>
+          <ToggleButtonGroup
+            exclusive
             size="small"
-            placeholder={level === 'TENANT' ? 'Tenant ID or slug...' : 'User ID or email...'}
-            value={searchValue}
-            onChange={(e) => setSearchValue(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') search(); }}
+            value={level}
+            onChange={(_, value) => value && setLevel(value)}
+            aria-label="Override target type"
             sx={{
-              minWidth: 260,
-              '& .MuiOutlinedInput-root': {
-                color: COLORS.text,
-                '& fieldset': { borderColor: COLORS.bgAlt },
-                '&:hover fieldset': { borderColor: COLORS.textDim },
+              '& .MuiToggleButton-root': {
+                textTransform: 'none',
+                fontWeight: 800,
+                px: 1.75,
               },
             }}
+          >
+            <ToggleButton value="TENANT">Tenant</ToggleButton>
+            <ToggleButton value="USER">User</ToggleButton>
+          </ToggleButtonGroup>
+
+          <TextField
+            size="small"
+            placeholder={level === 'TENANT' ? 'Tenant ID or slug' : 'User ID or email'}
+            value={searchValue}
+            onChange={(e) => setSearchValue(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') search();
+            }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <IconSearch size={16} />
+                </InputAdornment>
+              ),
+            }}
+            sx={{ flex: 1, minWidth: { xs: '100%', md: 280 }, bgcolor: '#FFFFFF' }}
           />
+
           <Button
             variant="contained"
             startIcon={<IconSearch size={16} />}
             onClick={search}
             disabled={loading}
-            sx={{
-              bgcolor: COLORS.blue,
-              color: COLORS.bgBase,
-              fontWeight: 700,
-              textTransform: 'none',
-              borderRadius: '8px',
-              '&:hover': { bgcolor: '#7cb0f0' },
-            }}
+            sx={{ borderRadius: '8px', textTransform: 'none', fontWeight: 850, minHeight: 40 }}
           >
-            {loading ? 'Loading...' : 'Search'}
+            {loading ? 'Loading...' : 'Load Overrides'}
           </Button>
         </Stack>
-      </Paper>
+      </Card>
 
       {!searched ? (
-        <Typography sx={{ color: COLORS.textDim, textAlign: 'center', py: 4 }}>
-          Enter a tenant or user ID above to view and manage their feature overrides.
-        </Typography>
-      ) : (
-        <Stack direction="row" spacing={2}>
-          {/* Extra features column (granted) */}
-          <Paper
-            sx={{
-              flex: 1,
-              p: 2,
-              bgcolor: COLORS.bg,
-              borderRadius: '12px',
-              border: `1px solid ${COLORS.bgAlt}`,
-              minHeight: 240,
-            }}
-          >
-            <Typography
-              variant="subtitle2"
-              sx={{
-                fontWeight: 700,
-                color: COLORS.green,
-                mb: 1.5,
-                textTransform: 'uppercase',
-                letterSpacing: '0.04em',
-                fontSize: '0.78rem',
-              }}
-            >
-              Extra Features (Granted)
-            </Typography>
-            {extraFeatures.length === 0 ? (
-              <Typography variant="caption" sx={{ color: COLORS.textDim }}>
-                No extra features granted. Use the feature list to add overrides.
-              </Typography>
-            ) : (
-              <Stack spacing={0.5}>
-                {extraFeatures.map((f) => (
-                  <Box
-                    key={f.id}
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      px: 1.25,
-                      py: 0.75,
-                      borderRadius: '6px',
-                      bgcolor: COLORS.bgAlt,
-                    }}
-                  >
-                    <Box>
-                      <Typography variant="body2" sx={{ color: COLORS.text, fontWeight: 600, fontSize: '0.78rem' }}>
-                        {f.label}
-                      </Typography>
-                      <Typography variant="caption" sx={{ color: COLORS.textDim }}>
-                        {f.key} &middot; {f.category}
-                      </Typography>
-                    </Box>
-                    <Tooltip title="Remove override">
-                      <IconButton
-                        size="small"
-                        onClick={() => handleToggleOverride(f.key, true)}
-                        sx={{ color: COLORS.red }}
-                      >
-                        <IconX size={14} />
-                      </IconButton>
-                    </Tooltip>
-                  </Box>
-                ))}
-              </Stack>
-            )}
-          </Paper>
-
-          {/* Denied features column (revoked) */}
-          <Paper
-            sx={{
-              flex: 1,
-              p: 2,
-              bgcolor: COLORS.bg,
-              borderRadius: '12px',
-              border: `1px solid ${COLORS.bgAlt}`,
-              minHeight: 240,
-            }}
-          >
-            <Typography
-              variant="subtitle2"
-              sx={{
-                fontWeight: 700,
-                color: COLORS.red,
-                mb: 1.5,
-                textTransform: 'uppercase',
-                letterSpacing: '0.04em',
-                fontSize: '0.78rem',
-              }}
-            >
-              Denied Features (Revoked)
-            </Typography>
-            {deniedFeatures.length === 0 ? (
-              <Typography variant="caption" sx={{ color: COLORS.textDim }}>
-                No features denied. Use the feature list to add denials.
-              </Typography>
-            ) : (
-              <Stack spacing={0.5}>
-                {deniedFeatures.map((f) => (
-                  <Box
-                    key={f.id}
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      px: 1.25,
-                      py: 0.75,
-                      borderRadius: '6px',
-                      bgcolor: COLORS.bgAlt,
-                    }}
-                  >
-                    <Box>
-                      <Typography variant="body2" sx={{ color: COLORS.text, fontWeight: 600, fontSize: '0.78rem' }}>
-                        {f.label}
-                      </Typography>
-                      <Typography variant="caption" sx={{ color: COLORS.textDim }}>
-                        {f.key} &middot; {f.category}
-                      </Typography>
-                    </Box>
-                    <Tooltip title="Remove denial">
-                      <IconButton
-                        size="small"
-                        onClick={() => handleToggleOverride(f.key, false)}
-                        sx={{ color: COLORS.green }}
-                      >
-                        <IconX size={14} />
-                      </IconButton>
-                    </Tooltip>
-                  </Box>
-                ))}
-              </Stack>
-            )}
-          </Paper>
-        </Stack>
-      )}
-
-      {/* Quick-add panel — shows after search */}
-      {searched && allFeatures.length > 0 && (
-        <Paper
+        <Box
           sx={{
-            mt: 2,
-            p: 2,
-            bgcolor: COLORS.bg,
+            border: `1px dashed ${brand.neutral[300]}`,
             borderRadius: '12px',
-            border: `1px solid ${COLORS.bgAlt}`,
+            px: 2,
+            py: 6,
+            textAlign: 'center',
+            bgcolor: '#FFFFFF',
           }}
         >
-          <Typography
-            variant="subtitle2"
+          <Typography sx={{ color: brand.neutral[800], fontWeight: 850 }}>
+            Search a target to manage exceptions.
+          </Typography>
+          <Typography sx={{ color: brand.neutral[500], fontWeight: 600, fontSize: '0.86rem', mt: 0.5 }}>
+            Overrides should be rare, visible, and easy to remove.
+          </Typography>
+        </Box>
+      ) : (
+        <>
+          <Stack direction={{ xs: 'column', lg: 'row' }} spacing={1.5}>
+            <OverrideList
+              title="Granted Features"
+              tone="success"
+              features={extraFeatures}
+              emptyText="No extra features are granted."
+              onRemove={(featureKey) => handleToggleOverride(featureKey, true)}
+            />
+            <OverrideList
+              title="Denied Features"
+              tone="error"
+              features={deniedFeatures}
+              emptyText="No features are denied."
+              onRemove={(featureKey) => handleToggleOverride(featureKey, false)}
+            />
+          </Stack>
+
+          <Card
+            elevation={0}
             sx={{
-              color: COLORS.textDim,
-              mb: 1.5,
-              fontWeight: 600,
-              textTransform: 'uppercase',
-              letterSpacing: '0.04em',
-              fontSize: '0.72rem',
+              mt: 1.5,
+              p: 1.5,
+              borderRadius: '10px',
+              border: `1px solid ${brand.neutral[200]}`,
+              bgcolor: '#FFFFFF',
             }}
           >
-            Add Override
-          </Typography>
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-            {allFeatures
-              .filter((f) => !extraFeatureKeys.has(f.key) && !deniedFeatureKeys.has(f.key))
-              .map((f) => (
-                <Box key={f.id} sx={{ display: 'flex', gap: 0.25 }}>
-                  <Tooltip title={`Grant "${f.label}"`}>
-                    <Chip
-                      icon={<IconPlus size={12} />}
-                      label={f.label}
+            <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.25} justifyContent="space-between" sx={{ mb: 1.25 }}>
+              <Box>
+                <Typography sx={{ color: brand.neutral[900], fontWeight: 850, fontSize: '0.9rem' }}>
+                  Add override
+                </Typography>
+                <Typography sx={{ color: brand.neutral[500], fontWeight: 650, fontSize: '0.76rem' }}>
+                  Target: {targetId}
+                </Typography>
+              </Box>
+              <TextField
+                size="small"
+                placeholder="Filter available features"
+                value={filter}
+                onChange={(e) => setFilter(e.target.value)}
+                sx={{ minWidth: { xs: '100%', md: 260 } }}
+              />
+            </Stack>
+
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
+              {availableFeatures.map((feature) => (
+                <Stack
+                  key={feature.id}
+                  direction="row"
+                  sx={{
+                    border: `1px solid ${brand.neutral[200]}`,
+                    borderRadius: '8px',
+                    overflow: 'hidden',
+                    bgcolor: brand.neutral[50],
+                  }}
+                >
+                  <Tooltip title={`Grant ${feature.label}`}>
+                    <Button
                       size="small"
-                      onClick={() => handleToggleOverride(f.key, true)}
+                      startIcon={<IconCircleCheck size={14} />}
+                      onClick={() => handleToggleOverride(feature.key, true)}
                       sx={{
-                        cursor: 'pointer',
-                        bgcolor: COLORS.bgAlt,
-                        color: COLORS.green,
-                        fontWeight: 600,
-                        fontSize: '0.68rem',
-                        '&:hover': { bgcolor: '#45475a' },
-                        '& .MuiChip-icon': { color: COLORS.green },
+                        minHeight: 32,
+                        borderRadius: 0,
+                        color: brand.success.dark,
+                        textTransform: 'none',
+                        fontWeight: 800,
                       }}
-                    />
+                    >
+                      {feature.label}
+                    </Button>
                   </Tooltip>
-                  <Tooltip title={`Deny "${f.label}"`}>
-                    <Chip
-                      icon={<IconX size={12} />}
-                      label=""
+                  <Tooltip title={`Deny ${feature.label}`}>
+                    <IconButton
                       size="small"
-                      onClick={() => handleToggleOverride(f.key, false)}
+                      aria-label={`Deny ${feature.label}`}
+                      onClick={() => handleToggleOverride(feature.key, false)}
                       sx={{
-                        cursor: 'pointer',
-                        bgcolor: COLORS.bgAlt,
-                        color: COLORS.red,
-                        minWidth: 28,
-                        '&:hover': { bgcolor: '#45475a' },
-                        '& .MuiChip-icon': { color: COLORS.red, margin: 0 },
+                        width: 34,
+                        borderRadius: 0,
+                        borderLeft: `1px solid ${brand.neutral[200]}`,
+                        color: brand.error.main,
                       }}
-                    />
+                    >
+                      <IconCircleX size={15} />
+                    </IconButton>
                   </Tooltip>
-                </Box>
+                </Stack>
               ))}
-            {allFeatures.filter((f) => !extraFeatureKeys.has(f.key) && !deniedFeatureKeys.has(f.key)).length === 0 && (
-              <Typography variant="caption" sx={{ color: COLORS.textDim }}>
-                All features already have an override configured.
-              </Typography>
-            )}
-          </Box>
-        </Paper>
+              {availableFeatures.length === 0 && (
+                <Typography sx={{ color: brand.neutral[500], fontWeight: 650, py: 1, fontSize: '0.82rem' }}>
+                  No available features match the current filter.
+                </Typography>
+              )}
+            </Box>
+          </Card>
+        </>
       )}
     </Box>
   );

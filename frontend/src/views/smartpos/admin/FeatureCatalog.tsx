@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Box,
@@ -14,7 +14,9 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
-import { IconEdit, IconTrash, IconPlus } from '@tabler/icons-react';
+import { IconEdit, IconPlus, IconTrash } from '@tabler/icons-react';
+import DataTable, { type Column, StatusBadge } from 'src/components/smartpos/DataTable';
+import { brand } from 'src/theme/smartpos/brand';
 import {
   getAllFeatures,
   createFeature,
@@ -25,59 +27,36 @@ import {
   type UpdateFeatureRequest,
 } from 'src/api/smartpos/features';
 
-/* ── Theme colours (Catppuccin Mocha) ── */
-
-const COLORS = {
-  bg: '#1e1e2e',
-  bgAlt: '#313244',
-  bgBase: '#11111b',
-  text: '#cdd6f4',
-  textMuted: '#a6adc8',
-  textDim: '#6c7086',
-  blue: '#89b4fa',
-  green: '#a6e3a1',
-  red: '#f38ba8',
-  yellow: '#f9e2af',
-  purple: '#cba6f7',
+const initialForm = {
+  key: '',
+  label: '',
+  description: '',
+  category: '',
+  sortOrder: 0,
 };
 
-const CATEGORY_COLORS: Record<string, string> = {
-  pos: COLORS.green,
-  inventory: COLORS.blue,
-  sales: COLORS.yellow,
-  accounting: COLORS.purple,
-  hrm: COLORS.red,
-  crm: COLORS.blue,
-  reports: COLORS.purple,
-  marketing: COLORS.yellow,
-  integrations: COLORS.blue,
-  settings: COLORS.textMuted,
-  admin: COLORS.red,
+const categoryTone = (category: string) => {
+  if (['admin', 'security'].includes(category)) return 'error';
+  if (['reports', 'accounting'].includes(category)) return 'primary';
+  if (['inventory', 'pos', 'sales'].includes(category)) return 'success';
+  if (['integrations', 'settings'].includes(category)) return 'info';
+  return 'neutral';
 };
-
-/* ── Main component ── */
 
 export default function FeatureCatalog() {
   const [features, setFeatures] = useState<FeatureDefinition[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  // Dialog state
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<FeatureDefinition | null>(null);
-  const [form, setForm] = useState({
-    key: '',
-    label: '',
-    description: '',
-    category: '',
-    sortOrder: 0,
-  });
+  const [form, setForm] = useState(initialForm);
   const [saving, setSaving] = useState(false);
 
   const fetch = useCallback(async () => {
     setLoading(true);
     try {
-      setFeatures(await getAllFeatures());
+      const data = await getAllFeatures();
+      setFeatures(data.sort((a, b) => a.category.localeCompare(b.category) || a.sortOrder - b.sortOrder));
       setError(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load features');
@@ -86,38 +65,42 @@ export default function FeatureCatalog() {
     }
   }, []);
 
-  useEffect(() => { fetch(); }, [fetch]);
-
-  /* ── Dialog handlers ── */
+  useEffect(() => {
+    fetch();
+  }, [fetch]);
 
   const openCreate = () => {
     setEditing(null);
-    setForm({ key: '', label: '', description: '', category: '', sortOrder: 0 });
+    setForm(initialForm);
     setDialogOpen(true);
   };
 
-  const openEdit = (f: FeatureDefinition) => {
-    setEditing(f);
+  const openEdit = (feature: FeatureDefinition) => {
+    setEditing(feature);
     setForm({
-      key: f.key,
-      label: f.label,
-      description: f.description ?? '',
-      category: f.category,
-      sortOrder: f.sortOrder,
+      key: feature.key,
+      label: feature.label,
+      description: feature.description ?? '',
+      category: feature.category,
+      sortOrder: feature.sortOrder,
     });
     setDialogOpen(true);
   };
 
+  const closeDialog = () => {
+    if (!saving) setDialogOpen(false);
+  };
+
   const handleSave = async () => {
-    if (!form.key.trim() || !form.label.trim()) return;
+    if (!form.key.trim() || !form.label.trim() || !form.category.trim()) return;
     setSaving(true);
     setError(null);
     try {
       if (editing) {
         const body: UpdateFeatureRequest = {
-          label: form.label,
-          description: form.description || undefined,
-          category: form.category,
+          label: form.label.trim(),
+          description: form.description.trim() || undefined,
+          category: form.category.trim(),
           sortOrder: form.sortOrder,
           active: editing.active,
         };
@@ -125,9 +108,9 @@ export default function FeatureCatalog() {
       } else {
         const body: CreateFeatureRequest = {
           key: form.key.trim(),
-          label: form.label,
-          description: form.description || undefined,
-          category: form.category,
+          label: form.label.trim(),
+          description: form.description.trim() || undefined,
+          category: form.category.trim(),
           sortOrder: form.sortOrder,
         };
         await createFeature(body);
@@ -141,17 +124,124 @@ export default function FeatureCatalog() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!window.confirm('Delete this feature?')) return;
+  const handleDelete = async (feature: FeatureDefinition) => {
+    if (!window.confirm(`Delete "${feature.label}"? Assigned plans and overrides may lose access.`)) return;
     try {
-      await deleteFeature(id);
+      await deleteFeature(feature.id);
       await fetch();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to delete feature');
     }
   };
 
-  /* ── Render ── */
+  const columns: Column<FeatureDefinition>[] = useMemo(
+    () => [
+      {
+        key: 'feature',
+        label: 'Feature',
+        sortable: true,
+        render: (feature) => (
+          <Box sx={{ minWidth: 0 }}>
+            <Typography sx={{ color: brand.neutral[900], fontWeight: 850, fontSize: '0.86rem' }}>
+              {feature.label}
+            </Typography>
+            <Typography sx={{ color: brand.neutral[500], fontWeight: 600, fontSize: '0.73rem' }}>
+              {feature.description || 'No description'}
+            </Typography>
+          </Box>
+        ),
+        exportValue: (feature) => feature.label,
+      },
+      {
+        key: 'key',
+        label: 'Key',
+        sortable: true,
+        render: (feature) => (
+          <Typography
+            component="code"
+            sx={{
+              color: brand.neutral[700],
+              bgcolor: brand.neutral[100],
+              px: 0.75,
+              py: 0.35,
+              borderRadius: '5px',
+              fontSize: '0.74rem',
+              fontWeight: 700,
+            }}
+          >
+            {feature.key}
+          </Typography>
+        ),
+        exportValue: (feature) => feature.key,
+      },
+      {
+        key: 'category',
+        label: 'Category',
+        width: 140,
+        sortable: true,
+        render: (feature) => <StatusBadge label={feature.category} tone={categoryTone(feature.category)} />,
+        exportValue: (feature) => feature.category,
+      },
+      {
+        key: 'sortOrder',
+        label: 'Sort',
+        width: 90,
+        align: 'right',
+        sortable: true,
+        render: (feature) => (
+          <Typography sx={{ color: brand.neutral[600], fontWeight: 800, fontSize: '0.8rem' }}>
+            {feature.sortOrder}
+          </Typography>
+        ),
+      },
+      {
+        key: 'active',
+        label: 'Status',
+        width: 110,
+        render: (feature) => (
+          <Chip
+            label={feature.active ? 'Active' : 'Inactive'}
+            size="small"
+            sx={{
+              height: 22,
+              borderRadius: '6px',
+              fontWeight: 800,
+              bgcolor: feature.active ? brand.success.light : brand.neutral[100],
+              color: feature.active ? brand.success.dark : brand.neutral[600],
+            }}
+          />
+        ),
+        exportValue: (feature) => (feature.active ? 'Active' : 'Inactive'),
+      },
+      {
+        key: 'actions',
+        label: '',
+        width: 104,
+        align: 'right',
+        enableHiding: false,
+        render: (feature) => (
+          <Stack direction="row" spacing={0.25} justifyContent="flex-end">
+            <Tooltip title="Edit feature">
+              <IconButton size="small" aria-label={`Edit ${feature.label}`} onClick={() => openEdit(feature)}>
+                <IconEdit size={16} />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Delete feature">
+              <IconButton
+                size="small"
+                aria-label={`Delete ${feature.label}`}
+                onClick={() => handleDelete(feature)}
+                sx={{ color: brand.error.main }}
+              >
+                <IconTrash size={16} />
+              </IconButton>
+            </Tooltip>
+          </Stack>
+        ),
+      },
+    ],
+    [],
+  );
 
   return (
     <Box>
@@ -161,163 +251,52 @@ export default function FeatureCatalog() {
         </Alert>
       )}
 
-      {/* Toolbar */}
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-        <Typography variant="subtitle2" sx={{ color: COLORS.textMuted }}>
-          {features.length} feature{features.length !== 1 ? 's' : ''} defined
-        </Typography>
-        <Button
-          variant="contained"
-          startIcon={<IconPlus size={16} />}
-          onClick={openCreate}
-          sx={{
-            bgcolor: COLORS.blue,
-            color: COLORS.bgBase,
-            fontWeight: 700,
-            textTransform: 'none',
-            borderRadius: '8px',
-            '&:hover': { bgcolor: '#7cb0f0' },
-          }}
-        >
-          Add Feature
-        </Button>
-      </Stack>
+      <DataTable
+        columns={columns}
+        rows={features}
+        loading={loading}
+        getRowKey={(feature) => feature.id}
+        tableKey="admin-feature-catalog"
+        toolbarTitle={`${features.length} feature${features.length === 1 ? '' : 's'} defined`}
+        emptyText="No feature flags have been created yet"
+        itemLabel="features"
+        enableSorting
+        enableColumnVisibility
+        enableExport
+        enableExcelExport
+        exportFileName="feature-catalog"
+        emptyAction={{ label: 'Add feature', onClick: openCreate }}
+        toolbar={
+          <Button
+            variant="contained"
+            startIcon={<IconPlus size={16} />}
+            onClick={openCreate}
+            sx={{
+              borderRadius: '8px',
+              textTransform: 'none',
+              fontWeight: 800,
+              bgcolor: brand.primary[600],
+              '&:hover': { bgcolor: brand.primary[700] },
+            }}
+          >
+            Add Feature
+          </Button>
+        }
+      />
 
-      {/* Table */}
-      {loading ? (
-        <Typography sx={{ color: COLORS.textDim, textAlign: 'center', py: 4 }}>Loading...</Typography>
-      ) : features.length === 0 ? (
-        <Typography sx={{ color: COLORS.textDim, textAlign: 'center', py: 4 }}>
-          No features defined yet.
-        </Typography>
-      ) : (
-        <Box sx={{ overflow: 'auto' }}>
-          <Box component="table" sx={{ width: '100%', borderCollapse: 'collapse', color: COLORS.text }}>
-            <Box component="thead">
-              <Box component="tr" sx={{ borderBottom: `1px solid ${COLORS.bgAlt}` }}>
-                {['Feature', 'Key', 'Category', 'Sort', 'Status', 'Actions'].map((h) => (
-                  <Box
-                    key={h}
-                    component="th"
-                    sx={{
-                      px: 2,
-                      py: 1.25,
-                      textAlign: 'left',
-                      fontSize: '0.72rem',
-                      fontWeight: 700,
-                      color: COLORS.textDim,
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.05em',
-                    }}
-                  >
-                    {h}
-                  </Box>
-                ))}
-              </Box>
-            </Box>
-            <Box component="tbody">
-              {features.map((f) => (
-                <Box
-                  key={f.id}
-                  component="tr"
-                  sx={{
-                    borderBottom: `1px solid ${COLORS.bgAlt}`,
-                    '&:hover': { bgcolor: COLORS.bgAlt },
-                  }}
-                >
-                  <Box component="td" sx={{ px: 2, py: 1.25, fontWeight: 600, fontSize: '0.82rem' }}>
-                    {f.label}
-                  </Box>
-                  <Box component="td" sx={{ px: 2, py: 1.25, fontSize: '0.75rem', fontFamily: 'monospace', color: COLORS.textMuted }}>
-                    {f.key}
-                  </Box>
-                  <Box component="td" sx={{ px: 2, py: 1.25 }}>
-                    <Chip
-                      label={f.category}
-                      size="small"
-                      sx={{
-                        height: 20,
-                        fontWeight: 600,
-                        fontSize: '0.65rem',
-                        bgcolor: CATEGORY_COLORS[f.category] ?? COLORS.bgAlt,
-                        color: COLORS.bgBase,
-                        borderRadius: '4px',
-                      }}
-                    />
-                  </Box>
-                  <Box component="td" sx={{ px: 2, py: 1.25, fontSize: '0.78rem', color: COLORS.textMuted }}>
-                    {f.sortOrder}
-                  </Box>
-                  <Box component="td" sx={{ px: 2, py: 1.25 }}>
-                    <Chip
-                      label={f.active ? 'Active' : 'Inactive'}
-                      size="small"
-                      sx={{
-                        height: 20,
-                        fontWeight: 600,
-                        fontSize: '0.65rem',
-                        bgcolor: f.active ? COLORS.green : COLORS.red,
-                        color: COLORS.bgBase,
-                        borderRadius: '4px',
-                      }}
-                    />
-                  </Box>
-                  <Box component="td" sx={{ px: 2, py: 1.25 }}>
-                    <Tooltip title="Edit">
-                      <IconButton size="small" onClick={() => openEdit(f)} sx={{ color: COLORS.blue }}>
-                        <IconEdit size={16} />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Delete">
-                      <IconButton size="small" onClick={() => handleDelete(f.id)} sx={{ color: COLORS.red }}>
-                        <IconTrash size={16} />
-                      </IconButton>
-                    </Tooltip>
-                  </Box>
-                </Box>
-              ))}
-            </Box>
-          </Box>
-        </Box>
-      )}
-
-      {/* Create/Edit Dialog */}
-      <Dialog
-        open={dialogOpen}
-        onClose={() => setDialogOpen(false)}
-        PaperProps={{
-          sx: {
-            bgcolor: COLORS.bg,
-            color: COLORS.text,
-            borderRadius: '16px',
-            minWidth: 440,
-            border: `1px solid ${COLORS.bgAlt}`,
-          },
-        }}
-      >
-        <DialogTitle sx={{ fontWeight: 700, fontSize: '1.1rem' }}>
-          {editing ? 'Edit Feature' : 'Add Feature'}
-        </DialogTitle>
+      <Dialog open={dialogOpen} onClose={closeDialog} fullWidth maxWidth="sm">
+        <DialogTitle sx={{ fontWeight: 850 }}>{editing ? 'Edit feature' : 'Add feature'}</DialogTitle>
         <DialogContent>
-          <Stack spacing={2} sx={{ mt: 1 }}>
+          <Stack spacing={2} sx={{ pt: 1 }}>
             <TextField
-              label="Key"
+              label="Feature key"
               value={form.key}
               onChange={(e) => setForm({ ...form, key: e.target.value })}
               disabled={!!editing}
               size="small"
               fullWidth
-              helperText={editing ? undefined : 'Unique identifier, e.g. "advanced_reports"'}
-              InputLabelProps={{ sx: { color: COLORS.textDim } }}
-              InputProps={{
-                sx: { color: COLORS.text },
-              }}
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  '& fieldset': { borderColor: COLORS.bgAlt },
-                },
-                '& .MuiFormHelperText-root': { color: COLORS.textDim },
-              }}
+              required
+              helperText={editing ? 'Keys cannot be changed after creation.' : 'Example: advanced_reports'}
             />
             <TextField
               label="Label"
@@ -325,13 +304,7 @@ export default function FeatureCatalog() {
               onChange={(e) => setForm({ ...form, label: e.target.value })}
               size="small"
               fullWidth
-              InputLabelProps={{ sx: { color: COLORS.textDim } }}
-              InputProps={{ sx: { color: COLORS.text } }}
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  '& fieldset': { borderColor: COLORS.bgAlt },
-                },
-              }}
+              required
             />
             <TextField
               label="Description"
@@ -340,14 +313,7 @@ export default function FeatureCatalog() {
               size="small"
               fullWidth
               multiline
-              rows={2}
-              InputLabelProps={{ sx: { color: COLORS.textDim } }}
-              InputProps={{ sx: { color: COLORS.text } }}
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  '& fieldset': { borderColor: COLORS.bgAlt },
-                },
-              }}
+              rows={3}
             />
             <TextField
               label="Category"
@@ -355,53 +321,29 @@ export default function FeatureCatalog() {
               onChange={(e) => setForm({ ...form, category: e.target.value })}
               size="small"
               fullWidth
-              InputLabelProps={{ sx: { color: COLORS.textDim } }}
-              InputProps={{ sx: { color: COLORS.text } }}
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  '& fieldset': { borderColor: COLORS.bgAlt },
-                },
-              }}
+              required
             />
             <TextField
-              label="Sort Order"
+              label="Sort order"
               type="number"
               value={form.sortOrder}
               onChange={(e) => setForm({ ...form, sortOrder: Number(e.target.value) })}
               size="small"
               fullWidth
-              InputLabelProps={{ sx: { color: COLORS.textDim } }}
-              InputProps={{ sx: { color: COLORS.text } }}
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  '& fieldset': { borderColor: COLORS.bgAlt },
-                },
-              }}
             />
           </Stack>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button
-            onClick={() => setDialogOpen(false)}
-            sx={{ color: COLORS.textMuted, textTransform: 'none', fontWeight: 600 }}
-          >
+          <Button onClick={closeDialog} disabled={saving} sx={{ textTransform: 'none', fontWeight: 700 }}>
             Cancel
           </Button>
           <Button
             variant="contained"
             onClick={handleSave}
-            disabled={saving || !form.key.trim() || !form.label.trim()}
-            sx={{
-              bgcolor: COLORS.green,
-              color: COLORS.bgBase,
-              fontWeight: 700,
-              textTransform: 'none',
-              borderRadius: '8px',
-              '&:hover': { bgcolor: '#90d890' },
-              '&.Mui-disabled': { bgcolor: COLORS.bgAlt, color: COLORS.textDim },
-            }}
+            disabled={saving || !form.key.trim() || !form.label.trim() || !form.category.trim()}
+            sx={{ textTransform: 'none', fontWeight: 800, borderRadius: '8px' }}
           >
-            {saving ? 'Saving...' : editing ? 'Update' : 'Create'}
+            {saving ? 'Saving...' : editing ? 'Save changes' : 'Create feature'}
           </Button>
         </DialogActions>
       </Dialog>

@@ -4,17 +4,18 @@ import {
   Box,
   Chip,
   FormControl,
-  IconButton,
   InputLabel,
   MenuItem,
   Paper,
   Select,
+  Skeleton,
   Stack,
   TextField,
   Tooltip,
   Typography,
+  IconButton,
 } from '@mui/material';
-import { IconX } from '@tabler/icons-react';
+import { IconGripVertical, IconSearch, IconX } from '@tabler/icons-react';
 import {
   DndContext,
   closestCenter,
@@ -34,68 +35,62 @@ import {
   type FeatureDefinition,
   type FeatureAssignment,
 } from 'src/api/smartpos/features';
-
-/* ── Theme colours (Catppuccin Mocha) ── */
-
-const COLORS = {
-  bg: '#1e1e2e',
-  bgAlt: '#313244',
-  bgBase: '#11111b',
-  text: '#cdd6f4',
-  textMuted: '#a6adc8',
-  textDim: '#6c7086',
-  blue: '#89b4fa',
-  green: '#a6e3a1',
-  red: '#f38ba8',
-  yellow: '#f9e2af',
-  purple: '#cba6f7',
-};
-
-const PLAN_COLORS: Record<string, string> = {
-  STARTER: COLORS.yellow,
-  BUSINESS: COLORS.blue,
-  PROFESSIONAL: COLORS.purple,
-  ENTERPRISE: COLORS.red,
-};
+import { brand } from 'src/theme/smartpos/brand';
 
 const PLANS = ['STARTER', 'BUSINESS', 'PROFESSIONAL', 'ENTERPRISE'] as const;
 
-/* ── Draggable feature chip ── */
+const PLAN_STYLES: Record<string, { color: string; bg: string }> = {
+  STARTER: { color: brand.neutral[700], bg: brand.neutral[100] },
+  BUSINESS: { color: brand.info.dark, bg: brand.info.light },
+  PROFESSIONAL: { color: brand.purple.dark, bg: brand.purple.light },
+  ENTERPRISE: { color: brand.warning.dark, bg: brand.warning.light },
+};
 
-function DraggableChip({ feature }: { feature: FeatureDefinition }) {
+function featureMatches(feature: FeatureDefinition, search: string) {
+  const q = search.trim().toLowerCase();
+  if (!q) return true;
+  return (
+    feature.label.toLowerCase().includes(q) ||
+    feature.key.toLowerCase().includes(q) ||
+    feature.category.toLowerCase().includes(q)
+  );
+}
+
+function DraggableFeature({ feature }: { feature: FeatureDefinition }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: `feature-${feature.id}`,
     data: { featureKey: feature.key, type: 'feature' },
   });
 
-  const style = transform
-    ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`, opacity: isDragging ? 0.5 : 1 }
-    : undefined;
-
   return (
     <Chip
       ref={setNodeRef}
+      icon={<IconGripVertical size={13} />}
       label={feature.label}
       size="small"
       {...listeners}
       {...attributes}
+      style={{
+        transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
+        opacity: isDragging ? 0.55 : 1,
+      }}
       sx={{
         cursor: 'grab',
-        m: 0.25,
-        style,
-        bgcolor: COLORS.bgAlt,
-        color: COLORS.text,
-        fontWeight: 600,
-        fontSize: '0.72rem',
-        '&:hover': { bgcolor: '#45475a' },
+        height: 30,
+        borderRadius: '7px',
+        bgcolor: '#FFFFFF',
+        border: `1px solid ${brand.neutral[200]}`,
+        color: brand.neutral[700],
+        fontWeight: 750,
+        fontSize: '0.75rem',
+        '&:hover': { borderColor: brand.primary[300], bgcolor: brand.primary[50] },
+        '& .MuiChip-icon': { color: brand.neutral[400] },
       }}
     />
   );
 }
 
-/* ── Droppable plan column ── */
-
-function DroppableColumn({
+function DroppablePlan({
   planCode,
   features,
   assignedKeys,
@@ -104,92 +99,106 @@ function DroppableColumn({
   planCode: string;
   features: FeatureDefinition[];
   assignedKeys: Set<string>;
-  onRemove: (assignmentId: string) => void;
+  onRemove: (featureKey: string) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({
     id: `plan-${planCode}`,
     data: { planCode, type: 'plan' },
   });
-
-  const planColor = PLAN_COLORS[planCode] ?? COLORS.text;
-
-  const assigned = features.filter((f) => assignedKeys.has(f.key));
+  const style = PLAN_STYLES[planCode] ?? PLAN_STYLES.STARTER;
+  const assigned = features
+    .filter((f) => assignedKeys.has(f.key))
+    .sort((a, b) => a.sortOrder - b.sortOrder || a.label.localeCompare(b.label));
 
   return (
     <Paper
       ref={setNodeRef}
+      elevation={0}
       sx={{
-        flex: 1,
-        minWidth: 220,
-        minHeight: 320,
+        minWidth: { xs: 260, lg: 0 },
+        flex: '1 1 0',
+        minHeight: 340,
         p: 1.5,
-        bgcolor: isOver ? '#45475a' : COLORS.bg,
-        borderRadius: '12px',
-        border: `2px solid ${isOver ? planColor : COLORS.bgAlt}`,
-        transition: 'border-color 0.2s, background-color 0.2s',
+        borderRadius: '10px',
+        border: `1px solid ${isOver ? style.color : brand.neutral[200]}`,
+        bgcolor: isOver ? style.bg : '#FFFFFF',
+        transition: 'border-color 180ms ease-out, background-color 180ms ease-out',
       }}
     >
-      <Typography
-        variant="subtitle2"
-        sx={{
-          fontWeight: 800,
-          color: planColor,
-          mb: 1,
-          textAlign: 'center',
-          letterSpacing: '0.04em',
-        }}
-      >
-        {planCode}
-      </Typography>
-      <Typography
-        variant="caption"
-        sx={{ display: 'block', textAlign: 'center', color: COLORS.textDim, mb: 1.5 }}
-      >
-        {assigned.length} feature{assigned.length !== 1 ? 's' : ''}
-      </Typography>
-      <Stack spacing={0.5}>
-        {assigned.map((f) => (
+      <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1.25 }}>
+        <Chip
+          label={planCode}
+          size="small"
+          sx={{
+            height: 24,
+            borderRadius: '6px',
+            bgcolor: style.bg,
+            color: style.color,
+            fontWeight: 850,
+            letterSpacing: '0.02em',
+          }}
+        />
+        <Typography sx={{ color: brand.neutral[500], fontWeight: 750, fontSize: '0.76rem' }}>
+          {assigned.length} features
+        </Typography>
+      </Stack>
+
+      <Stack spacing={0.75}>
+        {assigned.map((feature) => (
           <Box
-            key={f.id}
+            key={feature.id}
             sx={{
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
+              gap: 1,
               px: 1,
-              py: 0.5,
-              borderRadius: '6px',
-              bgcolor: COLORS.bgAlt,
+              py: 0.75,
+              borderRadius: '8px',
+              bgcolor: brand.neutral[50],
+              border: `1px solid ${brand.neutral[200]}`,
             }}
           >
-            <Typography variant="caption" sx={{ color: COLORS.text, fontWeight: 500, fontSize: '0.72rem' }}>
-              {f.label}
-            </Typography>
+            <Box sx={{ minWidth: 0 }}>
+              <Typography sx={{ fontWeight: 800, color: brand.neutral[800], fontSize: '0.8rem' }} noWrap>
+                {feature.label}
+              </Typography>
+              <Typography sx={{ color: brand.neutral[500], fontWeight: 600, fontSize: '0.68rem' }} noWrap>
+                {feature.key}
+              </Typography>
+            </Box>
             <Tooltip title="Remove from plan">
               <IconButton
                 size="small"
-                onClick={() => {
-                  // Find the assignment to delete
-                  const match = assigned.find((a) => a.key === f.key);
-                  if (match) onRemove(f.key);
-                }}
-                sx={{ color: COLORS.red, p: 0.25 }}
+                aria-label={`Remove ${feature.label} from ${planCode}`}
+                onClick={() => onRemove(feature.key)}
+                sx={{ color: brand.error.main, flexShrink: 0 }}
               >
-                <IconX size={12} />
+                <IconX size={15} />
               </IconButton>
             </Tooltip>
           </Box>
         ))}
         {assigned.length === 0 && (
-          <Typography variant="caption" sx={{ color: COLORS.textDim, textAlign: 'center', mt: 2 }}>
+          <Box
+            sx={{
+              border: `1px dashed ${brand.neutral[300]}`,
+              borderRadius: '10px',
+              px: 1.5,
+              py: 4,
+              textAlign: 'center',
+              color: brand.neutral[500],
+              fontWeight: 700,
+              fontSize: '0.82rem',
+            }}
+          >
             Drop features here
-          </Typography>
+          </Box>
         )}
       </Stack>
     </Paper>
   );
 }
-
-/* ── Main component ── */
 
 export default function PlanComparison() {
   const [features, setFeatures] = useState<FeatureDefinition[]>([]);
@@ -199,84 +208,80 @@ export default function PlanComparison() {
   const [category, setCategory] = useState('');
   const [search, setSearch] = useState('');
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-  );
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
   const fetch = useCallback(async () => {
     setLoading(true);
     try {
-      const [feats, assigns] = await Promise.all([
-        getAllFeatures(),
-        getAssignments(),
-      ]);
-      setFeatures(feats);
-      setAssignments(assigns);
+      const [featureData, assignmentData] = await Promise.all([getAllFeatures(), getAssignments()]);
+      setFeatures(featureData);
+      setAssignments(assignmentData);
       setError(null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load data');
+      setError(e instanceof Error ? e.message : 'Failed to load feature assignments');
     } finally {
       setLoading(false);
     }
   }, []);
 
-  useEffect(() => { fetch(); }, [fetch]);
-
-  /* ── Derived data ── */
+  useEffect(() => {
+    fetch();
+  }, [fetch]);
 
   const categories = useMemo(
-    () => [...new Set(features.map((f) => f.category))].sort(),
+    () => [...new Set(features.map((f) => f.category).filter(Boolean))].sort(),
     [features],
   );
 
   const planAssignments = useMemo(() => {
     const map: Record<string, Set<string>> = {};
-    PLANS.forEach((p) => (map[p] = new Set<string>()));
-    for (const a of assignments) {
-      if (a.assignmentLevel === 'PLAN' && PLANS.includes(a.targetId as typeof PLANS[number]) && a.granted) {
-        map[a.targetId].add(a.featureKey);
+    PLANS.forEach((plan) => {
+      map[plan] = new Set<string>();
+    });
+    assignments.forEach((assignment) => {
+      if (
+        assignment.assignmentLevel === 'PLAN' &&
+        PLANS.includes(assignment.targetId as (typeof PLANS)[number]) &&
+        assignment.granted
+      ) {
+        map[assignment.targetId].add(assignment.featureKey);
       }
-    }
+    });
     return map;
   }, [assignments]);
 
   const assignmentMap = useMemo(() => {
-    const map = new Map<string, string>(); // featureKey_planCode -> assignmentId
-    for (const a of assignments) {
-      if (a.assignmentLevel === 'PLAN' && PLANS.includes(a.targetId as typeof PLANS[number])) {
-        map.set(`${a.featureKey}_${a.targetId}`, a.id);
+    const map = new Map<string, string>();
+    assignments.forEach((assignment) => {
+      if (assignment.assignmentLevel === 'PLAN') {
+        map.set(`${assignment.featureKey}_${assignment.targetId}`, assignment.id);
       }
-    }
+    });
     return map;
   }, [assignments]);
 
   const assignedKeys = useMemo(() => {
-    const s = new Set<string>();
-    Object.values(planAssignments).forEach((ks) => ks.forEach((k) => s.add(k)));
-    return s;
+    const keys = new Set<string>();
+    Object.values(planAssignments).forEach((set) => set.forEach((key) => keys.add(key)));
+    return keys;
   }, [planAssignments]);
 
-  const filteredFeatures = useMemo(() => {
-    return features
-      .filter((f) => (category ? f.category === category : true))
-      .filter((f) => (search ? f.label.toLowerCase().includes(search.toLowerCase()) || f.key.toLowerCase().includes(search.toLowerCase()) : true))
-      .sort((a, b) => a.sortOrder - b.sortOrder);
-  }, [features, category, search]);
+  const filteredFeatures = useMemo(
+    () =>
+      features
+        .filter((feature) => (category ? feature.category === category : true))
+        .filter((feature) => featureMatches(feature, search))
+        .sort((a, b) => a.sortOrder - b.sortOrder || a.label.localeCompare(b.label)),
+    [features, category, search],
+  );
 
-  /* ── DnD handler ── */
+  const unassignedFeatures = filteredFeatures.filter((feature) => !assignedKeys.has(feature.key));
 
   const handleDragEnd = useCallback(
     async (event: DragEndEvent) => {
-      const { active, over } = event;
-      if (!over) return;
-
-      const featureKey = active.data.current?.featureKey as string | undefined;
-      const targetPlan = over.data.current?.planCode as string | undefined;
-
-      if (!featureKey || !targetPlan) return;
-
-      // If already assigned to this plan, do nothing
-      if (planAssignments[targetPlan]?.has(featureKey)) return;
+      const featureKey = event.active.data.current?.featureKey as string | undefined;
+      const targetPlan = event.over?.data.current?.planCode as string | undefined;
+      if (!featureKey || !targetPlan || planAssignments[targetPlan]?.has(featureKey)) return;
 
       try {
         await createAssignment({
@@ -293,8 +298,6 @@ export default function PlanComparison() {
     [fetch, planAssignments],
   );
 
-  /* ── Remove from plan ── */
-
   const handleRemove = useCallback(
     async (featureKey: string, planCode: string) => {
       const assignmentId = assignmentMap.get(`${featureKey}_${planCode}`);
@@ -309,13 +312,16 @@ export default function PlanComparison() {
     [assignmentMap, fetch],
   );
 
-  /* ── Render ── */
-
   if (loading) {
     return (
-      <Box sx={{ p: 3, textAlign: 'center', color: COLORS.textDim }}>
-        Loading...
-      </Box>
+      <Stack spacing={2}>
+        <Skeleton variant="rounded" height={44} />
+        <Stack direction={{ xs: 'column', lg: 'row' }} spacing={1.5}>
+          {PLANS.map((plan) => (
+            <Skeleton key={plan} variant="rounded" height={340} sx={{ flex: 1 }} />
+          ))}
+        </Stack>
+      </Stack>
     );
   }
 
@@ -327,53 +333,41 @@ export default function PlanComparison() {
         </Alert>
       )}
 
-      {/* Filters */}
       <Stack
-        direction="row"
-        spacing={1.5}
-        alignItems="center"
-        sx={{ mb: 2, flexWrap: 'wrap', gap: 1 }}
+        direction={{ xs: 'column', md: 'row' }}
+        spacing={1.25}
+        alignItems={{ xs: 'stretch', md: 'center' }}
+        sx={{ mb: 2 }}
       >
-        <FormControl size="small" sx={{ minWidth: 160 }}>
-          <InputLabel sx={{ color: COLORS.textDim }}>Category</InputLabel>
-          <Select
-            value={category}
-            label="Category"
-            onChange={(e) => setCategory(e.target.value)}
-            sx={{
-              color: COLORS.text,
-              '& .MuiOutlinedInput-notchedOutline': { borderColor: COLORS.bgAlt },
-              '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: COLORS.textDim },
-              '& .MuiSvgIcon-root': { color: COLORS.textDim },
-            }}
-          >
+        <FormControl size="small" sx={{ minWidth: { xs: '100%', md: 180 } }}>
+          <InputLabel>Category</InputLabel>
+          <Select value={category} label="Category" onChange={(e) => setCategory(e.target.value)}>
             <MenuItem value="">All categories</MenuItem>
-            {categories.map((c) => (
-              <MenuItem key={c} value={c}>{c}</MenuItem>
+            {categories.map((item) => (
+              <MenuItem key={item} value={item}>
+                {item}
+              </MenuItem>
             ))}
           </Select>
         </FormControl>
         <TextField
           size="small"
-          placeholder="Search features..."
+          placeholder="Search feature name, key, or category"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          sx={{
-            minWidth: 240,
-            '& .MuiOutlinedInput-root': {
-              color: COLORS.text,
-              '& fieldset': { borderColor: COLORS.bgAlt },
-              '&:hover fieldset': { borderColor: COLORS.textDim },
-            },
-          }}
+          InputProps={{ startAdornment: <IconSearch size={16} color={brand.neutral[400]} /> }}
+          sx={{ flex: 1, minWidth: { xs: '100%', md: 260 } }}
         />
       </Stack>
 
-      {/* Plan columns */}
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <Stack direction="row" spacing={2} sx={{ mb: 3 }}>
+        <Stack
+          direction={{ xs: 'column', lg: 'row' }}
+          spacing={1.5}
+          sx={{ mb: 2.5, overflowX: { xs: 'visible', lg: 'auto' } }}
+        >
           {PLANS.map((plan) => (
-            <DroppableColumn
+            <DroppablePlan
               key={plan}
               planCode={plan}
               features={features}
@@ -383,30 +377,30 @@ export default function PlanComparison() {
           ))}
         </Stack>
 
-        {/* Feature bank */}
         <Paper
+          elevation={0}
           sx={{
-            p: 2,
-            bgcolor: COLORS.bgBase,
-            borderRadius: '12px',
-            border: `1px solid ${COLORS.bgAlt}`,
+            p: 1.5,
+            borderRadius: '10px',
+            border: `1px solid ${brand.neutral[200]}`,
+            bgcolor: brand.neutral[50],
           }}
         >
-          <Typography
-            variant="subtitle2"
-            sx={{ color: COLORS.textDim, mb: 1, fontWeight: 600, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}
-          >
-            Feature Bank (drag into plan columns above)
-          </Typography>
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.25 }}>
-            {filteredFeatures
-              .filter((f) => !assignedKeys.has(f.key))
-              .map((f) => (
-                <DraggableChip key={f.id} feature={f} />
-              ))}
-            {filteredFeatures.filter((f) => !assignedKeys.has(f.key)).length === 0 && (
-              <Typography variant="caption" sx={{ color: COLORS.textDim }}>
-                All features are assigned to plans.
+          <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" spacing={1} sx={{ mb: 1.25 }}>
+            <Typography sx={{ color: brand.neutral[800], fontWeight: 850, fontSize: '0.88rem' }}>
+              Feature bank
+            </Typography>
+            <Typography sx={{ color: brand.neutral[500], fontWeight: 700, fontSize: '0.76rem' }}>
+              {unassignedFeatures.length} available after filters
+            </Typography>
+          </Stack>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
+            {unassignedFeatures.map((feature) => (
+              <DraggableFeature key={feature.id} feature={feature} />
+            ))}
+            {unassignedFeatures.length === 0 && (
+              <Typography sx={{ color: brand.neutral[500], fontWeight: 650, fontSize: '0.82rem', py: 1 }}>
+                No available features match the current filters.
               </Typography>
             )}
           </Box>
