@@ -7,6 +7,7 @@ import io.smartpos.user.domain.model.FeatureDefinition;
 import io.smartpos.user.domain.model.FeatureDefinitionRepository;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -114,6 +115,6 @@ public class FeatureController {
     public record UpdateFeatureRequest(@NotBlank String label, String description,
                                         @NotBlank String category, int sortOrder, boolean active) {}
     public record CreateAssignmentRequest(@NotBlank String featureKey,
-                                           @NotBlank AssignmentLevel assignmentLevel,
+                                           @NotNull AssignmentLevel assignmentLevel,
                                            @NotBlank String targetId, boolean granted) {}
 }
