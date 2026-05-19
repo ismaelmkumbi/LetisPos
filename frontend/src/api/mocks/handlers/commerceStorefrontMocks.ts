@@ -263,14 +263,55 @@ export const commerceStorefrontMocks = [
   // ── Menu ──
   http.get('http://localhost:8080/api/v1/menu', () =>
     HttpResponse.json([
-      { id: 'menu-dashboard', key: 'dashboard', label: 'Dashboard', icon: 'IconDashboard', route: '/dashboard', sectionHeader: false, children: [] },
-      { id: 'menu-pos', key: 'pos', label: 'Point of Sale', icon: 'IconCashRegister', route: '/pos', sectionHeader: false, children: [] },
-      { id: 'menu-inventory', key: 'inventory', label: 'Inventory', icon: 'IconPackages', route: '/inventory', sectionHeader: false, children: [] },
-      { id: 'menu-accounting', key: 'accounting', label: 'Accounting', icon: 'IconCalculator', route: '/accounting', sectionHeader: false, children: [] },
-      { id: 'menu-reports', key: 'reports', label: 'Reports', icon: 'IconReportAnalytics', route: '/reports', sectionHeader: false, children: [] },
-      { id: 'menu-commerce', key: 'commerce', label: 'Commerce', icon: 'IconBuildingStore', route: '/commerce', sectionHeader: true, children: [
-        { id: 'menu-commerce-dashboard', key: 'commerce-dashboard', label: 'Dashboard', icon: 'IconDashboard', route: '/commerce/dashboard', sectionHeader: false, children: [] },
-        { id: 'menu-commerce-products', key: 'commerce-products', label: 'Products', icon: 'IconPackages', route: '/commerce/products', sectionHeader: false, children: [] },
+      { id: 'section-dashboard', key: 'section-dashboard', label: 'Home', icon: null, route: null, sectionHeader: true, children: [
+        { id: 'menu-dashboard', key: 'menu-dashboard', label: 'Dashboard', icon: 'layout-dashboard', route: '/smartpos/dashboard', sectionHeader: false, children: [] },
+      ]},
+      { id: 'section-sales', key: 'section-sales', label: 'Sales Desk', icon: null, route: null, sectionHeader: true, children: [
+        { id: 'menu-pos', key: 'menu-pos', label: 'Point of Sale', icon: 'cash-register', route: '/smartpos/sales/pos', sectionHeader: false, children: [] },
+        { id: 'menu-sales', key: 'menu-sales', label: 'Sales', icon: 'shopping-cart', route: '/smartpos/sales', sectionHeader: false, children: [] },
+      ]},
+      { id: 'section-products', key: 'section-products', label: 'Products', icon: null, route: null, sectionHeader: true, children: [
+        { id: 'menu-products', key: 'menu-products', label: 'Products', icon: 'package', route: '/smartpos/products', sectionHeader: false, children: [] },
+        { id: 'menu-categories', key: 'menu-categories', label: 'Categories', icon: 'category', route: '/smartpos/products/categories', sectionHeader: false, children: [] },
+      ]},
+      { id: 'section-stock', key: 'section-stock', label: 'Stock Management', icon: null, route: null, sectionHeader: true, children: [
+        { id: 'menu-stock', key: 'menu-stock', label: 'Stock', icon: 'boxes', route: '/smartpos/stock', sectionHeader: false, children: [] },
+      ]},
+      { id: 'section-purchasing', key: 'section-purchasing', label: 'Purchasing', icon: null, route: null, sectionHeader: true, children: [
+        { id: 'menu-purchases', key: 'menu-purchases', label: 'Purchases', icon: 'truck', route: '/smartpos/purchases', sectionHeader: false, children: [] },
+      ]},
+      { id: 'section-customers', key: 'section-customers', label: 'Customers & Suppliers', icon: null, route: null, sectionHeader: true, children: [
+        { id: 'menu-customers', key: 'menu-customers', label: 'Customers', icon: 'users', route: '/smartpos/customers', sectionHeader: false, children: [] },
+        { id: 'menu-suppliers', key: 'menu-suppliers', label: 'Suppliers', icon: 'truck-delivery', route: '/smartpos/suppliers', sectionHeader: false, children: [] },
+      ]},
+      { id: 'section-finance', key: 'section-finance', label: 'Finance', icon: null, route: null, sectionHeader: true, children: [
+        { id: 'menu-payments', key: 'menu-payments', label: 'Payments', icon: 'cash', route: '/smartpos/payments', sectionHeader: false, children: [] },
+        { id: 'menu-accounting', key: 'menu-accounting', label: 'Accounting', icon: 'calculator', route: '/smartpos/accounting/chart-of-accounts', sectionHeader: false, children: [] },
+      ]},
+      { id: 'section-reports', key: 'section-reports', label: 'Reports', icon: null, route: null, sectionHeader: true, children: [
+        { id: 'menu-reports', key: 'menu-reports', label: 'Reports', icon: 'chart-bar', route: '/smartpos/reports/advanced', sectionHeader: false, children: [] },
+      ]},
+      { id: 'section-marketing', key: 'section-marketing', label: 'Marketing', icon: null, route: null, sectionHeader: true, children: [
+        { id: 'menu-marketing', key: 'menu-marketing', label: 'Marketing', icon: 'megaphone', route: '/smartpos/marketing/promotions', sectionHeader: false, children: [] },
+      ]},
+      { id: 'section-hrm', key: 'section-hrm', label: 'HR & Payroll', icon: null, route: null, sectionHeader: true, children: [
+        { id: 'menu-hrm', key: 'menu-hrm', label: 'HR & Payroll', icon: 'users-group', route: '/smartpos/hrm/employees', sectionHeader: false, children: [] },
+      ]},
+      { id: 'section-crm', key: 'section-crm', label: 'CRM', icon: null, route: null, sectionHeader: true, children: [
+        { id: 'menu-crm', key: 'menu-crm', label: 'CRM', icon: 'address-book', route: '/smartpos/crm/leads', sectionHeader: false, children: [] },
+      ]},
+      { id: 'section-ecommerce', key: 'section-ecommerce', label: 'E-Commerce', icon: null, route: null, sectionHeader: true, children: [
+        { id: 'menu-ecommerce', key: 'menu-ecommerce', label: 'E-Commerce', icon: 'world', route: '/smartpos/admin/commerce', sectionHeader: false, children: [] },
+      ]},
+      { id: 'section-ai', key: 'section-ai', label: 'AI & Insights', icon: null, route: null, sectionHeader: true, children: [
+        { id: 'menu-ai', key: 'menu-ai', label: 'AI Insights', icon: 'brain', route: '/smartpos/ai', sectionHeader: false, children: [] },
+      ]},
+      { id: 'section-admin', key: 'section-admin', label: 'Settings & Admin', icon: null, route: null, sectionHeader: true, children: [
+        { id: 'menu-settings', key: 'menu-settings', label: 'Settings', icon: 'settings', route: '/smartpos/settings/i18n', sectionHeader: false, children: [] },
+        { id: 'menu-features', key: 'menu-features', label: 'Feature Manager', icon: 'adjustments-alt', route: '/smartpos/admin/features', sectionHeader: false, children: [] },
+      ]},
+      { id: 'section-support', key: 'section-support', label: 'Support', icon: null, route: null, sectionHeader: true, children: [
+        { id: 'menu-support', key: 'menu-support', label: 'Support', icon: 'help-circle', route: '/smartpos/support/help', sectionHeader: false, children: [] },
       ]},
     ])
   ),
