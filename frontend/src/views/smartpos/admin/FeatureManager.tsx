@@ -3,6 +3,7 @@ import { Box, Card, Stack, Tab, Tabs, Typography } from '@mui/material';
 import {
   IconChartDots3,
   IconListDetails,
+  IconSitemap,
   IconSettings2,
   IconShieldCheck,
 } from '@tabler/icons-react';
@@ -11,6 +12,7 @@ import { brand } from 'src/theme/smartpos/brand';
 import PlanComparison from './PlanComparison';
 import FeatureCatalog from './FeatureCatalog';
 import TenantUserOverrides from './TenantUserOverrides';
+import MenuPermissions from './MenuPermissions';
 
 const tabs = [
   {
@@ -28,6 +30,11 @@ const tabs = [
     description: 'Grant or deny per tenant',
     icon: <IconShieldCheck size={18} />,
   },
+  {
+    label: 'Menu',
+    description: 'Routes and permissions',
+    icon: <IconSitemap size={18} />,
+  },
 ];
 
 export default function FeatureManager() {
@@ -37,7 +44,7 @@ export default function FeatureManager() {
     <Box sx={{ pb: 4 }}>
       <PageHeader
         title="Feature Manager"
-        subtitle="Control plan entitlements, feature flags, menu access, and tenant exceptions from one operations workspace."
+        subtitle="Control plan entitlements, feature flags, menu hierarchy, route access, and tenant exceptions from one operations workspace."
         badge={{ label: 'Admin', tone: 'primary' }}
         status={{ state: 'active', label: 'Live controls' }}
       />
@@ -133,6 +140,7 @@ export default function FeatureManager() {
           {tab === 0 && <PlanComparison />}
           {tab === 1 && <FeatureCatalog />}
           {tab === 2 && <TenantUserOverrides />}
+          {tab === 3 && <MenuPermissions />}
         </Box>
       </Card>
     </Box>
