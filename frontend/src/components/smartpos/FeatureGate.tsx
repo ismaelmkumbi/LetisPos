@@ -1,5 +1,5 @@
 import { useFeatures } from 'src/hooks/useFeatures';
-import { Navigate } from 'react-router-dom';
+import { Navigate } from 'react-router';
 
 interface FeatureGateProps {
   feature: string;
