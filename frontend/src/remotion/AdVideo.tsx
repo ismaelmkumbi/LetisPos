@@ -8,6 +8,7 @@ import { InventoryModule } from './scenes/InventoryModule';
 import { PosModule } from './scenes/PosModule';
 import { ReportsAI } from './scenes/ReportsAI';
 import { CloudMultistore } from './scenes/CloudMultistore';
+import { CtaClose } from './scenes/CtaClose';
 
 export const AdVideo: React.FC = () => {
   return (
@@ -34,7 +35,7 @@ export const AdVideo: React.FC = () => {
         <CloudMultistore />
       </Sequence>
       <Sequence from={SCENES.ctaClose.start} durationInFrames={SCENES.ctaClose.end - SCENES.ctaClose.start}>
-        <AbsoluteFill style={{ backgroundColor: COLORS.bg }} />
+        <CtaClose />
       </Sequence>
     </AbsoluteFill>
   );
