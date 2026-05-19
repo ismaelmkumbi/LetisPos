@@ -6,6 +6,7 @@
  */
 import type { ElementType } from 'react';
 import {
+  IconCircle,
   IconDashboard,
   IconLayoutDashboard,
   IconSearch,
@@ -170,12 +171,12 @@ function toTablerName(key: string): string {
     .join('');
 }
 
-/** Resolve an icon key string to a React component, or undefined if not found. */
-export function mapIcon(key: string | null | undefined): ElementType | undefined {
-  if (!key) return undefined;
+/** Resolve an icon key string to a React component. Returns IconCircle as fallback. */
+export function mapIcon(key: string | null | undefined): ElementType {
+  if (!key) return IconCircle;
   // Try direct lookup first (handles "IconDashboard" format)
   if (iconRegistry[key]) return iconRegistry[key];
   // Convert kebab-case to Tabler format and try again
   const tablerName = toTablerName(key);
-  return iconRegistry[tablerName] ?? undefined;
+  return iconRegistry[tablerName] ?? IconCircle;
 }
