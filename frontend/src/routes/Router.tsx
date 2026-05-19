@@ -154,6 +154,9 @@ const TenantDetailPage = Loadable(
 const InvoiceListPage = Loadable(
   lazy(() => import('../views/smartpos/admin/InvoiceListPage')),
 );
+const FeatureManager = Loadable(
+  lazy(() => import('../views/smartpos/admin/FeatureManager')),
+);
 import TenantBillingPage from '../views/smartpos/billing/TenantBillingPage';
 const PaymentHistoryPage = Loadable(
   lazy(() => import('../views/smartpos/billing/PaymentHistoryPage')),
@@ -695,6 +698,7 @@ const Router = [
       { path: 'admin/data-retention', element: <RequireAuth><RequireAdmin><PlanGate minPlan="PROFESSIONAL" featureName="Data Retention"><SmartPosDataRetention /></PlanGate></RequireAdmin></RequireAuth> },
       { path: 'admin/backups', element: <RequireAuth><RequireAdmin><SmartPosBackups /></RequireAdmin></RequireAuth> },
       { path: 'admin/troubleshooting', element: <RequireAuth><RequireAdmin><SmartPosTroubleshooting /></RequireAdmin></RequireAuth> },
+      { path: 'admin/features', element: <RequireAuth><RequireAdmin><FeatureManager /></RequireAdmin></RequireAuth> },
       // Commerce admin
       commerceAdminRoutes,
       // Marketing
@@ -768,7 +772,6 @@ const Router = [
       { path: '/forms/form-elements/radio', element: <MuiRadio /> },
       { path: '/forms/form-elements/slider', element: <MuiSlider /> },
       { path: '/forms/form-elements/date-time', element: <MuiDateTime /> },
-      { path: '/forms/form-elements/switch', element: <MuiSwitch /> },
       { path: '/forms/form-elements/switch', element: <MuiSwitch /> },
       { path: '/forms/form-layouts', element: <FormLayouts /> },
       { path: '/forms/form-custom', element: <FormCustom /> },
