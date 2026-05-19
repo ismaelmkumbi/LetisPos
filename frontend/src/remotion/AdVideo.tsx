@@ -2,6 +2,7 @@ import React from 'react';
 import { AbsoluteFill, Sequence } from 'remotion';
 import { SCENES, COLORS } from './config';
 import { BrandOpen } from './scenes/BrandOpen';
+import { TheProblem } from './scenes/TheProblem';
 
 export const AdVideo: React.FC = () => {
   return (
@@ -10,7 +11,7 @@ export const AdVideo: React.FC = () => {
         <BrandOpen />
       </Sequence>
       <Sequence from={SCENES.theProblem.start} durationInFrames={SCENES.theProblem.end - SCENES.theProblem.start}>
-        <AbsoluteFill style={{ backgroundColor: COLORS.bg }} />
+        <TheProblem />
       </Sequence>
       <Sequence from={SCENES.dashboardReveal.start} durationInFrames={SCENES.dashboardReveal.end - SCENES.dashboardReveal.start}>
         <AbsoluteFill style={{ backgroundColor: COLORS.bg }} />
