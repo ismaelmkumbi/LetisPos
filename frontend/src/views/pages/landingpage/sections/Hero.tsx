@@ -1,43 +1,20 @@
 import React from 'react';
-import { Box, Container, Typography, Stack, Grid, SxProps, Theme } from '@mui/material';
+import { Box, Container, Typography, Stack, Grid } from '@mui/material';
 import {
   IconArrowRight,
   IconBrain,
   IconCashRegister,
   IconCloudUpload,
-  IconPackage,
   IconShieldCheck,
-  IconTrendingUp,
-  IconUsers,
 } from '@tabler/icons-react';
 import CtaButton from '../components/CtaButton';
 import { useDemoDialog } from '../components/DemoDialog';
 import { useLpTheme } from '../LandingpageTheme';
+import BenefitList, { BenefitTone } from '../components/BenefitList';
+import ReceiptPreview from '../components/ReceiptPreview';
+import { darkHeroStyles, lightHeroStyles } from './heroStyles';
 import dashboardCapture from 'src/assets/images/landingpage/letis-dashboard-real.png';
-import BrandLogo, { LetisMark } from 'src/components/smartpos/BrandLogo';
-
-const aiBenefits = [
-  {
-    icon: <IconBrain size={22} />,
-    title: 'AI business insights',
-    text: 'Understand sales, profit, and trends in real time.',
-  },
-  {
-    icon: <IconPackage size={22} />,
-    title: 'Smart inventory alerts',
-    text: 'Know what to restock before the shelf goes empty.',
-  },
-  {
-    icon: <IconTrendingUp size={22} />,
-    title: 'Sales recommendations',
-    text: 'See products to upsell and actions to grow revenue.',
-  },
-  {
-    icon: <IconUsers size={22} />,
-    title: 'Customer intelligence',
-    text: 'Build stronger relationships from every transaction.',
-  },
-];
+import BrandLogo from 'src/components/smartpos/BrandLogo';
 
 const trustCards = [
   {
@@ -62,252 +39,12 @@ const trustCards = [
   },
 ];
 
-const receiptItems = [
-  ['Sukari Kilo', 'x7', '22.4K'],
-  ['Mchele Mbeya', 'x4', '68.4K'],
-  ['Unga Ngano', 'x4', '25K'],
-  ['Kahawa', 'x3', '27.3K'],
-  ['Mafuta 1L', 'x3', '18.6K'],
-  ['Maziwa UHT', 'x5', '20.5K'],
-  ['Maji 1.5L', 'x2', '3.3K'],
-  ['Soda 350ml', 'x4', '5.2K'],
-  ['USB Cable', 'x3', '41.4K'],
-  ['Sabuni', 'x6', '15.6K'],
-  ['Chai Tangawizi', 'x2', '12.8K'],
-  ['Notebook A5', 'x5', '17.5K'],
-];
-
-type HeroTone = 'dark' | 'light';
-
-const BenefitList: React.FC<{ dense?: boolean; sx?: SxProps<Theme>; tone?: HeroTone }> = ({
-  dense = false,
-  sx,
-  tone = 'dark',
-}) => (
-  <Stack spacing={dense ? 1.45 : 2.2} sx={sx}>
-    {aiBenefits.map((benefit) => (
-      <Stack key={benefit.title} direction="row" spacing={1.7} alignItems="flex-start">
-        <Box
-          sx={{
-            width: dense ? 44 : 48,
-            height: dense ? 44 : 48,
-            borderRadius: '16px',
-            display: 'grid',
-            placeItems: 'center',
-            bgcolor: '#E7F8EE',
-            color: '#16A34A',
-            flexShrink: 0,
-            boxShadow: 'inset 0 0 0 1px rgba(22, 163, 74, 0.08)',
-          }}
-        >
-          {benefit.icon}
-        </Box>
-        <Box>
-          <Typography
-            sx={{
-              fontSize: dense ? '0.94rem' : '0.98rem',
-              fontWeight: 900,
-              color: tone === 'dark' ? '#F8FAFC' : '#0F172A',
-              mb: 0.35,
-            }}
-          >
-            {benefit.title}
-          </Typography>
-          <Typography
-            sx={{
-              fontSize: dense ? '0.86rem' : '0.9rem',
-              color: tone === 'dark' ? '#CBD5E1' : '#52637A',
-              lineHeight: 1.5,
-            }}
-          >
-            {benefit.text}
-          </Typography>
-        </Box>
-      </Stack>
-    ))}
-  </Stack>
-);
-
-const ReceiptPreview: React.FC<{ compact?: boolean; rows?: number }> = ({
-  compact = false,
-  rows = 8,
-}) => (
-  <Box sx={{ position: 'relative' }}>
-    <Stack alignItems="center" spacing={compact ? 0.25 : 0.35} sx={{ mb: compact ? 0.45 : 0.75 }}>
-      <LetisMark size={compact ? 16 : 24} />
-      <Typography
-        sx={{
-          fontSize: compact ? '0.34rem' : '0.48rem',
-          fontWeight: 950,
-          color: '#0F172A',
-          lineHeight: 1,
-        }}
-      >
-        Letis POS
-      </Typography>
-    </Stack>
-    <Stack
-      spacing={compact ? 0.15 : 0.22}
-      sx={{
-        mb: compact ? 0.45 : 0.65,
-        fontSize: compact ? '0.19rem' : '0.27rem',
-        fontWeight: 850,
-        color: '#0F172A',
-        lineHeight: 1.12,
-        textAlign: 'center',
-      }}
-    >
-      <Box>Reference : INV-2026-000433</Box>
-      <Box>Date : 04/05/2026, 12:32:57</Box>
-      {!compact && (
-        <>
-          <Box>Seller : System Admin</Box>
-          <Box>Customer : ismael mkumbi</Box>
-          <Box>Warehouse : Main Warehouse</Box>
-        </>
-      )}
-    </Stack>
-    <Box sx={{ borderTop: '1px dotted #0F172A', borderBottom: '1px dotted #0F172A', py: 0.35 }}>
-      <Stack
-        direction="row"
-        justifyContent="space-between"
-        sx={{
-          fontSize: compact ? '0.22rem' : '0.32rem',
-          fontWeight: 950,
-          color: '#0F172A',
-          lineHeight: 1,
-        }}
-      >
-        <Box component="span">PRODUCT</Box>
-        <Box component="span">TOTAL</Box>
-      </Stack>
-    </Box>
-    <Stack spacing={compact ? 0.28 : 0.42} sx={{ mt: compact ? 0.35 : 0.5 }}>
-      {receiptItems.slice(0, rows).map(([name, meta, amount]) => (
-        <Box
-          key={`${name}-${rows}`}
-          sx={{
-            pb: compact ? 0.24 : 0.32,
-            borderBottom: '1px dotted rgba(15, 23, 42, 0.62)',
-          }}
-        >
-          <Stack
-            direction="row"
-            justifyContent="space-between"
-            sx={{
-              gap: 0.6,
-              fontSize: compact ? '0.25rem' : '0.38rem',
-              lineHeight: 1.05,
-              color: '#0F172A',
-              fontWeight: 950,
-            }}
-          >
-            <Box
-              component="span"
-              sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-            >
-              {name}
-            </Box>
-            <Box component="span" sx={{ flexShrink: 0 }}>
-              {amount}
-            </Box>
-          </Stack>
-          <Typography
-            sx={{
-              mt: 0.14,
-              fontSize: compact ? '0.2rem' : '0.3rem',
-              color: '#475569',
-              fontWeight: 800,
-              lineHeight: 1,
-            }}
-          >
-            {meta} unit x 4,100.00
-          </Typography>
-        </Box>
-      ))}
-    </Stack>
-    {!compact && (
-      <Stack
-        spacing={0.28}
-        sx={{
-          mt: 0.55,
-          pt: 0.4,
-          borderTop: '1px dotted #0F172A',
-          fontSize: '0.38rem',
-          fontWeight: 950,
-          color: '#0F172A',
-          lineHeight: 1,
-        }}
-      >
-        <Stack direction="row" justifyContent="space-between">
-          <Box component="span">Subtotal</Box>
-          <Box component="span">280,200.00</Box>
-        </Stack>
-        <Stack direction="row" justifyContent="space-between">
-          <Box component="span">Total</Box>
-          <Box component="span">TZS 293.8K</Box>
-        </Stack>
-      </Stack>
-    )}
-  </Box>
-);
-
 const Hero: React.FC = () => {
   const { openDemo } = useDemoDialog();
   const { theme } = useLpTheme();
   const isBrightTheme = theme === 'bold-energetic';
-  const heroTone: HeroTone = isBrightTheme ? 'light' : 'dark';
-  const heroStyles = isBrightTheme
-    ? {
-        background:
-          'radial-gradient(circle at 8% 84%, rgba(22, 163, 74, 0.12), transparent 30%), radial-gradient(circle at 58% 16%, rgba(22, 163, 74, 0.10), transparent 25%), linear-gradient(115deg, #F6FFF9 0%, #FFFFFF 48%, #F8FAFC 100%)',
-        beforeBg: 'rgba(22, 163, 74, 0.08)',
-        badgeBg: '#DCFCE7',
-        badgeColor: '#15803D',
-        badgeBorder: 'rgba(22, 163, 74, 0.18)',
-        accent: '#16A34A',
-        bodyText: '#475569',
-        statusText: '#475569',
-        divider: 'rgba(15, 23, 42, 0.10)',
-        trustDivider: 'rgba(15, 23, 42, 0.12)',
-        trustTitle: '#0F172A',
-        trustText: '#52637A',
-        productStageBg:
-          'radial-gradient(circle at 80% 10%, rgba(22, 163, 74, 0.14), transparent 28%), radial-gradient(circle at 20% 82%, rgba(21, 128, 61, 0.10), transparent 26%), linear-gradient(180deg, rgba(255,255,255,0.92), rgba(236,253,245,0.72))',
-        productStageBorder: 'rgba(22, 163, 74, 0.16)',
-        productStageShadow: '0 28px 80px rgba(22, 101, 52, 0.11)',
-        monitorFrame: 'linear-gradient(180deg, #F8FAFC 0%, #E2E8F0 100%)',
-        monitorBorder: 'rgba(15, 23, 42, 0.12)',
-        monitorShadow: '0 36px 86px rgba(15, 23, 42, 0.16)',
-        monitorStand: 'linear-gradient(180deg, #334155 0%, #101827 100%)',
-        monitorBase: '#111827',
-        screenBorder: 'rgba(15, 23, 42, 0.10)',
-      }
-    : {
-        background:
-          'radial-gradient(circle at 8% 84%, rgba(34, 197, 94, 0.18), transparent 30%), radial-gradient(circle at 58% 16%, rgba(74, 222, 128, 0.14), transparent 25%), linear-gradient(115deg, var(--lp-hero-bg) 0%, #111827 52%, #07111F 100%)',
-        beforeBg: 'rgba(74, 222, 128, 0.10)',
-        badgeBg: 'rgba(34, 197, 94, 0.16)',
-        badgeColor: '#86EFAC',
-        badgeBorder: 'rgba(134, 239, 172, 0.28)',
-        accent: '#86EFAC',
-        bodyText: 'rgba(248, 250, 252, 0.78)',
-        statusText: 'rgba(248, 250, 252, 0.72)',
-        divider: 'rgba(248, 250, 252, 0.14)',
-        trustDivider: 'rgba(248, 250, 252, 0.14)',
-        trustTitle: '#F8FAFC',
-        trustText: '#CBD5E1',
-        productStageBg:
-          'radial-gradient(circle at 78% 12%, rgba(74, 222, 128, 0.16), transparent 28%), radial-gradient(circle at 25% 82%, rgba(34, 197, 94, 0.13), transparent 28%), linear-gradient(180deg, rgba(15,23,42,0.68), rgba(15,23,42,0.30))',
-        productStageBorder: 'rgba(134, 239, 172, 0.14)',
-        productStageShadow: '0 32px 90px rgba(0, 0, 0, 0.26)',
-        monitorFrame: 'linear-gradient(180deg, #26313E 0%, #0F172A 100%)',
-        monitorBorder: 'rgba(255, 255, 255, 0.18)',
-        monitorShadow: '0 38px 90px rgba(0, 0, 0, 0.34)',
-        monitorStand: 'linear-gradient(180deg, #2B313A 0%, #121820 100%)',
-        monitorBase: '#111827',
-        screenBorder: 'rgba(255, 255, 255, 0.20)',
-      };
+  const heroTone: BenefitTone = isBrightTheme ? 'light' : 'dark';
+  const heroStyles = isBrightTheme ? lightHeroStyles() : darkHeroStyles();
 
   return (
     <Box
@@ -628,6 +365,7 @@ const Hero: React.FC = () => {
                         component="img"
                         src={dashboardCapture}
                         alt="Letis POS dashboard preview for the selected month"
+                        loading="lazy"
                         sx={{
                           width: '100%',
                           height: '100%',

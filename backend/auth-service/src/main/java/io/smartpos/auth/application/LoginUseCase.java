@@ -77,7 +77,7 @@ public class LoginUseCase {
                 user.getId(), user.getEmail(), claims.tenantId(),
                 claims.tenantStatus(), claims.billingPlan(),
                 claims.roles(), claims.permissions(),
-                claims.maxUsers(), claims.maxStores());
+                claims.features(), claims.maxUsers(), claims.maxStores());
 
         String refreshTokenRaw = generateOpaqueToken();
         RefreshToken rt = RefreshToken.builder()
@@ -141,7 +141,7 @@ public class LoginUseCase {
                 user.getId(), user.getEmail(), claims.tenantId(),
                 claims.tenantStatus(), claims.billingPlan(),
                 claims.roles(), claims.permissions(),
-                claims.maxUsers(), claims.maxStores());
+                claims.features(), claims.maxUsers(), claims.maxStores());
 
         return new AuthResponse(
                 accessToken,
@@ -164,6 +164,7 @@ public class LoginUseCase {
             String billingPlan,
             List<String> roles,
             List<String> permissions,
+            List<String> features,
             int maxUsers,
             int maxStores
     ) {}
@@ -201,16 +202,33 @@ public class LoginUseCase {
 
         if (userServiceClient == null) {
             return new HydratedClaims(user.getTenantId(), tenantStatus, billingPlan,
-                    List.of(), List.of(), maxUsers, maxStores);
+                    List.of(), List.of(), List.of(), maxUsers, maxStores);
         }
         try {
             UserServiceClient.AuthClaims fetched = userServiceClient.authClaims(user.getId());
+
+            // Resolve features from user-service
+            List<String> features = List.of();
+            if (billingPlan != null && user.getTenantId() != null) {
+                try {
+                    java.util.Set<String> resolved = userServiceClient.resolvedFeatures(
+                            user.getTenantId().toString(),
+                            user.getId().toString(),
+                            billingPlan);
+                    features = resolved != null ? List.copyOf(resolved) : List.of();
+                } catch (Exception fe) {
+                    log.warn("Could not resolve features from user-service for {}: {}",
+                            user.getId(), fe.getMessage());
+                }
+            }
+
             return new HydratedClaims(
                     fetched.tenantId() != null ? fetched.tenantId() : user.getTenantId(),
                     tenantStatus,
                     billingPlan,
                     fetched.roles() != null ? fetched.roles() : List.of(),
                     fetched.permissions() != null ? fetched.permissions() : List.of(),
+                    features,
                     maxUsers,
                     maxStores
             );
@@ -218,7 +236,7 @@ public class LoginUseCase {
             log.warn("Could not hydrate JWT claims from user-service for {}: {}",
                     user.getId(), e.getMessage());
             return new HydratedClaims(user.getTenantId(), tenantStatus, billingPlan,
-                    List.of(), List.of(), maxUsers, maxStores);
+                    List.of(), List.of(), List.of(), maxUsers, maxStores);
         }
     }
 

@@ -28,6 +28,10 @@ export interface CurrentUser {
   maxUsers?: number;
   maxStores?: number;
   trialEndsAt?: string;
+  // From JWT claims (included in /api/v1/auth/me):
+  features?: string[];
+  // Filtered menu from /api/v1/menu:
+  menu?: import('./features').MenuNode[];
   // Populated later from User Service:
   firstName?: string;
   lastName?: string;

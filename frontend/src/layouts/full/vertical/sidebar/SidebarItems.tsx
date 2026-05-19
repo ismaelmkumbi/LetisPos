@@ -2,44 +2,34 @@
 // @ts-ignore
 import React, { useContext, useMemo } from 'react';
 import DemoMenuitems from './MenuItems';
-import { buildSmartPosMenu, type MenuItem } from './SmartPosMenuItems';
 import { useLocation } from 'react-router';
 import { Box, List, useMediaQuery } from '@mui/material';
-import { useTranslation } from 'react-i18next';
 import NavItem from './NavItem';
 import NavCollapse from './NavCollapse';
 import NavGroup from './NavGroup/NavGroup';
 
 import { CustomizerContext } from 'src/context/CustomizerContext';
 import { useAuth } from 'src/context/smartpos/AuthContext';
-import { planHasAccess } from 'src/config/planGates';
+import type { MenuNode } from 'src/api/smartpos/features';
+import { mapIcon } from './IconMap';
 
-function filterByPlan(items: MenuItem[], billingPlan: string, isAdmin: boolean): MenuItem[] {
-  const visible: MenuItem[] = [];
-  for (const item of items) {
-    if (item.minPlan) {
-      if (!planHasAccess(billingPlan, item.minPlan)) continue;
-    }
-    if (!isAdmin && item.requireAdmin) continue;
-    if (item.children) {
-      const filteredChildren = filterByPlan(item.children, billingPlan, isAdmin);
-      if (filteredChildren.length === 0) continue;
-      visible.push({ ...item, children: filteredChildren });
-    } else {
-      visible.push(item);
-    }
-  }
-  // Remove orphan subheaders
-  const result: MenuItem[] = [];
-  for (let i = 0; i < visible.length; i++) {
-    const item = visible[i];
-    if (item.subheader) {
-      const next = visible[i + 1];
-      if (!next || next.subheader) continue;
-    }
-    result.push(item);
-  }
-  return result;
+/**
+ * Recursively transform a MenuNode (from the API) into the shape that
+ * NavItem and NavCollapse expect.
+ */
+function transformNode(node: MenuNode): Record<string, unknown> {
+  const children: Record<string, unknown>[] = node.children.map((c) => transformNode(c));
+  // Ensure routes are absolute under /smartpos so NavLink resolves correctly
+  const href = node.route
+    ? node.route.startsWith('/') ? node.route : `/smartpos/${node.route}`
+    : undefined;
+  return {
+    id: node.id,
+    title: node.label,
+    icon: mapIcon(node.icon),
+    href,
+    children: children.length > 0 ? children : undefined,
+  };
 }
 
 const SidebarItems = () => {
@@ -47,56 +37,98 @@ const SidebarItems = () => {
   const pathDirect = pathname;
   const pathWithoutLastPart = pathname.slice(0, pathname.lastIndexOf('/'));
   const { isCollapse, isMobileSidebar, setIsMobileSidebar } = useContext(CustomizerContext);
-  const { t } = useTranslation('smartpos');
-  const { tenants, hasPermission, hasRole } = useAuth();
+  const { user } = useAuth();
 
   const lgUp = useMediaQuery((theme: any) => theme.breakpoints.up('lg'));
   const hideMenu: any = lgUp ? isCollapse == "mini-sidebar" : '';
 
-  const isAdmin = hasPermission('admin') || hasRole('SUPER_ADMIN');
-  // Only SUPER_ADMIN bypasses plan gates — consistent with PlanGate, hasPlan, and FeatureGateFilter.
-  // Regular admins still see admin-only items (requireAdmin) via the isAdmin flag in filterByPlan.
-  const billingPlan = hasRole('SUPER_ADMIN') ? 'ENTERPRISE' : (tenants[0]?.billingPlan ?? 'STARTER');
-
   const isSmartPos = pathname.startsWith('/smartpos');
-  const rawItems = isSmartPos
-    ? buildSmartPosMenu(t as any)
-    : DemoMenuitems;
+  const apiMenu: MenuNode[] = (user as any)?.menu ?? [];
 
+  // For smartpos paths, render from the API menu. Otherwise keep the demo menu.
   const Menuitems = useMemo(() => {
-    if (isSmartPos) {
-      return filterByPlan(rawItems as MenuItem[], billingPlan, isAdmin);
+    if (isSmartPos && apiMenu.length > 0) {
+      return { source: 'api' as const, nodes: apiMenu };
     }
-    return rawItems;
-  }, [rawItems, billingPlan, isSmartPos]);
+    return { source: 'demo' as const, nodes: null };
+  }, [isSmartPos, apiMenu]);
+
+  const closeMobileSidebar = () => setIsMobileSidebar(!isMobileSidebar);
+
+  const renderApiMenu = (items: MenuNode[]): React.ReactNode => {
+    return items.map((item) => {
+      if (item.sectionHeader) {
+        // Section headers render as NavGroup; their children follow as siblings.
+        return (
+          <React.Fragment key={item.id}>
+            <NavGroup item={{ subheader: item.label }} hideMenu={hideMenu} />
+            {item.children.map((child) => renderApiMenuItem(child))}
+          </React.Fragment>
+        );
+      }
+      return renderApiMenuItem(item);
+    });
+  };
+
+  const renderApiMenuItem = (item: MenuNode): React.ReactNode => {
+    const transformed = transformNode(item);
+
+    if (item.children.length > 0) {
+      return (
+        <NavCollapse
+          key={item.id}
+          menu={transformed}
+          level={1}
+          pathWithoutLastPart={pathWithoutLastPart}
+          pathDirect={pathDirect}
+          hideMenu={hideMenu}
+          onClick={closeMobileSidebar}
+        />
+      );
+    }
+
+    return (
+      <NavItem
+        key={item.id}
+        item={transformed}
+        level={1}
+        pathDirect={pathDirect}
+        hideMenu={hideMenu}
+        onClick={closeMobileSidebar}
+      />
+    );
+  };
 
   return (
     <Box sx={{ px: 1, pt: 1, pb: 2 }}>
       <List sx={{ pt: 0 }} className="sidebarNav">
-        {(Menuitems as MenuItem[]).map((item) => {
-          if (item.subheader) {
-            return <NavGroup item={item} hideMenu={hideMenu} key={item.subheader} />;
-          } else if (item.children) {
-            return (
-              <NavCollapse
-                menu={item}
-                pathDirect={pathDirect}
-                hideMenu={hideMenu}
-                pathWithoutLastPart={pathWithoutLastPart}
-                level={1}
-                key={item.id}
-                onClick={() => setIsMobileSidebar(!isMobileSidebar)}
-              />
-            );
-          } else {
-            return (
-              <NavItem item={item} key={item.id} pathDirect={pathDirect} hideMenu={hideMenu}
-                onClick={() => setIsMobileSidebar(!isMobileSidebar)} />
-            );
-          }
-        })}
+        {Menuitems.source === 'api'
+          ? renderApiMenu(Menuitems.nodes!)
+          : (DemoMenuitems as any[]).map((item: any) => {
+              if (item.subheader) {
+                return <NavGroup item={item} hideMenu={hideMenu} key={item.subheader} />;
+              } else if (item.children) {
+                return (
+                  <NavCollapse
+                    menu={item}
+                    pathDirect={pathDirect}
+                    hideMenu={hideMenu}
+                    pathWithoutLastPart={pathWithoutLastPart}
+                    level={1}
+                    key={item.id}
+                    onClick={closeMobileSidebar}
+                  />
+                );
+              } else {
+                return (
+                  <NavItem item={item} key={item.id} pathDirect={pathDirect} hideMenu={hideMenu}
+                    onClick={closeMobileSidebar} />
+                );
+              }
+            })}
       </List>
     </Box>
   );
 };
+
 export default SidebarItems;

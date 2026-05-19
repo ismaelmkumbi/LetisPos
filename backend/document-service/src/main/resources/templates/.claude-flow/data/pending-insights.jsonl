@@ -1,0 +1,17 @@
+{"type":"edit","file":"/Users/ismaelmkumbi/Desktop/LetisPos/backend/document-service/src/main/resources/templates/partials/header.hbs","timestamp":1779121995807}
+{"type":"edit","file":"/Users/ismaelmkumbi/Desktop/LetisPos/backend/document-service/src/main/resources/templates/partials/footer.hbs","timestamp":1779122001174}
+{"type":"edit","file":"/Users/ismaelmkumbi/Desktop/LetisPos/backend/document-service/src/main/resources/templates/partials/items-table.hbs","timestamp":1779122010858}
+{"type":"edit","file":"/Users/ismaelmkumbi/Desktop/LetisPos/backend/document-service/src/main/resources/templates/partials/totals.hbs","timestamp":1779122017162}
+{"type":"edit","file":"/Users/ismaelmkumbi/Desktop/LetisPos/backend/document-service/src/main/resources/templates/partials/signatures.hbs","timestamp":1779122022889}
+{"type":"edit","file":"/Users/ismaelmkumbi/Desktop/LetisPos/backend/document-service/src/main/java/io/smartpos/documents/infrastructure/config/HandlebarsConfig.java","timestamp":1779122069438}
+{"type":"edit","file":"/Users/ismaelmkumbi/Desktop/LetisPos/backend/document-service/src/main/resources/templates/email-wrapper.hbs","timestamp":1779122091772}
+{"type":"edit","file":"/Users/ismaelmkumbi/Desktop/LetisPos/backend/document-service/src/main/java/io/smartpos/documents/application/DeliveryService.java","timestamp":1779122138391}
+{"type":"edit","file":"/Users/ismaelmkumbi/Desktop/LetisPos/backend/document-service/src/main/resources/db/migration/V10__i18n_branding.sql","timestamp":1779122201789}
+{"type":"edit","file":"/Users/ismaelmkumbi/Desktop/LetisPos/backend/document-service/src/main/java/io/smartpos/documents/domain/model/I18nLabel.java","timestamp":1779122222005}
+{"type":"edit","file":"/Users/ismaelmkumbi/Desktop/LetisPos/backend/document-service/src/main/java/io/smartpos/documents/domain/repository/I18nLabelRepository.java","timestamp":1779122230459}
+{"type":"edit","file":"/Users/ismaelmkumbi/Desktop/LetisPos/backend/document-service/src/main/java/io/smartpos/documents/domain/model/I18nLabel.java","timestamp":1779122247091}
+{"type":"edit","file":"/Users/ismaelmkumbi/Desktop/LetisPos/backend/document-service/src/main/java/io/smartpos/documents/application/DocumentService.java","timestamp":1779122297740}
+{"type":"edit","file":"/Users/ismaelmkumbi/Desktop/LetisPos/backend/document-service/src/main/java/io/smartpos/documents/application/DocumentService.java","timestamp":1779122316300}
+{"type":"edit","file":"/Users/ismaelmkumbi/Desktop/LetisPos/backend/document-service/src/main/java/io/smartpos/documents/application/DocumentService.java","timestamp":1779122351503}
+{"type":"edit","file":"/Users/ismaelmkumbi/Desktop/LetisPos/backend/document-service/src/main/java/io/smartpos/documents/api/dto/GenerateDocumentRequest.java","timestamp":1779122386906}
+{"type":"edit","file":"/Users/ismaelmkumbi/Desktop/LetisPos/backend/document-service/src/main/java/io/smartpos/documents/application/DocumentService.java","timestamp":1779122399523}

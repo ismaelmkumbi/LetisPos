@@ -22,3 +22,4 @@ export * as i18nApi from './i18n';
 export * as usersApi from './users';
 export * as onboardingApi from './onboarding';
 export * as dashboardIntelligenceApi from './dashboardIntelligence';
+export * as featuresApi from './features';

@@ -3,6 +3,7 @@ import {
   Box,
   Container,
   Typography,
+  Alert,
 } from '@mui/material';
 import { IconCheck } from '@tabler/icons-react';
 import SectionWrapper from '../components/SectionWrapper';
@@ -20,7 +21,7 @@ export interface PricingProps {
 const Pricing: React.FC<PricingProps> = ({ variant = 'default' }) => {
   const [billing, setBilling] = useState<BillingPeriod>('monthly');
   const [tiers, setTiers] = useState<PricingTier[]>(pricingTiers);
-  const [, setLoading] = useState(true);
+  const [pricingError, setPricingError] = useState(false);
   const isAnnual = billing === 'annual';
 
   useEffect(() => {
@@ -29,8 +30,7 @@ const Pricing: React.FC<PricingProps> = ({ variant = 'default' }) => {
         const apiTiers = plansToTiers(plans);
         if (apiTiers.length > 0) setTiers(apiTiers);
       })
-      .catch(() => { /* keep hardcoded fallback */ })
-      .finally(() => setLoading(false));
+      .catch(() => { setPricingError(true); });
   }, []);
 
   const PricingCards = variant === 'spotlight' ? PricingSpotlight : PricingDefault;
@@ -166,6 +166,11 @@ const Pricing: React.FC<PricingProps> = ({ variant = 'default' }) => {
         </Box>
 
         {/* Pricing Cards — variant-specific */}
+        {pricingError && (
+          <Alert severity="warning" sx={{ mb: 3, fontFamily: 'var(--lp-font-body)' }}>
+            Pricing data could not be refreshed. Showing default plans — contact support for current rates.
+          </Alert>
+        )}
         <Box sx={{ mb: 6 }}>
           <PricingCards billing={billing} tiers={tiers} />
         </Box>

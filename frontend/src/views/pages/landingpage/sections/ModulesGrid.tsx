@@ -88,7 +88,7 @@ const ModulesGrid: React.FC = () => {
               mx: 'auto',
             }}
           >
-            No modules to buy. No feature gates. Every tool is available from day one.
+            All core modules included. Advanced features unlock as you scale.
           </Typography>
         </Box>
 

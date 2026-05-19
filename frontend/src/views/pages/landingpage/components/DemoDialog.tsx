@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import {
   Dialog, DialogTitle, DialogContent, DialogActions,
-  TextField, Typography, Stack, Box, IconButton, MenuItem, Chip,
+  TextField, Typography, Stack, Box, IconButton, MenuItem, Chip, Alert,
 } from '@mui/material';
 import {
   IconX, IconCheck, IconBrandWhatsapp, IconPhone, IconMail,
@@ -30,6 +30,7 @@ export function useDemoDialog(): DemoDialogContextValue {
 export function DemoDialogProvider({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState(false);
   const [sending, setSending] = useState(false);
 
   const [name, setName] = useState('');
@@ -42,6 +43,7 @@ export function DemoDialogProvider({ children }: { children: React.ReactNode }) 
   const openDemo = useCallback(() => {
     setOpen(true);
     setSubmitted(false);
+    setError(false);
     setName('');
     setEmail('');
     setPhone('');
@@ -74,7 +76,7 @@ export function DemoDialogProvider({ children }: { children: React.ReactNode }) 
       });
       setSubmitted(true);
     } catch {
-      setSubmitted(true);
+      setError(true);
     } finally {
       setSending(false);
     }
@@ -213,6 +215,11 @@ export function DemoDialogProvider({ children }: { children: React.ReactNode }) 
         <form onSubmit={handleSubmit}>
           <DialogContent sx={{ pt: 2, pb: 1 }}>
             <Stack spacing={2}>
+              {error && (
+                <Alert severity="error" sx={{ fontFamily: 'var(--lp-font-body)' }}>
+                  Something went wrong. Please try again or contact us directly.
+                </Alert>
+              )}
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
                 <TextField
                   label="Full name *"

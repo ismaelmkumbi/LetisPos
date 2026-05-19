@@ -54,9 +54,14 @@ public class ProductPublishingService {
     }
 
     @Transactional(readOnly = true)
-    public Page<PublishedProduct> listPublished(UUID storeId, String search, Pageable pageable) {
+    public Page<PublishedProduct> listPublished(UUID storeId, String search, UUID categoryId, Pageable pageable) {
         UUID tenantId = TenantContext.require();
         return publishedProductRepository.searchPublished(storeId, tenantId, search, pageable);
+    }
+
+    @Transactional(readOnly = true)
+    public List<PublishedProduct> listAllPublished(UUID storeId) {
+        return publishedProductRepository.findByStoreId(storeId);
     }
 
     @Transactional(readOnly = true)

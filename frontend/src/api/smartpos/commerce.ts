@@ -128,7 +128,7 @@ export const storefront = {
   getFeaturedProducts: (slug: string) =>
     api.get<StorefrontProduct[]>(`/api/v1/storefront/${slug}/products/featured`).then(r => r.data),
 
-  getProducts: (slug: string, params: { categoryId?: string; search?: string; sort?: string; page?: number; size?: number }) =>
+  getProducts: (slug: string, params: { categoryId?: string; search?: string; sort?: string; page?: number; size?: number; minPrice?: number; maxPrice?: number; brand?: string; rating?: number; inStock?: boolean }) =>
     api.get<{ content: StorefrontProduct[]; totalElements: number; totalPages: number }>(
       `/api/v1/storefront/${slug}/products`, { params }
     ).then(r => r.data),

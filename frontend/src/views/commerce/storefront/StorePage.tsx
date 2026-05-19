@@ -3,6 +3,7 @@ import { Container, Typography, Box, CircularProgress } from '@mui/material';
 import { useParams } from 'react-router';
 import { storefront } from '../../../api/smartpos/commerce';
 import SeoHead from '../../../components/commerce/SeoHead';
+import { safeHtml } from '../../../utils/sanitize';
 import type { StorePage } from '../../../types/commerce';
 
 const StorePageRenderer: React.FC = () => {
@@ -30,7 +31,7 @@ const StorePageRenderer: React.FC = () => {
           sx={{ fontFamily: 'var(--commerce-font-heading, inherit)' }}>
           {page.title}
         </Typography>
-        <Box dangerouslySetInnerHTML={{ __html: page.body }}
+        <Box dangerouslySetInnerHTML={{ __html: safeHtml(page.body) }}
           sx={{
             '& img': { maxWidth: '100%', height: 'auto' },
             '& p': { mb: 2, lineHeight: 1.7 },

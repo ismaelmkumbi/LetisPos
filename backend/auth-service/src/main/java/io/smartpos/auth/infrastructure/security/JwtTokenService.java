@@ -22,6 +22,7 @@ import java.util.*;
  *   email, tenantId, tenantStatus, billingPlan
  *   roles[]      — role names (populated later from User Service)
  *   permissions[]— flat permission strings (populated later)
+ *   features[]   — resolved feature flags (populated later from User Service)
  *
  * Header includes kid = configurable key id for JWKS rotation.
  */
@@ -39,7 +40,7 @@ public class JwtTokenService {
     public String issueAccessToken(UUID userId, String email, UUID tenantId,
                                    String tenantStatus, String billingPlan,
                                    List<String> roles, List<String> permissions,
-                                   int maxUsers, int maxStores) {
+                                   List<String> features, int maxUsers, int maxStores) {
         Instant now = Instant.now();
         Instant exp = now.plus(Duration.ofMinutes(props.accessTokenTtlMinutes()));
         Map<String, Object> claims = new HashMap<>();
@@ -49,6 +50,7 @@ public class JwtTokenService {
         if (billingPlan != null) claims.put("billingPlan", billingPlan);
         if (roles != null) claims.put("roles", roles);
         if (permissions != null) claims.put("permissions", permissions);
+        if (features != null) claims.put("features", features);
         claims.put("tenantMaxUsers", maxUsers);
         claims.put("tenantMaxStores", maxStores);
 

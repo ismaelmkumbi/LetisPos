@@ -1,0 +1,20 @@
+-- Fix seed menu routes to match actual frontend route paths (absolute under /smartpos)
+UPDATE menu_definitions SET route = '/smartpos/dashboard' WHERE key = 'menu-dashboard';
+UPDATE menu_definitions SET route = '/smartpos/sales/pos' WHERE key = 'menu-pos';
+UPDATE menu_definitions SET route = '/smartpos/sales' WHERE key = 'menu-sales';
+UPDATE menu_definitions SET route = '/smartpos/products' WHERE key = 'menu-products';
+UPDATE menu_definitions SET route = '/smartpos/products/categories' WHERE key = 'menu-categories';
+UPDATE menu_definitions SET route = '/smartpos/stock' WHERE key = 'menu-stock';
+UPDATE menu_definitions SET route = '/smartpos/purchases' WHERE key = 'menu-purchases';
+UPDATE menu_definitions SET route = '/smartpos/customers' WHERE key = 'menu-customers';
+UPDATE menu_definitions SET route = '/smartpos/suppliers' WHERE key = 'menu-suppliers';
+UPDATE menu_definitions SET route = '/smartpos/payments' WHERE key = 'menu-payments';
+UPDATE menu_definitions SET route = '/smartpos/accounting/chart-of-accounts' WHERE key = 'menu-accounting';
+UPDATE menu_definitions SET route = '/smartpos/reports/advanced' WHERE key = 'menu-reports';
+UPDATE menu_definitions SET route = '/smartpos/marketing/promotions' WHERE key = 'menu-marketing';
+UPDATE menu_definitions SET route = '/smartpos/hrm/employees' WHERE key = 'menu-hrm';
+UPDATE menu_definitions SET route = '/smartpos/crm/leads' WHERE key = 'menu-crm';
+UPDATE menu_definitions SET route = '/smartpos/admin/commerce' WHERE key = 'menu-ecommerce';
+UPDATE menu_definitions SET route = '/smartpos/ai' WHERE key = 'menu-ai';
+UPDATE menu_definitions SET route = '/smartpos/settings/i18n' WHERE key = 'menu-settings';
+UPDATE menu_definitions SET route = '/smartpos/support/help' WHERE key = 'menu-support';

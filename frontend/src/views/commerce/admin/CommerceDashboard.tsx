@@ -6,6 +6,7 @@ import {
   TrendingUp as AovIcon,
   Percent as ConversionIcon,
 } from '@mui/icons-material';
+import { useCommerceAdmin } from '../../../context/CommerceContext';
 import { commerceAdmin } from '../../../api/smartpos/commerce';
 import type { CommerceSummary, TopProduct } from '../../../types/commerce';
 
@@ -24,6 +25,8 @@ const MetricCard: React.FC<{ title: string; value: string; icon: React.ReactNode
 );
 
 const CommerceDashboard: React.FC = () => {
+  const { store } = useCommerceAdmin();
+  const currency = store?.currency || 'USD';
   const [summary, setSummary] = useState<CommerceSummary | null>(null);
   const [topProducts, setTopProducts] = useState<TopProduct[]>([]);
   const [loading, setLoading] = useState(true);
@@ -56,11 +59,11 @@ const CommerceDashboard: React.FC = () => {
             icon={<OrderIcon sx={{ color: '#1976d2' }} />} color="#1976d2" />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <MetricCard title="Revenue" value={`$${(summary?.totalRevenue || 0).toFixed(2)}`}
+          <MetricCard title="Revenue" value={`${currency === 'USD' ? '$' : currency + ' '}${(summary?.totalRevenue || 0).toFixed(2)}`}
             icon={<RevenueIcon sx={{ color: '#388e3c' }} />} color="#388e3c" />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <MetricCard title="Avg Order Value" value={`$${(summary?.averageOrderValue || 0).toFixed(2)}`}
+          <MetricCard title="Avg Order Value" value={`${currency === 'USD' ? '$' : currency + ' '}${(summary?.averageOrderValue || 0).toFixed(2)}`}
             icon={<AovIcon sx={{ color: '#f57c00' }} />} color="#f57c00" />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
@@ -81,7 +84,7 @@ const CommerceDashboard: React.FC = () => {
                   <Typography component="span" color="text.secondary" mr={1}>#{i + 1}</Typography>
                   {p.productName || p.productId}
                 </Typography>
-                <Typography fontWeight="bold">${p.totalRevenue?.toFixed(2)}</Typography>
+                <Typography fontWeight="bold">{currency === 'USD' ? '$' : currency + ' '}{p.totalRevenue?.toFixed(2)}</Typography>
               </Box>
             ))
           )}
