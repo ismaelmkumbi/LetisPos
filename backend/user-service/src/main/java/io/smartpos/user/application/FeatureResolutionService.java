@@ -19,13 +19,18 @@ import java.util.*;
 @Slf4j
 public class FeatureResolutionService {
 
+    private static final List<String> PLAN_ORDER = List.of("STARTER", "BUSINESS", "PROFESSIONAL", "ENTERPRISE");
+
     private final FeatureAssignmentRepository assignmentRepository;
     private final FeatureDefinitionRepository featureDefinitionRepository;
 
     @Cacheable(value = "features:plan", key = "#planCode")
     public Set<String> getPlanFeatures(String planCode) {
-        return toFeatureKeySet(assignmentRepository
-            .findByAssignmentLevelAndTargetId(AssignmentLevel.PLAN, planCode));
+        Set<String> keys = new HashSet<>();
+        for (String plan : includedPlans(planCode)) {
+            applyAssignments(keys, assignmentRepository.findByAssignmentLevelAndTargetId(AssignmentLevel.PLAN, plan));
+        }
+        return keys;
     }
 
     @Cacheable(value = "features:tenant", key = "#tenantId")
@@ -44,24 +49,10 @@ public class FeatureResolutionService {
         Set<String> features = new HashSet<>(getPlanFeatures(planCode));
 
         // Apply tenant overrides (add or remove)
-        for (FeatureAssignment a : assignmentRepository
-                .findByAssignmentLevelAndTargetId(AssignmentLevel.TENANT, tenantId)) {
-            if (a.isGranted()) {
-                features.add(a.getFeatureKey());
-            } else {
-                features.remove(a.getFeatureKey());
-            }
-        }
+        applyAssignments(features, assignmentRepository.findByAssignmentLevelAndTargetId(AssignmentLevel.TENANT, tenantId));
 
         // Apply user overrides (highest priority)
-        for (FeatureAssignment a : assignmentRepository
-                .findByAssignmentLevelAndTargetId(AssignmentLevel.USER, userId)) {
-            if (a.isGranted()) {
-                features.add(a.getFeatureKey());
-            } else {
-                features.remove(a.getFeatureKey());
-            }
-        }
+        applyAssignments(features, assignmentRepository.findByAssignmentLevelAndTargetId(AssignmentLevel.USER, userId));
 
         return features;
     }
@@ -115,11 +106,25 @@ public class FeatureResolutionService {
 
     private Set<String> toFeatureKeySet(List<FeatureAssignment> assignments) {
         Set<String> keys = new HashSet<>();
+        applyAssignments(keys, assignments);
+        return keys;
+    }
+
+    private List<String> includedPlans(String planCode) {
+        int index = PLAN_ORDER.indexOf(planCode);
+        if (index < 0) {
+            return List.of(planCode);
+        }
+        return PLAN_ORDER.subList(0, index + 1);
+    }
+
+    private void applyAssignments(Set<String> keys, List<FeatureAssignment> assignments) {
         for (FeatureAssignment a : assignments) {
             if (a.isGranted()) {
                 keys.add(a.getFeatureKey());
+            } else {
+                keys.remove(a.getFeatureKey());
             }
         }
-        return keys;
     }
 }
