@@ -112,12 +112,13 @@ export default function DocumentPreviewModal({
     if (open) {
       loadTemplate();
       setPdfBlobUrl(null);
-      setTab(0);
       setError(null);
       // Auto-generate PDF preview if we have real data to show
       if (referenceType && referenceId) {
         generatePdfPreview();
       }
+      // Default to PDF tab when real data is available, HTML tab otherwise
+      setTab(referenceType && referenceId ? 1 : 0);
     }
   }, [open, loadTemplate, referenceType, referenceId, generatePdfPreview]);
 
