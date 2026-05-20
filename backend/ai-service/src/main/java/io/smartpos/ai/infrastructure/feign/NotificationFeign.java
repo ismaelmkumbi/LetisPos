@@ -12,7 +12,7 @@ public interface NotificationFeign {
     @PostMapping("/api/v1/notifications")
     Map<String, Object> send(@RequestBody Map<String, Object> body);
 
-    @GetMapping("/api/v1/templates")
+    @GetMapping("/api/v1/notification-templates")
     List<Map<String, Object>> listTemplates(
         @RequestParam(required = false) String code,
         @RequestParam(required = false) String channel);
