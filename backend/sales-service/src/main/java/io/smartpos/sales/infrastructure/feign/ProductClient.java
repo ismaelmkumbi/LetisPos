@@ -7,12 +7,12 @@ import org.springframework.web.bind.annotation.PathVariable;
 import java.util.UUID;
 
 /**
- * Minimal Feign client for product-service name resolution.
+ * Minimal Feign client for product-service name resolution and cost lookup.
  */
 @FeignClient(name = "product-service")
 public interface ProductClient {
 
-    record ProductNameDto(UUID id, String name) {}
+    record ProductNameDto(UUID id, String name, java.math.BigDecimal cost) {}
 
     @GetMapping("/api/v1/products/{id}")
     ProductNameDto getProduct(@PathVariable UUID id);

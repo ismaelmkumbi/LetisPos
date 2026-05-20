@@ -10,6 +10,7 @@ import io.smartpos.sales.domain.repository.PurchaseRepository;
 import io.smartpos.sales.domain.repository.SalePaymentAppliedRepository;
 import io.smartpos.sales.domain.repository.SaleRepository;
 import io.smartpos.sales.infrastructure.feign.InventoryClient;
+import io.smartpos.sales.infrastructure.feign.ProductClient;
 import io.smartpos.sales.infrastructure.feign.UserFeign;
 import io.smartpos.common.context.TenantContext;
 import jakarta.persistence.EntityManager;
@@ -66,6 +67,7 @@ public class SaleService {
     private final EntityManager em;
     private final UserFeign userFeign;
     private final ProductNameResolver productNameResolver;
+    private final ProductClient productClient;
 
     @Value("${smartpos.sales.default-currency:TZS}")
     private String defaultCurrency;
@@ -374,6 +376,16 @@ public class SaleService {
                     BigDecimal wac = costMap.get(new AbstractMap.SimpleEntry<>(line.getProductId(), line.getVariantId()));
                     if (wac != null && wac.signum() > 0) {
                         line.setUnitCost(wac);
+                    } else {
+                        // Fall back to product cost when WAC is unavailable
+                        try {
+                            var product = productClient.getProduct(line.getProductId());
+                            if (product.cost() != null && product.cost().signum() > 0) {
+                                line.setUnitCost(product.cost());
+                            }
+                        } catch (Exception ignored) {
+                            // product-service unreachable — leave unitCost as default
+                        }
                     }
                 }
             } catch (Exception e) {
