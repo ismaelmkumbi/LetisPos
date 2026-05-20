@@ -241,6 +241,13 @@ public class AssistantToolCatalog {
                     "channel", Map.of("type","string","enum",List.of("EMAIL","SMS","WHATSAPP"))
                 ),"required",List.of()), false, null),
 
+            new ToolDef("generateDocument", "Generate a document (tax-invoice, payment-receipt, quotation) from a sale, purchase, or payment. Use this when a customer asks for an invoice and no document exists yet. Provide the sale UUID as referenceId. Returns the document ID that can then be emailed.",
+                Map.of("type","object","properties", Map.of(
+                    "documentType", Map.of("type","string","enum",List.of("tax-invoice","payment-receipt","quotation","credit-note")),
+                    "referenceType", Map.of("type","string","description","Source type (sale, purchase, payment)"),
+                    "referenceId", Map.of("type","string","description","Source UUID (from searchSales, searchPurchases, or searchPayments)")
+                ),"required",List.of("referenceId")), true, "notification.send"),
+
             new ToolDef("searchDocuments", "Search for generated documents (invoices, receipts, quotations). Use q to search by document number (e.g. TAX-000001, PAY-000001). To find documents for a specific sale (e.g. INV-2026-000002), first use searchSales to get the sale UUID, then use the sale UUID as the q parameter here.",
                 Map.of("type","object","properties", Map.of(
                     "q", Map.of("type","string","description","Search by document number, reference, or linked entity UUID"),

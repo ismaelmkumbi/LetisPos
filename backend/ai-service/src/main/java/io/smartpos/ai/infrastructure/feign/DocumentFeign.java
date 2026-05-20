@@ -24,6 +24,9 @@ public interface DocumentFeign {
         @RequestParam(required = false, defaultValue = "0") int page,
         @RequestParam(required = false, defaultValue = "25") int size);
 
+    @PostMapping("/api/v1/documents/generate")
+    Map<String, Object> generateDocument(@RequestBody Map<String, Object> body);
+
     @PostMapping("/api/v1/documents/{id}/email")
     Map<String, String> emailDocument(@PathVariable UUID id, @RequestBody Map<String, Object> body);
 }

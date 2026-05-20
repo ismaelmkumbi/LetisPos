@@ -87,6 +87,7 @@ public class AssistantToolExecutor {
             case "getPlatformSales" -> getPlatformSales(args);
             case "getTenantDetail" -> getTenantDetail(args);
             case "getNotificationTemplates" -> getNotificationTemplates(args);
+            case "generateDocument" -> generateDocument(args);
             case "searchDocuments" -> searchDocuments(args);
             // Write tools — needed here for super admin auto-confirm path
             case "createProduct" -> createProduct(args);
@@ -149,6 +150,7 @@ public class AssistantToolExecutor {
             case "createPurchaseOrder" -> createPurchaseOrder(args, userId);
             case "adjustStock" -> adjustStock(args);
             case "createExpense" -> createExpense(args, userId);
+            case "generateDocument" -> generateDocument(args);
             case "sendEmail" -> sendEmail(args);
             case "sendSMS" -> sendSMS(args);
             case "emailDocument" -> emailDocument(args);
@@ -1041,6 +1043,21 @@ public class AssistantToolExecutor {
         )).collect(Collectors.toList()));
         String title = "Templates" + (channel != null ? " (" + channel + ")" : "") + " — " + templates.size();
         return new AssistantDtos.ToolResult("table", title, data);
+    }
+
+    private AssistantDtos.ToolResult generateDocument(Map<String, Object> args) {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("documentType", args.getOrDefault("documentType", "tax-invoice"));
+        body.put("referenceType", args.getOrDefault("referenceType", "sale"));
+        body.put("referenceId", args.get("referenceId"));
+        if (args.containsKey("contextData")) body.put("contextData", args.get("contextData"));
+        var result = documentFeign.generateDocument(body);
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("status", "generated");
+        data.put("documentId", result.get("id"));
+        data.put("documentNumber", result.get("documentNumber"));
+        data.put("documentType", result.get("documentType"));
+        return new AssistantDtos.ToolResult("text", "Document Generated", data);
     }
 
     private AssistantDtos.ToolResult searchDocuments(Map<String, Object> args) {
