@@ -9,23 +9,25 @@ const Error = () => (
     height="100vh"
     textAlign="center"
     justifyContent="center"
+    sx={{ bgcolor: 'background.default' }}
   >
     <Container maxWidth="md">
-      <img src={ErrorImg} alt="404" />
-      <Typography align="center" variant="h1" mb={4}>
-        Opps!!!
+      <img src={ErrorImg} alt="404" style={{ maxWidth: 280, marginBottom: 24 }} />
+      <Typography variant="h3" fontWeight={700} mb={1}>
+        Page Not Found
       </Typography>
-      <Typography align="center" variant="h4" mb={4}>
-        This page you are looking for could not be found.
+      <Typography variant="body1" color="text.secondary" mb={4}>
+        The page you are looking for does not exist or has been moved.
       </Typography>
       <Button
         color="primary"
         variant="contained"
         component={Link}
-        to="/dashboards/modern"
+        to="/smartpos/dashboard"
         disableElevation
+        size="large"
       >
-        Go Back to Home
+        Go to Dashboard
       </Button>
     </Container>
   </Box>
