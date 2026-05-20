@@ -125,7 +125,10 @@ public class DocumentService {
         if ("tax-invoice".equals(documentType)) {
             mergedContext.put("sellerTin", vfdService.getSellerTin());
         }
-        mergedContext.put("watermark", "DRAFT");
+        // Only watermark if explicitly requested (e.g. preview before sending)
+        if (!mergedContext.containsKey("watermark")) {
+            mergedContext.put("watermark", "");
+        }
         String html = templateRenderer.render(templateContent, mergedContext);
 
         byte[] pdfBytes = gotenbergClient.convertHtmlToPdf(html,

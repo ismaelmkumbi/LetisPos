@@ -119,6 +119,10 @@ public class DocumentController {
         Document doc = findDocument(id);
         deliveryService.sendEmail(doc, req.getTo(), req.getSubject(),
                 req.getMessage() != null ? req.getMessage() : "");
+        // Finalize the document after sending
+        doc.setStatus("sent");
+        doc.setWatermark(null);
+        documentRepo.save(doc);
         return ResponseEntity.ok(Map.of("status", "sent"));
     }
 
