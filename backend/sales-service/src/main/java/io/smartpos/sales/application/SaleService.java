@@ -13,6 +13,7 @@ import io.smartpos.sales.infrastructure.feign.InventoryClient;
 import io.smartpos.sales.infrastructure.feign.ProductClient;
 import io.smartpos.sales.infrastructure.feign.UserFeign;
 import io.smartpos.common.context.TenantContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 import jakarta.persistence.EntityManager;
 import org.springframework.dao.DataIntegrityViolationException;
 import lombok.RequiredArgsConstructor;
@@ -80,11 +81,15 @@ public class SaleService {
     @Transactional(readOnly = true)
     public Page<SaleDto> search(LocalDate from, LocalDate to, UUID customerId,
                                 UUID warehouseId, SaleStatus status, String ref, Pageable p) {
-        UUID tenantId = TenantContext.get().orElse(null);
+        boolean isSuperAdmin = isSuperAdmin();
+        UUID tenantId = isSuperAdmin ? null : TenantContext.get().orElse(null);
         Map<String, Object> params = new LinkedHashMap<>();
-        params.put("tenantId", tenantId);
 
-        StringBuilder where = new StringBuilder(" FROM Sale s WHERE s.tenantId = :tenantId");
+        StringBuilder where = new StringBuilder(" FROM Sale s WHERE 1=1");
+        if (!isSuperAdmin) {
+            where.append(" AND s.tenantId = :tenantId");
+            params.put("tenantId", tenantId);
+        }
         if (from != null) {
             where.append(" AND s.date >= :dateFrom");
             params.put("dateFrom", from);
@@ -580,5 +585,12 @@ public class SaleService {
         }
         m.put("lines", lines);
         return m;
+    }
+
+    private boolean isSuperAdmin() {
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null) return false;
+        return auth.getAuthorities().stream()
+            .anyMatch(a -> a.getAuthority().equals("ROLE_SUPER_ADMIN"));
     }
 }
