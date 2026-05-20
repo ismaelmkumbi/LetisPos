@@ -1,6 +1,8 @@
 import React, { lazy } from 'react';
 import { Outlet } from 'react-router';
 import Loadable from '../../layouts/full/shared/loadable/Loadable';
+import { RequireAuth } from './RequireAuth';
+import RequireAdmin from '../../components/smartpos/RequireAdmin';
 
 // Admin pages (placeholders for now — real pages built in later tasks)
 const CommerceDashboard = Loadable(lazy(() => import('../../views/commerce/admin/CommerceDashboard')));
@@ -44,7 +46,7 @@ const CommerceAdminLayout: React.FC = () => (
 // Export route configs
 export const commerceAdminRoutes = {
   path: 'admin/commerce',
-  element: <CommerceAdminLayout />,
+  element: <RequireAuth><RequireAdmin><CommerceAdminLayout /></RequireAdmin></RequireAuth>,
   children: [
     { index: true, element: <CommerceDashboard /> },
     { path: 'settings', element: <StoreSettings /> },
