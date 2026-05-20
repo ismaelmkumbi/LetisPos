@@ -14,6 +14,7 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 
+import org.springframework.beans.factory.annotation.Value;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
@@ -50,6 +51,9 @@ public class DashboardIntelligenceService {
     private final DataFreshnessService freshness;
     private final DashboardService dashboardService;
     private final ProductFeign productFeign;
+
+    @Value("${smartpos.report.default-currency:TZS}")
+    private String defaultCurrency;
 
     @Lazy
     @Autowired
@@ -552,6 +556,7 @@ public class DashboardIntelligenceService {
         Map<String, Object> request = new LinkedHashMap<>();
         request.put("reportKind", "executive-summary");
         request.put("factsJson", factsJson);
+        request.put("currency", defaultCurrency);
 
         CompletableFuture<Map<String, Object>> future = CompletableFuture.supplyAsync(() -> ai.narrate(request));
 
@@ -575,6 +580,7 @@ public class DashboardIntelligenceService {
                                   AiFeign.CustomerAnalyticsResponse cust,
                                   List<AiFeign.FlaggedTransaction> fraud) {
         StringBuilder sb = new StringBuilder("{");
+        sb.append("\"currency\":\"").append(defaultCurrency).append("\",");
         sb.append("\"date\":\"").append(today.from()).append("\",");
         sb.append("\"revenue\":").append(nz(today.sales() != null ? today.sales().net() : null)).append(",");
         sb.append("\"netProfit\":").append(nz(today.netProfit())).append(",");
@@ -716,9 +722,21 @@ public class DashboardIntelligenceService {
 
     // ── Formatting utilities ─────────────────────────────────────────────────
 
-    private static String formatCurrency(BigDecimal value) {
-        if (value == null) return "0.00";
-        return value.setScale(2, RoundingMode.HALF_UP).toPlainString();
+    private String formatCurrency(BigDecimal value) {
+        if (value == null) return currencySymbol() + "0.00";
+        return currencySymbol() + " " + value.setScale(2, RoundingMode.HALF_UP).toPlainString();
+    }
+
+    private String currencySymbol() {
+        return switch (defaultCurrency) {
+            case "TZS" -> "TSh";
+            case "KES" -> "KSh";
+            case "UGX" -> "USh";
+            case "USD" -> "$";
+            case "EUR" -> "€";
+            case "GBP" -> "£";
+            default -> defaultCurrency;
+        };
     }
 
     private static BigDecimal nz(BigDecimal v) {

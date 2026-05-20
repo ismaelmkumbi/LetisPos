@@ -58,7 +58,7 @@ public class Store {
 
     @Column(name = "currency", nullable = false, length = 3)
     @Builder.Default
-    private String currency = "USD";
+    private String currency = "TZS";
 
     @Column(name = "timezone", nullable = false, length = 50)
     @Builder.Default
