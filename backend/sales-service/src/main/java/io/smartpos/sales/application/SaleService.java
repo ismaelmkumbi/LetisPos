@@ -79,7 +79,7 @@ public class SaleService {
 
     @Transactional(readOnly = true)
     public Page<SaleDto> search(LocalDate from, LocalDate to, UUID customerId,
-                                UUID warehouseId, SaleStatus status, Pageable p) {
+                                UUID warehouseId, SaleStatus status, String ref, Pageable p) {
         UUID tenantId = TenantContext.get().orElse(null);
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("tenantId", tenantId);
@@ -104,6 +104,10 @@ public class SaleService {
         if (status != null) {
             where.append(" AND s.status = :status");
             params.put("status", status);
+        }
+        if (ref != null && !ref.isBlank()) {
+            where.append(" AND LOWER(s.ref) LIKE LOWER(CONCAT('%', :ref, '%'))");
+            params.put("ref", ref);
         }
 
         Long total = bind(em.createQuery("SELECT COUNT(s)" + where, Long.class), params)

@@ -61,6 +61,7 @@ public class AssistantToolExecutor {
             case "getExpiringStock" -> getExpiringStock(args);
             case "getLowStock" -> getLowStock(args);
             case "searchProducts" -> searchProducts(args);
+            case "searchSales" -> searchSales(args);
             case "getRecentSales" -> getRecentSales(args);
             case "getStockOverview" -> getStockOverview(args);
             case "getStockByWarehouse" -> getStockByWarehouse(args);
@@ -369,9 +370,24 @@ public class AssistantToolExecutor {
             "Search: " + query + " (" + products.size() + " results)", data);
     }
 
+    private AssistantDtos.ToolResult searchSales(Map<String, Object> args) {
+        String ref = (String) args.get("ref");
+        String status = (String) args.get("status");
+        int limit = intArg(args, "limit", 10, 1, 25);
+        var page = salesFeign.search(null, null, null, null, status, ref, 0, limit);
+        var sales = page.content();
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("columns", List.of("ID","Ref","Date","Status","Total"));
+        data.put("rows", sales.stream().map(s -> List.of(
+            s.id().toString(), s.ref(), s.date().toString(), s.status(),
+            s.grandTotal())).collect(Collectors.toList()));
+        return new AssistantDtos.ToolResult("table",
+            "Sales (" + sales.size() + ")", data);
+    }
+
     private AssistantDtos.ToolResult getRecentSales(Map<String, Object> args) {
         int limit = intArg(args, "limit", 10, 1, 25);
-        var page = salesFeign.search(null, null, null, null, null, 0, limit);
+        var page = salesFeign.search(null, null, null, null, null, null, 0, limit);
         var sales = page.content();
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("columns", List.of("Ref","Date","Status","Total"));
@@ -447,7 +463,7 @@ public class AssistantToolExecutor {
         LocalDate from = dateArg(args, "dateFrom", LocalDate.now().minusDays(30));
         LocalDate to = dateArg(args, "dateTo", LocalDate.now());
         int limit = intArg(args, "limit", 25, 1, 50);
-        var page = salesFeign.search(from, to, null, null, status, 0, limit);
+        var page = salesFeign.search(from, to, null, null, status, null, 0, limit);
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("columns", List.of("Ref","Date","Customer","Total"));
         data.put("rows", page.content().stream().map(s -> List.of(
@@ -722,7 +738,7 @@ public class AssistantToolExecutor {
     private AssistantDtos.ToolResult getSalesByPaymentMethod(Map<String, Object> args) {
         LocalDate from = dateArg(args, "dateFrom", LocalDate.now().minusDays(30));
         LocalDate to = dateArg(args, "dateTo", LocalDate.now());
-        var page = salesFeign.search(from, to, null, null, null, 0, 1000);
+        var page = salesFeign.search(from, to, null, null, null, null, 0, 1000);
         var sales = page.content();
         Map<String, BigDecimal> byMethod = sales.stream()
             .collect(Collectors.groupingBy(
@@ -775,7 +791,7 @@ public class AssistantToolExecutor {
     private AssistantDtos.ToolResult getDiscountSummary(Map<String, Object> args) {
         LocalDate from = dateArg(args, "dateFrom", LocalDate.now().minusDays(30));
         LocalDate to = dateArg(args, "dateTo", LocalDate.now());
-        var page = salesFeign.search(from, to, null, null, null, 0, 1000);
+        var page = salesFeign.search(from, to, null, null, null, null, 0, 1000);
         var sales = page.content();
         BigDecimal totalDiscount = sales.stream()
             .map(SalesFeign.SaleSummary::discountTotal)
@@ -803,7 +819,7 @@ public class AssistantToolExecutor {
     private AssistantDtos.ToolResult getTaxSummary(Map<String, Object> args) {
         LocalDate from = dateArg(args, "dateFrom", LocalDate.now().minusDays(30));
         LocalDate to = dateArg(args, "dateTo", LocalDate.now());
-        var page = salesFeign.search(from, to, null, null, null, 0, 1000);
+        var page = salesFeign.search(from, to, null, null, null, null, 0, 1000);
         var sales = page.content();
         BigDecimal totalTax = sales.stream()
             .map(SalesFeign.SaleSummary::taxTotal)

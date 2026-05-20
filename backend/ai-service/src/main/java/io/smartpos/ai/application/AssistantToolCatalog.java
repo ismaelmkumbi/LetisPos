@@ -221,6 +221,13 @@ public class AssistantToolCatalog {
                     "limit", Map.of("type","integer","description","Max results, default 25")
                 ),"required",List.of("query")), false, null),
 
+            new ToolDef("searchSales", "Search sales by reference number (e.g. INV-2026-000002) or status. Returns matching sales with their UUID (id). Use this to find a specific sale by its INV reference before generating or emailing its document.",
+                Map.of("type","object","properties", Map.of(
+                    "ref", Map.of("type","string","description","Sale reference number (e.g. INV-2026-000002)"),
+                    "status", Map.of("type","string","description","Sale status (CONFIRMED, DRAFT, etc.)"),
+                    "limit", Map.of("type","integer","description","Max results, default 10")
+                ),"required",List.of()), false, null),
+
             new ToolDef("getRecentSales", "Get recent sales transactions. Use this for latest orders, recent receipts, transaction lookup, and last sales questions.",
                 Map.of("type","object","properties", Map.of(
                     "limit", Map.of("type","integer","description","Number of sales, max 25")

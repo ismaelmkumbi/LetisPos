@@ -48,6 +48,7 @@ public interface SalesFeign {
                     @RequestParam(required = false) UUID customerId,
                     @RequestParam(required = false) UUID warehouseId,
                     @RequestParam(required = false) String status,
+                    @RequestParam(required = false) String ref,
                     @RequestParam(defaultValue = "0") int page,
                     @RequestParam(defaultValue = "1000") int size);
 

@@ -48,8 +48,9 @@ public class SaleController {
                                 @RequestParam(required = false) UUID customerId,
                                 @RequestParam(required = false) UUID warehouseId,
                                 @RequestParam(required = false) SaleStatus status,
+                                @RequestParam(required = false) String ref,
                                 Pageable pageable) {
-        return saleService.search(dateFrom, dateTo, customerId, warehouseId, status, pageable);
+        return saleService.search(dateFrom, dateTo, customerId, warehouseId, status, ref, pageable);
     }
 
     @GetMapping("/{id}")

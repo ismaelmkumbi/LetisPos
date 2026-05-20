@@ -195,7 +195,7 @@ public class FraudDetectionService {
             try {
                 // Fetch all statuses (null = no status filter)
                 SalesFeign.SalePage result = salesFeign.search(
-                        dateFrom, dateTo, null, null, null, page, PAGE_SIZE);
+                        dateFrom, dateTo, null, null, null, null, page, PAGE_SIZE);
                 if (result == null || result.content() == null || result.content().isEmpty()) break;
                 all.addAll(result.content());
                 if (page + 1 >= result.totalPages()) break;

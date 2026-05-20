@@ -203,7 +203,7 @@ public class CustomerAnalyticsService {
         for (int page = 0; page < MAX_PAGES; page++) {
             try {
                 SalesFeign.SalePage result = salesFeign.search(
-                        dateFrom, dateTo, null, null, "CONFIRMED", page, PAGE_SIZE);
+                        dateFrom, dateTo, null, null, "CONFIRMED", null, page, PAGE_SIZE);
                 if (result == null || result.content() == null || result.content().isEmpty()) break;
                 all.addAll(result.content());
                 if (page + 1 >= result.totalPages()) break;
