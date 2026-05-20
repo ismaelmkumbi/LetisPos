@@ -241,11 +241,11 @@ public class AssistantToolCatalog {
                     "channel", Map.of("type","string","enum",List.of("EMAIL","SMS","WHATSAPP"))
                 ),"required",List.of()), false, null),
 
-            new ToolDef("searchDocuments", "Search for generated documents (invoices, receipts, quotations, credit notes). Use q to search by document number or reference (e.g. INV-2026-000001, TAX-000001). Use this to find a document before emailing it.",
+            new ToolDef("searchDocuments", "Search for generated documents (invoices, receipts, quotations). Use q to search by document number (e.g. TAX-000001, PAY-000001). To find documents for a specific sale (e.g. INV-2026-000002), first use searchSales to get the sale UUID, then use the sale UUID as the q parameter here.",
                 Map.of("type","object","properties", Map.of(
-                    "q", Map.of("type","string","description","Search by document number or reference (e.g. INV-2026-000001, TAX-000001)"),
-                    "documentType", Map.of("type","string","enum",List.of("INVOICE","RECEIPT","QUOTATION","CREDIT_NOTE","PURCHASE_ORDER","DELIVERY_NOTE")),
-                    "status", Map.of("type","string","description","Document status")
+                    "q", Map.of("type","string","description","Search by document number, reference, or linked entity UUID"),
+                    "documentType", Map.of("type","string","enum",List.of("tax-invoice","payment-receipt","quotation","credit-note","purchase-order","delivery-note")),
+                    "status", Map.of("type","string","description","Document status (draft, sent)")
                 ),"required",List.of()), false, null)
         );
     }

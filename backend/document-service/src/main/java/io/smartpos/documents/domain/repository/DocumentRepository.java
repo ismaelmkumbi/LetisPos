@@ -17,7 +17,7 @@ public interface DocumentRepository extends JpaRepository<Document, UUID> {
     Optional<Document> findByIdAndTenantId(UUID id, UUID tenantId);
 
     @Query("SELECT d FROM Document d WHERE d.tenantId = :tenantId "
-        + "AND (:q IS NULL OR LOWER(d.documentNumber) LIKE LOWER(CONCAT('%', :q, '%'))) "
+        + "AND (:q IS NULL OR LOWER(d.documentNumber) LIKE LOWER(CONCAT('%', :q, '%')) OR CAST(d.referenceId AS text) LIKE CONCAT('%', :q, '%')) "
         + "AND (:documentType IS NULL OR d.documentType = :documentType) "
         + "AND (:status IS NULL OR d.status = :status) "
         + "AND (:referenceType IS NULL OR d.referenceType = :referenceType) "
