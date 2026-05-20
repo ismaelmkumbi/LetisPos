@@ -16,6 +16,14 @@ public interface DocumentFeign {
         @RequestParam(required = false, defaultValue = "0") int page,
         @RequestParam(required = false, defaultValue = "25") int size);
 
+    @GetMapping("/api/v1/documents/search")
+    Map<String, Object> searchByRef(
+        @RequestParam(required = false) String q,
+        @RequestParam(required = false) String documentType,
+        @RequestParam(required = false) String status,
+        @RequestParam(required = false, defaultValue = "0") int page,
+        @RequestParam(required = false, defaultValue = "25") int size);
+
     @PostMapping("/api/v1/documents/{id}/email")
     Map<String, String> emailDocument(@PathVariable UUID id, @RequestBody Map<String, Object> body);
 }

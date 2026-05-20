@@ -1046,9 +1046,12 @@ public class AssistantToolExecutor {
     private AssistantDtos.ToolResult searchDocuments(Map<String, Object> args) {
         String documentType = (String) args.get("documentType");
         String status = (String) args.get("status");
+        String q = (String) args.get("q");
         int page = args.containsKey("page") ? ((Number) args.get("page")).intValue() : 0;
         int size = args.containsKey("size") ? ((Number) args.get("size")).intValue() : 25;
-        var result = documentFeign.search(documentType, status, page, size);
+        var result = (q != null && !q.isBlank())
+            ? documentFeign.searchByRef(q, documentType, status, page, size)
+            : documentFeign.search(documentType, status, page, size);
         Map<String, Object> data = new LinkedHashMap<>();
         // Handle paginated response — content might be in "content" key or at top level
         Object contentObj = result.getOrDefault("content", result.get("data"));
