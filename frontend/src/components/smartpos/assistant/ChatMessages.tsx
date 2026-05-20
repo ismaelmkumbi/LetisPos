@@ -2,7 +2,7 @@ import { Box, Typography, Chip } from '@mui/material';
 import { IconSparkles, IconChartBar, IconPackage, IconReceipt } from '@tabler/icons-react';
 import { useAssistant } from 'src/context/smartpos/AssistantContext';
 import { useChatTheme } from './useChatTheme';
-import { TextBlock, StreamingBlock, ChartBlock, MetricBlock, TableBlock, ToolTextBlock, ExecutiveBriefingBlock, DraftBlock, ErrorBlock } from './ChatBlocks';
+import { TextBlock, StreamingBlock, ToolLoadingBlock, ChartBlock, MetricBlock, TableBlock, ToolTextBlock, ExecutiveBriefingBlock, DraftBlock, ErrorBlock } from './ChatBlocks';
 import { useEffect, useRef } from 'react';
 
 export default function ChatMessages() {
@@ -92,6 +92,9 @@ export default function ChatMessages() {
           if (r.type === 'table') return <TableBlock key={msg.id} result={r} />;
           if (r.type === 'text') return <ToolTextBlock key={msg.id} result={r} />;
           return <ChartBlock key={msg.id} result={r} />;
+        }
+        if (msg.role === 'tool' && msg.streaming) {
+          return <ToolLoadingBlock key={msg.id} label={msg.content} />;
         }
         if (msg.role === 'draft' && msg.draft) {
           return (

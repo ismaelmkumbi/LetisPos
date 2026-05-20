@@ -167,6 +167,35 @@ export function StreamingBlock() {
   );
 }
 
+export function ToolLoadingBlock({ label }: { label: string }) {
+  const c = useChatTheme();
+  return (
+    <Box
+      sx={{
+        mx: 2, mb: 1, px: 2, py: 1.2,
+        borderRadius: 2,
+        border: `1px solid ${c.border}`,
+        bgcolor: c.inputBg,
+        display: 'flex', alignItems: 'center', gap: 1.5,
+        animation: `${messageIn} 0.3s ease-out`,
+      }}
+    >
+      <Box
+        sx={{
+          width: 16, height: 16, borderRadius: '50%',
+          border: `2px solid ${c.border}`,
+          borderTopColor: c.accent,
+          animation: 'spin 0.8s linear infinite',
+          '@keyframes spin': { to: { transform: 'rotate(360deg)' } },
+        }}
+      />
+      <Typography sx={{ fontSize: '0.82rem', color: c.textSecondary, fontStyle: 'italic' }}>
+        {label}
+      </Typography>
+    </Box>
+  );
+}
+
 export function MetricBlock({ result }: { result: ToolResult }) {
   const c = useChatTheme();
   const data = result.data as Record<string, unknown>;

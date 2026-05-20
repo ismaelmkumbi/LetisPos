@@ -68,14 +68,29 @@ export function AssistantProvider({ children }: { children: React.ReactNode }) {
           case 'meta':
             setConversationId(event.conversationId);
             break;
-          case 'tool_start':
-            // Could show loading indicator
-            break;
-          case 'tool_result':
+          case 'tool_start': {
+            const toolLabels: Record<string, string> = {
+              searchSales: 'Searching sales…',
+              searchDocuments: 'Searching documents…',
+              getRecentSales: 'Loading recent orders…',
+              generateDocument: 'Generating document…',
+              emailDocument: 'Sending email…',
+              sendEmail: 'Sending email…',
+              searchProducts: 'Searching products…',
+              getExecutiveBriefing: 'Building executive briefing…',
+            };
+            const label = toolLabels[event.toolName] || `Running ${event.toolName}…`;
             setMessages(prev => [...prev, {
+              id: crypto.randomUUID(), role: 'tool', content: label,
+              timestamp: Date.now(), streaming: true,
+            }]);
+            break;
+          }
+          case 'tool_result':
+            setMessages(prev => prev.filter(m => !m.streaming).concat({
               id: crypto.randomUUID(), role: 'tool', content: event.result.title,
               timestamp: Date.now(), toolResult: event.result,
-            }]);
+            }));
             break;
           case 'draft':
             setMessages(prev => [...prev, {
