@@ -25,6 +25,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.*;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
@@ -94,8 +96,7 @@ public class DocumentController {
     @GetMapping("/{id}")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<DocumentDto> get(@PathVariable UUID id) throws Exception {
-        Document doc = documentRepo.findByIdAndTenantId(id, TenantContext.get().orElse(null))
-                .orElseThrow(() -> new IllegalArgumentException("Document not found: " + id));
+        Document doc = findDocument(id);
         String url = documentService.getPresignedUrl(doc);
         return ResponseEntity.ok(DocumentDto.from(doc, url));
     }
@@ -103,8 +104,7 @@ public class DocumentController {
     @GetMapping("/{id}/pdf")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Void> downloadPdf(@PathVariable UUID id) throws Exception {
-        Document doc = documentRepo.findByIdAndTenantId(id, TenantContext.get().orElse(null))
-                .orElseThrow(() -> new IllegalArgumentException("Document not found: " + id));
+        Document doc = findDocument(id);
         String url = documentService.getPresignedUrl(doc);
         return ResponseEntity.status(HttpStatus.FOUND)
                 .header(HttpHeaders.LOCATION, url)
@@ -116,8 +116,7 @@ public class DocumentController {
     public ResponseEntity<Map<String, String>> email(@PathVariable UUID id,
                                                       @Valid @RequestBody EmailRequest req)
             throws Exception {
-        Document doc = documentRepo.findByIdAndTenantId(id, TenantContext.get().orElse(null))
-                .orElseThrow(() -> new IllegalArgumentException("Document not found: " + id));
+        Document doc = findDocument(id);
         deliveryService.sendEmail(doc, req.getTo(), req.getSubject(),
                 req.getMessage() != null ? req.getMessage() : "");
         return ResponseEntity.ok(Map.of("status", "sent"));
@@ -128,8 +127,7 @@ public class DocumentController {
     public ResponseEntity<Map<String, String>> whatsapp(@PathVariable UUID id,
                                                          @Valid @RequestBody WhatsAppRequest req)
             throws Exception {
-        Document doc = documentRepo.findByIdAndTenantId(id, TenantContext.require())
-                .orElseThrow(() -> new IllegalArgumentException("Document not found: " + id));
+        Document doc = findDocument(id);
         deliveryService.sendWhatsApp(doc, req.getPhone(),
                 req.getMessage() != null ? req.getMessage() : "");
         return ResponseEntity.ok(Map.of("status", "sent"));
@@ -323,5 +321,22 @@ public class DocumentController {
         doc.setNotes(body.get("notes"));
         documentRepo.save(doc);
         return ResponseEntity.ok(Map.of("status", "saved"));
+    }
+
+    /** Finds a document by ID. SUPER_ADMIN bypasses tenant scoping. */
+    private Document findDocument(UUID id) {
+        if (isSuperAdmin()) {
+            return documentRepo.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Document not found: " + id));
+        }
+        return documentRepo.findByIdAndTenantId(id, TenantContext.get().orElse(null))
+            .orElseThrow(() -> new IllegalArgumentException("Document not found: " + id));
+    }
+
+    private boolean isSuperAdmin() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null) return false;
+        return auth.getAuthorities().stream()
+            .anyMatch(a -> a.getAuthority().equals("ROLE_SUPER_ADMIN"));
     }
 }
