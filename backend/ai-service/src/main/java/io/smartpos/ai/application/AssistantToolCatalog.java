@@ -31,6 +31,7 @@ public class AssistantToolCatalog {
         Set<String> permSet = permissions != null ? new HashSet<>(permissions) : Set.of();
         String billingPlan = jwt.getClaimAsString("billingPlan");
         boolean canWrite = isSuperAdmin
+            || "BUSINESS".equals(billingPlan)
             || "PROFESSIONAL".equals(billingPlan)
             || "ENTERPRISE".equals(billingPlan);
 
@@ -253,7 +254,7 @@ public class AssistantToolCatalog {
                     "documentType", Map.of("type","string","enum",List.of("tax-invoice","payment-receipt","quotation","credit-note")),
                     "referenceType", Map.of("type","string","description","Source type (sale, purchase, payment)"),
                     "referenceId", Map.of("type","string","description","Source UUID (from searchSales, searchPurchases, or searchPayments)")
-                ),"required",List.of("referenceId")), true, "notification.send"),
+                ),"required",List.of("referenceId")), true, null),
 
             new ToolDef("searchDocuments", "Search for generated documents (invoices, receipts, quotations). Use q to search by document number (e.g. TAX-000001, PAY-000001). To find documents for a specific sale (e.g. INV-2026-000002), first use searchSales to get the sale UUID, then use the sale UUID as the q parameter here.",
                 Map.of("type","object","properties", Map.of(
@@ -349,7 +350,7 @@ public class AssistantToolCatalog {
                     "to", Map.of("type","string","description","Recipient email address"),
                     "subject", Map.of("type","string","description","Email subject line"),
                     "message", Map.of("type","string","description","Optional personal message to include")
-                ),"required",List.of("documentId","to")), true, "notification.send")
+                ),"required",List.of("documentId","to")), true, null)
         );
     }
 
