@@ -1062,10 +1062,19 @@ public class AssistantToolExecutor {
     }
 
     private AssistantDtos.ToolResult generateDocument(Map<String, Object> args) {
+        String refId = (String) args.get("referenceId");
+        // If referenceId is not a UUID, treat it as a sale reference and resolve it
+        if (refId != null && !refId.matches("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")) {
+            var salePage = salesFeign.search(null, null, null, null, null, refId, 0, 1);
+            if (salePage.content().isEmpty()) {
+                throw new IllegalArgumentException("Sale not found: " + refId);
+            }
+            refId = salePage.content().get(0).id().toString();
+        }
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("documentType", args.getOrDefault("documentType", "tax-invoice"));
         body.put("referenceType", args.getOrDefault("referenceType", "sale"));
-        body.put("referenceId", args.get("referenceId"));
+        body.put("referenceId", refId);
         if (args.containsKey("contextData")) body.put("contextData", args.get("contextData"));
         var result = documentFeign.generateDocument(body);
         Map<String, Object> data = new LinkedHashMap<>();
