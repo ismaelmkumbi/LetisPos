@@ -93,6 +93,38 @@ public class JwtTokenService {
         }
     }
 
+    /** Extract feature list from the JWT claims. */
+    @SuppressWarnings("unchecked")
+    public List<String> extractFeatures(String token) {
+        try {
+            List<String> features = (List<String>) Jwts.parser()
+                    .verifyWith(keyPair.getPublic())
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload()
+                    .get("features");
+            return features != null ? features : List.of();
+        } catch (Exception e) {
+            return List.of();
+        }
+    }
+
+    /** Extract role list from the JWT claims. */
+    @SuppressWarnings("unchecked")
+    public List<String> extractRoles(String token) {
+        try {
+            List<String> roles = (List<String>) Jwts.parser()
+                    .verifyWith(keyPair.getPublic())
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload()
+                    .get("roles");
+            return roles != null ? roles : List.of();
+        } catch (Exception e) {
+            return List.of();
+        }
+    }
+
     /** Returns true if the token contains the given permission. */
     @SuppressWarnings("unchecked")
     public boolean hasPermission(String token, String permission) {
