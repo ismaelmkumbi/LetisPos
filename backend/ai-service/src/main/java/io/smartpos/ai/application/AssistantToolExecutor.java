@@ -1161,18 +1161,76 @@ public class AssistantToolExecutor {
     }
 
     private AssistantDtos.ToolResult emailDocument(Map<String, Object> args) {
-        UUID documentId = UUID.fromString((String) args.get("documentId"));
-        Map<String, Object> body = new LinkedHashMap<>();
-        body.put("to", args.get("to"));
-        if (args.containsKey("subject")) body.put("subject", args.get("subject"));
-        if (args.containsKey("message")) body.put("message", args.get("message"));
-        Map<String, String> result = documentFeign.emailDocument(documentId, body);
-        Map<String, Object> data = new LinkedHashMap<>();
-        data.put("status", "sent");
-        data.put("documentId", documentId.toString());
-        data.put("to", args.get("to"));
-        result.forEach(data::put);
-        return new AssistantDtos.ToolResult("text", "Document Emailed", data);
+        String idStr = (String) args.get("documentId");
+        UUID documentId;
+
+        // Try as UUID first
+        try {
+            documentId = UUID.fromString(idStr);
+        } catch (IllegalArgumentException e) {
+            // Not a UUID — treat as reference, search then generate
+            documentId = resolveOrGenerateDocument(idStr, args);
+        }
+
+        // Try to email; if document not found, try resolving/generating
+        try {
+            Map<String, Object> body = new LinkedHashMap<>();
+            body.put("to", args.get("to"));
+            if (args.containsKey("subject")) body.put("subject", args.get("subject"));
+            if (args.containsKey("message")) body.put("message", args.get("message"));
+            Map<String, String> result = documentFeign.emailDocument(documentId, body);
+            Map<String, Object> data = new LinkedHashMap<>();
+            data.put("status", "sent");
+            data.put("documentId", documentId.toString());
+            data.put("to", args.get("to"));
+            result.forEach(data::put);
+            return new AssistantDtos.ToolResult("text", "Document Emailed", data);
+        } catch (Exception e) {
+            // Document not found — try resolving or generating one
+            if (e.getMessage() != null && e.getMessage().contains("not found")) {
+                documentId = resolveOrGenerateDocument(idStr, args);
+                Map<String, Object> body = new LinkedHashMap<>();
+                body.put("to", args.get("to"));
+                if (args.containsKey("subject")) body.put("subject", args.get("subject"));
+                if (args.containsKey("message")) body.put("message", args.get("message"));
+                Map<String, String> result = documentFeign.emailDocument(documentId, body);
+                Map<String, Object> data = new LinkedHashMap<>();
+                data.put("status", "sent");
+                data.put("documentId", documentId.toString());
+                data.put("to", args.get("to"));
+                result.forEach(data::put);
+                return new AssistantDtos.ToolResult("text", "Document Generated & Emailed", data);
+            }
+            throw e;
+        }
+    }
+
+    /** Tries to find an existing document or generates a new one from the reference. */
+    private UUID resolveOrGenerateDocument(String idStr, Map<String, Object> args) {
+        // 1. Search for existing documents by this reference
+        var existingDocs = documentFeign.searchByRef(idStr, null, null, 0, 1);
+        Object contentObj = existingDocs.getOrDefault("content", existingDocs.get("data"));
+        if (contentObj instanceof List<?> docs && !docs.isEmpty()) {
+            if (docs.get(0) instanceof Map<?, ?> m && m.get("id") != null) {
+                return UUID.fromString(m.get("id").toString());
+            }
+        }
+
+        // 2. Not a document — treat as sale reference, find the sale, then generate
+        var salePage = salesFeign.search(null, null, null, null, null, idStr, 0, 1);
+        if (!salePage.content().isEmpty()) {
+            UUID saleId = salePage.content().get(0).id();
+            Map<String, Object> genBody = new LinkedHashMap<>();
+            genBody.put("documentType", args.getOrDefault("documentType", "tax-invoice"));
+            genBody.put("referenceType", "sale");
+            genBody.put("referenceId", saleId.toString());
+            var doc = documentFeign.generateDocument(genBody);
+            if (doc.get("id") != null) {
+                return UUID.fromString(doc.get("id").toString());
+            }
+        }
+
+        throw new IllegalArgumentException("Cannot resolve or generate document for: " + idStr);
     }
 
     private String toJson(Map<String, Object> map) {
