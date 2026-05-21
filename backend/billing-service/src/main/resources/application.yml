@@ -5,7 +5,7 @@ spring:
   application:
     name: billing-service
   datasource:
-    url: jdbc:postgresql://localhost:5434/billing_db
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/billing_db}
     username: ${DB_USERNAME:smartpos}
     password: ${DB_PASSWORD:smartpos}
   jpa:
@@ -26,7 +26,7 @@ smartpos:
   internal:
     shared-secret: ${INTERNAL_SHARED_SECRET:dev-internal-token-change-me}
   auth-service:
-    base-url: http://localhost:8081
+    base-url: ${AUTH_SERVICE_URL:http://localhost:8081}
   billing:
     stripe:
       enabled: ${STRIPE_ENABLED:true}
@@ -50,3 +50,12 @@ smartpos:
       auth-url: https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials
       stk-push-url: https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest
       query-url: https://sandbox.safaricom.co.ke/mpesa/stkpushquery/v1/query
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      show-details: when-authorized
