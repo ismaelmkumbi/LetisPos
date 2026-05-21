@@ -1,0 +1,624 @@
+networks:
+  server-a-net:
+    driver: bridge
+services:
+  ai-service:
+    container_name: letispos-ai
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+    environment:
+      AUTH_JWKS_URI: http://auth-service:8081/.well-known/jwks.json
+      AUTH_SERVICE_URL: http://auth-service:8081
+      CUSTOMER_SERVICE_URL: http://10.0.0.3:8085
+      DB_PASSWORD: ai_pass
+      DB_URL: jdbc:postgresql://10.0.0.3:5432/ai_db?preferQueryMode=simple
+      DB_USERNAME: ai_user
+      DOCUMENT_SERVICE_URL: http://document-service:8093
+      FLYWAY_VALIDATE_ON_MIGRATE: 'false'
+      INVENTORY_SERVICE_URL: http://10.0.0.3:8084
+      KAFKA_BOOTSTRAP: 10.0.0.3:9094
+      KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094
+      NOTIFICATION_SERVICE_URL: http://notification-service:8089
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://openrouter.ai/api/v1}
+      OPENAI_MODEL: ${OPENAI_MODEL:-openai/gpt-4o-mini}
+      AI_PROVIDER: ${AI_PROVIDER:-openai}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      PAYMENT_SERVICE_URL: http://10.0.0.3:8086
+      PRODUCT_SERVICE_URL: http://10.0.0.3:8083
+      REDIS_HOST: 10.0.0.3
+      REDIS_PORT: '6379'
+      SALES_SERVICE_URL: http://10.0.0.3:8085
+      SERVER_PORT: '8091'
+      SPRING_DATA_REDIS_HOST: 10.0.0.3
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094
+    healthcheck:
+      interval: 15s
+      retries: 10
+      start_period: 180s
+      test:
+      - CMD-SHELL
+      - curl -sf http://localhost:8091/actuator/health || exit 1
+      timeout: 5s
+    image: ghcr.io/ismaelmkumbi/ai-service:latest
+    logging: &id001
+      driver: json-file
+      options:
+        max-file: '3'
+        max-size: 20m
+    networks:
+    - server-a-net
+    restart: unless-stopped
+  audit-service:
+    container_name: letispos-audit
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+        reservations:
+          memory: 128M
+    environment:
+      AUTH_JWKS_URI: http://auth-service:8081/.well-known/jwks.json
+      DB_PASSWORD: audit_pass
+      DB_URL: jdbc:postgresql://10.0.0.3:5432/audit_db?preferQueryMode=simple
+      DB_USERNAME: audit_user
+      FLYWAY_VALIDATE_ON_MIGRATE: 'false'
+      KAFKA_BOOTSTRAP: 10.0.0.3:9094
+      KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094
+      REDIS_HOST: 10.0.0.3
+      REDIS_PORT: '6379'
+      SERVER_PORT: '8095'
+      SPRING_DATASOURCE_URL: jdbc:postgresql://10.0.0.3:5432/audit_db?preferQueryMode=simple
+      SPRING_DATA_REDIS_HOST: 10.0.0.3
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094
+    healthcheck:
+      interval: 15s
+      retries: 10
+      start_period: 180s
+      test:
+      - CMD-SHELL
+      - curl -sf http://localhost:8095/actuator/health || exit 1
+      timeout: 5s
+    image: ghcr.io/ismaelmkumbi/audit-service:latest
+    logging: *id001
+    networks:
+    - server-a-net
+    restart: unless-stopped
+  auth-service:
+    container_name: letispos-auth
+    deploy:
+      resources:
+        limits:
+          memory: 448M
+        reservations:
+          memory: 192M
+    environment:
+      APP_BASE_URL: https://letispos.com
+      AUDIT_SERVICE_URL: http://audit-service:8095
+      DB_PASSWORD: auth_pass
+      DB_URL: jdbc:postgresql://10.0.0.3:5432/auth_db?preferQueryMode=simple
+      DB_USERNAME: auth_user
+      FLYWAY_VALIDATE_ON_MIGRATE: 'false'
+      JWT_ALLOW_EPHEMERAL_KEYS: 'false'
+      JWT_PRIVATE_KEY_PATH: /run/secrets/letispos-jwt/private.pem
+      JWT_PUBLIC_KEY_PATH: /run/secrets/letispos-jwt/public.pem
+      KAFKA_BOOTSTRAP: 10.0.0.3:9094
+      KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094
+      REDIS_HOST: 10.0.0.3
+      REDIS_PORT: '6379'
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      SERVER_PORT: '8081'
+      SPRING_DATA_REDIS_HOST: 10.0.0.3
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094
+      USER_SERVICE_URL: http://user-service:8082
+    healthcheck:
+      interval: 15s
+      retries: 10
+      start_period: 180s
+      test:
+      - CMD-SHELL
+      - curl -sf http://localhost:8081/actuator/health || exit 1
+      timeout: 5s
+    image: ghcr.io/ismaelmkumbi/auth-service:latest
+    logging: *id001
+    networks:
+    - server-a-net
+    restart: unless-stopped
+    volumes:
+    - /etc/letispos/jwt:/run/secrets/letispos-jwt:ro
+  billing-service:
+    container_name: letispos-billing
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+        reservations:
+          memory: 128M
+    environment:
+      AUTH_JWKS_URI: http://auth-service:8081/.well-known/jwks.json
+      DB_PASSWORD: billing_pass
+      DB_URL: jdbc:postgresql://10.0.0.3:5432/billing_db?preferQueryMode=simple
+      DB_USERNAME: billing_user
+      FLYWAY_VALIDATE_ON_MIGRATE: 'false'
+      KAFKA_BOOTSTRAP: 10.0.0.3:9094
+      KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094
+      REDIS_HOST: 10.0.0.3
+      REDIS_PORT: '6379'
+      SERVER_PORT: '8096'
+      SPRING_DATASOURCE_URL: jdbc:postgresql://10.0.0.3:5432/billing_db?preferQueryMode=simple
+      SPRING_DATA_REDIS_HOST: 10.0.0.3
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094
+    healthcheck:
+      interval: 15s
+      retries: 10
+      start_period: 180s
+      test:
+      - CMD-SHELL
+      - curl -sf http://localhost:8096/actuator/health || exit 1
+      timeout: 5s
+    image: ghcr.io/ismaelmkumbi/billing-service:latest
+    logging: *id001
+    networks:
+    - server-a-net
+    restart: unless-stopped
+  commerce-service:
+    container_name: letispos-commerce
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+        reservations:
+          memory: 128M
+    environment:
+      AUTH_JWKS_URI: http://auth-service:8081/.well-known/jwks.json
+      DB_PASSWORD: commerce_pass
+      DB_URL: jdbc:postgresql://10.0.0.3:5432/commerce_db?preferQueryMode=simple
+      DB_USERNAME: commerce_user
+      FLYWAY_VALIDATE_ON_MIGRATE: 'false'
+      INVENTORY_SERVICE_URL: http://10.0.0.3:8084
+      KAFKA_BOOTSTRAP: 10.0.0.3:9094
+      KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094
+      NOTIFICATION_SERVICE_URL: http://notification-service:8089
+      PAYMENT_SERVICE_URL: http://10.0.0.3:8086
+      PRODUCT_SERVICE_URL: http://10.0.0.3:8083
+      REDIS_HOST: 10.0.0.3
+      REDIS_PORT: '6379'
+      SALES_SERVICE_URL: http://10.0.0.3:8085
+      SERVER_PORT: '8094'
+      SPRING_DATASOURCE_URL: jdbc:postgresql://10.0.0.3:5432/commerce_db?preferQueryMode=simple
+      SPRING_DATA_REDIS_HOST: 10.0.0.3
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094
+    healthcheck:
+      interval: 15s
+      retries: 10
+      start_period: 180s
+      test:
+      - CMD-SHELL
+      - curl -sf http://localhost:8094/actuator/health || exit 1
+      timeout: 5s
+    image: ghcr.io/ismaelmkumbi/commerce-service:latest
+    logging: *id001
+    networks:
+    - server-a-net
+    restart: unless-stopped
+  control-hub:
+    container_name: letispos-control-hub
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+        reservations:
+          memory: 128M
+    environment:
+      AUTH_JWKS_URI: http://auth-service:8081/.well-known/jwks.json
+      DB_PASSWORD: control_hub_pass
+      DB_URL: jdbc:postgresql://10.0.0.3:5432/control_hub_db?preferQueryMode=simple
+      DB_USERNAME: control_hub_user
+      FLYWAY_VALIDATE_ON_MIGRATE: 'false'
+      KAFKA_BOOTSTRAP: 10.0.0.3:9094
+      KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094
+      REDIS_HOST: 10.0.0.3
+      REDIS_PORT: '6379'
+      SERVER_PORT: '8098'
+      SPRING_DATA_REDIS_HOST: 10.0.0.3
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094
+    healthcheck:
+      interval: 15s
+      retries: 10
+      start_period: 180s
+      test:
+      - CMD-SHELL
+      - curl -sf http://localhost:8098/actuator/health || exit 1
+      timeout: 5s
+    image: ghcr.io/ismaelmkumbi/control-hub:latest
+    logging: *id001
+    networks:
+    - server-a-net
+    restart: unless-stopped
+  crm-service:
+    container_name: letispos-crm
+    deploy:
+      resources:
+        limits:
+          memory: 576M
+        reservations:
+          memory: 128M
+    environment:
+      AUTH_JWKS_URI: http://auth-service:8081/.well-known/jwks.json
+      DB_PASSWORD: crm_pass
+      DB_URL: jdbc:postgresql://10.0.0.3:5432/crm_db?preferQueryMode=simple
+      DB_USERNAME: crm_user
+      FLYWAY_VALIDATE_ON_MIGRATE: 'false'
+      KAFKA_BOOTSTRAP: 10.0.0.3:9094
+      KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094
+      REDIS_HOST: 10.0.0.3
+      REDIS_PORT: '6379'
+      SERVER_PORT: '8097'
+      SPRING_DATASOURCE_URL: jdbc:postgresql://10.0.0.3:5432/crm_db?preferQueryMode=simple
+      SPRING_DATA_REDIS_HOST: 10.0.0.3
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094
+    healthcheck:
+      interval: 15s
+      retries: 10
+      start_period: 180s
+      test:
+      - CMD-SHELL
+      - curl -sf http://localhost:8097/actuator/health || exit 1
+      timeout: 5s
+    image: ghcr.io/ismaelmkumbi/crm-service:latest
+    logging: *id001
+    networks:
+    - server-a-net
+    restart: unless-stopped
+  document-service:
+    container_name: letispos-document
+    deploy:
+      resources:
+        limits:
+          memory: 448M
+        reservations:
+          memory: 192M
+    environment:
+      AI_SERVICE_URI: http://ai-service:8091
+      AUTH_JWKS_URI: http://auth-service:8081/.well-known/jwks.json
+      DB_PASSWORD: document_pass
+      DB_URL: jdbc:postgresql://10.0.0.3:5432/document_db?preferQueryMode=simple
+      DB_USERNAME: document_user
+      FLYWAY_VALIDATE_ON_MIGRATE: 'false'
+      GOTENBERG_URL: http://gotenberg:3000
+      KAFKA_BOOTSTRAP: 10.0.0.3:9094
+      KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094
+      NOTIFICATION_URI: http://notification-service:8089
+      PAYMENT_URI: http://10.0.0.3:8086
+      REDIS_HOST: 10.0.0.3
+      REDIS_PORT: '6379'
+      SALES_URI: http://10.0.0.3:8085
+      SERVER_PORT: '8093'
+      SPRING_DATA_REDIS_HOST: 10.0.0.3
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094
+    healthcheck:
+      interval: 15s
+      retries: 10
+      start_period: 180s
+      test:
+      - CMD-SHELL
+      - curl -sf http://localhost:8093/actuator/health || exit 1
+      timeout: 5s
+    image: ghcr.io/ismaelmkumbi/document-service:latest
+    logging: *id001
+    networks:
+    - server-a-net
+    restart: unless-stopped
+  frontend:
+    container_name: letispos-frontend
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+    expose:
+    - '80'
+    image: ghcr.io/ismaelmkumbi/frontend:latest
+    logging: *id001
+    networks:
+    - server-a-net
+    restart: unless-stopped
+  gateway:
+    container_name: letispos-gateway
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+        reservations:
+          memory: 128M
+    environment:
+      AI_URI: http://ai-service:8091
+      AUTH_JWKS_URI: http://auth-service:8081/.well-known/jwks.json
+      AUTH_URI: http://auth-service:8081
+      FLYWAY_VALIDATE_ON_MIGRATE: 'false'
+      HRM_URI: http://hrm-service:8090
+      INTEGRATION_URI: http://integration-service:8092
+      INVENTORY_URI: http://10.0.0.3:8084
+      KAFKA_BOOTSTRAP: 10.0.0.3:9094
+      KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094
+      NOTIFICATION_URI: http://notification-service:8089
+      PAYMENT_URI: http://10.0.0.3:8086
+      PRODUCT_URI: http://10.0.0.3:8083
+      REDIS_HOST: 10.0.0.3
+      REDIS_PORT: '6379'
+      REPORT_URI: http://report-service:8087
+      SALES_URI: http://10.0.0.3:8085
+      SERVER_PORT: '8080'
+      SPRING_DATA_REDIS_HOST: 10.0.0.3
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094
+      USER_URI: http://user-service:8082
+    healthcheck:
+      interval: 15s
+      retries: 10
+      start_period: 180s
+      test:
+      - CMD-SHELL
+      - curl -sf http://localhost:8080/actuator/health || exit 1
+      timeout: 5s
+    image: ghcr.io/ismaelmkumbi/gateway:latest
+    logging: *id001
+    networks:
+    - server-a-net
+    ports:
+    - 0.0.0.0:8080:8080
+    restart: unless-stopped
+  gotenberg:
+    command:
+    - gotenberg
+    - --chromium-max-queue-size=10
+    - --chromium-auto-start
+    - --api-timeout=60s
+    container_name: letispos-gotenberg
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+    image: gotenberg/gotenberg:8
+    logging: *id001
+    networks:
+    - server-a-net
+    ports:
+    - 0.0.0.0:3000:3000
+    restart: unless-stopped
+  hrm-service:
+    container_name: letispos-hrm
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+        reservations:
+          memory: 128M
+    environment:
+      AUTH_JWKS_URI: http://auth-service:8081/.well-known/jwks.json
+      DB_PASSWORD: hrm_pass
+      DB_URL: jdbc:postgresql://10.0.0.3:5432/hrm_db?preferQueryMode=simple
+      DB_USERNAME: hrm_user
+      FLYWAY_VALIDATE_ON_MIGRATE: 'false'
+      KAFKA_BOOTSTRAP: 10.0.0.3:9094
+      KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094
+      REDIS_HOST: 10.0.0.3
+      REDIS_PORT: '6379'
+      SERVER_PORT: '8090'
+      SPRING_DATA_REDIS_HOST: 10.0.0.3
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094
+    healthcheck:
+      interval: 15s
+      retries: 10
+      start_period: 180s
+      test:
+      - CMD-SHELL
+      - curl -sf http://localhost:8090/actuator/health || exit 1
+      timeout: 5s
+    image: ghcr.io/ismaelmkumbi/hrm-service:latest
+    logging: *id001
+    networks:
+    - server-a-net
+    restart: unless-stopped
+  integration-service:
+    container_name: letispos-integration
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+        reservations:
+          memory: 128M
+    environment:
+      AUTH_JWKS_URI: http://auth-service:8081/.well-known/jwks.json
+      DB_PASSWORD: integration_pass
+      DB_URL: jdbc:postgresql://10.0.0.3:5432/integration_db?preferQueryMode=simple
+      DB_USERNAME: integration_user
+      FLYWAY_VALIDATE_ON_MIGRATE: 'false'
+      KAFKA_BOOTSTRAP: 10.0.0.3:9094
+      KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094
+      REDIS_HOST: 10.0.0.3
+      REDIS_PORT: '6379'
+      SERVER_PORT: '8092'
+      SPRING_DATA_REDIS_HOST: 10.0.0.3
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094
+    healthcheck:
+      interval: 15s
+      retries: 10
+      start_period: 180s
+      test:
+      - CMD-SHELL
+      - curl -sf http://localhost:8092/actuator/health || exit 1
+      timeout: 5s
+    image: ghcr.io/ismaelmkumbi/integration-service:latest
+    logging: *id001
+    networks:
+    - server-a-net
+    restart: unless-stopped
+  minio:
+    command: server /data --console-address ":9001"
+    container_name: letispos-minio
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    environment:
+      MINIO_ROOT_PASSWORD: smartpos-secret
+      MINIO_ROOT_USER: smartpos
+    image: minio/minio:latest
+    logging: *id001
+    networks:
+    - server-a-net
+    ports:
+    - 0.0.0.0:9000:9000
+    - 0.0.0.0:9001:9001
+    restart: unless-stopped
+    volumes:
+    - minio-data:/data
+  nginx:
+    container_name: letispos-nginx
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+    image: nginx:1.27-alpine
+    logging: *id001
+    networks:
+    - server-a-net
+    ports:
+    - 0.0.0.0:80:80
+    - 0.0.0.0:443:443
+    restart: unless-stopped
+    volumes:
+    - /etc/letispos/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    - /etc/letsencrypt:/etc/letsencrypt:ro
+  node-exporter:
+    command:
+    - --collector.filesystem.mount-points-exclude=^/(sys|proc|dev|run|docker/.+|var/lib/docker/.+)($|/)
+    container_name: letispos-node-exporter
+    image: prom/node-exporter:latest
+    logging: *id001
+    networks:
+    - server-a-net
+    ports:
+    - 0.0.0.0:9100:9100
+    restart: unless-stopped
+  notification-service:
+    container_name: letispos-notification
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+        reservations:
+          memory: 128M
+    environment:
+      AUTH_JWKS_URI: http://auth-service:8081/.well-known/jwks.json
+      DB_PASSWORD: notification_pass
+      DB_URL: jdbc:postgresql://10.0.0.3:5432/notification_db?preferQueryMode=simple
+      DB_USERNAME: notification_user
+      FLYWAY_VALIDATE_ON_MIGRATE: 'false'
+      KAFKA_BOOTSTRAP: 10.0.0.3:9094
+      KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094
+      REDIS_HOST: 10.0.0.3
+      REDIS_PORT: '6379'
+      SERVER_PORT: '8089'
+      SPRING_DATA_REDIS_HOST: 10.0.0.3
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094
+    healthcheck:
+      interval: 15s
+      retries: 10
+      start_period: 180s
+      test:
+      - CMD-SHELL
+      - curl -sf http://localhost:8089/actuator/health || exit 1
+      timeout: 5s
+    image: ghcr.io/ismaelmkumbi/notification-service:latest
+    logging: *id001
+    networks:
+    - server-a-net
+    restart: unless-stopped
+  report-service:
+    container_name: letispos-report
+    deploy:
+      resources:
+        limits:
+          memory: 448M
+        reservations:
+          memory: 192M
+    environment:
+      AUTH_JWKS_URI: http://auth-service:8081/.well-known/jwks.json
+      DB_PASSWORD: report_pass
+      DB_URL: jdbc:postgresql://10.0.0.3:5432/report_db?preferQueryMode=simple
+      DB_USERNAME: report_user
+      FLYWAY_VALIDATE_ON_MIGRATE: 'false'
+      INVENTORY_URI: http://10.0.0.3:8084
+      KAFKA_BOOTSTRAP: 10.0.0.3:9094
+      KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094
+      PAYMENT_URI: http://10.0.0.3:8086
+      PRODUCT_URI: http://10.0.0.3:8083
+      REDIS_HOST: 10.0.0.3
+      REDIS_PORT: '6379'
+      S3_ACCESS_KEY: smartpos
+      S3_ENDPOINT: http://minio:9000
+      S3_SECRET_KEY: smartpos-secret
+      SALES_URI: http://10.0.0.3:8085
+      SERVER_PORT: '8087'
+      SPRING_DATA_REDIS_HOST: 10.0.0.3
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094
+    healthcheck:
+      interval: 15s
+      retries: 10
+      start_period: 180s
+      test:
+      - CMD-SHELL
+      - curl -sf http://localhost:8087/actuator/health || exit 1
+      timeout: 5s
+    image: ghcr.io/ismaelmkumbi/report-service:latest
+    logging: *id001
+    networks:
+    - server-a-net
+    restart: unless-stopped
+  user-service:
+    container_name: letispos-user
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+        reservations:
+          memory: 128M
+    environment:
+      AUTH_JWKS_URI: http://auth-service:8081/.well-known/jwks.json
+      DB_PASSWORD: user_pass
+      DB_URL: jdbc:postgresql://10.0.0.3:5432/user_db?preferQueryMode=simple
+      DB_USERNAME: user_user
+      FLYWAY_VALIDATE_ON_MIGRATE: 'false'
+      KAFKA_BOOTSTRAP: 10.0.0.3:9094
+      KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094
+      REDIS_HOST: 10.0.0.3
+      REDIS_PORT: '6379'
+      SERVER_PORT: '8082'
+      SPRING_DATA_REDIS_HOST: 10.0.0.3
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094
+    healthcheck:
+      interval: 15s
+      retries: 10
+      start_period: 180s
+      test:
+      - CMD-SHELL
+      - curl -sf http://localhost:8082/actuator/health || exit 1
+      timeout: 5s
+    image: ghcr.io/ismaelmkumbi/user-service:latest
+    logging: *id001
+    networks:
+    - server-a-net
+    restart: unless-stopped
+volumes:
+  minio-data: null
+x-health-defaults:
+  interval: 10s
+  retries: 10
+  start_period: 180s
+  timeout: 5s
+x-logging: *id001

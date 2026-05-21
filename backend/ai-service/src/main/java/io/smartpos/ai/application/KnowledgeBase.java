@@ -25,6 +25,9 @@ public class KnowledgeBase {
     @Value("${OPENAI_API_KEY:}")
     private String openAiKey;
 
+    @Value("${OPENAI_BASE_URL:https://api.openai.com/v1}")
+    private String openAiBaseUrl;
+
     private final List<Chunk> chunks = new ArrayList<>();
 
     record Chunk(String title, String category, String text, double[] embedding) {}
@@ -95,7 +98,7 @@ public class KnowledgeBase {
                 "input", text
             );
             String resp = http.post()
-                .uri("https://api.openai.com/v1/embeddings")
+                .uri(openAiBaseUrl + "/embeddings")
                 .header("Authorization", "Bearer " + openAiKey)
                 .header("Content-Type", "application/json")
                 .bodyValue(body)
