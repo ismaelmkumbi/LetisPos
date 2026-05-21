@@ -108,22 +108,18 @@ public class AssistantService {
             }
         }
 
-        // Add current user message to history
-        cleanHistory.add(Map.of("role", "user", "content", request.message()));
+        // 5. Build frozen system prompt (cacheable) + dynamic context
+        String systemPrompt = promptBuilder.buildFrozen(jwt, effectiveLanguage);
+        String dynamicCtx = promptBuilder.buildDynamicContext(jwt, effectiveLanguage, intent, summary);
 
-        // 5. Build enhanced prompt
-        String basePrompt = promptBuilder.build(jwt, effectiveLanguage, intent, summary, profile);
-        final String systemPrompt;
-        if (!knowledgeChunks.isEmpty()) {
-            StringBuilder sb = new StringBuilder(basePrompt);
-            sb.append("\nUse the following knowledge to answer:\n");
-            for (int i = 0; i < knowledgeChunks.size(); i++) {
-                sb.append("[").append(i + 1).append("] ").append(knowledgeChunks.get(i)).append("\n");
-            }
-            systemPrompt = sb.toString();
-        } else {
-            systemPrompt = basePrompt;
-        }
+        // Inject dynamic context into the user message so the system prompt
+        // stays cacheable across requests from the same tenant/role.
+        String enrichedUserMessage = "[Context: " + dynamicCtx + "]\n\n"
+            + (knowledgeChunks.isEmpty() ? "" : "Knowledge:\n" + String.join("\n", knowledgeChunks) + "\n\n")
+            + request.message();
+
+        // Add enriched user message (with dynamic context) to history
+        cleanHistory.add(Map.of("role", "user", "content", enrichedUserMessage));
 
         // 6. Narrowed tools using intent
         List<AssistantToolCatalog.ToolDef> tools = toolCatalog.scopedTools(jwt, request.message());
@@ -215,15 +211,17 @@ public class AssistantService {
         AiProvider.ToolCallResult result;
         String error = null;
         try {
-            result = provider.completeWithTools(systemPrompt, messages,
-                openAiTools.isEmpty() ? null : openAiTools);
+            result = provider.completeWithToolsStreaming(systemPrompt, messages,
+                openAiTools.isEmpty() ? null : openAiTools,
+                token -> {
+                    try {
+                        emitter.send(SseEmitter.event().name("token")
+                            .data(Map.of("token", token)));
+                    } catch (IOException ignored) {}
+                });
         } catch (Exception e) {
             log.warn("AI provider tool call failed, falling back to simple completion", e);
             error = e.getMessage();
-            // Fallback: simple completion without tools
-            // Use single-turn complete() — extract the last user message from the messages array.
-            // Multi-turn complete(String, List) is not implemented on all providers,
-            // but the single-turn complete(String, String) always works.
             String fallbackUserMessage = messages.stream()
                 .filter(m -> "user".equals(m.get("role")))
                 .map(m -> String.valueOf(m.getOrDefault("content", "")))
@@ -262,15 +260,11 @@ public class AssistantService {
             .userId(userId).tenantId(tenantId)
             .durationMs(duration).build());
 
-        // Stream text content first
-        if (result.text() != null && !result.text().isBlank()) {
-            emitter.send(SseEmitter.event().name("token")
-                .data(Map.of("token", result.text())));
-        }
-
+        // Text already streamed via completeWithToolsStreaming callback.
         // Process tool calls from native function calling
         List<ToolResult> collectedToolResults = new java.util.ArrayList<>();
         List<String> toolErrors = new java.util.ArrayList<>();
+        boolean hasWriteDrafts = false;
         if (!result.toolCalls().isEmpty()) {
             for (var tc : result.toolCalls()) {
                 emitter.send(SseEmitter.event().name("tool_start")
@@ -300,6 +294,7 @@ public class AssistantService {
                                 .data(Map.of("message", e.getMessage(), "code", "TOOL_ERROR")));
                         }
                     } else {
+                        hasWriteDrafts = true;
                         String draftSummary = "Execute " + tc.name();
                         var draft = toolExecutor.createDraft(tc.name(), parsedArgs,
                             draftSummary, userId, tenantId);
@@ -322,7 +317,6 @@ public class AssistantService {
                             .data(Map.of("message", e.getMessage(), "code", "TOOL_ERROR")));
                     }
                 } else {
-                    // Tool not found in scoped catalog — tell user what's available
                     List<String> available = tools.stream()
                         .map(AssistantToolCatalog.ToolDef::name)
                         .toList();
@@ -335,6 +329,54 @@ public class AssistantService {
                 }
             }
 
+            // Append assistant message with tool_calls to the working messages list
+            Map<String, Object> assistantMsg = new java.util.LinkedHashMap<>();
+            assistantMsg.put("role", "assistant");
+            assistantMsg.put("content", result.text() != null ? result.text() : "");
+            List<Map<String, Object>> tcForHistory = new ArrayList<>();
+            for (var tc : result.toolCalls()) {
+                Map<String, Object> tcMap = new java.util.LinkedHashMap<>();
+                tcMap.put("id", tc.id());
+                tcMap.put("type", "function");
+                tcMap.put("function", Map.of("name", tc.name(), "arguments", tc.arguments()));
+                tcForHistory.add(tcMap);
+            }
+            if (!tcForHistory.isEmpty()) {
+                assistantMsg.put("tool_calls", tcForHistory);
+            }
+            messages.add(assistantMsg);
+
+            // Append tool result messages
+            for (int i = 0; i < result.toolCalls().size(); i++) {
+                var tc = result.toolCalls().get(i);
+                Map<String, Object> toolMsg = new java.util.LinkedHashMap<>();
+                toolMsg.put("role", "tool");
+                toolMsg.put("tool_call_id", tc.id());
+                if (i < collectedToolResults.size()) {
+                    try {
+                        toolMsg.put("content", om.writeValueAsString(collectedToolResults.get(i)));
+                    } catch (Exception e) {
+                        toolMsg.put("content", "{}");
+                    }
+                } else if (i < toolErrors.size()) {
+                    toolMsg.put("content", "{\"error\":\"" + toolErrors.get(i) + "\"}");
+                } else {
+                    toolMsg.put("content", "{}");
+                }
+                messages.add(toolMsg);
+            }
+
+            // Multi-turn loop: if there are more rounds available, let the LLM
+            // continue with the tool results. This enables chained actions like
+            // searchDocuments → emailDocument within a single user message.
+            if (!hasWriteDrafts && round + 1 < maxRounds) {
+                processConversation(emitter, systemPrompt, messages, tools,
+                    userId, tenantId, conversationId, round + 1,
+                    isSuperAdmin, maxRounds, profile);
+                return; // the recursive call handles saving and done
+            }
+
+            // Synthesize final answer from collected tool results
             String synthesis = synthesizeToolAnswer(provider, systemPrompt, currentUserMessage,
                 collectedToolResults, toolErrors);
             if (synthesis != null && !synthesis.isBlank()) {
@@ -343,8 +385,7 @@ public class AssistantService {
             }
         }
 
-        // Save conversation history — messages go in as-is (they already include
-        // role, content, tool_calls, and tool_call_id from previous rounds)
+        // Save conversation history
         List<ConversationStore.Message> savedMessages = new ArrayList<>();
         for (Map<String, Object> msg : messages) {
             @SuppressWarnings("unchecked")
@@ -356,42 +397,7 @@ public class AssistantService {
                 String.valueOf(msg.getOrDefault("tool_call_id", null)),
                 null));
         }
-        // Save assistant response — with tool_calls in OpenAI format if present
-        if (result.text() != null && !result.text().isBlank() || !result.toolCalls().isEmpty()) {
-            List<Map<String, Object>> tcSave = null;
-            if (!result.toolCalls().isEmpty()) {
-                tcSave = new ArrayList<>();
-                for (var tc : result.toolCalls()) {
-                    tcSave.add(Map.of(
-                        "id", tc.id(),
-                        "type", "function",
-                        "function", Map.of("name", tc.name(), "arguments", tc.arguments())));
-                }
-            }
-            savedMessages.add(new ConversationStore.Message(
-                "assistant", result.text() != null ? result.text() : "",
-                tcSave, null, null));
-        }
-        // Save tool result messages so the LLM sees them on the next turn
-        for (int i = 0; i < result.toolCalls().size(); i++) {
-            var tc = result.toolCalls().get(i);
-            if (i < collectedToolResults.size()) {
-                try {
-                    String resultJson = om.writeValueAsString(collectedToolResults.get(i));
-                    savedMessages.add(new ConversationStore.Message(
-                        "tool", resultJson, null, tc.id(), null));
-                } catch (Exception e) {
-                    savedMessages.add(new ConversationStore.Message(
-                        "tool", "{}", null, tc.id(), null));
-                }
-            }
-        }
         conversationStore.save(tenantId, conversationId, savedMessages, null);
-
-        // Trigger summarization if conversation is getting long
-        if (savedMessages.size() > 20) {
-            // Summarization deferred to a follow-up task
-        }
 
         emitter.send(SseEmitter.event().name("done").data("{}"));
     }

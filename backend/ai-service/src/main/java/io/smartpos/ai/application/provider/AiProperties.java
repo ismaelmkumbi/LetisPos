@@ -20,7 +20,7 @@ public record AiProperties(
     public record Anthropic(
             String apiKey,
             @DefaultValue("claude-sonnet-4-6") String model,
-            @DefaultValue("1024") int maxTokens) {}
+            @DefaultValue("16000") int maxTokens) {}
 
     public record OpenAi(
             String apiKey,

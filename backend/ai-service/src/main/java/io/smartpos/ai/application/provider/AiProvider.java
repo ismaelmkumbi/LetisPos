@@ -67,4 +67,28 @@ public interface AiProvider {
                           Integer promptTokens, Integer completionTokens) {}
 
     record ToolCall(String id, String name, String arguments) {}
+
+    /** Callback for streaming tokens as they arrive from the LLM. */
+    @FunctionalInterface
+    interface TokenCallback {
+        void onToken(String token);
+    }
+
+    /**
+     * Streaming variant of {@link #completeWithTools}. Providers that support
+     * streaming should call {@code onToken} for each text delta as it arrives.
+     * The default implementation falls back to the synchronous path and
+     * delivers the full text as a single token.
+     */
+    default ToolCallResult completeWithToolsStreaming(
+            String systemPrompt,
+            List<Map<String, Object>> messages,
+            List<Map<String, Object>> tools,
+            TokenCallback onToken) {
+        ToolCallResult result = completeWithTools(systemPrompt, messages, tools);
+        if (result.text() != null && !result.text().isBlank()) {
+            onToken.onToken(result.text());
+        }
+        return result;
+    }
 }

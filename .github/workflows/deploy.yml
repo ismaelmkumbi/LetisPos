@@ -108,14 +108,14 @@ jobs:
           cache: maven
 
       - name: Build & push image
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           cd backend
           TAG=${{ github.event.inputs.tag || github.sha }}
           mvn -B -pl ${{ matrix.service }} -am compile jib:build \
             -Djib.tag="${TAG}" \
             -Djib.registry=${{ env.IMAGE_PREFIX }} \
+            -Djib.to.auth.username="${{ github.actor }}" \
+            -Djib.to.auth.password="${{ secrets.GITHUB_TOKEN }}" \
             -DskipTests
 
   # ── Build frontend ──────────────────────────────────────────

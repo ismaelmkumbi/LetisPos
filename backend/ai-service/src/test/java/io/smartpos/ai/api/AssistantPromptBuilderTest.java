@@ -16,7 +16,7 @@ class AssistantPromptBuilderTest {
     private final AssistantPromptBuilder builder = new AssistantPromptBuilder();
 
     @Test
-    void buildsPromptWithTenantContext() {
+    void buildsFrozenPromptWithRoleTone() {
         Jwt jwt = Jwt.withTokenValue("test-token")
             .header("alg", "RS256")
             .claim("sub", "user-123")
@@ -27,16 +27,14 @@ class AssistantPromptBuilderTest {
             .expiresAt(Instant.now().plusSeconds(3600))
             .build();
 
-        String prompt = builder.build(jwt, "en");
+        String prompt = builder.buildFrozen(jwt, "en");
 
-        assertTrue(prompt.contains("Test Store"));
-        assertTrue(prompt.contains("PROFESSIONAL"));
-        assertTrue(prompt.contains("ADMIN"));
         assertTrue(prompt.contains("English"));
+        assertTrue(prompt.contains("LetisPOS Assistant"));
     }
 
     @Test
-    void buildsPromptInSwahili() {
+    void buildsDynamicContextWithStoreInfo() {
         Jwt jwt = Jwt.withTokenValue("test-token")
             .header("alg", "RS256")
             .claim("sub", "user-123")
@@ -47,14 +45,16 @@ class AssistantPromptBuilderTest {
             .expiresAt(Instant.now().plusSeconds(3600))
             .build();
 
-        String prompt = builder.build(jwt, "sw");
+        String ctx = builder.buildDynamicContext(jwt, "sw", null, null);
 
-        assertTrue(prompt.contains("Swahili"));
-        assertTrue(prompt.contains("Duka Moja"));
+        assertTrue(ctx.contains("Duka Moja"));
+        assertTrue(ctx.contains("STARTER"));
+        assertTrue(ctx.contains("CASHIER"));
+        assertTrue(ctx.contains("Today:"));
     }
 
     @Test
-    void superAdminGetsElevatedPrompt() {
+    void superAdminGetsElevatedFrozenPrompt() {
         Jwt jwt = Jwt.withTokenValue("test-token")
             .header("alg", "RS256")
             .claim("sub", "user-123")
@@ -65,7 +65,7 @@ class AssistantPromptBuilderTest {
             .expiresAt(Instant.now().plusSeconds(3600))
             .build();
 
-        String prompt = builder.build(jwt, "en");
+        String prompt = builder.buildFrozen(jwt, "en");
 
         assertTrue(prompt.contains("SUPER_ADMIN access"));
         assertTrue(prompt.contains("all tenants"));
@@ -80,11 +80,11 @@ class AssistantPromptBuilderTest {
             .expiresAt(Instant.now().plusSeconds(3600))
             .build();
 
-        String prompt = builder.build(jwt, "en");
+        String ctx = builder.buildDynamicContext(jwt, "en", null, null);
 
-        assertTrue(prompt.contains("Unknown"));
-        assertTrue(prompt.contains("STARTER"));
-        assertTrue(prompt.contains("USER"));
+        assertTrue(ctx.contains("Unknown"));
+        assertTrue(ctx.contains("STARTER"));
+        assertTrue(ctx.contains("USER"));
     }
 
     @Test

@@ -13,7 +13,8 @@ import { useLpTheme } from '../LandingpageTheme';
 import BenefitList, { BenefitTone } from '../components/BenefitList';
 import ReceiptPreview from '../components/ReceiptPreview';
 import { darkHeroStyles, lightHeroStyles } from './heroStyles';
-import dashboardCapture from 'src/assets/images/landingpage/letis-dashboard-real.png';
+import dashboardBrightCapture from 'src/assets/images/landingpage/letis-dashboard-real.png';
+import dashboardDarkCapture from 'src/assets/images/landingpage/letis-dashboard-real-dark.png';
 import BrandLogo from 'src/components/smartpos/BrandLogo';
 
 const trustCards = [
@@ -45,6 +46,7 @@ const Hero: React.FC = () => {
   const isBrightTheme = theme === 'bold-energetic';
   const heroTone: BenefitTone = isBrightTheme ? 'light' : 'dark';
   const heroStyles = isBrightTheme ? lightHeroStyles() : darkHeroStyles();
+  const dashboardCapture = isBrightTheme ? dashboardBrightCapture : dashboardDarkCapture;
 
   return (
     <Box
@@ -357,14 +359,14 @@ const Hero: React.FC = () => {
                         overflow: 'hidden',
                         borderRadius: { xs: '14px', md: '18px' },
                         border: `1px solid ${heroStyles.screenBorder}`,
-                        bgcolor: '#FFFFFF',
+                        bgcolor: isBrightTheme ? '#F8FAFC' : '#101827',
                         aspectRatio: '16 / 10',
                       }}
                     >
                       <Box
                         component="img"
                         src={dashboardCapture}
-                        alt="Letis POS dashboard preview for the selected month"
+                        alt={`Letis POS ${isBrightTheme ? 'bright' : 'dark'} dashboard preview for the selected month`}
                         loading="lazy"
                         sx={{
                           width: '100%',
@@ -372,6 +374,7 @@ const Hero: React.FC = () => {
                           display: 'block',
                           objectFit: 'cover',
                           objectPosition: 'left top',
+                          transition: 'opacity 0.18s ease-out',
                         }}
                       />
                     </Box>

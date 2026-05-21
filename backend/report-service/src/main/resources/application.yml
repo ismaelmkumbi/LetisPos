@@ -8,7 +8,7 @@ spring:
     name: report-service
 
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5434/report_db}?preferQueryMode=${DB_PREFER_QUERY_MODE:simple}
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/report_db}?preferQueryMode=${DB_PREFER_QUERY_MODE:simple}
     username: ${DB_USER:report_user}
     password: ${DB_PASSWORD:report_pass}
     hikari:

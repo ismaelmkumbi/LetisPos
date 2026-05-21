@@ -9,7 +9,7 @@ spring:
 
   datasource:
     # preferQueryMode=simple — see product-service for rationale.
-    url: ${DB_URL:jdbc:postgresql://localhost:5434/inventory_db?preferQueryMode=${DB_PREFER_QUERY_MODE:simple}}
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/inventory_db?preferQueryMode=${DB_PREFER_QUERY_MODE:simple}}
     username: ${DB_USER:inventory_user}
     password: ${DB_PASSWORD:inventory_pass}
     hikari:

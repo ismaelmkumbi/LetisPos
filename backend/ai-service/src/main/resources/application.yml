@@ -8,7 +8,7 @@ spring:
     name: ai-service
 
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5434/ai_db}?preferQueryMode=${DB_PREFER_QUERY_MODE:simple}
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/ai_db}?preferQueryMode=${DB_PREFER_QUERY_MODE:simple}
     username: ${DB_USER:ai_user}
     password: ${DB_PASSWORD:ai_pass}
     hikari:

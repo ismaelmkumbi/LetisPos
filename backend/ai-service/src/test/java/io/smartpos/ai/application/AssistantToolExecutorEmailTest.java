@@ -104,10 +104,11 @@ class AssistantToolExecutorEmailTest {
 
     @Test
     void emailDocument() {
+        UUID docId = UUID.randomUUID();
+        when(documentFeign.searchByRef(eq(docId.toString()), any(), any(), anyInt(), anyInt()))
+            .thenReturn(Map.of("content", List.of(Map.of("id", docId.toString()))));
         when(documentFeign.emailDocument(any(), any()))
             .thenReturn(Map.of("status", "queued"));
-
-        UUID docId = UUID.randomUUID();
         var args = Map.of(
             "documentId", (Object) docId.toString(),
             "to", (Object) "customer@example.com",
@@ -128,10 +129,11 @@ class AssistantToolExecutorEmailTest {
 
     @Test
     void emailDocument_withoutOptionalMessage() {
+        UUID docId = UUID.randomUUID();
+        when(documentFeign.searchByRef(eq(docId.toString()), any(), any(), anyInt(), anyInt()))
+            .thenReturn(Map.of("content", List.of(Map.of("id", docId.toString()))));
         when(documentFeign.emailDocument(any(), any()))
             .thenReturn(Map.of("status", "queued"));
-
-        UUID docId = UUID.randomUUID();
         var args = Map.of(
             "documentId", (Object) docId.toString(),
             "to", (Object) "customer@example.com"

@@ -11,15 +11,13 @@ import java.util.List;
 @Component
 public class AssistantPromptBuilder {
 
+    // Frozen system prompt — never interpolate per-request values here.
+    // Dynamic context (date, store, role, intent hints) goes into the
+    // messages array so the system prompt stays cacheable.
     private static final String BASE_PROMPT = """
         You are LetisPOS Assistant, an AI helper for retail store management.
 
-        Store context:
-        - Store name: %s
-        - Plan: %s
-        - User role: %s
-        - Today: %s
-        - Currency: TZS
+        Currency: TZS
 
         You can access sales, inventory, products, customers, finance, HRM,
         and more. Use tools whenever you need real data.
@@ -32,7 +30,7 @@ public class AssistantPromptBuilder {
         - Never invent business data; if the available tools cannot answer exactly, explain the closest available answer
         - If no tool exists for the user's request, say "I don't have a way to do that yet" — never guess it's a permissions issue
         - For analytical answers, lead with the answer, then 2-3 supporting facts, then one recommended action
-        - For write actions, explain what will happen before using the tool
+        - For write actions, briefly state what you're doing as you use the tool — do not just describe the action, execute it
         - If a tool returns an error, tell the user what went wrong
         - Respond in %s
         - Keep responses concise and actionable
@@ -46,82 +44,22 @@ public class AssistantPromptBuilder {
         and perform administrative actions without draft confirmation.
         """;
 
+    /**
+     * Returns the frozen system prompt. Stable across requests from the
+     * same tenant/role — safe to cache.
+     */
     @SuppressWarnings("unchecked")
-    public String build(Jwt jwt, String language) {
-        String tenantName = jwt.getClaimAsString("tenantName");
-        String billingPlan = jwt.getClaimAsString("billingPlan");
+    public String buildFrozen(Jwt jwt, String language) {
         var roles = (List<String>) jwt.getClaims().get("roles");
-        String roleStr = roles != null && !roles.isEmpty()
-            ? String.join(", ", roles) : "USER";
-
-        String prompt = String.format(BASE_PROMPT,
-            tenantName != null ? tenantName : "Unknown",
-            billingPlan != null ? billingPlan : "STARTER",
-            roleStr,
-            LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE),
-            language != null && language.equals("sw") ? "Swahili" : "English"
-        );
-
-        if (roles != null && roles.contains("SUPER_ADMIN")) {
-            prompt += "\n" + SUPER_ADMIN_EXTRA;
-        }
-
-        return prompt;
-    }
-
-    public String build(Jwt jwt, String language, IntentClassification intent,
-                        String conversationSummary, RoleProfile roleProfile) {
-        @SuppressWarnings("unchecked")
-        var roles = (List<String>) jwt.getClaims().get("roles");
-        String roleStr = roles != null && !roles.isEmpty()
-            ? String.join(", ", roles) : "USER";
-
-        String tenantName = jwt.getClaimAsString("tenantName");
-        String billingPlan = jwt.getClaimAsString("billingPlan");
-        String lang = resolveLanguage(language, intent);
-        RoleProfile profile = roleProfile != null ? roleProfile : RoleProfile.fromJwt(roles);
+        String lang = language != null && language.equals("sw") ? "Swahili" : "English";
 
         StringBuilder sb = new StringBuilder();
+        sb.append(String.format(BASE_PROMPT, lang));
 
-        sb.append(String.format(BASE_PROMPT,
-            tenantName != null ? tenantName : "Unknown",
-            billingPlan != null ? billingPlan : "STARTER",
-            roleStr,
-            LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE),
-            lang
-        ));
-
-        // Role-specific tone
+        RoleProfile profile = RoleProfile.fromJwt(roles);
         sb.append("\n").append(profile.toneInstruction());
         sb.append("\nVerbosity: ").append(profile.verbosity());
 
-        // Domain hint from intent
-        if (intent != null && intent.primaryDomain() != IntentClassification.Domain.GENERAL
-            && intent.confidence() >= 0.5) {
-            sb.append("\nThe user is asking about ").append(intent.primaryDomain().name().toLowerCase())
-              .append(" management.");
-        }
-
-        // Resolved time
-        if (intent != null && intent.time() != null) {
-            var time = intent.time();
-            if (time.dateFrom() != null && time.dateTo() != null) {
-                sb.append("\nUser time reference resolves to: ").append(time.dateFrom())
-                  .append(" to ").append(time.dateTo()).append(".");
-            }
-        }
-
-        // Conversation summary
-        if (conversationSummary != null && !conversationSummary.isBlank()) {
-            sb.append("\nPrevious conversation: ").append(conversationSummary);
-        }
-
-        // Write intent priming
-        if (intent != null && intent.isWriteAction()) {
-            sb.append("\nThis is a write action. Explain what will happen before using the tool.");
-        }
-
-        // Super admin extra
         if (roles != null && roles.contains("SUPER_ADMIN")) {
             sb.append("\n").append(SUPER_ADMIN_EXTRA);
         }
@@ -129,13 +67,52 @@ public class AssistantPromptBuilder {
         return sb.toString();
     }
 
-    private String resolveLanguage(String clientLang, IntentClassification intent) {
-        if (intent != null && intent.language() == IntentClassification.Language.SWAHILI) {
-            return "Swahili";
+    /**
+     * Builds a dynamic context preamble with today's date, store info,
+     * and intent hints. This goes into the messages array — never the
+     * system prompt — so it doesn't break prompt caching.
+     */
+    @SuppressWarnings("unchecked")
+    public String buildDynamicContext(Jwt jwt, String language,
+                                      IntentClassification intent,
+                                      String conversationSummary) {
+        var roles = (List<String>) jwt.getClaims().get("roles");
+        String tenantName = jwt.getClaimAsString("tenantName");
+        String billingPlan = jwt.getClaimAsString("billingPlan");
+        String roleStr = roles != null && !roles.isEmpty()
+            ? String.join(", ", roles) : "USER";
+
+        StringBuilder ctx = new StringBuilder();
+        ctx.append("Store: ").append(tenantName != null ? tenantName : "Unknown")
+           .append(" | Plan: ").append(billingPlan != null ? billingPlan : "STARTER")
+           .append(" | Role: ").append(roleStr)
+           .append(" | Today: ").append(LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE));
+
+        // Domain hint from intent
+        if (intent != null && intent.primaryDomain() != IntentClassification.Domain.GENERAL
+            && intent.confidence() >= 0.5) {
+            ctx.append("\nTopic: ").append(intent.primaryDomain().name().toLowerCase());
         }
-        if (intent != null && intent.language() == IntentClassification.Language.MIXED) {
-            return "Swahili or English, match the user's language";
+
+        // Resolved time
+        if (intent != null && intent.time() != null) {
+            var time = intent.time();
+            if (time.dateFrom() != null && time.dateTo() != null) {
+                ctx.append("\nTime range: ").append(time.dateFrom())
+                   .append(" to ").append(time.dateTo());
+            }
         }
-        return clientLang != null && clientLang.equals("sw") ? "Swahili" : "English";
+
+        // Write intent
+        if (intent != null && intent.isWriteAction()) {
+            ctx.append("\nThis is a write action — use the tool to execute it now.");
+        }
+
+        // Conversation summary
+        if (conversationSummary != null && !conversationSummary.isBlank()) {
+            ctx.append("\nPrevious conversation: ").append(conversationSummary);
+        }
+
+        return ctx.toString();
     }
 }

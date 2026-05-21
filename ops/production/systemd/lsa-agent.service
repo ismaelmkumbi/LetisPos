@@ -1,0 +1,43 @@
+# LSA Agent — systemd service
+# =============================
+# Runs natively on each server (not containerized) for:
+# - Real-time host metrics (CPU, mem, disk, net, load)
+# - Journald log streaming
+# - systemd service management (restart/stop/start)
+# - Heartbeat reporting to Control Center Hub
+#
+# Install:
+#   cp lsa-agent.service /etc/systemd/system/
+#   cp lsa-linux-amd64 /usr/local/bin/lsa-agent
+#   mkdir -p /etc/lsa
+#   cp config-<server>.yaml /etc/lsa/config.yaml
+#   systemctl daemon-reload
+#   systemctl enable --now lsa-agent
+
+[Unit]
+Description=LetisPOS LSA Agent — host metrics + log streaming + service management
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/lsa-agent --config /etc/lsa/config.yaml
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=lsa-agent
+
+# Security
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/var/log /run
+ReadOnlyPaths=/etc/lsa
+
+# Resource limits
+MemoryMax=128M
+CPUQuota=50%
+
+[Install]
+WantedBy=multi-user.target

@@ -18,7 +18,7 @@ spring:
             url: ${BILLING_URI:http://localhost:8094}
 
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5434/auth_db}?preferQueryMode=${DB_PREFER_QUERY_MODE:simple}
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/auth_db}?preferQueryMode=${DB_PREFER_QUERY_MODE:simple}
     username: ${DB_USER:auth_user}
     password: ${DB_PASSWORD:auth_pass}
     hikari:
