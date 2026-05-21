@@ -173,9 +173,9 @@ services:
     deploy:
       resources:
         limits:
-          memory: 384M
+          memory: 640M
         reservations:
-          memory: 128M
+          memory: 256M
     environment:
       AUTH_JWKS_URI: http://auth-service:8081/.well-known/jwks.json
       DB_PASSWORD: commerce_pass
@@ -213,9 +213,9 @@ services:
     deploy:
       resources:
         limits:
-          memory: 384M
+          memory: 640M
         reservations:
-          memory: 128M
+          memory: 256M
     environment:
       AUTH_JWKS_URI: http://auth-service:8081/.well-known/jwks.json
       DB_PASSWORD: control_hub_pass
@@ -282,9 +282,9 @@ services:
     deploy:
       resources:
         limits:
-          memory: 448M
+          memory: 640M
         reservations:
-          memory: 192M
+          memory: 256M
     environment:
       AI_SERVICE_URI: http://ai-service:8091
       AUTH_JWKS_URI: http://auth-service:8081/.well-known/jwks.json
