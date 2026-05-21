@@ -2,32 +2,46 @@
 
 **Date**: 2026-05-21  
 **Auditor**: Claude Code (Platform & Infrastructure Engineer)  
-**Environment**: 3-server VPS (Cloud VPS 20 NVMe + Cloud VPS 10 SSD + Cloud VPS 20 SSD)
+**Environment**: 3-server VPS (Cloud VPS 20 NVMe + Cloud VPS 10 SSD + Cloud VPS 20 SSD)  
+**SSH**: root@<ip> — password auth (`Ismart1234`)
 
 ---
 
 ## 1. Architecture Overview
 
+| | Server A | Server B | Server C |
+|---|----------|----------|----------|
+| **Role** | App Tier | Monitoring + Standby | Data Tier |
+| **Instance ID** | `vmi3268031` | `vmi3313298` | `vmi3313316` |
+| **Product** | Cloud VPS 20 SSD (no setup) | Cloud VPS 10 SSD | Cloud VPS 20 NVMe (no setup) |
+| **Public IP** | `109.199.122.118` | `161.97.181.166` | `62.169.28.46` |
+| **Private IP** | `10.0.0.1` | `10.0.0.2` | `10.0.0.3` |
+| **CPU** | 4-core | 4-core | 4-core |
+| **RAM** | 12 GB | 7.8 GB | 12 GB |
+| **Disk** | 193 GB SSD | 145 GB SSD | 96 GB SSD |
+| **Region** | EU | EU | EU |
+| **Swap** | 2 GB | 2 GB | 2 GB |
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│ Server A (109.199.122.118) — App Tier                        │
+│ Server A (109.199.122.118 / 10.0.0.1) — App Tier             │
 │   nginx → gateway → auth, user, ai, document, commerce,      │
 │   control-hub, hrm, report, integration, notification,       │
 │   crm, billing, audit, gotenberg, minio, frontend, node-exp  │
-│   4-core | 12GB RAM | 193GB SSD                               │
+│   vmi3268031 | Cloud VPS 20 SSD | 4-core | 12GB | 193GB      │
 ├─────────────────────────────────────────────────────────────┤
-│ Server B (161.97.181.166) — Monitoring + Standby             │
+│ Server B (161.97.181.166 / 10.0.0.2) — Monitoring + Standby  │
 │   control-center, prometheus, alertmanager, backup, node-exp │
 │   postgres-replica (standby)                                  │
-│   4-core | 7.8GB RAM | 145GB SSD                              │
+│   vmi3313298 | Cloud VPS 10 SSD | 4-core | 7.8GB | 145GB     │
 ├─────────────────────────────────────────────────────────────┤
-│ Server C (62.169.28.46) — Data Tier                          │
+│ Server C (62.169.28.46 / 10.0.0.3) — Data Tier               │
 │   postgres, redis, kafka, product, inventory, sales, payment │
-│   4-core | 12GB RAM | 96GB SSD                                │
+│   vmi3313316 | Cloud VPS 20 NVMe | 4-core | 12GB | 96GB       │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-Private network: `10.0.0.0/22` — Server A (.1), Server B (.2), Server C (.3)
+Private network: `10.0.0.0/22`
 
 ---
 
