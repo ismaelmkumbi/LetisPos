@@ -221,7 +221,7 @@ services:
       AUTH_JWKS_URI: http://auth-service:8081/.well-known/jwks.json
       DB_PASSWORD: control_hub_pass
       DB_URL: jdbc:postgresql://10.0.0.3:5432/control_hub_db?preferQueryMode=simple
-      DB_USERNAME: control_hub_user
+      DB_USER: control_hub_user
       FLYWAY_VALIDATE_ON_MIGRATE: 'false'
       SPRING_FLYWAY_VALIDATE_ON_MIGRATE: 'false'
       KAFKA_BOOTSTRAP: 10.0.0.3:9094
