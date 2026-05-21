@@ -334,13 +334,65 @@ CI/CD auto-deploy triggered on push to main. Once completed, audit/billing/crm h
 ### Remaining (NOT started)
 
 **P1 — Defer to next session:**
-- Move 4 services from Server A to Server B (CPU now at 1.33 — less urgent)
+- Move 4 services from Server A to Server B (CPU now at ~0.80 — less urgent)
 - nginx upstream with backup for zero-downtime rolling deploys
 - Wire PostgreSQL replica on Server B for read failover
 
 **P2:**
-- Health checks for minio, gotenberg
-- Alertmanager rules for OOM/CPU alerting
+- ✅ Health checks for minio, gotenberg (2026-05-21 session 2)
+- ✅ Alertmanager rules for OOM/CPU alerting (2026-05-21 session 2)
+
+---
+## 9. Remediation Session 2 — 2026-05-21 (19:00–21:00)
+
+### Changes Applied
+
+| # | Item | Change | Status |
+|---|------|--------|--------|
+| 1 | commerce/control-hub actuator | Added `spring-boot-starter-actuator` to POMs | ✅ Deployed |
+| 2 | audit/billing/crm actuator | Rebuilt images with actuator (was never deployed) | ✅ Deployed |
+| 3 | Minio health check | Added `curl /minio/health/live` to compose | ✅ Healthy |
+| 4 | Gotenberg health check | Added `curl /health` to compose | ✅ Healthy |
+| 5 | Frontend health check | Added compose health check with `127.0.0.1` | ✅ Healthy |
+| 6 | Health check command | Changed from `curl` to `wget` (Alpine compat) | ✅ Deployed |
+| 7 | Prometheus rules path | Fixed glob `/rules/*.yml` → `rules.yml` file | ✅ Fixed |
+| 8 | Alertmanager SMTP | Replaced `${SMTP_PASSWORD}` with Resend key | ✅ Fixed |
+| 9 | deploy.yml syntax | Fixed `${{ }}` expression (broke 5+ CI runs) | ✅ Fixed |
+| 10 | deploy.yml auth | Added `packages:write` + `GITHUB_TOKEN` | ✅ Fixed |
+| 11 | commerce/control-hub JVM | Added JAVA_TOOL_OPTIONS with ZGC | ✅ Deployed |
+
+### Root Cause Analysis
+
+**Why CI deploys were failing:**
+1. `deploy.yml` had a syntax error in github-script (double quotes in `${{ }}`)
+2. Jib builds lacked `packages:write` permission + `GITHUB_TOKEN`
+3. `appleboy/ssh-action` fails because servers use password auth (publickey only)
+4. Jib images from `eclipse-temurin:21-jre-alpine` lack `curl` — health checks failed
+5. Old images were built with Dockerfiles (`apk add curl`) and manually pushed
+
+### Post-Session State
+
+| Metric | Before | After |
+|--------|--------|-------|
+| Unhealthy containers | 5 (audit, billing, crm, commerce, control-hub) | 0 |
+| Missing health checks | 3 (minio, gotenberg, frontend) | 0 |
+| Server A CPU load | 0.76 | ~0.80 |
+| Server A memory | 5.1GB/12GB | 5.0GB/12GB |
+| Deploy workflow | Broken (5+ failed runs) | Partially fixed (CI auth TBD) |
+| Prometheus alerting | Rules not loaded | Working |
+| Health check score | 72/100 | **95/100** |
+
+### Remaining
+
+**P1 — CI/CD:**
+- Set `VPS_SSH_PASSWORD`, `VPS_A_HOST`, `VPS_B_HOST`, `VPS_C_HOST` GitHub Secrets
+- Add curl to Jib base image OR create custom base image
+
+**P2 — Deferred:**
+- Service relocation (A→B) — CPU stable at 0.80
+- nginx upstream for zero-downtime rolling deploys
+- PostgreSQL replica activation on Server B
+- controlcenter.letispos.com SSL
 
 **P3:**
 - controlcenter SSL
