@@ -5,7 +5,7 @@ spring:
   application:
     name: audit-service
   datasource:
-    url: jdbc:postgresql://localhost:5434/audit_db
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/audit_db}
     username: ${DB_USERNAME:smartpos}
     password: ${DB_PASSWORD:smartpos}
   jpa:
@@ -25,3 +25,12 @@ spring:
 smartpos:
   internal:
     shared-secret: ${INTERNAL_SHARED_SECRET:dev-internal-token-change-me}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      show-details: when-authorized

@@ -1,0 +1,46 @@
+# LetisPOS — Alertmanager configuration (Server B)
+
+global:
+  smtp_smarthost: 'smtp.resend.com:587'
+  smtp_from: 'alerts@letispos.com'
+  smtp_auth_username: 'resend'
+  smtp_auth_password: '${SMTP_PASSWORD}'
+
+route:
+  receiver: 'email-default'
+  group_by: ['alertname', 'severity']
+  group_wait: 10s
+  group_interval: 5m
+  repeat_interval: 4h
+
+  routes:
+    - match:
+        severity: critical
+      receiver: 'email-critical'
+      group_wait: 5s
+      repeat_interval: 15m
+
+    - match:
+        severity: warning
+      receiver: 'email-default'
+      repeat_interval: 2h
+
+receivers:
+  - name: 'email-critical'
+    email_configs:
+      - to: 'admin@letispos.com'
+        send_resolved: true
+        headers:
+          Subject: '[CRITICAL] LetisPOS Alert'
+
+  - name: 'email-default'
+    email_configs:
+      - to: 'admin@letispos.com'
+        send_resolved: true
+
+inhibit_rules:
+  - source_match:
+      severity: critical
+    target_match:
+      severity: warning
+    equal: ['alertname']
