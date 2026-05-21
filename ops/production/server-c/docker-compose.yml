@@ -157,14 +157,15 @@ services:
       KAFKA_BOOTSTRAP: kafka:9092
       SERVER_PORT: "8083"
       AUTH_JWKS_URI: http://10.0.0.1:8081/.well-known/jwks.json
+      JAVA_TOOL_OPTIONS: "-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:+UseZGC -XX:+ExitOnOutOfMemoryError"
     ports:
       - "0.0.0.0:8083:8083"
     deploy:
       resources:
         limits:
-          memory: 512M
+          memory: 640M
         reservations:
-          memory: 256M
+          memory: 320M
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:8083/actuator/health"]
       <<: *health-defaults
@@ -185,6 +186,7 @@ services:
       KAFKA_BOOTSTRAP: kafka:9092
       SERVER_PORT: "8084"
       AUTH_JWKS_URI: http://10.0.0.1:8081/.well-known/jwks.json
+      JAVA_TOOL_OPTIONS: "-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:+UseZGC -XX:+ExitOnOutOfMemoryError"
     ports:
       - "0.0.0.0:8084:8084"
     deploy:
@@ -215,14 +217,15 @@ services:
       INVENTORY_URI: http://inventory-service:8084
       USER_URI: http://user-service:8082
       AUTH_JWKS_URI: http://10.0.0.1:8081/.well-known/jwks.json
+      JAVA_TOOL_OPTIONS: "-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:+UseZGC -XX:+ExitOnOutOfMemoryError"
     ports:
       - "0.0.0.0:8085:8085"
     deploy:
       resources:
         limits:
-          memory: 512M
+          memory: 640M
         reservations:
-          memory: 256M
+          memory: 320M
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:8085/actuator/health"]
       <<: *health-defaults
@@ -244,6 +247,7 @@ services:
       SERVER_PORT: "8086"
       SALES_URI: http://sales-service:8085
       AUTH_JWKS_URI: http://10.0.0.1:8081/.well-known/jwks.json
+      JAVA_TOOL_OPTIONS: "-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:+UseZGC -XX:+ExitOnOutOfMemoryError"
     ports:
       - "0.0.0.0:8086:8086"
     deploy:
