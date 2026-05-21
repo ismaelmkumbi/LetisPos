@@ -57,6 +57,12 @@ public class PurchaseController {
         return ResponseEntity.status(HttpStatus.CREATED).body(service.create(req, userIdFrom(jwt)));
     }
 
+    @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('purchase.update')")
+    public PurchaseDto update(@PathVariable UUID id, @Valid @RequestBody PurchaseDto.CreateRequest req) {
+        return service.update(id, req);
+    }
+
     @PostMapping("/{id}/receive")
     @PreAuthorize("hasAuthority('purchase.update')")
     public PurchaseDto receive(@PathVariable UUID id) { return service.receive(id); }

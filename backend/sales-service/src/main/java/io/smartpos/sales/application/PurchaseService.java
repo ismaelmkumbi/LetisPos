@@ -109,6 +109,65 @@ public class PurchaseService {
 
     /** Receive purchase — increments Inventory and flips status to RECEIVED. */
     @Transactional
+    public PurchaseDto update(UUID id, PurchaseDto.CreateRequest req) {
+        Purchase p = repo.findByIdWithLines(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Purchase not found"));
+        if (p.getStatus() != PurchaseStatus.DRAFT && p.getStatus() != PurchaseStatus.ORDERED) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Only DRAFT or ORDERED purchases can be edited");
+        }
+
+        TaxMethod headerTaxMethod = req.taxMethod() == null ? p.getTaxMethod() : req.taxMethod();
+        p.setDate(req.date() != null ? req.date() : p.getDate());
+        p.setSupplierId(req.supplierId() != null ? req.supplierId() : p.getSupplierId());
+        p.setWarehouseId(req.warehouseId() != null ? req.warehouseId() : p.getWarehouseId());
+        p.setNotes(req.notes() != null ? req.notes() : p.getNotes());
+        p.setShipping(nz(req.shipping()));
+        p.setDiscountTotal(nz(req.discount()));
+        p.setTaxMethod(headerTaxMethod);
+
+        // Replace lines using same logic as create()
+        p.getLines().clear();
+        BigDecimal sumSub = BigDecimal.ZERO, sumTax = BigDecimal.ZERO;
+        for (SaleLineInput in : req.lines()) {
+            TaxMethod lineTaxMethod = in.taxMethod() != null ? in.taxMethod() : headerTaxMethod;
+            BigDecimal lineDiscount = nz(in.discount());
+            DiscountType dt = in.discountType() != null ? in.discountType() : DiscountType.FIXED;
+            BigDecimal lineTaxRate = in.taxRate() != null ? in.taxRate() : BigDecimal.ZERO;
+
+            PricingEngine.LineCalc calc = pricing.calcLine(
+                    in.unitPrice(), in.qty(), lineDiscount, dt, lineTaxRate, lineTaxMethod);
+            sumSub = sumSub.add(calc.subtotal());
+            sumTax = sumTax.add(calc.tax());
+
+            PurchaseLine pl = PurchaseLine.builder()
+                    .id(UUID.randomUUID())
+                    .purchase(p)
+                    .productId(in.productId())
+                    .variantId(in.variantId())
+                    .productNameSnapshot(productNameResolver.resolve(in.productId(), in.productName()))
+                    .productCodeSnapshot(in.productCode())
+                    .unitCost(in.unitPrice()).qty(in.qty())
+                    .discount(nz(in.discount())).discountType(dt)
+                    .taxRate(lineTaxRate).taxMethod(lineTaxMethod)
+                    .lineSubtotal(calc.subtotal())
+                    .lineTax(calc.tax())
+                    .lineTotal(calc.total())
+                    .build();
+            p.getLines().add(pl);
+        }
+        p.setSubtotal(sumSub);
+        p.setTaxTotal(sumTax);
+        PricingEngine.DocCalc doc = pricing.calcDocument(sumSub, sumTax,
+                nz(req.discount()), nz(req.shipping()));
+        p.setGrandTotal(doc.grandTotal());
+
+        Purchase saved = repo.save(p);
+        return PurchaseDto.from(saved);
+    }
+
+    /** Receive purchase — increments Inventory and flips status to RECEIVED. */
+    @Transactional
     public PurchaseDto receive(UUID id) {
         Purchase p = repo.findByIdWithLines(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Purchase not found"));
