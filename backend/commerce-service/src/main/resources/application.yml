@@ -98,3 +98,4 @@ logging:
   level:
     root: INFO
     io.smartpos.commerce: DEBUG
+ 
