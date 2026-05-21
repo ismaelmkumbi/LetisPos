@@ -1,6 +1,9 @@
 package io.smartpos.ai.domain.model;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
 import java.time.Instant;
 import java.util.UUID;
 
@@ -20,6 +23,7 @@ public class AssistantDraft {
     @Column(name = "tool_name", nullable = false, length = 128)
     private String toolName;
 
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "tool_input", nullable = false, columnDefinition = "jsonb")
     private String toolInput;
 
