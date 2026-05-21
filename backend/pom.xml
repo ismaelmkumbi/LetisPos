@@ -143,8 +143,9 @@
                         <container>
                             <creationTime>USE_CURRENT_TIMESTAMP</creationTime>
                             <jvmFlags>
-                                <jvmFlag>-XX:+UseZGC</jvmFlag>
+                                <jvmFlag>-XX:+UseContainerSupport</jvmFlag>
                                 <jvmFlag>-XX:MaxRAMPercentage=75</jvmFlag>
+                                <jvmFlag>-XX:+UseZGC</jvmFlag>
                                 <jvmFlag>-XX:+ExitOnOutOfMemoryError</jvmFlag>
                             </jvmFlags>
                             <ports>
