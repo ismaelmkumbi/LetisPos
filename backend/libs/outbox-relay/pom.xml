@@ -13,6 +13,10 @@
 
     <artifactId>outbox-relay</artifactId>
     <name>SmartPOS Outbox Relay (shared starter)</name>
+
+    <properties>
+        <jib.skip>true</jib.skip>
+    </properties>
     <description>
         Scheduled job that drains any service's outbox table to Kafka.
         Auto-configured via Spring Boot when smartpos.outbox.enabled=true (default).

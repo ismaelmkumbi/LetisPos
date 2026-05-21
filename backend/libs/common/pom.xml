@@ -13,6 +13,10 @@
 
     <artifactId>common</artifactId>
     <name>SmartPOS Common (shared utilities)</name>
+
+    <properties>
+        <jib.skip>true</jib.skip>
+    </properties>
     <description>
         Shared infrastructure: TenantContext, common filters, utility classes.
         Auto-configured via Spring Boot.
