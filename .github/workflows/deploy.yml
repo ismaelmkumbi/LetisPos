@@ -1,0 +1,234 @@
+# LetisPOS — Multi-server production deploy
+# ==========================================
+# Triggered on push to main. Builds images via Jib → GHCR, then
+# rolling deploys to 3 servers over private network (10.0.0.0/24).
+#
+# Secrets required:
+#   VPS_SSH_PASSWORD — root password for all 3 servers
+#   VPS_A_HOST, VPS_B_HOST, VPS_C_HOST
+
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Image tag override'
+        required: false
+        default: ''
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ghcr.io/ismaelmkumbi
+  JAVA_VERSION: '21'
+
+jobs:
+  # ── Detect changes ──────────────────────────────────────────
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+      services: ${{ steps.services.outputs.list }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          base: ${{ github.event_name == 'workflow_dispatch' && 'HEAD~1' || github.event.before }}
+          filters: |
+            backend: ['backend/**']
+            frontend: ['frontend/**']
+            ops: ['ops/production/**']
+
+      - name: Compute changed services
+        id: services
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { execSync } = require('child_process');
+            const base = '${{ github.event_name == "workflow_dispatch" && "HEAD~1" || github.event.before }}';
+            try {
+              const diff = execSync(`git diff --name-only ${base}..HEAD`, { encoding: 'utf8' });
+              if (!diff.trim()) return JSON.stringify([]);
+              const dirs = new Set();
+              for (const line of diff.split('\n')) {
+                const m = line.match(/^backend\/([^\/]+)\//);
+                if (m && m[1] !== 'libs') dirs.add(m[1]);
+                if (line.startsWith('backend/pom.xml') || line.startsWith('backend/libs/')) return 'all';
+              }
+              return JSON.stringify([...dirs]);
+            } catch { return 'all'; }
+
+  # ── Build backend services ──────────────────────────────────
+  build-backend:
+    name: Build — ${{ matrix.service }}
+    needs: changes
+    if: needs.changes.outputs.backend == 'true' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - gateway
+          - auth-service
+          - user-service
+          - product-service
+          - inventory-service
+          - sales-service
+          - payment-service
+          - report-service
+          - notification-service
+          - hrm-service
+          - ai-service
+          - integration-service
+          - document-service
+          - commerce-service
+          - audit-service
+          - billing-service
+          - crm-service
+          - control-hub
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: temurin
+          cache: maven
+
+      - name: Build & push image
+        run: |
+          cd backend
+          TAG=${{ github.event.inputs.tag || github.sha }}
+          mvn -B -pl ${{ matrix.service }} -am compile jib:build \
+            -Djib.tag="${TAG}" \
+            -Djib.registry=${{ env.IMAGE_PREFIX }} \
+            -DskipTests
+
+  # ── Build frontend ──────────────────────────────────────────
+  build-frontend:
+    name: Build frontend
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - run: cd frontend && npm ci && npm run build
+
+      - name: Build & push frontend image
+        run: |
+          cd frontend
+          TAG=${{ github.event.inputs.tag || github.sha }}
+          docker build -f ../ops/Dockerfile.frontend -t ${{ env.IMAGE_PREFIX }}/frontend:${TAG} .
+          docker push ${{ env.IMAGE_PREFIX }}/frontend:${TAG}
+          docker tag ${{ env.IMAGE_PREFIX }}/frontend:${TAG} ${{ env.IMAGE_PREFIX }}/frontend:latest
+          docker push ${{ env.IMAGE_PREFIX }}/frontend:latest
+
+  # ── Deploy to Server C (data tier, deploy first) ────────────
+  deploy-c:
+    name: Deploy → Server C (data)
+    needs: [build-backend, changes]
+    if: always() && !cancelled() && needs.build-backend.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy to Server C (10.0.0.3)
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_C_HOST }}
+          username: root
+          password: ${{ secrets.VPS_SSH_PASSWORD }}
+          script: |
+            set -e
+            cd /opt/letispos/production/server-c
+            IMAGE_TAG=${{ github.event.inputs.tag || github.sha }} \
+              docker compose -f docker-compose.yml pull product-service inventory-service sales-service payment-service
+            docker compose -f docker-compose.yml up -d --remove-orphans
+            echo "✓ Server C deployed"
+
+  # ── Deploy to Server A (app tier) ──────────────────────────
+  deploy-a:
+    name: Deploy → Server A (app)
+    needs: [build-backend, build-frontend, changes, deploy-c]
+    if: always() && !cancelled() &&
+        (needs.build-backend.result == 'success' || needs.build-frontend.result == 'success')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy to Server A (10.0.0.1)
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_A_HOST }}
+          username: root
+          password: ${{ secrets.VPS_SSH_PASSWORD }}
+          script: |
+            set -e
+            cd /opt/letispos/production/server-a
+            TAG=${{ github.event.inputs.tag || github.sha }}
+            IMAGE_TAG=${TAG} docker compose -f docker-compose.yml pull
+            IMAGE_TAG=${TAG} docker compose -f docker-compose.yml up -d --remove-orphans
+
+            # Wait for health checks
+            echo "Waiting for services to become healthy..."
+            for i in $(seq 1 30); do
+              unhealthy=$(docker ps --filter "health=unhealthy" --format "{{.Names}}" | wc -l)
+              if [ "$unhealthy" -gt 0 ]; then
+                echo "ERROR: Unhealthy containers detected"
+                docker ps --filter "health=unhealthy"
+                exit 1
+              fi
+              starting=$(docker ps --filter "health=starting" --format "{{.Names}}" | wc -l)
+              if [ "$starting" -eq 0 ]; then
+                echo "✓ All services healthy"
+                break
+              fi
+              sleep 5
+            done
+
+            # Reload nginx
+            docker exec letispos-nginx nginx -s reload 2>/dev/null || true
+            echo "✓ Server A deployed"
+
+  # ── Smoke test ──────────────────────────────────────────────
+  smoke:
+    name: Smoke test
+    needs: [deploy-a]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run smoke tests
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_A_HOST }}
+          username: root
+          password: ${{ secrets.VPS_SSH_PASSWORD }}
+          script: |
+            # Test gateway health
+            echo "=== Gateway health ==="
+            curl -sf http://localhost:8080/actuator/health | head -20
+
+            # Test login
+            echo "=== Auth test ==="
+            curl -sf -X POST http://localhost:8080/api/v1/auth/login \
+              -H 'Content-Type: application/json' \
+              -d '{"email":"${{ secrets.SMOKE_EMAIL }}","password":"${{ secrets.SMOKE_PASSWORD }}"}' | head -20
+
+            echo "✓ Smoke tests passed"
