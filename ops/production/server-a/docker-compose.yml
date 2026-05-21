@@ -295,6 +295,9 @@ services:
       GOTENBERG_URL: http://gotenberg:3000
       KAFKA_BOOTSTRAP: 10.0.0.3:9094
       KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_ACCESS_KEY: smartpos
+      MINIO_SECRET_KEY: smartpos-secret
       NOTIFICATION_URI: http://notification-service:8089
       PAYMENT_URI: http://10.0.0.3:8086
       REDIS_HOST: 10.0.0.3
