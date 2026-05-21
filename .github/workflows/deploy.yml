@@ -54,7 +54,7 @@ jobs:
         with:
           script: |
             const { execSync } = require('child_process');
-            const base = '${{ github.event_name == "workflow_dispatch" && "HEAD~1" || github.event.before }}';
+            const base = `${{ github.event_name == 'workflow_dispatch' && 'HEAD~1' || github.event.before }}`;
             try {
               const diff = execSync(`git diff --name-only ${base}..HEAD`, { encoding: 'utf8' });
               if (!diff.trim()) return JSON.stringify([]);
