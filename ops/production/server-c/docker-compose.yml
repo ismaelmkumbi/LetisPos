@@ -1,0 +1,292 @@
+# Server C docker-compose — hotfix with REDIS_HOST for all services
+
+x-health-defaults: &health-defaults
+  interval: 10s
+  timeout: 5s
+  retries: 6
+  start_period: 40s
+
+x-logging: &logging-defaults
+  driver: json-file
+  options:
+    max-size: "20m"
+    max-file: "3"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: letispos-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: smartpos
+      POSTGRES_PASSWORD: ${DB_ROOT_PASSWORD}
+      POSTGRES_DB: postgres
+    ports:
+      - "0.0.0.0:5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./init-databases.sh:/docker-entrypoint-initdb.d/00-init.sh:ro
+    command: |
+      -c shared_buffers=1GB
+      -c effective_cache_size=3GB
+      -c random_page_cost=1.0
+      -c effective_io_concurrency=200
+      -c wal_level=replica
+      -c max_wal_senders=5
+      -c wal_keep_size=1GB
+      -c max_connections=200
+      -c work_mem=16MB
+      -c maintenance_work_mem=256MB
+      -c autovacuum=on
+      -c autovacuum_max_workers=3
+      -c autovacuum_naptime=30s
+      -c checkpoint_timeout=15min
+      -c checkpoint_completion_target=0.9
+      -c wal_buffers=16MB
+      -c synchronous_commit=on
+      -c listen_addresses=*
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 1G
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U smartpos"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    logging: *logging-defaults
+    networks:
+      - server-c-net
+
+  redis:
+    image: redis:7-alpine
+    container_name: letispos-redis
+    restart: unless-stopped
+    command: |
+      redis-server
+      --bind 0.0.0.0
+      --appendonly yes
+      --maxmemory 320mb
+      --maxmemory-policy allkeys-lru
+      --save 900 1
+      --save 300 10
+      --save 60 10000
+      --tcp-backlog 511
+      --timeout 300
+      --tcp-keepalive 300
+      --io-threads 4
+      --io-threads-do-reads yes
+    ports:
+      - "0.0.0.0:6379:6379"
+    volumes:
+      - redis-data:/data
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    logging: *logging-defaults
+    networks:
+      - server-c-net
+
+  kafka:
+    image: apache/kafka:3.8.0
+    container_name: letispos-kafka
+    restart: unless-stopped
+    ports:
+      - "0.0.0.0:9094:9094"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      CLUSTER_ID: ${KAFKA_CLUSTER_ID:-letispos-prod-c}
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093,PLAINTEXT_HOST://0.0.0.0:9094
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://10.0.0.3:9094
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_LOG_RETENTION_HOURS: 168
+      KAFKA_LOG_SEGMENT_BYTES: 268435456
+      KAFKA_LOG_RETENTION_CHECK_INTERVAL_MS: 300000
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_NUM_NETWORK_THREADS: 6
+      KAFKA_NUM_IO_THREADS: 4
+      KAFKA_SOCKET_SEND_BUFFER_BYTES: 1048576
+      KAFKA_SOCKET_RECEIVE_BUFFER_BYTES: 1048576
+      KAFKA_LOG_FLUSH_INTERVAL_MESSAGES: 10000
+      KAFKA_LOG_FLUSH_INTERVAL_MS: 1000
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 512M
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 20
+      start_period: 60s
+    logging: *logging-defaults
+    networks:
+      - server-c-net
+
+  product-service:
+    image: ghcr.io/ismaelmkumbi/product-service:latest
+    container_name: letispos-product
+    restart: unless-stopped
+    environment:
+      REDIS_HOST: redis
+      DB_URL: jdbc:postgresql://postgres:5432/product_db?preferQueryMode=simple
+      DB_USERNAME: product_user
+      DB_PASSWORD: product_secret
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SERVER_PORT: "8083"
+      AUTH_JWKS_URI: http://10.0.0.1:8081/.well-known/jwks.json
+    expose:
+      - "8083"
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+        reservations:
+          memory: 192M
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8083/actuator/health"]
+      <<: *health-defaults
+    logging: *logging-defaults
+    networks:
+      - server-c-net
+
+  inventory-service:
+    image: ghcr.io/ismaelmkumbi/inventory-service:latest
+    container_name: letispos-inventory
+    restart: unless-stopped
+    environment:
+      REDIS_HOST: redis
+      DB_URL: jdbc:postgresql://postgres:5432/inventory_db?preferQueryMode=simple
+      DB_USERNAME: inventory_user
+      DB_PASSWORD: inventory_secret
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SERVER_PORT: "8084"
+      AUTH_JWKS_URI: http://10.0.0.1:8081/.well-known/jwks.json
+    expose:
+      - "8084"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 192M
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8084/actuator/health"]
+      <<: *health-defaults
+    logging: *logging-defaults
+    networks:
+      - server-c-net
+
+  sales-service:
+    image: ghcr.io/ismaelmkumbi/sales-service:latest
+    container_name: letispos-sales
+    restart: unless-stopped
+    environment:
+      REDIS_HOST: redis
+      DB_URL: jdbc:postgresql://postgres:5432/sales_db?preferQueryMode=simple
+      DB_USERNAME: sales_user
+      DB_PASSWORD: sales_secret
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SERVER_PORT: "8085"
+      INVENTORY_URI: http://inventory-service:8084
+      USER_URI: http://user-service:8082
+      AUTH_JWKS_URI: http://10.0.0.1:8081/.well-known/jwks.json
+    expose:
+      - "8085"
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+        reservations:
+          memory: 192M
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8085/actuator/health"]
+      <<: *health-defaults
+    logging: *logging-defaults
+    networks:
+      - server-c-net
+
+  payment-service:
+    image: ghcr.io/ismaelmkumbi/payment-service:latest
+    container_name: letispos-payment
+    restart: unless-stopped
+    environment:
+      REDIS_HOST: redis
+      DB_URL: jdbc:postgresql://postgres:5432/payment_db?preferQueryMode=simple
+      DB_USERNAME: payment_user
+      DB_PASSWORD: payment_secret
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SERVER_PORT: "8086"
+      SALES_URI: http://sales-service:8085
+      AUTH_JWKS_URI: http://10.0.0.1:8081/.well-known/jwks.json
+    expose:
+      - "8086"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 192M
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8086/actuator/health"]
+      <<: *health-defaults
+    logging: *logging-defaults
+    networks:
+      - server-c-net
+
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: letispos-node-exporter
+    restart: unless-stopped
+    command:
+      - --collector.filesystem.mount-points-exclude=^/(sys|proc|dev|run|docker/.+|var/lib/docker/.+)($|/)
+    ports:
+      - "0.0.0.0:9100:9100"
+    logging: *logging-defaults
+    networks:
+      - server-c-net
+
+networks:
+  server-c-net:
+    driver: bridge
+
+volumes:
+  postgres-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /data/postgres
+  redis-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /data/redis
+  kafka-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /data/kafka
