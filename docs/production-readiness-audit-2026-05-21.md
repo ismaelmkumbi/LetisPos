@@ -276,3 +276,65 @@ The core business flows work:
 
 Apply P0 items (swap + memory bumps) to reach **85/100** (safe for production).
 Apply P0+P1 items to reach **95/100** (production-hardened).
+
+---
+
+## 8. Remediation Session — 2026-05-21 (18:00–19:00)
+
+### Changes Applied
+
+| # | Item | Change | Status |
+|---|------|--------|--------|
+| 1 | Swap | 2GB swap verified on all 3 servers | ✅ Deployed |
+| 2 | sales memory | 512MB → 640MB | ✅ Deployed (was already in compose) |
+| 3 | notification memory | 384MB → 512MB | ✅ Deployed (was already in compose) |
+| 4 | product memory | 512MB → 640MB | ✅ Deployed (was already in compose) |
+| 5 | report memory | 448MB → 640MB | ✅ Deployed |
+| 6 | Frontend health check | `localhost` → `127.0.0.1` (IPv4/IPv6 resolution fix) | 🔧 Committed, pending CI build |
+| 7 | Actuator dependency | Added `spring-boot-starter-actuator` to audit, billing, crm pom.xml | 🔧 Committed, pending CI build |
+| 8 | Backup S3_ENDPOINT | Fixed YAML anchor `*server-a` in string → hardcoded `10.0.0.1` | ✅ Deployed |
+| 9 | Backup password | `smartpos` user password reset in PostgreSQL (mismatch with DB_ROOT_PASSWORD) | ✅ Fixed |
+| 10 | Backup functional | All 17 databases dump successfully (1.4MB archive) | ✅ Verified |
+
+### Commits
+
+```
+713d654c fix: add actuator to audit/billing/crm, fix frontend health check,
+           bump report memory, fix backup S3 endpoint
+```
+
+CI/CD auto-deploy triggered on push to main. Once completed, audit/billing/crm health checks will resolve.
+
+### Post-Session State
+
+| Metric | Before | After |
+|--------|--------|-------|
+| Server A CPU load | 7.69 | 1.33 (settled after JVM startup) |
+| Server A memory | 4.9GB/12GB (41%) | 5.1GB/12GB (43%) — stable |
+| report-service | 436MB/448MB (97%) 🔴 | 359MB/640MB (56%) |
+| sales-service | 429MB/512MB (84%) 🔴 | 449MB/640MB (70%) |
+| notification-service | 310MB/384MB (81%) 🔴 | 298MB/512MB (58%) |
+| Unhealthy containers | 6 | 4 (minio, gotenberg: no checks; audit/billing/crm: CI pending) |
+| Backup | Empty volume (broken) | Working (17 DBs, 1.4MB) |
+
+### Remaining (NOT started)
+
+**P1 — Defer to next session:**
+- Move 4 services from Server A to Server B (CPU now at 1.33 — less urgent)
+- nginx upstream with backup for zero-downtime rolling deploys
+- Wire PostgreSQL replica on Server B for read failover
+
+**P2:**
+- Health checks for minio, gotenberg
+- Alertmanager rules for OOM/CPU alerting
+
+**P3:**
+- controlcenter SSL
+- Server A: user-service (81% of 384MB) and auth-service (78% of 448MB) approaching limits — monitor
+
+### Next Session
+
+1. Verify CI build completed → audit/billing/crm/frontend healthy
+2. Decide priority on service relocation (A→B) vs. remaining P1 items
+3. Address minio/gotenberg health checks
+4. Configure Alertmanager rules
