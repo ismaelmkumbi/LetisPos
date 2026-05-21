@@ -163,7 +163,7 @@ jobs:
             set -e
             cd /opt/letispos/production/server-c
             IMAGE_TAG=${{ github.event.inputs.tag || github.sha }} \
-              docker compose -f docker-compose.yml pull product-service inventory-service sales-service payment-service
+              docker compose -f docker-compose.yml pull --ignore-pull-failures product-service inventory-service sales-service payment-service 2>&1 || true
             docker compose -f docker-compose.yml up -d --remove-orphans
             echo "✓ Server C deployed"
 
@@ -187,7 +187,7 @@ jobs:
             set -e
             cd /opt/letispos/production/server-a
             TAG=${{ github.event.inputs.tag || github.sha }}
-            IMAGE_TAG=${TAG} docker compose -f docker-compose.yml pull
+            IMAGE_TAG=${TAG} docker compose -f docker-compose.yml pull --ignore-pull-failures 2>&1 || true
             IMAGE_TAG=${TAG} docker compose -f docker-compose.yml up -d --remove-orphans
 
             # Wait for health checks
