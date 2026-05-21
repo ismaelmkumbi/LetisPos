@@ -1,0 +1,169 @@
+# LetisPOS — Server B (SSD): Monitoring + Standby
+# ===============================================
+# Cloud VPS 10 SSD | 7.8GB RAM | 4-core | 150GB SSD
+# Private IP: 10.0.0.2  |  Public: 161.97.181.166
+
+x-logging: &logging-defaults
+  driver: json-file
+  options:
+    max-size: "20m"
+    max-file: "3"
+
+x-server-c: &server-c 10.0.0.3
+x-server-a: &server-a 10.0.0.1
+
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: letispos-prometheus
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=30d
+      - --storage.tsdb.retention.size=10GB
+      - --web.enable-lifecycle
+    ports:
+      - "0.0.0.0:9090:9090"
+    volumes:
+      - /etc/letispos/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - /etc/letispos/prometheus/rules.yml:/etc/prometheus/rules.yml:ro
+      - prometheus-data:/prometheus
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    logging: *logging-defaults
+    networks:
+      - server-b-net
+
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: letispos-alertmanager
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/alertmanager/alertmanager.yml
+      - --storage.path=/alertmanager
+    ports:
+      - "127.0.0.1:9093:9093"
+    volumes:
+      - /etc/letispos/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager-data:/alertmanager
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+    logging: *logging-defaults
+    networks:
+      - server-b-net
+
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: letispos-node-exporter
+    restart: unless-stopped
+    command:
+      - --collector.filesystem.mount-points-exclude=^/(sys|proc|dev|run|docker/.+|var/lib/docker/.+)($|/)
+    ports:
+      - "0.0.0.0:9100:9100"
+    logging: *logging-defaults
+    networks:
+      - server-b-net
+
+  control-center:
+    image: nginx:1.27-alpine
+    container_name: letispos-control-center
+    restart: unless-stopped
+    ports:
+      - "0.0.0.0:3001:80"
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:80/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    logging: *logging-defaults
+    networks:
+      - server-b-net
+
+  postgres-replica:
+    image: postgres:16-alpine
+    container_name: letispos-postgres-replica
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: smartpos
+      POSTGRES_PASSWORD: ${DB_ROOT_PASSWORD}
+      POSTGRES_DB: postgres
+      PG_REPLICATION_USER: ${PG_REPLICATION_USER:-replicator}
+      PG_REPLICATION_PASSWORD: ${PG_REPLICATION_PASSWORD}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres-replica-data:/var/lib/postgresql/data
+    command: |
+      -c primary_conninfo=host=*server-c port=5432 user=${PG_REPLICATION_USER:-replicator} password=${PG_REPLICATION_PASSWORD}
+      -c primary_slot_name=replica_b
+      -c hot_standby=on
+      -c max_connections=200
+      -c shared_buffers=512MB
+    deploy:
+      resources:
+        limits:
+          memory: 768M
+        reservations:
+          memory: 384M
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U smartpos"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    logging: *logging-defaults
+    networks:
+      - server-b-net
+
+  backup:
+    image: alpine:3.20
+    container_name: letispos-backup
+    restart: unless-stopped
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        apk add --no-cache postgresql16-client curl >/dev/null 2>&1
+        echo "0 2 * * * /backup.sh >> /proc/1/fd/1 2>&1" > /etc/crontabs/root
+        crond -f -l 2
+    volumes:
+      - /etc/letispos/scripts/backup.sh:/backup.sh:ro
+      - backup-data:/backups
+    environment:
+      DB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      DB_HOST: *server-c
+      S3_ENDPOINT: http://*server-a:9000
+      AWS_ACCESS_KEY_ID: ${MINIO_ROOT_USER:-letispos}
+      AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:-}
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+    logging: *logging-defaults
+    networks:
+      - server-b-net
+
+networks:
+  server-b-net:
+    driver: bridge
+
+volumes:
+  prometheus-data:
+  alertmanager-data:
+  postgres-replica-data:
+  backup-data:

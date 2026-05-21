@@ -5,6 +5,7 @@ import io.smartpos.payment.domain.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -37,7 +38,7 @@ public class AutoPostingService {
     // Payment → journal
     // ----------------------------------------------------------------
 
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void postPayment(Payment payment, Account account) {
         UUID tenantId = payment.getTenantId();
         UUID accountCoaId = requireCoa(account, "Account " + account.getName());
