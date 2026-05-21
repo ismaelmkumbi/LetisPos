@@ -155,6 +155,7 @@ services:
       DB_PASSWORD: product_secret
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       SERVER_PORT: "8083"
+      AUTH_JWKS_URI: http://10.0.0.1:8081/.well-known/jwks.json
     ports:
       - "0.0.0.0:8083:8083"
     deploy:
@@ -181,6 +182,7 @@ services:
       DB_PASSWORD: inventory_secret
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       SERVER_PORT: "8084"
+      AUTH_JWKS_URI: http://10.0.0.1:8081/.well-known/jwks.json
     ports:
       - "0.0.0.0:8084:8084"
     deploy:
@@ -209,6 +211,7 @@ services:
       SERVER_PORT: "8085"
       INVENTORY_URI: http://inventory-service:8084
       USER_URI: http://user-service:8082
+      AUTH_JWKS_URI: http://10.0.0.1:8081/.well-known/jwks.json
     ports:
       - "0.0.0.0:8085:8085"
     deploy:
@@ -236,6 +239,7 @@ services:
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       SERVER_PORT: "8086"
       SALES_URI: http://sales-service:8085
+      AUTH_JWKS_URI: http://10.0.0.1:8081/.well-known/jwks.json
     ports:
       - "0.0.0.0:8086:8086"
     deploy:

@@ -116,6 +116,8 @@ services:
       SPRING_DATA_REDIS_HOST: 10.0.0.3
       SPRING_KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094
       USER_SERVICE_URL: http://user-service:8082
+    ports:
+      - "0.0.0.0:8081:8081"
     healthcheck:
       interval: 15s
       retries: 10
