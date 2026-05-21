@@ -44,7 +44,7 @@ services:
       start_period: 180s
       test:
       - CMD-SHELL
-      - curl -sf http://localhost:8091/actuator/health || exit 1
+      - wget -qO- http://localhost:8091/actuator/health || exit 1
       timeout: 5s
     image: ghcr.io/ismaelmkumbi/ai-service:latest
     logging: &id001
@@ -83,7 +83,7 @@ services:
       start_period: 180s
       test:
       - CMD-SHELL
-      - curl -sf http://localhost:8095/actuator/health || exit 1
+      - wget -qO- http://localhost:8095/actuator/health || exit 1
       timeout: 5s
     image: ghcr.io/ismaelmkumbi/audit-service:latest
     logging: *id001
@@ -125,7 +125,7 @@ services:
       start_period: 180s
       test:
       - CMD-SHELL
-      - curl -sf http://localhost:8081/actuator/health || exit 1
+      - wget -qO- http://localhost:8081/actuator/health || exit 1
       timeout: 5s
     image: ghcr.io/ismaelmkumbi/auth-service:latest
     logging: *id001
@@ -162,7 +162,7 @@ services:
       start_period: 180s
       test:
       - CMD-SHELL
-      - curl -sf http://localhost:8096/actuator/health || exit 1
+      - wget -qO- http://localhost:8096/actuator/health || exit 1
       timeout: 5s
     image: ghcr.io/ismaelmkumbi/billing-service:latest
     logging: *id001
@@ -204,7 +204,7 @@ services:
       start_period: 180s
       test:
       - CMD-SHELL
-      - curl -sf http://localhost:8094/actuator/health || exit 1
+      - wget -qO- http://localhost:8094/actuator/health || exit 1
       timeout: 5s
     image: ghcr.io/ismaelmkumbi/commerce-service:latest
     logging: *id001
@@ -240,7 +240,7 @@ services:
       start_period: 180s
       test:
       - CMD-SHELL
-      - curl -sf http://localhost:8098/actuator/health || exit 1
+      - wget -qO- http://localhost:8098/actuator/health || exit 1
       timeout: 5s
     image: ghcr.io/ismaelmkumbi/control-hub:latest
     logging: *id001
@@ -275,7 +275,7 @@ services:
       start_period: 180s
       test:
       - CMD-SHELL
-      - curl -sf http://localhost:8097/actuator/health || exit 1
+      - wget -qO- http://localhost:8097/actuator/health || exit 1
       timeout: 5s
     image: ghcr.io/ismaelmkumbi/crm-service:latest
     logging: *id001
@@ -317,7 +317,7 @@ services:
       start_period: 180s
       test:
       - CMD-SHELL
-      - curl -sf http://localhost:8093/actuator/health || exit 1
+      - wget -qO- http://localhost:8093/actuator/health || exit 1
       timeout: 5s
     image: ghcr.io/ismaelmkumbi/document-service:latest
     logging: *id001
@@ -381,7 +381,7 @@ services:
       start_period: 180s
       test:
       - CMD-SHELL
-      - curl -sf http://localhost:8080/actuator/health || exit 1
+      - wget -qO- http://localhost:8080/actuator/health || exit 1
       timeout: 5s
     image: ghcr.io/ismaelmkumbi/gateway:latest
     logging: *id001
@@ -443,7 +443,7 @@ services:
       start_period: 180s
       test:
       - CMD-SHELL
-      - curl -sf http://localhost:8090/actuator/health || exit 1
+      - wget -qO- http://localhost:8090/actuator/health || exit 1
       timeout: 5s
     image: ghcr.io/ismaelmkumbi/hrm-service:latest
     logging: *id001
@@ -477,7 +477,7 @@ services:
       start_period: 180s
       test:
       - CMD-SHELL
-      - curl -sf http://localhost:8092/actuator/health || exit 1
+      - wget -qO- http://localhost:8092/actuator/health || exit 1
       timeout: 5s
     image: ghcr.io/ismaelmkumbi/integration-service:latest
     logging: *id001
@@ -572,7 +572,7 @@ services:
       start_period: 180s
       test:
       - CMD-SHELL
-      - curl -sf http://localhost:8089/actuator/health || exit 1
+      - wget -qO- http://localhost:8089/actuator/health || exit 1
       timeout: 5s
     image: ghcr.io/ismaelmkumbi/notification-service:latest
     logging: *id001
@@ -613,7 +613,7 @@ services:
       start_period: 180s
       test:
       - CMD-SHELL
-      - curl -sf http://localhost:8087/actuator/health || exit 1
+      - wget -qO- http://localhost:8087/actuator/health || exit 1
       timeout: 5s
     image: ghcr.io/ismaelmkumbi/report-service:latest
     logging: *id001
@@ -647,7 +647,7 @@ services:
       start_period: 180s
       test:
       - CMD-SHELL
-      - curl -sf http://localhost:8082/actuator/health || exit 1
+      - wget -qO- http://localhost:8082/actuator/health || exit 1
       timeout: 5s
     image: ghcr.io/ismaelmkumbi/user-service:latest
     logging: *id001
