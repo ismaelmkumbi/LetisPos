@@ -532,6 +532,11 @@ services:
       SERVER_PORT: '8089'
       SPRING_DATA_REDIS_HOST: 10.0.0.3
       SPRING_KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094
+      MAIL_HOST: smtp.resend.com
+      MAIL_PORT: '587'
+      MAIL_USERNAME: resend
+      MAIL_PASSWORD: re_2T5Pndzr_H2SbJKkkB5ty1gh1px6K9XAX
+      MAIL_FROM: noreply@send.letispos.com
     healthcheck:
       interval: 15s
       retries: 10
