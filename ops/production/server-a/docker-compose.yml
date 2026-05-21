@@ -290,7 +290,7 @@ services:
       AUTH_JWKS_URI: http://auth-service:8081/.well-known/jwks.json
       DB_PASSWORD: document_pass
       DB_URL: jdbc:postgresql://10.0.0.3:5432/document_db?preferQueryMode=simple
-      DB_USERNAME: document_user
+      DB_USER: document_user
       FLYWAY_VALIDATE_ON_MIGRATE: 'false'
       GOTENBERG_URL: http://gotenberg:3000
       KAFKA_BOOTSTRAP: 10.0.0.3:9094
