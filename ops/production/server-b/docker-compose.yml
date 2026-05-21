@@ -147,7 +147,7 @@ services:
     environment:
       DB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
       DB_HOST: *server-c
-      S3_ENDPOINT: http://*server-a:9000
+      S3_ENDPOINT: http://10.0.0.1:9000
       AWS_ACCESS_KEY_ID: ${MINIO_ROOT_USER:-letispos}
       AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:-}
     deploy:

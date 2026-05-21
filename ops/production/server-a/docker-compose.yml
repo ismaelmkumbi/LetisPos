@@ -558,9 +558,9 @@ services:
     deploy:
       resources:
         limits:
-          memory: 448M
+          memory: 640M
         reservations:
-          memory: 192M
+          memory: 256M
     environment:
       AUTH_JWKS_URI: http://auth-service:8081/.well-known/jwks.json
       DB_PASSWORD: report_pass
