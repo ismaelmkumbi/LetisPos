@@ -341,6 +341,7 @@ services:
       AI_URI: http://ai-service:8091
       AUTH_JWKS_URI: http://auth-service:8081/.well-known/jwks.json
       AUTH_URI: http://auth-service:8081
+      DOCUMENT_URI: http://document-service:8093
       FLYWAY_VALIDATE_ON_MIGRATE: 'false'
       HRM_URI: http://hrm-service:8090
       INTEGRATION_URI: http://integration-service:8092
