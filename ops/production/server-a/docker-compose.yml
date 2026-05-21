@@ -182,6 +182,7 @@ services:
       DB_URL: jdbc:postgresql://10.0.0.3:5432/commerce_db?preferQueryMode=simple
       DB_USERNAME: commerce_user
       FLYWAY_VALIDATE_ON_MIGRATE: 'false'
+      SPRING_FLYWAY_VALIDATE_ON_MIGRATE: 'false'
       INVENTORY_SERVICE_URL: http://10.0.0.3:8084
       KAFKA_BOOTSTRAP: 10.0.0.3:9094
       KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094
@@ -222,6 +223,7 @@ services:
       DB_URL: jdbc:postgresql://10.0.0.3:5432/control_hub_db?preferQueryMode=simple
       DB_USERNAME: control_hub_user
       FLYWAY_VALIDATE_ON_MIGRATE: 'false'
+      SPRING_FLYWAY_VALIDATE_ON_MIGRATE: 'false'
       KAFKA_BOOTSTRAP: 10.0.0.3:9094
       KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094
       REDIS_HOST: 10.0.0.3
