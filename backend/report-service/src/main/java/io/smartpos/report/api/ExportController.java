@@ -15,6 +15,8 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import java.time.LocalDate;
 import java.util.Map;
 import java.util.UUID;
@@ -23,6 +25,16 @@ import java.util.UUID;
 @RequestMapping("/api/v1/reports/export")
 @RequiredArgsConstructor
 public class ExportController {
+
+    /** Mirrors the frontend SubmitExportJobRequest shape. */
+    public record SubmitJobRequest(
+            @NotNull String reportKey,
+            @NotNull ExportJob.Format format,
+            LocalDate dateFrom,
+            LocalDate dateTo,
+            UUID warehouseId,
+            Integer limit
+    ) {}
 
     private final ExportService    exports;
     private final ExportJobService jobService;
@@ -65,18 +77,14 @@ public class ExportController {
      */
     @PostMapping("/jobs")
     @PreAuthorize("hasAuthority('report.export')")
-    public ExportJobDto submitJob(@RequestParam String reportKey,
-                                  @RequestParam ExportJob.Format format,
-                                  @RequestParam(required = false) LocalDate dateFrom,
-                                  @RequestParam(required = false) LocalDate dateTo,
-                                  @RequestParam(required = false) UUID warehouseId,
-                                  @RequestParam(defaultValue = "10") int limit,
+    public ExportJobDto submitJob(@Valid @RequestBody SubmitJobRequest req,
                                   @AuthenticationPrincipal Jwt jwt) {
-        LocalDate from = dateFrom != null ? dateFrom : LocalDate.now().withDayOfMonth(1);
-        LocalDate to   = dateTo   != null ? dateTo   : LocalDate.now();
+        LocalDate from = req.dateFrom != null ? req.dateFrom : LocalDate.now().withDayOfMonth(1);
+        LocalDate to   = req.dateTo   != null ? req.dateTo   : LocalDate.now();
+        int limit = req.limit != null ? req.limit : 10;
 
         UUID userId = jwtSubject(jwt);
-        ExportJob job = jobService.submit(reportKey, format, from, to, warehouseId, limit, userId);
+        ExportJob job = jobService.submit(req.reportKey, req.format, from, to, req.warehouseId, limit, userId);
         return ExportJobDto.from(job);
     }
 
