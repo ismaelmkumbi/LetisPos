@@ -75,6 +75,7 @@ public class AssistantToolExecutor {
             case "getProductMargins" -> getProductMargins(args);
             case "getProductPriceRange" -> getProductPriceRange(args);
             case "getProductInventory" -> getProductInventory(args);
+            case "getLatestProduct" -> getLatestProduct(args);
             case "getProductSearch" -> getProductSearch(args);
             case "getDailySnapshot" -> getDailySnapshot(args);
             case "getExpenseSummary" -> getExpenseSummary(args);
@@ -671,6 +672,46 @@ public class AssistantToolExecutor {
         data.put("totalShown", products.size());
         return new AssistantDtos.ToolResult("table",
             "Product Inventory (" + products.size() + " items)", data);
+    }
+
+    private AssistantDtos.ToolResult getLatestProduct(Map<String, Object> args) {
+        var pageable = org.springframework.data.domain.PageRequest.of(0, 1,
+            org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "createdAt"));
+        var page = productFeign.search(null, null, null, null, pageable);
+        var products = page.getContent();
+        if (products.isEmpty()) {
+            return new AssistantDtos.ToolResult("text", "Latest Product",
+                Map.of("message", "No products found in your catalog yet."));
+        }
+
+        var product = products.get(0);
+        Map<String, Object> stock = Map.of();
+        String stockStatus = "Inventory data unavailable";
+        try {
+            stock = inventoryFeign.stockLevel(product.id(), null);
+            stockStatus = String.valueOf(stock.getOrDefault("available",
+                stock.getOrDefault("quantity", stock.getOrDefault("onHand", "Unknown"))));
+        } catch (Exception ignored) {
+            // Product freshness should still answer even if inventory is temporarily unreachable.
+        }
+
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("columns", List.of("Field", "Value"));
+        Map<String, Object> details = new LinkedHashMap<>();
+        details.put("Name", product.name());
+        details.put("SKU", product.sku() != null ? product.sku() : "N/A");
+        details.put("Price", product.price() != null ? product.price() : "N/A");
+        details.put("Cost", product.cost() != null ? product.cost() : "N/A");
+        details.put("Status", Boolean.TRUE.equals(product.status()) ? "Active" : "Inactive");
+        details.put("Added At", product.createdAt() != null ? product.createdAt().toString() : "Unknown");
+        details.put("Available Stock", stockStatus);
+        stock.forEach((key, value) -> details.putIfAbsent("Stock " + key, value));
+        data.put("rows", details.entrySet().stream()
+            .map(e -> List.of(e.getKey(), String.valueOf(e.getValue())))
+            .collect(Collectors.toList()));
+        data.put("productId", product.id().toString());
+        return new AssistantDtos.ToolResult("table",
+            "Latest Product Added: " + product.name(), data);
     }
 
     private AssistantDtos.ToolResult getProductSearch(Map<String, Object> args) {

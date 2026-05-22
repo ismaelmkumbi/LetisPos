@@ -41,6 +41,7 @@ class AssistantIntelligenceSmokeTest {
             args("Which items are low in stock right now?", IntentClassification.Domain.INVENTORY, "getLowStock"),
             args("How many Coca Cola 500ml do we have?", IntentClassification.Domain.INVENTORY, "checkStockByProductSearch"),
             args("Show me all products with their current stock", IntentClassification.Domain.PRODUCTS, "getProductInventory"),
+            args("Tell the last product added in my stock", IntentClassification.Domain.PRODUCTS, "getLatestProduct"),
             args("Who are my top customers this month?", IntentClassification.Domain.CUSTOMERS, "getTopCustomers"),
             args("What tax did we collect last 30 days?", IntentClassification.Domain.FINANCE, "getTaxSummary"),
             args("Email invoice INV-2026-000002 to the customer", IntentClassification.Domain.SALES, "emailDocument"),

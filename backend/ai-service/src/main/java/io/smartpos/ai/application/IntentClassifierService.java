@@ -48,7 +48,7 @@ public class IntentClassifierService {
             "low stock", "out of stock", "running low"
         ),
         Domain.PRODUCTS, List.of(
-            "products", "product", "sku", "barcode", "barcodes",
+            "products", "product", "item", "items", "sku", "barcode", "barcodes",
             "category", "categories", "brand", "brands",
             "unit", "units", "price", "cost", "variant", "serial",
             "bidhaa", "bei", "aina", "chapa", "kipimo"
@@ -200,7 +200,8 @@ public class IntentClassifierService {
                 || tool.equals("checkstockbyproductsearch")
                 || tool.equals("getlowstock") || tool.equals("getexpiringstock")
                 || tool.equals("searchproducts") || tool.equals("getproductinventory")
-                || tool.equals("adjuststock") || tool.equals("createpurchaseorder");
+                || tool.equals("getlatestproduct") || tool.equals("adjuststock")
+                || tool.equals("createpurchaseorder");
             case PRODUCTS -> tool.contains("product") || tool.equals("searchproducts")
                 || tool.equals("createproduct") || tool.equals("updateproductprice");
             case CUSTOMERS -> tool.contains("customer") || tool.equals("gettopcustomers")
@@ -230,6 +231,9 @@ public class IntentClassifierService {
     // ── Classification logic ──
 
     private Domain classifyDomain(String lower) {
+        if (isLatestProductQuery(lower)) {
+            return Domain.PRODUCTS;
+        }
         if (lower.matches(".*\\b(how many|quantity|qty)\\b.*\\b(do we have|available|left|in stock)\\b.*")
             || lower.matches(".*\\b(do we have|available|left|in stock)\\b.*")) {
             return Domain.INVENTORY;
@@ -347,7 +351,17 @@ public class IntentClassifierService {
     }
 
     private boolean isWriteAction(String lower) {
+        if (isLatestProductQuery(lower)) {
+            return false;
+        }
         return WRITE_KEYWORDS.stream().anyMatch(lower::contains);
+    }
+
+    private boolean isLatestProductQuery(String lower) {
+        boolean latest = lower.matches(".*\\b(last|latest|newest|recent|recently)\\b.*");
+        boolean productish = lower.matches(".*\\b(product|products|item|items|stock|inventory|catalog|catalogue)\\b.*");
+        boolean added = lower.matches(".*\\b(added|created|new)\\b.*");
+        return latest && productish && (added || lower.contains("latest product") || lower.contains("newest item"));
     }
 
     private List<String> extractKeywords(String lower) {

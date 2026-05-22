@@ -31,6 +31,7 @@ class IntentClassifierServiceTest {
         "which items are low in stock?                    | INVENTORY",
         "hisa zangu zikoje?                               | INVENTORY",
         "search products called sugar                     | PRODUCTS",
+        "tell the last product added in my stock          | PRODUCTS",
         "bidhaa gani zinauzwa sana?                       | PRODUCTS",
         "who are my top customers?                        | CUSTOMERS",
         "wateja wangu wa juu                              | CUSTOMERS",
@@ -113,6 +114,14 @@ class IntentClassifierServiceTest {
     void detectsWriteActions(String message, boolean expected) {
         IntentClassification result = service.classify(message);
         assertThat(result.isWriteAction()).isEqualTo(expected);
+    }
+
+    @Test
+    void latestProductQueryIsReadOnly() {
+        IntentClassification result = service.classify("tell the last product added in my stock");
+
+        assertThat(result.primaryDomain()).isEqualTo(Domain.PRODUCTS);
+        assertThat(result.isWriteAction()).isFalse();
     }
 
     // ── Tool narrowing ──

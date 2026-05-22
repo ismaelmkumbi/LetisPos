@@ -214,6 +214,9 @@ public class AssistantToolCatalog {
                     "limit", Map.of("type","integer","description","Max products, default 50")
                 ),"required",List.of()), false, null),
 
+            new ToolDef("getLatestProduct", "Get the most recently added product in the catalog, including its current stock level when inventory data is available. Use this for 'last product added', 'latest product', 'newest item', 'recently added product', and 'last product added in stock'. Do not use stock overview for these latest-product questions.",
+                Map.of("type","object","properties", Map.of()), false, null),
+
             new ToolDef("getProductSearch", "Advanced product search with optional category and brand filters. Use this for multi-filter product queries or when the user asks to find products matching multiple criteria.",
                 Map.of("type","object","properties", Map.of(
                     "query", Map.of("type","string","description","Search term (name, SKU, or barcode)"),
