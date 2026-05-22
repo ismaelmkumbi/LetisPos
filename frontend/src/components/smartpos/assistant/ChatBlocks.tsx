@@ -57,12 +57,12 @@ function MessageActions({ id, content, isUser, onRegenerate }: { id: string; con
 
   return (
     <Box sx={{ display: 'flex', gap: 0.2, opacity: 0, transition: 'opacity 0.15s', '.msg-row:hover &': { opacity: 1 }, justifyContent: isUser ? 'flex-end' : 'flex-start', px: 1 }}>
-      <Tooltip title="Copy" placement="top"><IconButton size="small" onClick={handleCopy} sx={{ p: 0.3, color: copied ? '#22c55e' : c.textMuted, '&:hover': { color: c.text } }}>{copied ? <IconCheck size={12} /> : <IconCopy size={12} />}</IconButton></Tooltip>
+      <Tooltip title="Copy" placement="top"><IconButton size="small" onClick={handleCopy} sx={{ p: 0.3, color: copied ? c.success : c.textMuted, '&:hover': { color: c.text } }}>{copied ? <IconCheck size={12} /> : <IconCopy size={12} />}</IconButton></Tooltip>
       {!isUser && (
         <>
           <Tooltip title="Regenerate" placement="top"><IconButton size="small" onClick={onRegenerate} sx={{ p: 0.3, color: c.textMuted, '&:hover': { color: c.text } }}><IconRefresh size={12} /></IconButton></Tooltip>
-          <Tooltip title={feedback === 'up' ? 'Thanks!' : 'Helpful'} placement="top"><IconButton size="small" onClick={() => setFeedback(f => f === 'up' ? null : 'up')} sx={{ p: 0.3, color: feedback === 'up' ? '#22c55e' : c.textMuted, '&:hover': { color: '#22c55e' } }}><IconThumbUp size={12} /></IconButton></Tooltip>
-          <Tooltip title={feedback === 'down' ? 'Noted' : 'Not helpful'} placement="top"><IconButton size="small" onClick={() => setFeedback(f => f === 'down' ? null : 'down')} sx={{ p: 0.3, color: feedback === 'down' ? '#ef4444' : c.textMuted, '&:hover': { color: '#ef4444' } }}><IconThumbDown size={12} /></IconButton></Tooltip>
+          <Tooltip title={feedback === 'up' ? 'Thanks!' : 'Helpful'} placement="top"><IconButton size="small" onClick={() => setFeedback(f => f === 'up' ? null : 'up')} sx={{ p: 0.3, color: feedback === 'up' ? c.success : c.textMuted, '&:hover': { color: c.success } }}><IconThumbUp size={12} /></IconButton></Tooltip>
+          <Tooltip title={feedback === 'down' ? 'Noted' : 'Not helpful'} placement="top"><IconButton size="small" onClick={() => setFeedback(f => f === 'down' ? null : 'down')} sx={{ p: 0.3, color: feedback === 'down' ? c.error : c.textMuted, '&:hover': { color: c.error } }}><IconThumbDown size={12} /></IconButton></Tooltip>
         </>
       )}
       {isUser && (
@@ -143,7 +143,7 @@ export function StreamingBlock({ label = 'Thinking' }: { label?: string }) {
 
 export function ToolLoadingBlock({ label, step, total }: { label: string; step?: number; total?: number }) {
   const c = useChatTheme();
-  const progressText = step && total ? `Step ${step}/${total}` : null;
+  const progressText = step && total && total > 1 ? `Step ${step} of ${total}` : null;
   return (
     <Box
       sx={{
@@ -415,8 +415,8 @@ export function ExecutiveBriefingBlock({ result }: { result: ToolResult }) {
                 {formatValue(metric.value, data.currency)}
               </Typography>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4, mt: 0.4 }}>
-                <TrendIcon size={13} style={{ color: isPositive ? '#22c55e' : '#ef4444' }} />
-                <Typography sx={{ fontSize: '0.68rem', color: isPositive ? '#22c55e' : '#ef4444', fontWeight: 600 }}>
+                <TrendIcon size={13} style={{ color: isPositive ? c.success : c.error }} />
+                <Typography sx={{ fontSize: '0.68rem', color: isPositive ? c.success : c.error, fontWeight: 600 }}>
                   {formatPercent(change)}
                 </Typography>
                 <Typography sx={{ fontSize: '0.66rem', color: c.textMuted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>

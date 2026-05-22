@@ -66,9 +66,9 @@ export default function ChatInput({ onSend, onStop, streaming }: Props) {
             onClick={onStop}
             sx={{
               width: 38, height: 38, mb: 0.2,
-              background: 'rgba(239,68,68,0.12)',
-              color: '#ef4444',
-              '&:hover': { background: 'rgba(239,68,68,0.22)' },
+              background: c.errorBg,
+              color: c.error,
+              '&:hover': { background: c.errorHoverBg },
             }}
           >
             <IconPlayerStop size={18} />

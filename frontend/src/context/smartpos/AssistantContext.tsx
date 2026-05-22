@@ -174,7 +174,7 @@ export function AssistantProvider({ children }: { children: React.ReactNode }) {
             break;
           }
           case 'tool_result':
-            setMessages(prev => prev.filter(m => !m.streaming).concat({
+            setMessages(prev => prev.filter(m => !(m.role === 'tool' && m.streaming)).concat({
               id: crypto.randomUUID(), role: 'tool', content: event.result.title, timestamp: Date.now(), toolResult: event.result,
             }));
             break;

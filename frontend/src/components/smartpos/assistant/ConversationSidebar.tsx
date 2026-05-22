@@ -36,7 +36,7 @@ function ConvItem({ conv, active, onSelect, onDelete }: {
         </Typography>
       </Box>
       <Tooltip title="Delete" placement="left">
-        <IconButton size="small" onClick={e => { e.stopPropagation(); onDelete(); }} sx={{ color: c.textMuted, p: 0.3, '&:hover': { color: '#ef4444' }, opacity: 0, transition: 'opacity 0.15s', '.MuiBox-root:hover &': { opacity: 1 } }}>
+        <IconButton size="small" onClick={e => { e.stopPropagation(); onDelete(); }} sx={{ color: c.textMuted, p: 0.3, '&:hover': { color: c.error }, opacity: 0, transition: 'opacity 0.15s', '.MuiBox-root:hover &': { opacity: 1 } }}>
           <IconTrash size={13} />
         </IconButton>
       </Tooltip>

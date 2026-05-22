@@ -1,4 +1,5 @@
 import { useContext } from 'react';
+import { alpha, useTheme } from '@mui/material/styles';
 import { CustomizerContext } from 'src/context/CustomizerContext';
 
 interface ChatColors {
@@ -33,78 +34,63 @@ interface ChatColors {
   overlayBg: string;
   noiseOpacity: number;
   radialGlow: string;
+  success: string;
+  error: string;
+  errorBg: string;
+  errorHoverBg: string;
+  codeBg: string;
+  codeHeaderBg: string;
 }
 
-const darkColors: ChatColors = {
-  bg: '#0f0f14',
-  surface: 'rgba(22,22,30,0.6)',
-  surfaceHover: 'rgba(255,255,255,0.05)',
-  border: 'rgba(255,255,255,0.06)',
-  text: '#f0efe9',
-  textSecondary: '#8b8b96',
-  textMuted: 'rgba(255,255,255,0.25)',
-  accent: '#f4b731',
-  accentGlow: 'rgba(244,183,49,0.15)',
-  accentBg: 'rgba(244,183,49,0.08)',
-  accentBorder: 'rgba(244,183,49,0.15)',
-  userBg: 'rgba(255,255,255,0.06)',
-  userBorder: 'rgba(255,255,255,0.06)',
-  userText: '#e0ded5',
-  aiBg: 'linear-gradient(135deg, rgba(244,183,49,0.06) 0%, rgba(244,183,49,0.02) 100%)',
-  aiBorder: 'rgba(244,183,49,0.1)',
-  inputBg: 'rgba(255,255,255,0.04)',
-  inputBorder: 'rgba(255,255,255,0.08)',
-  inputFocusBorder: 'rgba(244,183,49,0.35)',
-  inputFocusGlow: '0 0 20px rgba(244,183,49,0.08)',
-  sendBg: 'linear-gradient(135deg, #f4b731 0%, #e5a820 100%)',
-  sendText: '#0f0f14',
-  fabBg: 'linear-gradient(135deg, rgba(22,22,30,0.95) 0%, rgba(30,30,40,0.9) 100%)',
-  fabBorder: 'rgba(255,255,255,0.08)',
-  fabIcon: '#e0ded5',
-  tableHeaderBg: 'rgba(255,255,255,0.05)',
-  tableRowBorder: 'rgba(255,255,255,0.03)',
-  metricBg: 'linear-gradient(135deg, rgba(244,183,49,0.08) 0%, rgba(244,183,49,0.02) 100%)',
-  overlayBg: '#0f0f14',
-  noiseOpacity: 0.015,
-  radialGlow: 'radial-gradient(circle at top right, rgba(244,183,49,0.04) 0%, transparent 70%)',
-};
-
-const lightColors: ChatColors = {
-  bg: '#fafafa',
-  surface: 'rgba(255,255,255,0.85)',
-  surfaceHover: 'rgba(0,0,0,0.03)',
-  border: 'rgba(0,0,0,0.06)',
-  text: '#1a1a2e',
-  textSecondary: '#6b6b80',
-  textMuted: 'rgba(0,0,0,0.25)',
-  accent: '#b8860b',
-  accentGlow: 'rgba(184,134,11,0.12)',
-  accentBg: 'rgba(184,134,11,0.06)',
-  accentBorder: 'rgba(184,134,11,0.2)',
-  userBg: '#1a1a2e',
-  userBorder: 'rgba(0,0,0,0.08)',
-  userText: '#ffffff',
-  aiBg: 'linear-gradient(135deg, rgba(184,134,11,0.05) 0%, rgba(184,134,11,0.01) 100%)',
-  aiBorder: 'rgba(184,134,11,0.15)',
-  inputBg: 'rgba(0,0,0,0.03)',
-  inputBorder: 'rgba(0,0,0,0.08)',
-  inputFocusBorder: 'rgba(184,134,11,0.4)',
-  inputFocusGlow: '0 0 16px rgba(184,134,11,0.06)',
-  sendBg: 'linear-gradient(135deg, #b8860b 0%, #9a7209 100%)',
-  sendText: '#ffffff',
-  fabBg: 'linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%)',
-  fabBorder: 'rgba(0,0,0,0.08)',
-  fabIcon: '#1a1a2e',
-  tableHeaderBg: 'rgba(0,0,0,0.03)',
-  tableRowBorder: 'rgba(0,0,0,0.04)',
-  metricBg: 'linear-gradient(135deg, rgba(184,134,11,0.06) 0%, rgba(184,134,11,0.01) 100%)',
-  overlayBg: '#ffffff',
-  noiseOpacity: 0.008,
-  radialGlow: 'radial-gradient(circle at top right, rgba(184,134,11,0.03) 0%, transparent 70%)',
-};
-
 export function useChatTheme(): ChatColors {
+  const theme = useTheme();
   const ctx = useContext(CustomizerContext);
-  if (!ctx) return darkColors;
-  return ctx.activeMode === 'dark' ? darkColors : lightColors;
+  const isDark = (ctx?.activeMode ?? theme.palette.mode) === 'dark';
+  const accent = theme.palette.primary.main;
+  const accentDark = theme.palette.primary.dark || accent;
+  const paper = theme.palette.background.paper;
+  const base = theme.palette.background.default;
+  const text = theme.palette.text.primary;
+  const textSecondary = theme.palette.text.secondary;
+  const divider = theme.palette.divider;
+
+  return {
+    bg: base,
+    surface: alpha(paper, isDark ? 0.72 : 0.92),
+    surfaceHover: alpha(accent, isDark ? 0.12 : 0.07),
+    border: alpha(divider, isDark ? 0.7 : 0.9),
+    text,
+    textSecondary,
+    textMuted: alpha(textSecondary, isDark ? 0.55 : 0.7),
+    accent,
+    accentGlow: alpha(accent, isDark ? 0.2 : 0.14),
+    accentBg: alpha(accent, isDark ? 0.12 : 0.08),
+    accentBorder: alpha(accent, isDark ? 0.28 : 0.22),
+    userBg: isDark ? alpha(accent, 0.22) : accent,
+    userBorder: alpha(accentDark, isDark ? 0.35 : 0.24),
+    userText: theme.palette.primary.contrastText,
+    aiBg: isDark ? alpha(paper, 0.76) : alpha(accent, 0.045),
+    aiBorder: alpha(accent, isDark ? 0.16 : 0.14),
+    inputBg: alpha(paper, isDark ? 0.62 : 0.86),
+    inputBorder: alpha(divider, isDark ? 0.75 : 0.95),
+    inputFocusBorder: alpha(accent, 0.45),
+    inputFocusGlow: `0 0 0 3px ${alpha(accent, isDark ? 0.12 : 0.1)}`,
+    sendBg: accent,
+    sendText: theme.palette.primary.contrastText,
+    fabBg: paper,
+    fabBorder: alpha(divider, 0.9),
+    fabIcon: text,
+    tableHeaderBg: alpha(accent, isDark ? 0.12 : 0.06),
+    tableRowBorder: alpha(divider, isDark ? 0.48 : 0.7),
+    metricBg: isDark ? alpha(accent, 0.12) : alpha(accent, 0.055),
+    overlayBg: base,
+    noiseOpacity: isDark ? 0.012 : 0.006,
+    radialGlow: `radial-gradient(circle at top right, ${alpha(accent, isDark ? 0.1 : 0.07)} 0%, transparent 70%)`,
+    success: theme.palette.success.main,
+    error: theme.palette.error.main,
+    errorBg: alpha(theme.palette.error.main, isDark ? 0.16 : 0.1),
+    errorHoverBg: alpha(theme.palette.error.main, isDark ? 0.24 : 0.16),
+    codeBg: isDark ? alpha('#020617', 0.9) : alpha(theme.palette.grey[100], 0.95),
+    codeHeaderBg: isDark ? alpha('#0f172a', 0.92) : alpha(theme.palette.grey[200], 0.92),
+  };
 }

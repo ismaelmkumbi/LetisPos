@@ -8,7 +8,7 @@ import { useChatTheme } from './useChatTheme';
 const darkStyle = {
   ...oneDark,
   'code[class*="language-"]': { ...oneDark['code[class*="language-"]'], background: 'transparent', fontFamily: '"JetBrains Mono", "DM Mono", "Courier New", monospace', fontSize: '0.78rem' },
-  'pre[class*="language-"]': { ...oneDark['pre[class*="language-"]'], background: '#0d1117', borderRadius: 10, margin: 0 },
+  'pre[class*="language-"]': { ...oneDark['pre[class*="language-"]'], background: 'transparent', borderRadius: 10, margin: 0 },
 };
 
 interface Props { text: string }
@@ -26,17 +26,17 @@ function CodeBlock({ language, code }: { language: string; code: string }) {
 
   return (
     <Box sx={{ my: 1.5, borderRadius: 2, overflow: 'hidden', border: `1px solid ${c.border}` }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 2, py: 0.6, bgcolor: '#161b22', borderBottom: `1px solid ${c.border}` }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 2, py: 0.6, bgcolor: c.codeHeaderBg, borderBottom: `1px solid ${c.border}` }}>
         <Typography sx={{ fontSize: '0.68rem', color: c.textMuted, textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 600 }}>
           {language || 'code'}
         </Typography>
         <Tooltip title={copied ? 'Copied' : 'Copy code'} placement="top">
-          <IconButton size="small" onClick={handleCopy} sx={{ color: copied ? '#22c55e' : c.textMuted, p: 0.3, '&:hover': { color: c.text } }}>
+          <IconButton size="small" onClick={handleCopy} sx={{ color: copied ? c.success : c.textMuted, p: 0.3, '&:hover': { color: c.text } }}>
             {copied ? <IconCheck size={14} /> : <IconCopy size={14} />}
           </IconButton>
         </Tooltip>
       </Box>
-      <SyntaxHighlighter language={language || 'text'} style={darkStyle} customStyle={{ padding: '12px 16px', margin: 0 }}>
+      <SyntaxHighlighter language={language || 'text'} style={darkStyle} customStyle={{ padding: '12px 16px', margin: 0, background: c.codeBg }}>
         {code}
       </SyntaxHighlighter>
     </Box>
@@ -46,7 +46,7 @@ function CodeBlock({ language, code }: { language: string; code: string }) {
 function InlineCode({ children }: { children: string }) {
   const c = useChatTheme();
   return (
-    <Box component="code" sx={{ px: 0.8, py: 0.2, borderRadius: 1, bgcolor: '#161b22', color: c.accent, fontSize: '0.82em', fontFamily: '"JetBrains Mono", "DM Mono", monospace' }}>
+    <Box component="code" sx={{ px: 0.8, py: 0.2, borderRadius: 1, bgcolor: c.codeBg, color: c.accent, fontSize: '0.82em', fontFamily: '"JetBrains Mono", "DM Mono", monospace' }}>
       {children}
     </Box>
   );

@@ -102,7 +102,11 @@ export default function ChatMessages() {
 
           if (msg.role === 'user') return <TextBlock key={msg.id} content={msg.content} isUser msgId={msg.id} />;
           if (msg.role === 'assistant') {
-            if (msg.streaming && !msg.content) return <StreamingBlock key={msg.id} label="Analyzing your request" />;
+            if (!msg.content) {
+              return msg.streaming && i === messages.length - 1
+                ? <StreamingBlock key={msg.id} label="Analyzing your request" />
+                : null;
+            }
             return <TextBlock key={msg.id} content={msg.content} msgId={msg.id} onRegenerate={isLatestResponse(i) ? regenerateLast : undefined} />;
           }
           if (msg.role === 'tool' && msg.toolResult) {
@@ -136,7 +140,7 @@ export default function ChatMessages() {
             width: 32, height: 32, borderRadius: '50%',
             bgcolor: c.accentBg, border: `1px solid ${c.accentBorder}`,
             color: c.accent, boxShadow: `0 2px 8px ${c.accent}1a`,
-            '&:hover': { bgcolor: c.accent, color: '#fff' },
+            '&:hover': { bgcolor: c.accent, color: c.sendText },
           }}
         >
           <IconArrowDown size={16} />

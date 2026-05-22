@@ -11,11 +11,9 @@ import {
   Typography,
 } from '@mui/material';
 import { IconCamera, IconCheck, IconChecks, IconX } from '@tabler/icons-react';
-import { API_BASE_URL } from 'src/api/smartpos/client';
 
 const MAX_PHOTOS = 20;
 const publicCaptureApi = axios.create({
-  baseURL: API_BASE_URL,
   timeout: 30_000,
   withCredentials: false,
 });
