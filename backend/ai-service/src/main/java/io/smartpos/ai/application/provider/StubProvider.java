@@ -52,6 +52,19 @@ public class StubProvider implements AiProvider {
             return new Result(json, 0, 0);
         }
 
+        if (sys.contains("PRODUCT_CANDIDATES")) {
+            String name = extractAfter(user, "Product name:").trim();
+            if (name.isEmpty()) name = "Unknown product";
+            String json = """
+                {
+                  "candidates": [
+                    {"rank":1,"name":%s,"price":0,"confidence":0.0,"rationale":"Stub — configure AI_PROVIDER and API key for real candidates."}
+                  ]
+                }
+                """.formatted(jsonString(name));
+            return new Result(json, 0, 0);
+        }
+
         if (sys.contains("PRODUCT_IMPORT_MAP") || sys.contains("PRODUCT_IMPORT_FROM_IMAGE")) {
             return new Result("{\"rows\":[],\"warnings\":[\"Stub provider — configure AI_PROVIDER and API key to enable AI mapping.\"]}", 0, 0);
         }
