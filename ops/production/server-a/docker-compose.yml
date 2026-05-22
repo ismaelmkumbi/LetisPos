@@ -367,6 +367,7 @@ services:
       AI_URI: http://ai-service:8091
       AUTH_JWKS_URI: http://auth-service:8081/.well-known/jwks.json
       AUTH_URI: http://auth-service:8081
+      BILLING_URI: http://billing-service:8096
       DOCUMENT_URI: http://document-service:8093
       FLYWAY_VALIDATE_ON_MIGRATE: 'false'
       HRM_URI: http://hrm-service:8090
@@ -413,6 +414,7 @@ services:
       AI_URI: http://ai-service:8091
       AUTH_JWKS_URI: http://auth-service:8081/.well-known/jwks.json
       AUTH_URI: http://auth-service:8081
+      BILLING_URI: http://billing-service:8096
       DOCUMENT_URI: http://document-service:8093
       FLYWAY_VALIDATE_ON_MIGRATE: 'false'
       HRM_URI: http://hrm-service:8090

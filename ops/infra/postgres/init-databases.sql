@@ -117,3 +117,11 @@ CREATE EXTENSION IF NOT EXISTS citext;
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 GRANT ALL PRIVILEGES ON DATABASE commerce_db TO commerce_user;
 GRANT ALL ON SCHEMA public TO commerce_user;
+
+-- billing_db
+CREATE ROLE billing_user WITH LOGIN PASSWORD 'billing_pass';
+CREATE DATABASE billing_db OWNER smartpos;
+\c billing_db
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+GRANT ALL PRIVILEGES ON DATABASE billing_db TO billing_user;
+GRANT ALL ON SCHEMA public TO billing_user;
