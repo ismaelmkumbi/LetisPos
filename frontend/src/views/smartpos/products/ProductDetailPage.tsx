@@ -22,6 +22,7 @@ import {
   IconArrowLeft,
   IconBarcode,
   IconBox,
+  IconBoxMultiple,
   IconBuildingStore,
   IconClipboard,
   IconClock,
@@ -850,6 +851,17 @@ export default function ProductDetailPage() {
                 onClick={() => scrollToSection(idx)}
               />
             ))}
+            {!isCreate && product && (
+              <>
+                <Box sx={{ my: 1, borderTop: `1px solid ${brand.neutral[200]}` }} />
+                <NavItem
+                  icon={<IconBoxMultiple size={18} />}
+                  label="Variants"
+                  active={false}
+                  onClick={() => navigate(`/smartpos/products/${id}/variants`)}
+                />
+              </>
+            )}
           </CardContent>
         </Card>
 
