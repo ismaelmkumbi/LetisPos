@@ -4,7 +4,7 @@ server:
     include-message: always
 
 minio:
-  endpoint: ${MINIO_ENDPOINT:http://localhost:9000}
+  endpoint: ${MINIO_ENDPOINT:http://minio:9000}
   access-key: ${MINIO_ACCESS_KEY:smartpos}
   secret-key: ${MINIO_SECRET_KEY:smartpos-secret}
 
