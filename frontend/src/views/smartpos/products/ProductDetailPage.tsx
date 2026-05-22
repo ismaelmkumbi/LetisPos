@@ -7,6 +7,11 @@ import {
   Card,
   CardContent,
   Chip,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
   Divider,
   IconButton,
   MenuItem,
@@ -286,6 +291,19 @@ export default function ProductDetailPage() {
     return () => window.removeEventListener('scroll', onScroll);
   }, [isEdit]);
 
+  const [loading, setLoading] = useState(!isCreate);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [imageUploading, setImageUploading] = useState(false);
+  const [imageUploadError, setImageUploadError] = useState<string | null>(null);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [product, setProduct] = useState<Product | null>(null);
+  const [form, setForm] = useState<ProductForm>(emptyForm);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [brands, setBrands] = useState<Brand[]>([]);
+  const [units, setUnits] = useState<Unit[]>([]);
+  const [appliedAiFields, setAppliedAiFields] = useState<Set<string>>(new Set());
+
   // ── dirty-state tracking ──────────────────────────────────────────────────
   const isDirty = useMemo(() => {
     if (!product || !isEdit) return false;
@@ -302,19 +320,6 @@ export default function ProductDetailPage() {
     window.addEventListener('beforeunload', handler);
     return () => window.removeEventListener('beforeunload', handler);
   }, [isDirty]);
-
-  const [loading, setLoading] = useState(!isCreate);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [imageUploading, setImageUploading] = useState(false);
-  const [imageUploadError, setImageUploadError] = useState<string | null>(null);
-  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
-  const [product, setProduct] = useState<Product | null>(null);
-  const [form, setForm] = useState<ProductForm>(emptyForm);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [brands, setBrands] = useState<Brand[]>([]);
-  const [units, setUnits] = useState<Unit[]>([]);
-  const [appliedAiFields, setAppliedAiFields] = useState<Set<string>>(new Set());
 
   // ── AI assistant on/off toggle ────────────────────────────────────────────
   // Persisted per browser so a user who prefers a clean form keeps it that way.
@@ -1296,6 +1301,35 @@ export default function ProductDetailPage() {
           </Box>
         </Zoom>
       )}
+
+      {/* Cancel confirmation dialog */}
+      <Dialog open={showCancelConfirm} onClose={() => setShowCancelConfirm(false)}>
+        <DialogTitle sx={{ fontWeight: 800, fontSize: '1.05rem' }}>Discard Changes?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            You have unsaved changes. Leaving this page will discard them.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5 }}>
+          <Button
+            onClick={() => setShowCancelConfirm(false)}
+            sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600 }}
+          >
+            Keep Editing
+          </Button>
+          <Button
+            color="error"
+            variant="contained"
+            onClick={() => {
+              setShowCancelConfirm(false);
+              navigate(isCreate ? '/smartpos/products' : `/smartpos/products/${id}`);
+            }}
+            sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 800 }}
+          >
+            Discard
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }
@@ -1780,34 +1814,6 @@ function VariantMatrixBuilder({
         </Stack>
       )}
 
-      {/* Cancel confirmation dialog */}
-      <Dialog open={showCancelConfirm} onClose={() => setShowCancelConfirm(false)}>
-        <DialogTitle sx={{ fontWeight: 800, fontSize: '1.05rem' }}>Discard Changes?</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            You have unsaved changes. Leaving this page will discard them.
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2.5 }}>
-          <Button
-            onClick={() => setShowCancelConfirm(false)}
-            sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600 }}
-          >
-            Keep Editing
-          </Button>
-          <Button
-            color="error"
-            variant="contained"
-            onClick={() => {
-              setShowCancelConfirm(false);
-              navigate(isCreate ? '/smartpos/products' : `/smartpos/products/${id}`);
-            }}
-            sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 800 }}
-          >
-            Discard
-          </Button>
-        </DialogActions>
-      </Dialog>
     </Box>
   );
 }
