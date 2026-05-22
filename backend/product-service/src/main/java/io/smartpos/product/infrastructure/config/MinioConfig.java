@@ -66,5 +66,4 @@ public class MinioConfig {
         }
     }
 
-    public record MinioProperties(String bucket, int presignedTtlSeconds) {}
 }
