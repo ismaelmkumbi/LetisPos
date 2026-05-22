@@ -1,13 +1,13 @@
 import { useEffect, useState, useCallback } from 'react';
 import {
   Box, Button, Card, CardContent, Grid, Typography, Chip, CircularProgress,
-  IconButton, Tooltip, Stack, LinearProgress, Table, TableBody, TableCell, TextField,
+  IconButton, Tooltip, Stack, LinearProgress, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow, TextField, MenuItem, Collapse,
   Dialog, DialogTitle, DialogContent, DialogActions,
 } from '@mui/material';
 import { Refresh, Logout, Storage, Circle, KeyboardArrowDown, KeyboardArrowUp } from '@mui/icons-material';
 import { LineChart, Line, CartesianGrid, Tooltip as ReTooltip, ResponsiveContainer } from 'recharts';
-import { getServers, getMetrics, getServices, getBackendServices, getProcesses, serviceAction, getLogs, clearLogs } from '../api/hub';
+import { getServers, getMetrics, getServices, getBackendServices, serviceAction, getLogs, clearLogs } from '../api/hub';
 import type { Server, MetricPoint, ServiceInfo, BackendService } from '../api/hub';
 import { logout } from '../api/client';
 import { brand } from '../theme';
