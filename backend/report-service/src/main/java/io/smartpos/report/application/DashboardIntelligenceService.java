@@ -5,12 +5,13 @@ import io.smartpos.report.api.dto.UnifiedResponse.*;
 import io.smartpos.report.infrastructure.config.RedisCacheConfig;
 import io.smartpos.report.infrastructure.feign.*;
 import io.smartpos.common.context.TenantContext;
-import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.context.event.EventListener;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 
@@ -97,14 +98,11 @@ public class DashboardIntelligenceService {
     // ── 2. Cache warm ────────────────────────────────────────────────────────
 
     /**
-     * Pre-warms the intelligence cache on startup so the first dashboard
-     * render does not pay the intelligence-computation cost.
-     * <p>
-     * Called via self-injection to go through the Spring Cache proxy
-     * (otherwise the {@code @Cacheable} on {@code status()} would be
-     * bypassed on a direct {@code this.status()} call).
+     * Pre-warms the intelligence cache after the application is fully ready.
+     * Uses {@code ApplicationReadyEvent} instead of {@code @PostConstruct} so the
+     * lazy self-proxy is available.
      */
-    @PostConstruct
+    @EventListener(ApplicationReadyEvent.class)
     public void warmCaches() {
         log.info("Warming dashboard intelligence caches...");
         try {
