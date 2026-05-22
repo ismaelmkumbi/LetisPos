@@ -112,7 +112,7 @@ jobs:
         run: |
           cd backend
           TAG=${{ github.event.inputs.tag || github.sha }}
-          mvn -B -pl ${{ matrix.service }} -am package jib:build \
+          mvn -B -pl ${{ matrix.service }} -am package com.google.cloud.tools:jib-maven-plugin:3.4.3:build \
             -Djib.tag="${TAG}" \
             -Djib.registry=${{ env.IMAGE_PREFIX }} \
             -Djib.to.auth.username="${{ github.actor }}" \

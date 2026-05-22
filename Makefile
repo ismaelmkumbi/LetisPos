@@ -71,7 +71,7 @@ lint-frontend:  ## ESLint
 # ── Docker ─────────────────────────────────────────────────────────────────────
 
 docker-build:  ## Build all service images with Jib (requires Docker for Testcontainers)
-	cd backend && mvn -q -DskipTests compile jib:dockerBuild
+	cd backend && mvn -q -DskipTests compile com.google.cloud.tools:jib-maven-plugin:3.4.3:dockerBuild
 
 docker-up:  ## Start full production stack locally
 	docker compose -f ops/docker-compose.prod.yml up -d
