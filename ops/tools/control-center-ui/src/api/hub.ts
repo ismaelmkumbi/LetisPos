@@ -108,7 +108,20 @@ export const getServices = (server: ServerId) =>
   agents[server].get('/services').then((r) => (Array.isArray(r.data) ? r.data : []));
 
 export const getBackendServices = (server: ServerId) =>
-  agents[server].get('/services').then((r) => (Array.isArray(r.data) ? r.data : []));
+  agents[server].get('/services').then((r) => {
+    if (!Array.isArray(r.data)) return [];
+    return r.data.map((raw: Record<string, unknown>) => ({
+      name: String(raw.name || ''),
+      category: String(raw.category || 'Platform'),
+      port: Number(raw.port) || 0,
+      status: (raw.status === 'UP' ? 'UP' : 'DOWN') as 'UP' | 'DOWN',
+      description: String(raw.description || ''),
+      cpuPercent: typeof raw.cpuPercent === 'number' ? raw.cpuPercent : undefined,
+      memUsedBytes: typeof raw.memUsedBytes === 'number' ? raw.memUsedBytes : undefined,
+      pid: typeof raw.pid === 'number' ? raw.pid : undefined,
+      command: typeof raw.command === 'string' ? raw.command : undefined,
+    }));
+  });
 
 export const serviceAction = (server: ServerId, svc: string, action: string) =>
   agents[server].post(`/services/${encodeURIComponent(svc)}/${action}`);
