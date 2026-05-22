@@ -460,10 +460,16 @@ public class AssistantToolExecutor {
 
     private AssistantDtos.ToolResult getSalesByStatus(Map<String, Object> args) {
         String status = (String) args.get("status");
+        // Validate — only valid SaleStatus enum values
+        Set<String> validStatuses = Set.of("DRAFT", "CONFIRMED", "CANCELLED", "RETURNED");
+        if (status == null || !validStatuses.contains(status.toUpperCase())) {
+            return new AssistantDtos.ToolResult("text",
+                "Invalid sale status: " + status, Map.of("message", "Valid statuses are DRAFT, CONFIRMED, CANCELLED, RETURNED. Sales do not use PENDING — use CONFIRMED for completed orders or DRAFT for unsubmitted ones."));
+        }
         LocalDate from = dateArg(args, "dateFrom", LocalDate.now().minusDays(30));
         LocalDate to = dateArg(args, "dateTo", LocalDate.now());
         int limit = intArg(args, "limit", 25, 1, 50);
-        var page = salesFeign.search(from, to, null, null, status, null, 0, limit);
+        var page = salesFeign.search(from, to, null, null, status.toUpperCase(), null, 0, limit);
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("columns", List.of("Ref","Date","Customer","Total"));
         data.put("rows", page.content().stream().map(s -> List.of(

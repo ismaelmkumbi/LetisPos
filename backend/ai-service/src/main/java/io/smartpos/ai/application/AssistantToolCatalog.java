@@ -88,7 +88,7 @@ public class AssistantToolCatalog {
 
             new ToolDef("getSalesByStatus", "Get sales filtered by status. Use this for pending orders, completed sales, refunded transactions, or any status-specific sales query.",
                 Map.of("type","object","properties", Map.of(
-                    "status", Map.of("type","string","enum",List.of("PENDING","CONFIRMED","COMPLETED","REFUNDED","CANCELLED")),
+                    "status", Map.of("type","string","enum",List.of("DRAFT","CONFIRMED","CANCELLED","RETURNED")),
                     "dateFrom", Map.of("type","string","description","Start date YYYY-MM-DD"),
                     "dateTo", Map.of("type","string","description","End date YYYY-MM-DD"),
                     "limit", Map.of("type","integer","description","Max results, default 25")
