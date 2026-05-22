@@ -1,9 +1,11 @@
 import { keyframes } from '@emotion/react';
-import { Box, Typography, Button } from '@mui/material';
-import { IconCheck, IconX, IconSparkles, IconAlertTriangle, IconArrowUpRight, IconArrowDownRight } from '@tabler/icons-react';
-import React from 'react';
+import { Box, Typography, Button, IconButton, Tooltip } from '@mui/material';
+import { IconCheck, IconX, IconSparkles, IconAlertTriangle, IconArrowUpRight, IconArrowDownRight, IconCopy, IconRefresh, IconThumbUp, IconThumbDown, IconPencil } from '@tabler/icons-react';
+import { useState as useReactState } from 'react';
 import type { ToolResult, DraftResponse } from 'src/api/smartpos/assistant';
+import { useAssistant } from 'src/context/smartpos/AssistantContext';
 import { useChatTheme } from './useChatTheme';
+import MarkdownRenderer from './MarkdownRenderer';
 
 const messageIn = keyframes`
   from { opacity: 0; transform: translateY(12px); }
@@ -41,111 +43,80 @@ const shimmer = keyframes`
   100% { background-position: 200% 0; }
 `;
 
-/** Lightweight markdown → JSX for AI responses. Handles bold, lists, paragraphs. */
-function FormattedText({ text, c }: { text: string; c: ReturnType<typeof useChatTheme> }) {
-  const lines = text.split('\n');
-  const elements: React.ReactNode[] = [];
-  let inList: 'ol' | 'ul' | null = null;
-  let listItems: React.ReactNode[] = [];
-  let listIndex = 0;
+function MessageActions({ id, content, isUser, onRegenerate }: { id: string; content: string; isUser?: boolean; onRegenerate?: () => void }) {
+  const c = useChatTheme();
+  const { editAndResend } = useAssistant();
+  const [copied, setCopied] = useReactState(false);
+  const [feedback, setFeedback] = useReactState<'up' | 'down' | null>(null);
 
-  const flushList = () => {
-    if (listItems.length > 0 && inList) {
-      const Tag = inList === 'ol' ? 'ol' : 'ul';
-      elements.push(
-        <Box component={Tag} key={`list-${listIndex++}`} sx={{ m: 0, pl: 2.5, '& li': { mb: 0.3 } }}>
-          {listItems}
-        </Box>
-      );
-      listItems = [];
-      inList = null;
-    }
+  const handleCopy = () => {
+    navigator.clipboard.writeText(content).then(() => {
+      setCopied(true); setTimeout(() => setCopied(false), 2000);
+    }).catch(() => {});
   };
 
-  const renderBold = (t: string): React.ReactNode => {
-    const parts = t.split(/(\*\*[^*]+\*\*)/g);
-    return parts.map((part, i) => {
-      if (part.startsWith('**') && part.endsWith('**')) {
-        return <Box component="strong" key={i} sx={{ fontWeight: 600, color: c.accent }}>{part.slice(2, -2)}</Box>;
-      }
-      return part;
-    });
+  const handleEdit = () => {
+    const newText = window.prompt('Edit message:', content);
+    if (newText && newText.trim()) editAndResend(id, newText.trim());
   };
 
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    const trimmed = line.trim();
-
-    // Empty line → flush list
-    if (!trimmed) {
-      flushList();
-      elements.push(<Box key={`br-${i}`} sx={{ height: 8 }} />);
-      continue;
-    }
-
-    // Numbered list: "1. " or "1) "
-    const olMatch = trimmed.match(/^(\d+)[.)]\s+(.*)/);
-    if (olMatch) {
-      if (inList !== 'ol') { flushList(); inList = 'ol'; }
-      listItems.push(<li key={i}>{renderBold(olMatch[2])}</li>);
-      continue;
-    }
-
-    // Bullet list: "- " or "* "
-    const ulMatch = trimmed.match(/^[-*]\s+(.*)/);
-    if (ulMatch) {
-      if (inList !== 'ul') { flushList(); inList = 'ul'; }
-      listItems.push(<li key={i}>{renderBold(ulMatch[1])}</li>);
-      continue;
-    }
-
-    // Regular paragraph
-    flushList();
-    elements.push(
-      <Typography key={i} sx={{ fontSize: '0.9rem', lineHeight: 1.6 }}>
-        {renderBold(trimmed)}
-      </Typography>
-    );
-  }
-  flushList();
-
-  return <>{elements}</>;
+  return (
+    <Box sx={{ display: 'flex', gap: 0.2, opacity: 0, transition: 'opacity 0.15s', '.msg-row:hover &': { opacity: 1 }, justifyContent: isUser ? 'flex-end' : 'flex-start', px: 1 }}>
+      <Tooltip title="Copy" placement="top"><IconButton size="small" onClick={handleCopy} sx={{ p: 0.3, color: copied ? '#22c55e' : c.textMuted, '&:hover': { color: c.text } }}>{copied ? <IconCheck size={12} /> : <IconCopy size={12} />}</IconButton></Tooltip>
+      {!isUser && (
+        <>
+          <Tooltip title="Regenerate" placement="top"><IconButton size="small" onClick={onRegenerate} sx={{ p: 0.3, color: c.textMuted, '&:hover': { color: c.text } }}><IconRefresh size={12} /></IconButton></Tooltip>
+          <Tooltip title={feedback === 'up' ? 'Thanks!' : 'Helpful'} placement="top"><IconButton size="small" onClick={() => setFeedback(f => f === 'up' ? null : 'up')} sx={{ p: 0.3, color: feedback === 'up' ? '#22c55e' : c.textMuted, '&:hover': { color: '#22c55e' } }}><IconThumbUp size={12} /></IconButton></Tooltip>
+          <Tooltip title={feedback === 'down' ? 'Noted' : 'Not helpful'} placement="top"><IconButton size="small" onClick={() => setFeedback(f => f === 'down' ? null : 'down')} sx={{ p: 0.3, color: feedback === 'down' ? '#ef4444' : c.textMuted, '&:hover': { color: '#ef4444' } }}><IconThumbDown size={12} /></IconButton></Tooltip>
+        </>
+      )}
+      {isUser && (
+        <Tooltip title="Edit" placement="top"><IconButton size="small" onClick={handleEdit} sx={{ p: 0.3, color: c.textMuted, '&:hover': { color: c.text } }}><IconPencil size={12} /></IconButton></Tooltip>
+      )}
+    </Box>
+  );
 }
 
-export function TextBlock({ content, isUser }: { content: string; isUser?: boolean }) {
+export function TextBlock({ content, isUser, msgId, onRegenerate }: { content: string; isUser?: boolean; msgId?: string; onRegenerate?: () => void }) {
   const c = useChatTheme();
   return (
-    <Box
-      sx={{
-        display: 'flex', justifyContent: isUser ? 'flex-end' : 'flex-start',
-        mb: 1.2, px: 1,
-        animation: `${messageIn} 0.35s cubic-bezier(0.16, 1, 0.3, 1)`,
-      }}
-    >
-      {!isUser && (
-        <IconSparkles size={14} style={{ color: c.accent, marginRight: 8, marginTop: 10, opacity: 0.6 }} />
-      )}
+    <Box className="msg-row" sx={{ mb: 0.5 }}>
       <Box
         sx={{
-          maxWidth: '82%', px: 2, py: 1.2,
-          background: isUser ? c.userBg : c.aiBg,
-          borderRadius: isUser ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
-          border: '1px solid',
-          borderColor: isUser ? c.userBorder : c.aiBorder,
-          color: isUser ? c.userText : c.text,
-          fontFamily: '"DM Sans", Inter, sans-serif',
-          fontSize: '0.9rem', lineHeight: 1.55,
-          wordBreak: 'break-word',
+          display: 'flex', justifyContent: isUser ? 'flex-end' : 'flex-start',
+          px: 1,
+          animation: `${messageIn} 0.35s cubic-bezier(0.16, 1, 0.3, 1)`,
         }}
       >
-        {isUser ? (
-          <Typography sx={{ fontSize: '0.9rem', lineHeight: 1.55, whiteSpace: 'pre-wrap' }}>
-            {content}
-          </Typography>
-        ) : (
-          <FormattedText text={content} c={c} />
+        {!isUser && (
+          <IconSparkles size={14} style={{ color: c.accent, marginRight: 8, marginTop: 10, opacity: 0.6, flexShrink: 0 }} />
         )}
+        <Box
+          sx={{
+            maxWidth: '85%', px: 2, py: 1.2,
+            background: isUser ? c.userBg : c.aiBg,
+            borderRadius: isUser ? '14px 14px 4px 14px' : '14px 14px 14px 4px',
+            border: '1px solid',
+            borderColor: isUser ? c.userBorder : c.aiBorder,
+            color: isUser ? c.userText : c.text,
+            fontFamily: '"DM Sans", Inter, sans-serif',
+            fontSize: '0.88rem', lineHeight: 1.55,
+            wordBreak: 'break-word',
+          }}
+        >
+          {isUser ? (
+            <Typography sx={{ fontSize: '0.88rem', lineHeight: 1.55, whiteSpace: 'pre-wrap' }}>{content}</Typography>
+          ) : (
+            <MarkdownRenderer text={content} />
+          )}
+        </Box>
       </Box>
+      {!isUser && content && !content.startsWith('{') && (
+        <MessageActions id={msgId || ''} content={content} onRegenerate={onRegenerate} />
+      )}
+      {isUser && (
+        <MessageActions id={msgId || ''} content={content} isUser onRegenerate={onRegenerate} />
+      )}
     </Box>
   );
 }
