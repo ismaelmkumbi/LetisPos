@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { Checkbox } from '@mui/material';
 import { brand } from 'src/theme/smartpos/brand';
 import type { Column } from './DataTable';
@@ -14,7 +14,10 @@ import type { Column } from './DataTable';
 export function useSelection<T extends { id: string }>(rows: T[]) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const selectedIdsRef = useRef(selectedIds);
-  useEffect(() => { selectedIdsRef.current = selectedIds; }, [selectedIds]);
+  // Sync ref during render so checkboxes never read a stale value.
+  // useEffect runs after paint — by then the column render already ran
+  // with the old ref, causing the checkbox to lag one click behind.
+  selectedIdsRef.current = selectedIds;
 
   const lastClickedIndexRef = useRef<number | null>(null);
 
