@@ -77,7 +77,7 @@ services:
       - server-b-net
 
   control-center:
-    image: nginx:1.27-alpine
+    image: ghcr.io/ismaelmkumbi/control-center:latest
     container_name: letispos-control-center
     restart: unless-stopped
     ports:

@@ -46,7 +46,7 @@ jobs:
           filters: |
             backend: ['backend/**']
             frontend: ['frontend/**']
-            ops: ['ops/production/**']
+            ops: ['ops/**']
 
       - name: Compute changed services
         id: services
@@ -124,6 +124,9 @@ jobs:
     needs: changes
     if: needs.changes.outputs.frontend == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     steps:
       - uses: actions/checkout@v4
 
@@ -135,14 +138,48 @@ jobs:
 
       - run: cd frontend && npm ci && npm run build
 
+      - name: Login to GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
       - name: Build & push frontend image
         run: |
-          cd frontend
           TAG=${{ github.event.inputs.tag || github.sha }}
-          docker build -f ../ops/Dockerfile.frontend -t ${{ env.IMAGE_PREFIX }}/frontend:${TAG} .
-          docker push ${{ env.IMAGE_PREFIX }}/frontend:${TAG}
+          docker build -f ops/Dockerfile.frontend -t ${{ env.IMAGE_PREFIX }}/frontend:${TAG} .
           docker tag ${{ env.IMAGE_PREFIX }}/frontend:${TAG} ${{ env.IMAGE_PREFIX }}/frontend:latest
+          docker push ${{ env.IMAGE_PREFIX }}/frontend:${TAG}
           docker push ${{ env.IMAGE_PREFIX }}/frontend:latest
+
+  # ── Build control-center ────────────────────────────────────
+  build-control-center:
+    name: Build control-center
+    needs: changes
+    if: needs.changes.outputs.ops == 'true' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: ops/tools/control-center-ui/package-lock.json
+
+      - name: Build control-center UI
+        run: cd ops/tools/control-center-ui && npm ci && npm run build
+
+      - name: Login to GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+      - name: Build & push control-center image
+        run: |
+          TAG=${{ github.event.inputs.tag || github.sha }}
+          docker build -f ops/Dockerfile.control-center -t ${{ env.IMAGE_PREFIX }}/control-center:${TAG} .
+          docker tag ${{ env.IMAGE_PREFIX }}/control-center:${TAG} ${{ env.IMAGE_PREFIX }}/control-center:latest
+          docker push ${{ env.IMAGE_PREFIX }}/control-center:${TAG}
+          docker push ${{ env.IMAGE_PREFIX }}/control-center:latest
 
   # ── Deploy to Server C (data tier, deploy first) ────────────
   deploy-c:
@@ -167,12 +204,36 @@ jobs:
             docker compose -f docker-compose.yml up -d --remove-orphans
             echo "✓ Server C deployed"
 
+  # ── Deploy to Server B (monitoring + standby) ───────────────
+  deploy-b:
+    name: Deploy → Server B (monitoring)
+    needs: [build-backend, build-frontend, build-control-center, changes, deploy-c]
+    if: always() && !cancelled() &&
+        (needs.build-control-center.result == 'success' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy to Server B (10.0.0.2)
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_B_HOST }}
+          username: root
+          password: ${{ secrets.VPS_SSH_PASSWORD }}
+          script: |
+            set -e
+            cd /opt/letispos/production/server-b
+            TAG=${{ github.event.inputs.tag || github.sha }}
+            IMAGE_TAG=${TAG} docker compose -f docker-compose.yml pull --ignore-pull-failures 2>&1 || true
+            IMAGE_TAG=${TAG} docker compose -f docker-compose.yml up -d --remove-orphans
+            echo "✓ Server B deployed"
+
   # ── Deploy to Server A (app tier) ──────────────────────────
   deploy-a:
     name: Deploy → Server A (app)
-    needs: [build-backend, build-frontend, changes, deploy-c]
+    needs: [build-backend, build-frontend, build-control-center, changes, deploy-c]
     if: always() && !cancelled() &&
-        (needs.build-backend.result == 'success' || needs.build-frontend.result == 'success')
+        (needs.build-backend.result == 'success' || needs.build-frontend.result == 'success' || needs.build-control-center.result == 'success')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
