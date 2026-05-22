@@ -6,14 +6,18 @@ import {
   Box,
   Button,
   Chip,
+  CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
   DialogContentText,
   DialogTitle,
   IconButton,
+  ListItemIcon,
+  Menu,
   MenuItem,
   Paper,
+  Snackbar,
   Stack,
   TextField,
   Tooltip,
@@ -21,8 +25,10 @@ import {
 } from '@mui/material';
 import {
   IconAlertTriangle,
+  IconBoxMultiple,
   IconCopy,
   IconDotsVertical,
+  IconEdit,
   IconEyeOff,
   IconPlus,
   IconSparkles,
@@ -151,7 +157,11 @@ export default function ProductsListPage() {
   const sel = useSelection(rows);
 
   // ── Quick duplicate product ──────────────────────────────────────────────────
+  const [copyingId, setCopyingId] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ message: string; severity: 'success' | 'error' } | null>(null);
+
   const duplicateProduct = useCallback(async (p: Product) => {
+    setCopyingId(p.id);
     try {
       await createProduct({
         code: p.code
@@ -203,10 +213,18 @@ export default function ProductsListPage() {
         })),
       });
       setRefreshToken((prev) => prev + 1);
+      setToast({ message: `"${p.name}" copied`, severity: 'success' });
     } catch {
-      //
+      setToast({ message: `Failed to copy "${p.name}"`, severity: 'error' });
+    } finally {
+      setCopyingId(null);
     }
   }, []);
+
+  // ── Row action menu ──────────────────────────────────────────────────────────
+  const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
+  const [menuProduct, setMenuProduct] = useState<Product | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
 
   // ── Quick-preview hover card ────────────────────────────────────────────────
   const [hoverProduct, setHoverProduct] = useState<Product | null>(null);
@@ -801,28 +819,36 @@ export default function ProductsListPage() {
             spacing={0.3}
             onClick={(e) => e.stopPropagation()}
           >
-            <Tooltip title="Duplicate product">
+            <Tooltip title="Copy product">
               <IconButton
                 size="small"
+                disabled={copyingId === p.id}
                 onClick={(e) => {
                   e.stopPropagation();
                   duplicateProduct(p);
                 }}
                 sx={actionBtnSx}
               >
-                <IconCopy size={13} />
+                {copyingId === p.id ? (
+                  <CircularProgress size={13} sx={{ color: brand.primary[600] }} />
+                ) : (
+                  <IconCopy size={13} />
+                )}
               </IconButton>
             </Tooltip>
-            <IconButton
-              size="small"
-              onClick={(e) => {
-                e.stopPropagation();
-                navigate(`/smartpos/products/${p.id}/edit`);
-              }}
-              sx={actionBtnSx}
-            >
-              <IconDotsVertical size={14} />
-            </IconButton>
+            <Tooltip title="More actions">
+              <IconButton
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setMenuAnchor(e.currentTarget);
+                  setMenuProduct(p);
+                }}
+                sx={actionBtnSx}
+              >
+                <IconDotsVertical size={14} />
+              </IconButton>
+            </Tooltip>
           </Stack>
         ),
       },
@@ -831,10 +857,10 @@ export default function ProductsListPage() {
       actionBtnSx,
       brandName,
       catName,
+      copyingId,
       duplicateProduct,
       handleMouseEnter,
       handleMouseLeave,
-      navigate,
       sel,
       stockLevelMap,
     ],
@@ -1591,6 +1617,107 @@ export default function ProductsListPage() {
         onImported={() => {
           setAiImportOpen(false);
           setRefreshToken((n) => n + 1);
+        }}
+      />
+
+      {/* Row action menu */}
+      <Menu
+        anchorEl={menuAnchor}
+        open={Boolean(menuAnchor)}
+        onClose={() => setMenuAnchor(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+        slotProps={{ paper: { sx: { borderRadius: '12px', minWidth: 180, mt: 0.5 } } }}
+      >
+        <MenuItem
+          onClick={() => {
+            setMenuAnchor(null);
+            if (menuProduct) navigate(`/smartpos/products/${menuProduct.id}/edit`);
+          }}
+          sx={{ borderRadius: '8px', mx: 0.5, fontWeight: 600, fontSize: '0.85rem' }}
+        >
+          <ListItemIcon><IconEdit size={18} /></ListItemIcon>
+          Edit Product
+        </MenuItem>
+        {menuProduct?.variant && (
+          <MenuItem
+            onClick={() => {
+              setMenuAnchor(null);
+              if (menuProduct) navigate(`/smartpos/products/${menuProduct.id}/variants`);
+            }}
+            sx={{ borderRadius: '8px', mx: 0.5, fontWeight: 600, fontSize: '0.85rem' }}
+          >
+            <ListItemIcon><IconBoxMultiple size={18} /></ListItemIcon>
+            Manage Variants
+          </MenuItem>
+        )}
+        <MenuItem
+          onClick={() => {
+            setMenuAnchor(null);
+            if (menuProduct) setDeleteTarget(menuProduct);
+          }}
+          sx={{ borderRadius: '8px', mx: 0.5, fontWeight: 600, fontSize: '0.85rem', color: brand.error.main }}
+        >
+          <ListItemIcon sx={{ color: brand.error.main }}><IconTrash size={18} /></ListItemIcon>
+          Delete Product
+        </MenuItem>
+      </Menu>
+
+      {/* Single-item delete confirmation */}
+      <Dialog open={Boolean(deleteTarget)} onClose={() => setDeleteTarget(null)}>
+        <DialogTitle sx={{ fontWeight: 800, fontSize: '1.05rem' }}>Delete Product</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Delete <strong>{deleteTarget?.name}</strong>? This action cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5 }}>
+          <Button
+            onClick={() => setDeleteTarget(null)}
+            sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600 }}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            color="error"
+            onClick={async () => {
+              if (!deleteTarget) return;
+              try {
+                await deleteProduct(deleteTarget.id);
+                setRefreshToken((prev) => prev + 1);
+                setToast({ message: `"${deleteTarget.name}" deleted`, severity: 'success' });
+              } catch {
+                setToast({ message: `Failed to delete "${deleteTarget.name}"`, severity: 'error' });
+              } finally {
+                setDeleteTarget(null);
+              }
+            }}
+            sx={{
+              borderRadius: '10px',
+              textTransform: 'none',
+              fontWeight: 800,
+            }}
+          >
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Toast feedback */}
+      <Snackbar
+        open={Boolean(toast)}
+        autoHideDuration={3000}
+        onClose={() => setToast(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        message={toast?.message ?? ''}
+        ContentProps={{
+          sx: {
+            borderRadius: '10px',
+            fontWeight: 600,
+            bgcolor: toast?.severity === 'error' ? brand.error.main : brand.success.main,
+            color: '#fff',
+          },
         }}
       />
     </Box>
