@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const AUTH_URL = import.meta.env.VITE_AUTH_URL || '/api/v1/auth';
-const HUB_URL = import.meta.env.VITE_HUB_URL || '/hub';
+const HUB_URL = import.meta.env.VITE_HUB_URL || '/api/agent';
 
 export const authApi = axios.create({ baseURL: AUTH_URL, timeout: 10000, withCredentials: true });
 export const hubApi = axios.create({ baseURL: HUB_URL, timeout: 15000, withCredentials: true });
