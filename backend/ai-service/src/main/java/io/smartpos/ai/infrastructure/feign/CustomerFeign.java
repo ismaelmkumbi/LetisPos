@@ -14,4 +14,13 @@ public interface CustomerFeign {
 
     @PutMapping("/api/v1/customers/{id}")
     Map<String, Object> updateCustomer(@PathVariable UUID id, @RequestBody Map<String, Object> body);
+
+    @GetMapping("/api/v1/customers/{id}")
+    Map<String, Object> getCustomer(@PathVariable UUID id);
+
+    @GetMapping("/api/v1/customers")
+    org.springframework.data.domain.Page<Map<String, Object>> searchCustomers(
+        @RequestParam(required = false) String search,
+        @RequestParam(required = false) Boolean active,
+        org.springframework.data.domain.Pageable pageable);
 }

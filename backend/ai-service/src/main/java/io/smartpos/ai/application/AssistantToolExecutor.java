@@ -76,6 +76,14 @@ public class AssistantToolExecutor {
             case "getProductPriceRange" -> getProductPriceRange(args);
             case "getProductInventory" -> getProductInventory(args);
             case "getLatestProduct" -> getLatestProduct(args);
+            case "getLatestProducts" -> getLatestProducts(args);
+            case "getInventoryMovements" -> getInventoryMovements(args);
+            case "getStockValuation" -> getStockValuation(args);
+            case "getDeadStock" -> getDeadStock(args);
+            case "getReorderSuggestions" -> getReorderSuggestions(args);
+            case "getCustomerProfile" -> getCustomerProfile(args);
+            case "getBusinessAnomalies" -> getBusinessAnomalies(args);
+            case "getProductTimeline" -> getProductTimeline(args);
             case "getProductSearch" -> getProductSearch(args);
             case "getDailySnapshot" -> getDailySnapshot(args);
             case "getExpenseSummary" -> getExpenseSummary(args);
@@ -714,6 +722,495 @@ public class AssistantToolExecutor {
             "Latest Product Added: " + product.name(), data);
     }
 
+    private AssistantDtos.ToolResult getLatestProducts(Map<String, Object> args) {
+        int limit = intArg(args, "limit", 10, 1, 50);
+        int daysBack = intArg(args, "daysBack", 30, 1, 365);
+        var pageable = org.springframework.data.domain.PageRequest.of(0, limit,
+            org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "createdAt"));
+        var page = productFeign.search(null, null, null, true, pageable);
+        var products = page.getContent();
+        Instant cutoff = Instant.now().minus(daysBack, ChronoUnit.DAYS);
+
+        var recent = products.stream()
+            .filter(p -> p.createdAt() != null && p.createdAt().isAfter(cutoff))
+            .toList();
+
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("columns", List.of("Name","SKU","Price","Status","Added","Stock"));
+        List<List<Object>> rows = new ArrayList<>();
+        for (var product : recent) {
+            String stockStr = "?";
+            try {
+                var stock = inventoryFeign.stockLevel(product.id(), null);
+                stockStr = String.valueOf(stock.getOrDefault("available",
+                    stock.getOrDefault("quantity", "?")));
+            } catch (Exception ignored) {}
+            rows.add(List.of(
+                product.name(),
+                product.sku() != null ? product.sku() : "",
+                product.price(),
+                Boolean.TRUE.equals(product.status()) ? "Active" : "Inactive",
+                product.createdAt() != null ? product.createdAt().toString() : "?",
+                stockStr
+            ));
+        }
+        data.put("rows", rows);
+        data.put("totalRecent", recent.size());
+        data.put("lookbackDays", daysBack);
+        return new AssistantDtos.ToolResult("table",
+            "Recently Added Products (" + recent.size() + " in last " + daysBack + " days)", data);
+    }
+
+    private AssistantDtos.ToolResult getInventoryMovements(Map<String, Object> args) {
+        LocalDate from = dateArg(args, "dateFrom", LocalDate.now().minusDays(14));
+        LocalDate to = dateArg(args, "dateTo", LocalDate.now());
+        int limit = intArg(args, "limit", 20, 1, 50);
+        UUID warehouseId = args.containsKey("warehouseId")
+            ? UUID.fromString((String) args.get("warehouseId")) : null;
+
+        var page = inventoryFeign.listAdjustments(warehouseId, from, to,
+            org.springframework.data.domain.Pageable.ofSize(limit));
+        var adjustments = page.getContent();
+
+        // If productName filter provided, resolve to product IDs and filter
+        String productName = args.containsKey("productName")
+            ? String.valueOf(args.get("productName")).trim() : null;
+        Set<UUID> matchingProductIds = Set.of();
+        if (productName != null && !productName.isBlank()) {
+            var prodPage = productFeign.search(productName, null, null, null,
+                org.springframework.data.domain.Pageable.ofSize(10));
+            matchingProductIds = prodPage.getContent().stream()
+                .map(ProductFeign.ProductDto::id)
+                .collect(Collectors.toSet());
+        }
+
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("columns", List.of("Date","Ref","Product","Qty Change","Reason","Warehouse"));
+        List<List<Object>> rows = new ArrayList<>();
+        for (var adj : adjustments) {
+            Object adjId = adj.get("id");
+            Object adjRef = adj.getOrDefault("ref", "");
+            Object adjDate = adj.getOrDefault("date", "");
+            Object adjReason = adj.getOrDefault("reason", "");
+            Object adjWarehouse = adj.getOrDefault("warehouseId", "");
+            Object lines = adj.get("lines");
+
+            if (lines instanceof List<?> lineList) {
+                for (Object line : lineList) {
+                    if (line instanceof Map<?,?> lm) {
+                        Object lineProductId = lm.get("productId");
+                        if (!matchingProductIds.isEmpty() && lineProductId != null
+                            && !matchingProductIds.contains(UUID.fromString(lineProductId.toString()))) {
+                            continue;
+                        }
+                        Object qtyDelta = lm.get("qtyDelta");
+                        rows.add(List.<Object>of(
+                            adjDate, adjRef,
+                            lineProductId != null ? lineProductId.toString() : "?",
+                            qtyDelta != null ? qtyDelta : "",
+                            adjReason, adjWarehouse
+                        ));
+                    }
+                }
+            } else {
+                rows.add(List.of(adjDate, adjRef, adjId, "?", adjReason, adjWarehouse));
+            }
+        }
+        data.put("rows", rows);
+        data.put("totalMovements", adjustments.size());
+        String title = "Inventory Movements " + from + " to " + to
+            + (productName != null ? " for " + productName : "");
+        return new AssistantDtos.ToolResult("table", title, data);
+    }
+
+    private AssistantDtos.ToolResult getStockValuation(Map<String, Object> args) {
+        UUID warehouseId = args.containsKey("warehouseId")
+            ? UUID.fromString((String) args.get("warehouseId")) : null;
+
+        var page = productFeign.search(null, null, null, true,
+            org.springframework.data.domain.Pageable.ofSize(200));
+        var products = page.getContent();
+
+        BigDecimal totalCost = BigDecimal.ZERO;
+        BigDecimal totalSelling = BigDecimal.ZERO;
+        BigDecimal totalQty = BigDecimal.ZERO;
+        int productsWithStock = 0;
+        int productsWithCost = 0;
+
+        for (var product : products) {
+            try {
+                var stock = inventoryFeign.stockLevel(product.id(), warehouseId);
+                Object qtyObj = stock.getOrDefault("available",
+                    stock.getOrDefault("quantity", stock.getOrDefault("onHand", BigDecimal.ZERO)));
+                BigDecimal qty = toBigDecimal(qtyObj);
+                if (qty.compareTo(BigDecimal.ZERO) <= 0) continue;
+
+                productsWithStock++;
+                BigDecimal cost = product.cost() != null ? product.cost() : BigDecimal.ZERO;
+                BigDecimal price = product.price() != null ? product.price() : BigDecimal.ZERO;
+
+                if (cost.compareTo(BigDecimal.ZERO) > 0) {
+                    productsWithCost++;
+                    totalCost = totalCost.add(cost.multiply(qty));
+                }
+                totalSelling = totalSelling.add(price.multiply(qty));
+                totalQty = totalQty.add(qty);
+            } catch (Exception ignored) {}
+        }
+
+        BigDecimal estimatedMargin = totalSelling.subtract(totalCost);
+        double marginPct = totalSelling.compareTo(BigDecimal.ZERO) > 0
+            ? totalCost.compareTo(BigDecimal.ZERO) > 0
+                ? estimatedMargin.divide(totalSelling, 4, java.math.RoundingMode.HALF_UP)
+                    .multiply(BigDecimal.valueOf(100)).doubleValue()
+                : 100.0
+            : 0.0;
+
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("currency", "TZS");
+        data.put("items", List.of(
+            Map.of("name", "Total cost value (at purchase)", "value", totalCost,
+                "subtitle", productsWithCost + " products with cost data"),
+            Map.of("name", "Total selling value (at retail)", "value", totalSelling,
+                "subtitle", productsWithStock + " products with stock"),
+            Map.of("name", "Estimated gross margin", "value", estimatedMargin,
+                "subtitle", String.format("%.1f%%", marginPct)),
+            Map.of("name", "Total quantity on hand", "value", totalQty,
+                "subtitle", "Across " + productsWithStock + " products")
+        ));
+        return new AssistantDtos.ToolResult("metric",
+            "Stock Valuation" + (warehouseId != null ? " for warehouse " + warehouseId : ""), data);
+    }
+
+    private AssistantDtos.ToolResult getDeadStock(Map<String, Object> args) {
+        int daysWithoutSales = intArg(args, "daysWithoutSales", 30, 7, 180);
+        BigDecimal minStockQty = args.containsKey("minStockQty")
+            ? BigDecimal.valueOf(((Number) args.get("minStockQty")).doubleValue())
+            : BigDecimal.ONE;
+        int limit = intArg(args, "limit", 20, 1, 50);
+
+        LocalDate from = LocalDate.now().minusDays(daysWithoutSales);
+        LocalDate to = LocalDate.now();
+
+        // Get all products with stock
+        var productPage = productFeign.search(null, null, null, true,
+            org.springframework.data.domain.Pageable.ofSize(200));
+        var products = productPage.getContent();
+
+        // Get sales for the period — products that DID sell
+        var salesPage = salesFeign.search(from, to, null, null, "CONFIRMED", null, 0, 1000);
+        Set<UUID> productsWithSales = new HashSet<>();
+        for (var sale : salesPage.content()) {
+            if (sale.lines() != null) {
+                for (var line : sale.lines()) {
+                    if (line.productId() != null) productsWithSales.add(line.productId());
+                }
+            }
+        }
+
+        record DeadProduct(String name, String sku, BigDecimal price, BigDecimal stockQty,
+                          String status, Instant createdAt) {}
+        List<DeadProduct> deadProducts = new ArrayList<>();
+
+        for (var product : products) {
+            if (productsWithSales.contains(product.id())) continue;
+            try {
+                var stock = inventoryFeign.stockLevel(product.id(), null);
+                Object qtyObj = stock.getOrDefault("available",
+                    stock.getOrDefault("quantity", stock.getOrDefault("onHand", BigDecimal.ZERO)));
+                BigDecimal qty = toBigDecimal(qtyObj);
+                if (qty.compareTo(minStockQty) < 0) continue;
+                deadProducts.add(new DeadProduct(
+                    product.name(),
+                    product.sku() != null ? product.sku() : "",
+                    product.price(),
+                    qty,
+                    Boolean.TRUE.equals(product.status()) ? "Active" : "Inactive",
+                    product.createdAt()
+                ));
+            } catch (Exception ignored) {}
+        }
+
+        deadProducts.sort((a, b) -> b.stockQty.compareTo(a.stockQty));
+        var topDead = deadProducts.stream().limit(limit).toList();
+
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("columns", List.of("Product","SKU","Price","Stock Qty","Status","Added"));
+        data.put("rows", topDead.stream().map(dp -> List.of(
+            dp.name, dp.sku, dp.price, dp.stockQty, dp.status,
+            dp.createdAt != null ? dp.createdAt.toString() : "?"
+        )).collect(Collectors.toList()));
+        data.put("totalDead", deadProducts.size());
+        data.put("daysWithoutSales", daysWithoutSales);
+        data.put("recommendation", deadProducts.isEmpty()
+            ? "All stocked products have recent sales activity. No dead stock detected."
+            : deadProducts.size() + " products have stock but no sales in " + daysWithoutSales
+                + " days. Consider discounting or bundling the top items.");
+        return new AssistantDtos.ToolResult("table",
+            "Dead Stock — " + deadProducts.size() + " items with no sales in " + daysWithoutSales + " days", data);
+    }
+
+    private AssistantDtos.ToolResult getReorderSuggestions(Map<String, Object> args) {
+        try {
+            var suggestions = inventoryFeign.reorderSuggestions();
+            Map<String, Object> data = new LinkedHashMap<>();
+            data.put("columns", List.of("Product","Current Stock","Suggested Qty","Min Qty","Urgency","Daily Velocity","Supplier"));
+            data.put("rows", suggestions.stream().map(s -> List.of(
+                s.getOrDefault("productName", "?"),
+                s.getOrDefault("currentStock", 0),
+                s.getOrDefault("suggestedQty", 0),
+                s.getOrDefault("minQty", 0),
+                s.getOrDefault("urgency", "?"),
+                s.getOrDefault("dailyVelocity", 0),
+                s.getOrDefault("supplierId", "N/A")
+            )).collect(Collectors.toList()));
+            data.put("totalSuggestions", suggestions.size());
+            data.put("currency", "TZS");
+            return new AssistantDtos.ToolResult("table",
+                "Reorder Suggestions (" + suggestions.size() + " items)", data);
+        } catch (Exception e) {
+            return new AssistantDtos.ToolResult("text", "Reorder Suggestions Unavailable",
+                Map.of("message", "The reorder suggestion service is temporarily unavailable. "
+                    + "You can use getLowStock to see products below reorder threshold, "
+                    + "and getTopProducts to see what is selling well."));
+        }
+    }
+
+    private AssistantDtos.ToolResult getCustomerProfile(Map<String, Object> args) {
+        String customerName = String.valueOf(args.getOrDefault("customerName", "")).trim();
+        if (customerName.isBlank()) {
+            throw new IllegalArgumentException("customerName is required to look up a customer profile.");
+        }
+
+        // Search for customer by name
+        var custPage = customerFeign.searchCustomers(customerName, true,
+            org.springframework.data.domain.Pageable.ofSize(5));
+        var customers = custPage.getContent();
+        if (customers.isEmpty()) {
+            return new AssistantDtos.ToolResult("text", "Customer Not Found",
+                Map.of("message", "No customer matching '" + customerName + "' found."));
+        }
+
+        var customer = customers.get(0);
+        Object custId = customer.get("id");
+        String name = String.valueOf(customer.getOrDefault("name", "?"));
+        UUID customerId = custId instanceof String s ? UUID.fromString(s) : null;
+        if (customerId == null && custId != null) {
+            customerId = UUID.fromString(custId.toString());
+        }
+
+        // Get sales summary for this customer
+        LocalDate thirtyDaysAgo = LocalDate.now().minusDays(30);
+        LocalDate today = LocalDate.now();
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("name", name);
+        data.put("phone", customer.getOrDefault("phone", "N/A"));
+        data.put("email", customer.getOrDefault("email", "N/A"));
+        data.put("address", customer.getOrDefault("address", "N/A"));
+        data.put("creditLimit", customer.getOrDefault("creditLimit", "N/A"));
+        data.put("active", customer.getOrDefault("active", true));
+        data.put("customerSince", customer.getOrDefault("createdAt", "Unknown"));
+
+        // Sales data
+        try {
+            if (customerId != null) {
+                var summary = reportFeign.salesSummary(thirtyDaysAgo.toString(), today.toString(),
+                    null, customerId);
+                data.put("totalSpend30d", summary.gross());
+                data.put("transactionCount30d", summary.salesCount());
+                data.put("currency", "TZS");
+            }
+        } catch (Exception e) {
+            data.put("totalSpend30d", "Unavailable");
+            data.put("transactionCount30d", "Unavailable");
+        }
+
+        data.put("columns", List.of("Field","Value"));
+        data.put("rows", data.entrySet().stream()
+            .filter(e -> !"columns".equals(e.getKey()) && !"rows".equals(e.getKey()))
+            .map(e -> List.of(e.getKey(), String.valueOf(e.getValue())))
+            .collect(Collectors.toList()));
+        return new AssistantDtos.ToolResult("table",
+            "Customer Profile: " + name, data);
+    }
+
+    private AssistantDtos.ToolResult getBusinessAnomalies(Map<String, Object> args) {
+        LocalDate from = dateArg(args, "dateFrom", LocalDate.now().minusDays(7));
+        LocalDate to = dateArg(args, "dateTo", LocalDate.now());
+        List<Map<String, Object>> anomalies = new ArrayList<>();
+
+        // Check for cancelled/returned sales
+        try {
+            var cancelledPage = salesFeign.search(from, to, null, null, "CANCELLED", null, 0, 50);
+            long cancelled = cancelledPage.totalElements();
+            if (cancelled > 0) {
+                anomalies.add(Map.of("type", "warning", "title", "Cancelled transactions",
+                    "detail", cancelled + " cancelled sales in period", "severity", cancelled > 10 ? "HIGH" : "LOW"));
+            }
+
+            var returnedPage = salesFeign.search(from, to, null, null, "RETURNED", null, 0, 50);
+            long returned = returnedPage.totalElements();
+            if (returned > 0) {
+                anomalies.add(Map.of("type", "warning", "title", "Returns/refunds",
+                    "detail", returned + " returned transactions", "severity", returned > 5 ? "MEDIUM" : "LOW"));
+            }
+        } catch (Exception ignored) {}
+
+        // Check for negative or zero stock
+        try {
+            var lowStockPage = inventoryFeign.lowStockAlerts(null,
+                org.springframework.data.domain.Pageable.ofSize(50));
+            long criticalStockouts = lowStockPage.getContent().stream()
+                .filter(i -> i.available() != null && i.available().compareTo(BigDecimal.ZERO) <= 0)
+                .count();
+            if (criticalStockouts > 0) {
+                anomalies.add(Map.of("type", "critical", "title", "Stockouts",
+                    "detail", criticalStockouts + " products with zero stock", "severity", "HIGH"));
+            }
+            if (lowStockPage.getTotalElements() > 0) {
+                anomalies.add(Map.of("type", "warning", "title", "Low stock items",
+                    "detail", lowStockPage.getTotalElements() + " products below reorder threshold",
+                    "severity", lowStockPage.getTotalElements() > 20 ? "HIGH" : "MEDIUM"));
+            }
+        } catch (Exception ignored) {}
+
+        // Check for unusually high discounts
+        try {
+            var salesPage = salesFeign.search(from, to, null, null, "CONFIRMED", null, 0, 500);
+            long highDiscountSales = salesPage.content().stream()
+                .filter(s -> s.discountTotal() != null
+                    && s.grandTotal() != null
+                    && s.grandTotal().compareTo(BigDecimal.ZERO) > 0
+                    && s.discountTotal().divide(s.grandTotal(), 4, java.math.RoundingMode.HALF_UP)
+                        .compareTo(new BigDecimal("0.20")) > 0)
+                .count();
+            if (highDiscountSales > 3) {
+                anomalies.add(Map.of("type", "warning", "title", "High discounts",
+                    "detail", highDiscountSales + " sales with >20% discount", "severity", "MEDIUM"));
+            }
+        } catch (Exception ignored) {}
+
+        // Check expiring stock
+        try {
+            var expiring = inventoryFeign.expiringSoon(14);
+            if (!expiring.isEmpty()) {
+                anomalies.add(Map.of("type", "warning", "title", "Expiring stock",
+                    "detail", expiring.size() + " products expiring within 14 days", "severity", "MEDIUM"));
+            }
+        } catch (Exception ignored) {}
+
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("from", from.toString());
+        data.put("to", to.toString());
+        data.put("anomalyCount", anomalies.size());
+        if (anomalies.isEmpty()) {
+            data.put("headline", "No anomalies detected in this period. Business operations look normal.");
+        } else {
+            long critical = anomalies.stream().filter(a -> "HIGH".equals(a.get("severity"))).count();
+            data.put("headline", anomalies.size() + " anomalies found (" + critical + " critical). Review the items below.");
+        }
+        data.put("columns", List.of("Type","Title","Detail","Severity"));
+        data.put("rows", anomalies.stream()
+            .map(a -> List.of(a.get("type"), a.get("title"), a.get("detail"), a.get("severity")))
+            .collect(Collectors.toList()));
+        return new AssistantDtos.ToolResult("table",
+            "Business Anomalies " + from + " to " + to, data);
+    }
+
+    private AssistantDtos.ToolResult getProductTimeline(Map<String, Object> args) {
+        String query = String.valueOf(args.getOrDefault("query", "")).trim();
+        if (query.isBlank()) {
+            throw new IllegalArgumentException("A product name, SKU, or barcode is required.");
+        }
+
+        var page = productFeign.search(query, null, null, null,
+            org.springframework.data.domain.Pageable.ofSize(3));
+        var products = page.getContent();
+        if (products.isEmpty()) {
+            return new AssistantDtos.ToolResult("text", "Product Not Found",
+                Map.of("message", "No product matching '" + query + "'."));
+        }
+
+        var product = products.get(0);
+        List<Map<String, Object>> events = new ArrayList<>();
+
+        // 1. Product creation
+        events.add(Map.of("date", product.createdAt() != null ? product.createdAt().toString() : "Unknown",
+            "event", "Product created",
+            "detail", product.name() + " added to catalog"));
+
+        // 2. Price history
+        try {
+            var priceHistory = productFeign.priceHistory(product.id(),
+                org.springframework.data.domain.Pageable.ofSize(10));
+            for (var ph : priceHistory.getContent()) {
+                events.add(Map.of("date", ph.getOrDefault("changedAt", ph.getOrDefault("createdAt", "?")),
+                    "event", "Price changed",
+                    "detail", "Old: " + ph.getOrDefault("oldPrice", "?")
+                        + " -> New: " + ph.getOrDefault("newPrice", "?")));
+            }
+        } catch (Exception ignored) {}
+
+        // 3. Recent stock movements
+        try {
+            var adjustments = inventoryFeign.listAdjustments(null,
+                LocalDate.now().minusDays(90), LocalDate.now(),
+                org.springframework.data.domain.Pageable.ofSize(20));
+            for (var adj : adjustments.getContent()) {
+                Object lines = adj.get("lines");
+                if (lines instanceof List<?> lineList) {
+                    for (Object line : lineList) {
+                        if (line instanceof Map<?,?> lm
+                            && product.id().toString().equals(String.valueOf(lm.get("productId")))) {
+                            Object qtyD = lm.get("qtyDelta");
+                            Object reasonObj = adj.get("reason");
+                            Object dateObj = adj.get("date");
+                            events.add(Map.of("date", dateObj != null ? String.valueOf(dateObj) : "?",
+                                "event", "Stock adjustment",
+                                "detail", "Qty change: " + (qtyD != null ? qtyD : "?")
+                                    + " — " + (reasonObj != null ? reasonObj : "")));
+                        }
+                    }
+                }
+            }
+        } catch (Exception ignored) {}
+
+        // 4. Recent sales activity
+        try {
+            var salesPage = salesFeign.search(LocalDate.now().minusDays(30), LocalDate.now(),
+                null, null, "CONFIRMED", null, 0, 100);
+            for (var sale : salesPage.content()) {
+                if (sale.lines() != null) {
+                    for (var line : sale.lines()) {
+                        if (product.id().equals(line.productId())) {
+                            events.add(Map.of("date", sale.date().toString(),
+                                "event", "Sold",
+                                "detail", line.qty() + " units in " + sale.ref()
+                                    + " at TZS " + line.unitPrice()));
+                        }
+                    }
+                }
+            }
+        } catch (Exception ignored) {}
+
+        // Sort events by date, most recent first (strings compare OK for ISO dates)
+        events.sort((a, b) -> String.valueOf(b.getOrDefault("date", ""))
+            .compareTo(String.valueOf(a.getOrDefault("date", ""))));
+
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("productName", product.name());
+        data.put("productSku", product.sku() != null ? product.sku() : "N/A");
+        data.put("currentPrice", product.price());
+        data.put("currentCost", product.cost() != null ? product.cost() : "N/A");
+        data.put("columns", List.of("Date","Event","Detail"));
+        data.put("rows", events.stream().limit(25)
+            .map(e -> List.of(e.get("date"), e.get("event"), e.get("detail")))
+            .collect(Collectors.toList()));
+        data.put("totalEvents", events.size());
+        return new AssistantDtos.ToolResult("table",
+            "Product Timeline: " + product.name(), data);
+    }
+
     private AssistantDtos.ToolResult getProductSearch(Map<String, Object> args) {
         String query = (String) args.get("query");
         UUID categoryId = args.containsKey("categoryId") && args.get("categoryId") != null
@@ -1350,6 +1847,15 @@ public class AssistantToolExecutor {
     private double numberValue(Object value) {
         if (value instanceof Number n) return n.doubleValue();
         return 0.0;
+    }
+
+    private BigDecimal toBigDecimal(Object value) {
+        if (value instanceof BigDecimal bd) return bd;
+        if (value instanceof Number n) return BigDecimal.valueOf(n.doubleValue());
+        if (value instanceof String s) {
+            try { return new BigDecimal(s); } catch (Exception ignored) {}
+        }
+        return BigDecimal.ZERO;
     }
 
     private String briefingHeadline(Object sales, Object priorSales, int lowStockCount, int expiringCount) {

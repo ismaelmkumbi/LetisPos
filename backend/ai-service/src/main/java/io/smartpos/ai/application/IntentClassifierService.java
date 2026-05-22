@@ -39,24 +39,40 @@ public class IntentClassifierService {
             "sales", "sale", "order", "orders", "revenue", "transaction",
             "transactions", "receipt", "receipts", "invoice", "invoices",
             "mauzo", "oda", "mapato", "risiti",
-            "confirmed", "pending", "commit"
+            "confirmed", "pending", "commit",
+            "anything wrong", "anomalies", "business health", "what looks off",
+            "what should i check", "operational alerts", "problems today",
+            "issues today", "suspicious", "unusual"
         ),
         Domain.INVENTORY, List.of(
             "stock", "inventory", "warehouse", "reorder", "expir",
             "batch", "transfer", "adjust", "count", "damage",
             "hisa", "ghala", "idadi", "muda",
-            "low stock", "out of stock", "running low"
+            "low stock", "out of stock", "running low",
+            "restock", "stock movement", "stock worth", "inventory value",
+            "dead stock", "not moving", "slow moving", "stock valuation",
+            "money in stock", "money tied", "stockout",
+            "what should i order", "what should i buy", "needs restocking",
+            "why did stock", "who adjusted", "adjustment history",
+            "what is my stock worth", "how much money is tied"
         ),
         Domain.PRODUCTS, List.of(
             "products", "product", "item", "items", "sku", "barcode", "barcodes",
             "category", "categories", "brand", "brands",
             "unit", "units", "price", "cost", "variant", "serial",
-            "bidhaa", "bei", "aina", "chapa", "kipimo"
+            "bidhaa", "bei", "aina", "chapa", "kipimo",
+            "recently added", "new arrivals", "what was added",
+            "product history", "product timeline", "product lifecycle",
+            "when was this product", "who changed this product",
+            "price history", "product audit", "last 10 products"
         ),
         Domain.CUSTOMERS, List.of(
             "customers", "customer", "client", "clients", "loyalty",
             "group", "groups", "gift card", "store credit",
-            "wateja", "mteja", "kadi", "mkopo"
+            "wateja", "mteja", "kadi", "mkopo",
+            "tell me about customer", "customer profile", "customer 360",
+            "what does this customer", "customer insights", "customer intelligence",
+            "customer usually buy", "customer history"
         ),
         Domain.FINANCE, List.of(
             "finance", "financial", "payment", "payments",
@@ -171,6 +187,8 @@ public class IntentClassifierService {
                 || t.equals("getnotificationtemplates")
                 || t.equals("getexecutivebriefing")
                 || t.equals("getdailysnapshot")
+                || t.equals("getbusinessanomalies")
+                || t.equals("getproducttimeline")
                 || t.startsWith("send") || t.startsWith("email")) {
                 narrowed.add(tool);
             }
@@ -194,18 +212,23 @@ public class IntentClassifierService {
         return switch (domain) {
             case SALES -> tool.contains("sales") || tool.equals("getrecentsales")
                 || tool.equals("gettopproducts") || tool.equals("gettopcustomers")
-                || tool.equals("generatedocument") || tool.equals("emaildocument");
+                || tool.equals("generatedocument") || tool.equals("emaildocument")
+                || tool.equals("getbusinessanomalies");
             case INVENTORY -> tool.contains("stock") || tool.contains("warehouse")
                 || tool.contains("inventory") || tool.equals("checkstock")
                 || tool.equals("checkstockbyproductsearch")
                 || tool.equals("getlowstock") || tool.equals("getexpiringstock")
                 || tool.equals("searchproducts") || tool.equals("getproductinventory")
                 || tool.equals("getlatestproduct") || tool.equals("adjuststock")
-                || tool.equals("createpurchaseorder");
+                || tool.equals("createpurchaseorder")
+                || tool.equals("getinventorymovements") || tool.equals("getstockvaluation")
+                || tool.equals("getdeadstock") || tool.equals("getreordersuggestions")
+                || tool.equals("getlatestproducts");
             case PRODUCTS -> tool.contains("product") || tool.equals("searchproducts")
-                || tool.equals("createproduct") || tool.equals("updateproductprice");
+                || tool.equals("createproduct") || tool.equals("updateproductprice")
+                || tool.equals("getproducttimeline") || tool.equals("getlatestproducts");
             case CUSTOMERS -> tool.contains("customer") || tool.equals("gettopcustomers")
-                || tool.equals("getsalesbycustomer");
+                || tool.equals("getsalesbycustomer") || tool.equals("getcustomerprofile");
             case FINANCE -> tool.contains("financial") || tool.contains("expense")
                 || tool.contains("payment") || tool.contains("tax")
                 || tool.contains("discount") || tool.equals("createexpense");
@@ -234,6 +257,19 @@ public class IntentClassifierService {
         if (isLatestProductQuery(lower)) {
             return Domain.PRODUCTS;
         }
+        // "recently added products", "new arrivals", "last N products added" -> PRODUCTS
+        if (lower.matches(".*\\b(recent|recently|new|last)\\b.*\\b(product|products|item|items|arrival|arrivals)\\b.*")
+            && !lower.contains("sales") && !lower.contains("order")) {
+            return Domain.PRODUCTS;
+        }
+        // Customer profile queries -> CUSTOMERS
+        if (lower.matches(".*\\b(tell me about|customer profile|customer 360|what does this customer|about customer)\\b.*")) {
+            return Domain.CUSTOMERS;
+        }
+        // Anomalies / business health -> SALES
+        if (lower.matches(".*\\b(anything wrong|anomalies|business health|what looks off|what should i check|problems today|issues today)\\b.*")) {
+            return Domain.SALES;
+        }
         if (lower.matches(".*\\b(how many|quantity|qty)\\b.*\\b(do we have|available|left|in stock)\\b.*")
             || lower.matches(".*\\b(do we have|available|left|in stock)\\b.*")) {
             return Domain.INVENTORY;
@@ -241,6 +277,14 @@ public class IntentClassifierService {
         if (lower.matches(".*\\b(invoice|receipt|quotation|document)\\b.*\\b(email|send|generate)\\b.*")
             || lower.matches(".*\\b(email|send|generate)\\b.*\\b(invoice|receipt|quotation|document)\\b.*")) {
             return Domain.SALES;
+        }
+        // Stock movements, valuation, dead stock, reorder -> INVENTORY
+        if (lower.matches(".*\\b(stock movement|stock worth|inventory value|dead stock|not moving|slow moving|reorder|restock|what should i order|what should i buy|what should i discount|stock reduce|why did stock|money is tied|money tied)\\b.*")) {
+            return Domain.INVENTORY;
+        }
+        // Product timeline/history -> PRODUCTS
+        if (lower.matches(".*\\b(when was this product|who changed this product|product history|product timeline|product lifecycle|price history)\\b.*")) {
+            return Domain.PRODUCTS;
         }
 
         Domain best = Domain.GENERAL;
@@ -354,6 +398,13 @@ public class IntentClassifierService {
         if (isLatestProductQuery(lower)) {
             return false;
         }
+        // Read-only queries that contain write-like keywords
+        if (lower.matches(".*\\b(who adjusted|why did stock|stock movement|adjustment history)\\b.*")) return false;
+        if (lower.matches(".*\\b(what should i order|what should i buy|what needs restocking|reorder suggestion)\\b.*")) return false;
+        if (lower.matches(".*\\b(who changed this product|price history|product history|product timeline)\\b.*")) return false;
+        if (lower.matches(".*\\b(show recently added|what was added|new arrivals|last.*products added)\\b.*")) return false;
+        if (lower.matches(".*\\b(stock worth|inventory value|dead stock|not moving|slow moving)\\b.*")) return false;
+        if (lower.matches(".*\\b(anything wrong|anomalies|business health|what looks off)\\b.*")) return false;
         return WRITE_KEYWORDS.stream().anyMatch(lower::contains);
     }
 

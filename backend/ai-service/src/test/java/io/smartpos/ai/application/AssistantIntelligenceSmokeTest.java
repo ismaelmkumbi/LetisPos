@@ -47,7 +47,23 @@ class AssistantIntelligenceSmokeTest {
             args("Email invoice INV-2026-000002 to the customer", IntentClassification.Domain.SALES, "emailDocument"),
             args("Nionyeshe mauzo ya leo", IntentClassification.Domain.SALES, "getSalesReport"),
             args("How do I process a refund?", IntentClassification.Domain.HELP, "searchDocuments"),
-            args("List tenants with starter plan", IntentClassification.Domain.PLATFORM_ADMIN, "getTenantList")
+            args("List tenants with starter plan", IntentClassification.Domain.PLATFORM_ADMIN, "getTenantList"),
+            // New business intelligence tools
+            args("show recently added products", IntentClassification.Domain.PRODUCTS, "getLatestProducts"),
+            args("why did stock reduce for Coke", IntentClassification.Domain.INVENTORY, "getInventoryMovements"),
+            args("what is my stock worth", IntentClassification.Domain.INVENTORY, "getStockValuation"),
+            args("which products are not moving", IntentClassification.Domain.INVENTORY, "getDeadStock"),
+            args("what should I reorder today", IntentClassification.Domain.INVENTORY, "getReorderSuggestions"),
+            args("tell me about customer John", IntentClassification.Domain.CUSTOMERS, "getCustomerProfile"),
+            args("anything wrong today", IntentClassification.Domain.SALES, "getBusinessAnomalies"),
+            args("when was this product added", IntentClassification.Domain.PRODUCTS, "getProductTimeline"),
+            // Additional variants
+            args("how much money is tied in inventory", IntentClassification.Domain.INVENTORY, "getStockValuation"),
+            args("what should I discount", IntentClassification.Domain.INVENTORY, "getDeadStock"),
+            args("show stock movement for rice", IntentClassification.Domain.INVENTORY, "getInventoryMovements"),
+            args("what does customer Jane usually buy", IntentClassification.Domain.CUSTOMERS, "getCustomerProfile"),
+            args("who changed this product price", IntentClassification.Domain.PRODUCTS, "getProductTimeline"),
+            args("last 10 products added", IntentClassification.Domain.PRODUCTS, "getLatestProducts")
         );
     }
 

@@ -40,4 +40,14 @@ public interface InventoryFeign {
 
     @PostMapping("/api/v1/stock/adjust")
     Map<String, Object> adjustStock(@RequestBody Map<String, Object> body);
+
+    @GetMapping("/api/v1/adjustments")
+    org.springframework.data.domain.Page<Map<String, Object>> listAdjustments(
+        @RequestParam(required = false) UUID warehouseId,
+        @RequestParam(required = false) java.time.LocalDate dateFrom,
+        @RequestParam(required = false) java.time.LocalDate dateTo,
+        org.springframework.data.domain.Pageable pageable);
+
+    @GetMapping("/api/v1/inventory/reorder-suggestions")
+    List<Map<String, Object>> reorderSuggestions();
 }

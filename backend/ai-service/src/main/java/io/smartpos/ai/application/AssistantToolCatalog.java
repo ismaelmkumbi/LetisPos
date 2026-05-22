@@ -214,8 +214,54 @@ public class AssistantToolCatalog {
                     "limit", Map.of("type","integer","description","Max products, default 50")
                 ),"required",List.of()), false, null),
 
-            new ToolDef("getLatestProduct", "Get the most recently added product in the catalog, including its current stock level when inventory data is available. Use this for 'last product added', 'latest product', 'newest item', 'recently added product', and 'last product added in stock'. Do not use stock overview for these latest-product questions.",
+            new ToolDef("getLatestProduct", "Get the single most recently added product in the catalog, including its current stock level. Use this for 'last product added', 'latest product', 'newest item', 'recently added product'. For multiple recently added products, use getLatestProducts.",
                 Map.of("type","object","properties", Map.of()), false, null),
+
+            new ToolDef("getLatestProducts", "Get the last N products added to the catalog, newest first. Includes name, SKU, price, status, creation date, and stock level. Use this for 'what products were added today?', 'show recently added products', 'last 10 products added', 'new arrivals', or 'what is new in the catalog?'.",
+                Map.of("type","object","properties", Map.of(
+                    "limit", Map.of("type","integer","description","Number of products, default 10, max 50"),
+                    "daysBack", Map.of("type","integer","description","Only show products added within this many days, default 30")
+                ),"required",List.of()), false, null),
+
+            new ToolDef("getInventoryMovements", "Get stock movement history (adjustments) for a date range or specific product. Shows movement type, product, quantity change, warehouse, reason, reference, date, and user. Use this for 'why did stock reduce?', 'who adjusted this item?', 'show stock movement for Coke', 'stock adjustment history', 'inventory changes'.",
+                Map.of("type","object","properties", Map.of(
+                    "productName", Map.of("type","string","description","Product name to filter movements by (e.g. 'Coke')"),
+                    "dateFrom", Map.of("type","string","description","Start date YYYY-MM-DD"),
+                    "dateTo", Map.of("type","string","description","End date YYYY-MM-DD"),
+                    "warehouseId", Map.of("type","string","description","Warehouse UUID, optional"),
+                    "limit", Map.of("type","integer","description","Max results, default 20")
+                ),"required",List.of()), false, null),
+
+            new ToolDef("getStockValuation", "Calculate total inventory value: how much money is tied up in stock. Shows total cost value, total selling value, quantity on hand, and estimated gross margin. Use this for 'what is my stock worth?', 'how much money is tied in inventory?', 'inventory valuation', 'stock value report'.",
+                Map.of("type","object","properties", Map.of(
+                    "warehouseId", Map.of("type","string","description","Warehouse UUID, omit for all warehouses")
+                ),"required",List.of()), false, null),
+
+            new ToolDef("getDeadStock", "Identify products with stock on hand but low or no recent sales — slow-moving and dead inventory. Combines current stock levels with sales history. Use this for 'which products are not moving?', 'what should I discount?', 'dead stock report', 'slow moving items', 'stagnant inventory'.",
+                Map.of("type","object","properties", Map.of(
+                    "daysWithoutSales", Map.of("type","integer","description","Days without significant sales to consider dead, default 30"),
+                    "minStockQty", Map.of("type","number","description","Minimum stock on hand to consider, default 1"),
+                    "limit", Map.of("type","integer","description","Max results, default 20")
+                ),"required",List.of()), false, null),
+
+            new ToolDef("getReorderSuggestions", "Get AI-powered restock recommendations based on current stock levels, sales velocity, low-stock thresholds, and reorder rules. Each suggestion includes product name, current stock, suggested order quantity, supplier info, urgency level, and daily sales velocity. Use this for 'what should I order today?', 'what needs restocking?', 'reorder suggestions', 'restock recommendations', 'purchase recommendations', 'what should I buy?'.",
+                Map.of("type","object","properties", Map.of()), false, null),
+
+            new ToolDef("getCustomerProfile", "Get complete customer intelligence summary: total spend, last purchase date, top purchased products, contact info, credit limit, and outstanding balance. Use this for 'tell me about customer John', 'what does this customer usually buy?', 'customer profile', 'customer 360 view', 'customer insights'.",
+                Map.of("type","object","properties", Map.of(
+                    "customerName", Map.of("type","string","description","Customer name to search for (e.g. John). Picks the top match.")
+                ),"required",List.of("customerName")), false, null),
+
+            new ToolDef("getBusinessAnomalies", "Detect operational anomalies: unusual sales drops, excessive discounts, stockouts, negative stock, failed payments, suspicious voids or refunds. Use this for 'anything wrong today?', 'what should I check?', 'anomalies report', 'business health check', 'operational alerts', 'what looks off?'.",
+                Map.of("type","object","properties", Map.of(
+                    "dateFrom", Map.of("type","string","description","Start date YYYY-MM-DD, defaults to 7 days ago"),
+                    "dateTo", Map.of("type","string","description","End date YYYY-MM-DD, defaults to today")
+                ),"required",List.of()), false, null),
+
+            new ToolDef("getProductTimeline", "Get the complete lifecycle and history of a product: when it was added, price changes, stock movements, and recent sales activity. Use this for 'when was this product added?', 'who changed this product price?', 'product history', 'product audit trail', 'product lifecycle'.",
+                Map.of("type","object","properties", Map.of(
+                    "query", Map.of("type","string","description","Product name, SKU, or barcode")
+                ),"required",List.of("query")), false, null),
 
             new ToolDef("getProductSearch", "Advanced product search with optional category and brand filters. Use this for multi-filter product queries or when the user asks to find products matching multiple criteria.",
                 Map.of("type","object","properties", Map.of(

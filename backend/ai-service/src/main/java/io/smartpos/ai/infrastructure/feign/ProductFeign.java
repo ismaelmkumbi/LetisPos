@@ -30,4 +30,8 @@ public interface ProductFeign {
 
     @PutMapping("/api/v1/products/{id}")
     Map<String, Object> updateProduct(@PathVariable UUID id, @RequestBody Map<String, Object> body);
+
+    @GetMapping("/api/v1/products/{id}/price-history")
+    org.springframework.data.domain.Page<Map<String, Object>> priceHistory(
+        @PathVariable UUID id, Pageable pageable);
 }

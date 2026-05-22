@@ -45,6 +45,19 @@ class IntentClassifierServiceTest {
         "ni tenant gani amejisajili leo?                  | PLATFORM_ADMIN",
         "hello                                            | GENERAL",
         "habari                                           | GENERAL",
+        "show recently added products                    | PRODUCTS",
+        "why did stock reduce for Coke                   | INVENTORY",
+        "what is my stock worth                          | INVENTORY",
+        "which products are not moving                   | INVENTORY",
+        "what should I reorder today                     | INVENTORY",
+        "tell me about customer John                     | CUSTOMERS",
+        "anything wrong today                            | SALES",
+        "when was this product added                     | PRODUCTS",
+        "how much money is tied in inventory             | INVENTORY",
+        "what should I discount                          | INVENTORY",
+        "show stock movement for rice                    | INVENTORY",
+        "who changed this product price                  | PRODUCTS",
+        "last 10 products added                          | PRODUCTS",
     })
     void classifiesDomainCorrectly(String message, Domain expected) {
         IntentClassification result = service.classify(message);
@@ -124,6 +137,24 @@ class IntentClassifierServiceTest {
         assertThat(result.isWriteAction()).isFalse();
     }
 
+    @ParameterizedTest
+    @CsvSource(delimiter = '|', value = {
+        "why did stock reduce for Coke                     | INVENTORY | false",
+        "what should I reorder today                       | INVENTORY | false",
+        "what should I buy                                 | INVENTORY | false",
+        "who changed this product price                    | PRODUCTS  | false",
+        "show recently added products                      | PRODUCTS  | false",
+        "what is my stock worth                            | INVENTORY | false",
+        "which products are not moving                     | INVENTORY | false",
+        "anything wrong today                              | SALES     | false",
+        "tell me about customer John                       | CUSTOMERS | false",
+    })
+    void newToolsAreReadOnly(String message, Domain expectedDomain, boolean isWrite) {
+        IntentClassification result = service.classify(message);
+        assertThat(result.primaryDomain()).isEqualTo(expectedDomain);
+        assertThat(result.isWriteAction()).isEqualTo(isWrite);
+    }
+
     // ── Tool narrowing ──
 
     @Test
@@ -160,6 +191,48 @@ class IntentClassifierServiceTest {
 
         // No HRM tools in the set, should return all as safety
         assertThat(narrowed).containsExactlyInAnyOrderElementsOf(allTools);
+    }
+
+    @Test
+    void narrowsInventoryToolsForNewTools() {
+        IntentClassification intent = IntentClassification.of(Domain.INVENTORY, Language.ENGLISH);
+        Set<String> allTools = Set.of(
+            "getSalesReport", "getTopProducts", "checkStock",
+            "getInventoryMovements", "getStockValuation", "getDeadStock",
+            "getReorderSuggestions", "getCustomerProfile"
+        );
+
+        Set<String> narrowed = service.narrowTools(intent, allTools);
+
+        assertThat(narrowed).contains(
+            "getInventoryMovements", "getStockValuation",
+            "getDeadStock", "getReorderSuggestions", "checkStock");
+        assertThat(narrowed).doesNotContain("getSalesReport", "getCustomerProfile");
+    }
+
+    @Test
+    void narrowsCustomerToolsForProfileQuery() {
+        IntentClassification intent = IntentClassification.of(Domain.CUSTOMERS, Language.ENGLISH);
+        Set<String> allTools = Set.of(
+            "getCustomerProfile", "getTopCustomers", "getSalesByCustomer",
+            "getInventoryMovements", "checkStock"
+        );
+
+        Set<String> narrowed = service.narrowTools(intent, allTools);
+
+        assertThat(narrowed).contains("getCustomerProfile", "getTopCustomers", "getSalesByCustomer");
+        assertThat(narrowed).doesNotContain("getInventoryMovements", "checkStock");
+    }
+
+    @Test
+    void businessAnomaliesAlwaysAvailable() {
+        IntentClassification intent = IntentClassification.of(Domain.INVENTORY, Language.ENGLISH);
+        Set<String> allTools = Set.of("getBusinessAnomalies", "checkStock");
+
+        Set<String> narrowed = service.narrowTools(intent, allTools);
+
+        // getBusinessAnomalies is cross-domain — always available
+        assertThat(narrowed).contains("getBusinessAnomalies");
     }
 
     // ── Edge cases ──
