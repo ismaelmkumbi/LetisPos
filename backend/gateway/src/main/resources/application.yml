@@ -60,7 +60,7 @@ spring:
         - id: sales-service
           uri: ${SALES_URI:http://localhost:8085}
           predicates:
-            - Path=/api/v1/sales/**,/api/v1/pos/**,/api/v1/pos-settings/**,/api/v1/quotations/**,/api/v1/purchases/**,/api/v1/purchase-returns/**,/api/v1/returns/**,/api/v1/recurring-invoices/**,/api/v1/pos-terminals/**,/api/v1/offline/**,/api/v1/cash-registers/**,/api/v1/suspended-sales/**,/api/v1/promotions/**
+            - Path=/api/v1/sales/**,/api/v1/pos/**,/api/v1/pos-settings/**,/api/v1/quotations/**,/api/v1/purchases/**,/api/v1/purchase-returns/**,/api/v1/returns/**,/api/v1/recurring-invoices/**,/api/v1/pos-terminals/**,/api/v1/offline/**,/api/v1/cash-registers/**,/api/v1/suspended-sales/**,/api/v1/promotions/**,/api/v1/brand/**
 
         # ---- Payment Service (Stripe webhook first — must match before the authed route) ----
         - id: payment-service-webhook
