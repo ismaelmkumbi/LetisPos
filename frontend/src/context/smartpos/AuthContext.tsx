@@ -2,11 +2,22 @@ import React, {
   createContext, useCallback, useContext, useEffect, useMemo, useState,
 } from 'react';
 import {
-  CurrentUser, fetchMe, fetchMyProfile, fetchTenants, login as apiLogin, logout as apiLogout,
-  type Tenant,
+  CurrentUser, fetchMe, fetchMyProfile, fetchTenants,
+  login as apiLogin, logout as apiLogout,
+  type LoginResponse, type Tenant,
 } from 'src/api/smartpos/auth';
 import { bootstrapAuthSession, tokenStore, refreshAccessToken } from 'src/api/smartpos/client';
 import { getMyMenu } from 'src/api/smartpos/features';
+
+/** Decode JWT payload without verification (data is already trusted from login response). */
+function decodeJwtPayload(token: string): Record<string, unknown> | null {
+  try {
+    const payload = token.split('.')[1];
+    if (!payload) return null;
+    const json = atob(payload.replace(/-/g, '+').replace(/_/g, '/'));
+    return JSON.parse(json);
+  } catch { return null; }
+}
 
 /** Plan hierarchy — higher ordinal = more features. Mirrors backend BillingPlan.java. */
 export const PLAN_LEVEL: Record<string, number> = {
@@ -40,10 +51,38 @@ export function SmartPosAuthProvider({ children }: { children: React.ReactNode }
   const [loading, setLoading] = useState<boolean>(true);
   const [tenants, setTenants] = useState<Tenant[]>([]);
 
-  const loadMe = useCallback(async () => {
-    if (!tokenStore.get()) { setUser(null); return; }
+  /**
+   * Build user state from login response JWT claims — skips the redundant
+   * GET /api/v1/auth/me round-trip. On page reload (no login response), falls
+   * back to fetchMe().
+   */
+  const loadMe = useCallback(async (loginResp?: LoginResponse) => {
+    const token = tokenStore.get();
+    if (!token) { setUser(null); return; }
+
+    // Build base user from login response JWT (avoids /me call after login)
+    let baseUser: CurrentUser | null = null;
+    if (loginResp) {
+      const claims = decodeJwtPayload(token);
+      baseUser = {
+        id: loginResp.user.id,
+        email: loginResp.user.email,
+        status: 'ACTIVE',
+        tenantId: (claims?.tenantId as string) ?? loginResp.user.tenantId ?? '',
+        lastLoginAt: new Date().toISOString(),
+        tenantStatus: claims?.tenantStatus as string | undefined,
+        billingPlan: claims?.billingPlan as string | undefined,
+        maxUsers: claims?.tenantMaxUsers as number | undefined,
+        maxStores: claims?.tenantMaxStores as number | undefined,
+        features: claims?.features as string[] | undefined,
+        roles: claims?.roles as string[] | undefined,
+        permissions: claims?.permissions as string[] | undefined,
+      };
+    }
+
     try {
-      const me = await fetchMe();
+      // On page reload (no loginResp), fetch /me. Otherwise skip it.
+      const me = baseUser ?? await fetchMe();
       tokenStore.setTenantId(me.tenantId || null);
 
       // Fire profile + tenants + menu in parallel (non-blocking enrichment)
@@ -66,8 +105,10 @@ export function SmartPosAuthProvider({ children }: { children: React.ReactNode }
         setTenants(tenantsResult.value);
       }
     } catch {
-      tokenStore.clear();
-      setUser(null);
+      if (!baseUser) {
+        tokenStore.clear();
+        setUser(null);
+      }
     }
   }, []);
 
@@ -83,9 +124,17 @@ export function SmartPosAuthProvider({ children }: { children: React.ReactNode }
   }, [loadMe]);
 
   const login = useCallback(async (email: string, password: string) => {
-    await apiLogin(email, password);
-    await loadMe();
-    // Reset sidebar to full on fresh login
+    setLoading(true);
+    let loginResp: LoginResponse;
+    try {
+      loginResp = await apiLogin(email, password);
+    } catch (e) {
+      setLoading(false);
+      throw e;
+    }
+    // Fire loadMe in background — don't block navigation.
+    // Pass loginResp to skip redundant /me API call.
+    loadMe(loginResp).finally(() => setLoading(false));
     window.dispatchEvent(new CustomEvent('smartpos:auth:login'));
   }, [loadMe]);
 

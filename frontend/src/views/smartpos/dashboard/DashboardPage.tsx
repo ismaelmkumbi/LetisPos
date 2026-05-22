@@ -1,27 +1,15 @@
-import { useEffect, useMemo, useRef, useState, useContext, useCallback } from 'react';
+import { useEffect, useMemo, useState, useContext, useCallback } from 'react';
 import { Alert, Box, Button, Grid, LinearProgress, Stack, Typography } from '@mui/material';
 import { useSearchParams, Link } from 'react-router';
 
-import {
-  getDashboard,
-  getPaymentMethodMix,
-  getForecast,
-  getArAging,
-  type Dashboard,
-  type Forecast,
-  type PaymentMethodMixRow,
-  type Period,
-  type ArAging,
-} from 'src/api/smartpos/reports';
-import { listSales, type Sale } from 'src/api/smartpos/sales';
+import { type Period } from 'src/api/smartpos/reports';
 import { listWarehouses, type Warehouse } from 'src/api/smartpos/inventory';
-import { getExpiringBatches } from 'src/api/smartpos/batches';
-import { getDemandForecast, getReorderRecommendations, getProfitOpportunities, getCustomerRetention, getCashFlowForecast, type DemandForecast, type ReorderRecommendations, type ProfitOpportunities, type CustomerRetention, type CashFlowForecast } from 'src/api/smartpos/dashboardIntelligence';
 import { useAuth } from 'src/context/smartpos/AuthContext';
 import { useOnboarding } from 'src/context/smartpos/OnboardingContext';
 import { CustomizerContext } from 'src/context/CustomizerContext';
 import type { UUID } from 'src/api/smartpos/types';
-import { usePolling } from 'src/hooks/usePolling';
+import { useQueryClient } from '@tanstack/react-query';
+import { useDashboardData, useDashboardIntelligence } from './hooks';
 import { authTheme as at } from 'src/theme/smartpos/authTheme';
 import { brand } from 'src/theme/smartpos/brand';
 import OnboardingBanner from './OnboardingBanner';
@@ -50,9 +38,7 @@ import {
   seriesOrFallback,
   trend,
   formatDateRange,
-  periodRange,
   PERIODS,
-  previousPeriod,
   computeDelta,
   profitMargin,
 } from './utils';
@@ -64,36 +50,56 @@ export default function DashboardPage() {
   const isDark = activeMode === 'dark';
   const [showCelebration, setShowCelebration] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
-  const [data, setData] = useState<Dashboard | null>(null);
-  const [previousData, setPreviousData] = useState<Dashboard | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [sectionError, setSectionError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+
+  // Read initial values from URL, default to MONTH / all warehouses
+  const initPeriod = searchParams.get('period') as Period | null;
+  const [period, setPeriod] = useState<Period>(
+    initPeriod && PERIODS.includes(initPeriod) ? initPeriod : 'MONTH',
+  );
+  const [warehouseId, setWarehouseId] = useState<UUID | ''>(
+    (searchParams.get('warehouseId') ?? '') as UUID | '',
+  );
+
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
-  const [paymentMix, setPaymentMix] = useState<PaymentMethodMixRow[]>([]);
-  const [paymentMixUnavailable, setPaymentMixUnavailable] = useState(false);
-  const [recentSales, setRecentSales] = useState<Sale[]>([]);
-  const [expiringBatchesCount, setExpiringBatchesCount] = useState(0);
-  const [expiringUnitsAtRisk, setExpiringUnitsAtRisk] = useState(0);
   const [lastUpdated, setLastUpdated] = useState<number | null>(null);
-  const [forecast, setForecast] = useState<Forecast | null>(null);
-  const [arAging, setArAging] = useState<ArAging | null>(null);
   const [visibleSections, setVisibleSections] = useState<Set<SectionKey>>(() =>
     loadLayout(user?.tenantId ?? ''),
   );
-  const loadedRef = useRef(false);
 
-  const [demandForecast, setDemandForecast] = useState<DemandForecast | null>(null);
-  const [reorderRecs, setReorderRecs] = useState<ReorderRecommendations | null>(null);
-  const [profitOpps, setProfitOpps] = useState<ProfitOpportunities | null>(null);
-  const [demandLoading, setDemandLoading] = useState(false);
-  const [reorderLoading, setReorderLoading] = useState(false);
-  const [profitLoading, setProfitLoading] = useState(false);
-  const [customerRetention, setCustomerRetention] = useState<CustomerRetention | null>(null);
-  const [cashFlowForecast, setCashFlowForecast] = useState<CashFlowForecast | null>(null);
-  const [retentionLoading, setRetentionLoading] = useState(false);
-  const [cashFlowLoading, setCashFlowLoading] = useState(false);
+  // React Query: caches dashboard data 30s, re-fetches in background
+  const dash = useDashboardData(period, warehouseId || undefined, user?.tenantId);
+  const intel = useDashboardIntelligence(warehouseId || undefined, user?.tenantId);
+
+  // Derive values that were previously from separate state
+  const data = dash.data;
+  const previousData = dash.previousData;
+  const loading = dash.isLoading;
+  const refreshing = dash.isFetching && !dash.isLoading;
+  const error: string | null = dash.isError ? (dash.error as Error)?.message ?? 'Failed to load dashboard' : null;
+  const paymentMix = dash.paymentMix;
+  const paymentMixUnavailable = dash.paymentMixUnavailable;
+  const recentSales = dash.recentSales;
+  const forecast = dash.forecast;
+  const arAging = dash.arAging;
+  const expiringBatchesCount = Array.isArray(dash.expiringBatches) ? dash.expiringBatches.length : 0;
+  const expiringUnitsAtRisk = Array.isArray(dash.expiringBatches)
+    ? dash.expiringBatches.reduce((sum: number, b: { onHand?: number }) => sum + (b?.onHand ?? 0), 0)
+    : 0;
+  const sectionError = dash.recentSales.length === 0 && !dash.isLoading
+    ? 'Live recent sales could not be loaded.'
+    : null;
+
+  const demandForecast = intel.demandForecast.data ?? null;
+  const reorderRecs = intel.reorderRecs.data ?? null;
+  const profitOpps = intel.profitOpps.data ?? null;
+  const customerRetention = intel.customerRetention.data ?? null;
+  const cashFlowForecast = intel.cashFlowForecast.data ?? null;
+  const demandLoading = intel.demandForecast.isLoading;
+  const reorderLoading = intel.reorderRecs.isLoading;
+  const profitLoading = intel.profitOpps.isLoading;
+  const retentionLoading = intel.customerRetention.isLoading;
+  const cashFlowLoading = intel.cashFlowForecast.isLoading;
 
   useEffect(() => {
     if (onboardingState.isComplete) {
@@ -117,15 +123,6 @@ export default function DashboardPage() {
     }
   }, [user?.tenantId]);
 
-  // Read initial values from URL, default to MONTH / all warehouses
-  const initPeriod = searchParams.get('period') as Period | null;
-  const [period, setPeriod] = useState<Period>(
-    initPeriod && PERIODS.includes(initPeriod) ? initPeriod : 'MONTH',
-  );
-  const [warehouseId, setWarehouseId] = useState<UUID | ''>(
-    (searchParams.get('warehouseId') ?? '') as UUID | '',
-  );
-
   useEffect(() => {
     listWarehouses()
       .then((rows) => setWarehouses(rows.filter((r) => r.active)))
@@ -141,159 +138,14 @@ export default function DashboardPage() {
     setSearchParams(next, { replace: true });
   };
 
-  const fetchDashboardData = useCallback(async () => {
-    if (!user?.tenantId) {
-      setLoading(false);
-      return;
-    }
-
-    const isInitialLoad = !loadedRef.current;
-    if (isInitialLoad) {
-      setLoading(true);
-    } else {
-      setRefreshing(true);
-    }
-    setError(null);
-    setSectionError(null);
-    setPaymentMixUnavailable(false);
-
-    const range = periodRange(period);
-    const prev = previousPeriod(period);
-
-    try {
-      const results = await Promise.allSettled([
-        getDashboard({ period, warehouseId: warehouseId || undefined }),
-        prev
-          ? getDashboard({ period: prev, warehouseId: warehouseId || undefined })
-          : Promise.resolve(null),
-        getPaymentMethodMix(range),
-        listSales({
-          ...range,
-          warehouseId: warehouseId || undefined,
-          status: 'CONFIRMED',
-          page: 0,
-          size: 5,
-          sort: 'date,desc',
-        }),
-        getExpiringBatches({ withinDays: 30 }),
-        getForecast({ period, warehouseId: warehouseId || undefined, days: 30 }),
-        getArAging(),
-      ]);
-
-      if (results[0].status === 'rejected') {
-        throw results[0].reason;
-      }
-
-      setData(results[0].value);
-      setPreviousData(
-        results[1].status === 'fulfilled' ? results[1].value : null,
-      );
-      setPaymentMix(
-        results[2].status === 'fulfilled' ? results[2].value : [],
-      );
-      setPaymentMixUnavailable(results[2].status === 'rejected');
-      setRecentSales(
-        results[3].status === 'fulfilled' ? (results[3].value?.content ?? []) : [],
-      );
-
-      if (results[4].status === 'fulfilled' && Array.isArray(results[4].value)) {
-        setExpiringBatchesCount(results[4].value.length);
-        setExpiringUnitsAtRisk(
-          results[4].value.reduce((sum, b) => sum + (b?.onHand ?? 0), 0),
-        );
-      } else {
-        setExpiringBatchesCount(0);
-        setExpiringUnitsAtRisk(0);
-      }
-
-      if (results[5].status === 'fulfilled') {
-        setForecast(results[5].value);
-      } else {
-        setForecast(null);
-      }
-
-      if (results[6]?.status === 'fulfilled') setArAging(results[6].value);
-
-      const failedSections = [
-        results[3].status === 'rejected' ? 'recent sales' : null,
-      ].filter(Boolean);
-      setSectionError(
-        failedSections.length
-          ? `Live ${failedSections.join(' and ')} could not be loaded.`
-          : null,
-      );
-
-      loadedRef.current = true;
-      setLastUpdated(Date.now());
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load dashboard');
-      if (!loadedRef.current) {
-        setLoading(false);
-      }
-    } finally {
-      if (isInitialLoad) {
-        setLoading(false);
-      }
-      setRefreshing(false);
-    }
-  }, [period, warehouseId, user?.tenantId]);
-
+  // Track last successful data arrival for the "last updated" timestamp
   useEffect(() => {
-    fetchDashboardData();
-  }, [fetchDashboardData]);
-
-  const fetchIntelligenceModules = useCallback(async () => {
-    if (!user?.tenantId) return;
-    const wid = warehouseId || undefined;
-
-    // Fire all 5 in parallel, each non-blocking
-    setDemandLoading(true);
-    setReorderLoading(true);
-    setProfitLoading(true);
-    setRetentionLoading(true);
-    setCashFlowLoading(true);
-
-    try {
-      const resp = await getDemandForecast(7, wid);
-      if (resp.data) setDemandForecast(resp.data);
-    } catch { /* silent */ }
-    finally { setDemandLoading(false); }
-
-    try {
-      const resp = await getReorderRecommendations(wid);
-      if (resp.data) setReorderRecs(resp.data);
-    } catch { /* silent */ }
-    finally { setReorderLoading(false); }
-
-    try {
-      const resp = await getProfitOpportunities(wid);
-      if (resp.data) setProfitOpps(resp.data);
-    } catch { /* silent */ }
-    finally { setProfitLoading(false); }
-
-    try {
-      const resp = await getCustomerRetention();
-      if (resp.data) setCustomerRetention(resp.data);
-    } catch { /* silent */ }
-    finally { setRetentionLoading(false); }
-
-    try {
-      const resp = await getCashFlowForecast(30);
-      if (resp.data) setCashFlowForecast(resp.data);
-    } catch { /* silent */ }
-    finally { setCashFlowLoading(false); }
-  }, [user?.tenantId, warehouseId]);
-
-  useEffect(() => {
-    fetchIntelligenceModules();
-  }, [fetchIntelligenceModules]);
-
-  // Auto-refresh every 60 seconds
-  usePolling(fetchDashboardData, 60000);
+    if (data) setLastUpdated(Date.now());
+  }, [data]);
 
   const handleManualRefresh = useCallback(() => {
-    fetchDashboardData();
-  }, [fetchDashboardData]);
+    queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+  }, [queryClient]);
 
   const salesSeries = useMemo(() => seriesOrFallback(data), [data]);
   const previousSalesSeries = useMemo(

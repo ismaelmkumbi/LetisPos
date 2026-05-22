@@ -10,7 +10,10 @@ import { commerceAdminRoutes, storefrontRoutes } from './smartpos/CommerceRoutes
 
 import { PosLayoutProvider } from 'src/context/smartpos/PosLayoutContext';
 /* ***Layouts**** */
-const FullLayout = Loadable(lazy(() => import('../layouts/full/FullLayout')));
+// FullLayout is the shell for ALL authenticated routes — eager-load it so the
+// browser downloads & parses it while the user is on the login page, rather
+// than waiting for it after sign-in.
+import FullLayout from '../layouts/full/FullLayout';
 const BlankLayout = Loadable(lazy(() => import('../layouts/blank/BlankLayout')));
 
 /* ****SmartPOS pages***** */
