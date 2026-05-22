@@ -19,7 +19,7 @@ export default function ChatHeader({ onClose, onClear }: Props) {
         <>
           <IconSparkles size={20} style={{ color: c.accent }} />
           <Typography sx={{ ml: 1, flex: 1, fontFamily: '"DM Serif Display", Georgia, serif', fontSize: '1.05rem', fontWeight: 400, color: c.text, letterSpacing: '0.02em' }}>
-            Letis AI
+            Letis Pos Assistant
           </Typography>
         </>
       )}

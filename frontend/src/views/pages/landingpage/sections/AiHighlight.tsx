@@ -48,7 +48,7 @@ const AiHighlight: React.FC = () => {
                 mb: 4,
               }}
             >
-              Letis AI analyzes your sales and inventory data to surface what matters — predictions, alerts, and insights — so you can focus on running your business.
+              Letis Pos Assistant analyzes your sales and inventory data to surface what matters — predictions, alerts, and insights — so you can focus on running your business.
             </Typography>
             <Stack spacing={3}>
               {capabilities.map((cap) => (
