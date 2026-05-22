@@ -58,11 +58,11 @@ function loadConversations(): ConversationMeta[] {
     if (!raw) return [];
     const data = JSON.parse(raw) as ConversationMeta[];
     return data.filter(c => Date.now() - c.timestamp < TTL_MS);
-  } catch { return []; }
+  } catch { /* localStorage unavailable */ return []; }
 }
 
 function saveConversations(convs: ConversationMeta[]) {
-  try { localStorage.setItem(CONV_INDEX_KEY, JSON.stringify(convs)); } catch {}
+  try { localStorage.setItem(CONV_INDEX_KEY, JSON.stringify(convs)); } catch { /* localStorage unavailable */ }
 }
 
 function loadMessages(convId: string): ChatMessage[] {
@@ -72,18 +72,18 @@ function loadMessages(convId: string): ChatMessage[] {
     const data = JSON.parse(raw) as { msgs: ChatMessage[]; ts: number };
     if (Date.now() - data.ts > TTL_MS) return [];
     return data.msgs.slice(-MAX_MSGS);
-  } catch { return []; }
+  } catch { /* localStorage unavailable */ return []; }
 }
 
 function saveMessages(convId: string, msgs: ChatMessage[]) {
   try {
     const toSave = msgs.filter(m => m.role !== 'tool' || m.toolResult).slice(-MAX_MSGS);
     localStorage.setItem(`${STORAGE_KEY}_${convId}`, JSON.stringify({ msgs: toSave, ts: Date.now() }));
-  } catch {}
+  } catch { /* localStorage unavailable */ }
 }
 
 function removeMessages(convId: string) {
-  try { localStorage.removeItem(`${STORAGE_KEY}_${convId}`); } catch {}
+  try { localStorage.removeItem(`${STORAGE_KEY}_${convId}`); } catch { /* localStorage unavailable */ }
 }
 
 export function AssistantProvider({ children }: { children: React.ReactNode }) {
@@ -119,7 +119,7 @@ export function AssistantProvider({ children }: { children: React.ReactNode }) {
       saveConversations(trimmed);
       setConversations(trimmed);
     }
-  }, [messages.length, conversationId]);
+  }, [messages, conversationId]);
 
   const toggle = useCallback(() => {
     setOpen(o => {
