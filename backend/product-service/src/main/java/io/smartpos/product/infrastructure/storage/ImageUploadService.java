@@ -29,11 +29,21 @@ public class ImageUploadService {
                     .contentType(contentType)
                     .build());
         }
-        return client.getPresignedObjectUrl(GetPresignedObjectUrlArgs.builder()
+        String presigned = client.getPresignedObjectUrl(GetPresignedObjectUrlArgs.builder()
                 .method(Method.GET)
                 .bucket(props.bucket())
                 .object(key)
                 .expiry(props.presignedTtlSeconds(), TimeUnit.SECONDS)
                 .build());
+
+        // Rewrite internal URL → public URL so browser can load the image
+        if (props.publicEndpoint() != null && !props.publicEndpoint().isBlank()) {
+            // Extract path+query from internal presigned URL and prefix with public endpoint
+            int pathIdx = presigned.indexOf('/', 9); // skip "http://" then find first /
+            if (pathIdx > 0) {
+                presigned = props.publicEndpoint().replaceAll("/$", "") + presigned.substring(pathIdx);
+            }
+        }
+        return presigned;
     }
 }

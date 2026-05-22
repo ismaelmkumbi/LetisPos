@@ -30,6 +30,9 @@ public class MinioConfig {
     @Value("${smartpos.minio.presigned-ttl-seconds:3600}")
     private int presignedTtlSeconds;
 
+    @Value("${smartpos.minio.public-endpoint:#{null}}")
+    private String publicEndpoint;
+
     @Bean
     public MinioClient minioClient() {
         return MinioClient.builder()
@@ -40,8 +43,11 @@ public class MinioConfig {
 
     @Bean
     public MinioProperties minioProperties() {
-        return new MinioProperties(bucket, presignedTtlSeconds);
+        return new MinioProperties(bucket, presignedTtlSeconds, publicEndpoint);
     }
+
+
+    public record MinioProperties(String bucket, int presignedTtlSeconds, String publicEndpoint) {}
 
     @PostConstruct
     void ensureBucket() {

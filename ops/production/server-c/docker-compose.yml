@@ -161,6 +161,7 @@ services:
       MINIO_ACCESS_KEY: smartpos
       MINIO_SECRET_KEY: smartpos-secret
       MINIO_BUCKET: smartpos-product-images
+      MINIO_PUBLIC_ENDPOINT: https://letispos.com/files
       JAVA_TOOL_OPTIONS: "-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:+UseZGC -XX:+ExitOnOutOfMemoryError"
     ports:
       - "0.0.0.0:8083:8083"
