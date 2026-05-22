@@ -1,11 +1,14 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { ThemeProvider, createTheme, CssBaseline } from '@mui/material';
-import Login from './pages/Login';
-import Dashboard from './pages/Dashboard';
+import { ThemeProvider, createTheme, CssBaseline, CircularProgress, Box } from '@mui/material';
 import { isAuthenticated } from './api/client';
+import ErrorBoundary from './components/ErrorBoundary';
 import { brand } from './theme';
 
-const letheme = createTheme({
+const Login = lazy(() => import('./pages/Login'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+
+const theme = createTheme({
   palette: {
     mode: 'dark',
     primary: { main: brand.primary[500] },
@@ -27,20 +30,32 @@ const letheme = createTheme({
   },
 });
 
+function Loader() {
+  return (
+    <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', bgcolor: brand.neutral[900] }}>
+      <CircularProgress size={32} sx={{ color: brand.primary[500] }} />
+    </Box>
+  );
+}
+
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return isAuthenticated() ? <>{children}</> : <Navigate to="/login" replace />;
 }
 
 export default function App() {
   return (
-    <ThemeProvider theme={letheme}>
-      <CssBaseline />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/*" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-        </Routes>
-      </BrowserRouter>
-    </ThemeProvider>
+    <ErrorBoundary>
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <BrowserRouter>
+          <Suspense fallback={<Loader />}>
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route path="/*" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            </Routes>
+          </Suspense>
+        </BrowserRouter>
+      </ThemeProvider>
+    </ErrorBoundary>
   );
 }

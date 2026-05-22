@@ -4,6 +4,7 @@ import {
   Typography, TextField, MenuItem, Chip, IconButton, CircularProgress,
 } from '@mui/material';
 import { Refresh, Close, DeleteSweep, DeleteForever } from '@mui/icons-material';
+import type { ServerId } from '../api/hub';
 import { getLogs, clearLogs } from '../api/hub';
 import { brand } from '../theme';
 
@@ -13,7 +14,6 @@ interface LogEntry {
 }
 
 function parseLogLine(line: string): LogEntry | null {
-  // Parse journald short-iso: "TIMESTAMP HOST PROC[PID]: MESSAGE"
   const re = /^(\S+) (\S+) (\S+?)(?:\[(\d+)\])?: (.*)/;
   const m = line.match(re);
   if (!m) return { time: '', host: '', proc: '', pid: '', message: line, level: 'INFO' };
@@ -37,7 +37,11 @@ const LEVEL_BG: Record<string, string> = {
 };
 
 interface Props {
-  open: boolean; server: string; service: string; grep?: boolean; onClose: () => void;
+  open: boolean;
+  server: ServerId;
+  service: string;
+  grep?: boolean;
+  onClose: () => void;
 }
 
 export default function LogViewer({ open, server, service, grep, onClose }: Props) {
@@ -70,8 +74,8 @@ export default function LogViewer({ open, server, service, grep, onClose }: Prop
 
   useEffect(() => { if (bottomRef.current) bottomRef.current.scrollTop = bottomRef.current.scrollHeight; }, [entries]);
 
-  const errorCount = entries.filter(e => e.level === 'ERROR').length;
-  const warnCount = entries.filter(e => e.level === 'WARN').length;
+  const errorCount = entries.filter((e) => e.level === 'ERROR').length;
+  const warnCount = entries.filter((e) => e.level === 'WARN').length;
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="xl" fullWidth slotProps={{ paper: { sx: { borderRadius: '14px', bgcolor: brand.neutral[800], border: `1px solid ${brand.neutral[700]}`, height: '85vh' } } }}>
@@ -93,12 +97,12 @@ export default function LogViewer({ open, server, service, grep, onClose }: Prop
       <DialogContent sx={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         {/* Controls */}
         <Stack direction="row" spacing={1} sx={{ mb: 1.5, alignItems: 'center' }}>
-          <TextField select size="small" value={tail} onChange={e => setTail(Number(e.target.value))}
+          <TextField select size="small" value={tail} onChange={(e) => setTail(Number(e.target.value))}
             sx={{ width: 85, '& .MuiOutlinedInput-root': { height: 32, borderRadius: '8px', fontWeight: 600, fontSize: '0.7rem', color: brand.neutral[50], '& fieldset': { borderColor: brand.neutral[600] }, '&:hover fieldset': { borderColor: brand.neutral[400] } }, '& .MuiSelect-icon': { color: brand.neutral[400] } }}>
-            {[50, 100, 200, 500, 1000].map(n => <MenuItem key={n} value={n} sx={{ fontSize: '0.75rem' }}>{n}</MenuItem>)}
+            {[50, 100, 200, 500, 1000].map((n) => <MenuItem key={n} value={n} sx={{ fontSize: '0.75rem' }}>{n}</MenuItem>)}
           </TextField>
-          <TextField size="small" placeholder="Filter..." value={filter} onChange={e => setFilter(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter') fetchLogs(); }}
+          <TextField size="small" placeholder="Filter..." value={filter} onChange={(e) => setFilter(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') fetchLogs(); }}
             sx={{ flex: 1, '& .MuiOutlinedInput-root': { height: 32, borderRadius: '8px', fontWeight: 500, fontSize: '0.7rem', color: brand.neutral[50], '& fieldset': { borderColor: brand.neutral[600] }, '&:hover fieldset': { borderColor: brand.neutral[400] }, '&.Mui-focused fieldset': { borderColor: brand.primary[500] } }, '& .MuiInputBase-input::placeholder': { color: brand.neutral[500] } }} />
           <IconButton size="small" onClick={fetchLogs} disabled={loading} sx={{ color: brand.neutral[400], border: `1px solid ${brand.neutral[600]}`, borderRadius: '8px' }}>
             {loading ? <CircularProgress size={14} /> : <Refresh fontSize="small" />}
@@ -130,21 +134,17 @@ export default function LogViewer({ open, server, service, grep, onClose }: Prop
                   bgcolor: i % 2 === 0 ? 'transparent' : `${brand.neutral[800]}40`,
                   '&:hover': { bgcolor: `${brand.neutral[700]}40` },
                 }}>
-                  {/* Level badge */}
                   <Box sx={{ minWidth: 42, textAlign: 'center', pt: 0.1 }}>
                     <Typography sx={{ fontSize: '0.55rem', fontWeight: 800, color: LEVEL_COLORS[e.level], letterSpacing: '0.03em' }}>
                       {e.level}
                     </Typography>
                   </Box>
-                  {/* Timestamp */}
                   <Typography sx={{ color: brand.neutral[500], fontSize: '0.6rem', whiteSpace: 'nowrap', minWidth: 70, pt: 0.15 }}>
                     {e.time}
                   </Typography>
-                  {/* Process */}
                   <Typography sx={{ color: brand.primary[400], fontSize: '0.6rem', whiteSpace: 'nowrap', minWidth: 100, pt: 0.15, overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {e.proc}{e.pid ? `[${e.pid}]` : ''}
                   </Typography>
-                  {/* Message */}
                   <Typography sx={{ color: e.level === 'ERROR' ? brand.error.main : e.level === 'WARN' ? brand.warning.main : brand.neutral[300], fontSize: '0.65rem', lineHeight: 1.5, wordBreak: 'break-all', flex: 1, pt: 0.15 }}>
                     {e.message}
                   </Typography>
