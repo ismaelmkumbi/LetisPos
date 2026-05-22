@@ -14,6 +14,10 @@ spring:
     openfeign:
       client:
         config:
+          default:
+            connect-timeout: 3000
+            read-timeout: 10000
+            logger-level: basic
           billing-service:
             url: ${BILLING_URI:http://localhost:8094}
 
@@ -41,6 +45,12 @@ spring:
     baseline-on-migrate: true
     validate-on-migrate: ${FLYWAY_VALIDATE_ON_MIGRATE:false}
     locations: classpath:db/migration
+
+  cache:
+    type: redis
+    redis:
+      time-to-live: 60000       # 60s — auth claims rarely change within a session
+      cache-null-values: false
 
   data:
     redis:

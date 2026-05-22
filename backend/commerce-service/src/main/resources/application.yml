@@ -77,9 +77,21 @@ resilience4j:
         sliding-window-size: 10
         failure-rate-threshold: 50
         wait-duration-in-open-state: 30s
+      sales-service:
+        sliding-window-size: 10
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 30s
+      payment-service:
+        sliding-window-size: 10
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 30s
   retry:
     instances:
       product-service:
+        max-attempts: 3
+      sales-service:
+        max-attempts: 3
+      payment-service:
         max-attempts: 3
         wait-duration: 100ms
         exponential-backoff-multiplier: 2

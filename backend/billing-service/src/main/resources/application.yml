@@ -16,6 +16,14 @@ spring:
     enabled: true
     baseline-on-migrate: true
     validate-on-migrate: ${FLYWAY_VALIDATE_ON_MIGRATE:false}
+  cloud:
+    openfeign:
+      client:
+        config:
+          default:
+            connect-timeout: 3000
+            read-timeout: 10000
+            logger-level: basic
   security:
     oauth2:
       resourceserver:

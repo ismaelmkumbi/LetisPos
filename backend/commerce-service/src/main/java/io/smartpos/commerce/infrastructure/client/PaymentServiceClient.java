@@ -16,8 +16,8 @@ public class PaymentServiceClient {
 
     private final RestClient.Builder restClientBuilder;
 
-    @CircuitBreaker(name = "product-service")
-    @Retry(name = "product-service")
+    @CircuitBreaker(name = "payment-service")
+    @Retry(name = "payment-service")
     public Map<String, Object> capturePayment(Map<String, Object> paymentRequest) {
         var client = restClientBuilder.build();
         return client.post()

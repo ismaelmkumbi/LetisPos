@@ -17,8 +17,8 @@ public class SalesServiceClient {
 
     private final RestClient.Builder restClientBuilder;
 
-    @CircuitBreaker(name = "product-service")  // reuse product breaker name
-    @Retry(name = "product-service")
+    @CircuitBreaker(name = "sales-service")
+    @Retry(name = "sales-service")
     public Map<String, Object> createOrder(Map<String, Object> orderRequest) {
         var client = restClientBuilder.build();
         return client.post()
@@ -28,7 +28,7 @@ public class SalesServiceClient {
             .body(Map.class);
     }
 
-    @CircuitBreaker(name = "product-service")
+    @CircuitBreaker(name = "sales-service")
     public Map<String, Object> getOrder(UUID orderId) {
         var client = restClientBuilder.build();
         return client.get()
