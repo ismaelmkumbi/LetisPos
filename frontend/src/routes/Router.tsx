@@ -281,7 +281,7 @@ const SmartPosOperationsReport = Loadable(lazy(() => import('../views/smartpos/r
 const SmartPosReportSchedules = Loadable(lazy(() => import('../views/smartpos/reports/ReportSchedulesPage')));
 const SmartPosReportBuilder = Loadable(lazy(() => import('../views/smartpos/reports/ReportBuilderPage')));
 const SmartPosSettings = Loadable(
-  lazy(() => import('../views/smartpos/settings/SettingsPlaceholder')),
+  lazy(() => import('../views/smartpos/settings/SettingsHubPage')),
 );
 const SmartPosUsersRoles = Loadable(
   lazy(() =>
