@@ -233,7 +233,9 @@ export function AiProductAgent({ categories, brands, units, currentValues = {}, 
       setResponse(res);
       setFields(mapResponseToFields(res, categories, brands, units));
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Failed to generate product suggestion';
+      const msg = err instanceof Error
+        ? (err.message.includes('timeout') ? 'AI is taking too long — try a shorter or more specific description.' : err.message)
+        : 'Failed to generate product suggestion';
       setError(msg);
     } finally {
       setLoading(false);
@@ -323,7 +325,10 @@ export function AiProductAgent({ categories, brands, units, currentValues = {}, 
       setResponse(res);
       setFields(mapResponseToFields(res, categories, brands, units));
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Vision lookup failed');
+      const msg = err instanceof Error
+        ? (err.message.includes('timeout') ? 'Image analysis timed out — try a smaller or clearer image.' : err.message)
+        : 'Vision lookup failed';
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -354,7 +359,10 @@ export function AiProductAgent({ categories, brands, units, currentValues = {}, 
         setError('No matching variants. Try a more specific name.');
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Variant lookup failed');
+      const msg = err instanceof Error
+        ? (err.message.includes('timeout') ? 'Variant search timed out — try a more specific product name.' : err.message)
+        : 'Variant lookup failed';
+      setError(msg);
     } finally {
       setLoading(false);
     }

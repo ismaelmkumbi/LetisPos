@@ -50,7 +50,7 @@ export interface ProductSuggestion {
 }
 
 export async function aiSuggestProduct(body: ProductSuggestBody): Promise<ProductSuggestion> {
-  const { data } = await api.post<ProductSuggestion>('/api/v1/ai/products/suggest', body);
+  const { data } = await api.post<ProductSuggestion>('/api/v1/ai/products/suggest', body, { timeout: 60_000 });
   return data;
 }
 
@@ -98,7 +98,7 @@ export interface ProductDescribeResponse {
 }
 
 export async function aiDescribeProduct(body: ProductDescribeBody): Promise<ProductDescribeResponse> {
-  const { data } = await api.post<ProductDescribeResponse>('/api/v1/ai/products/describe', body);
+  const { data } = await api.post<ProductDescribeResponse>('/api/v1/ai/products/describe', body, { timeout: 60_000 });
   return data;
 }
 
@@ -141,7 +141,7 @@ export interface ProductImportMapResponse {
 }
 
 export async function aiImportMap(body: ProductImportMapBody): Promise<ProductImportMapResponse> {
-  const { data } = await api.post<ProductImportMapResponse>('/api/v1/ai/products/import-map', body);
+  const { data } = await api.post<ProductImportMapResponse>('/api/v1/ai/products/import-map', body, { timeout: 90_000 });
   return data;
 }
 
@@ -155,7 +155,7 @@ export interface ProductFromImageBody {
 }
 
 export async function aiProductFromImage(body: ProductFromImageBody): Promise<ProductDescribeResponse> {
-  const { data } = await api.post<ProductDescribeResponse>('/api/v1/ai/products/from-image', body);
+  const { data } = await api.post<ProductDescribeResponse>('/api/v1/ai/products/from-image', body, { timeout: 60_000 });
   return data;
 }
 
@@ -190,6 +190,6 @@ export interface ProductCandidatesResponse {
 }
 
 export async function aiProductCandidates(body: ProductSuggestBody): Promise<ProductCandidatesResponse> {
-  const { data } = await api.post<ProductCandidatesResponse>('/api/v1/ai/products/candidates', body);
+  const { data } = await api.post<ProductCandidatesResponse>('/api/v1/ai/products/candidates', body, { timeout: 60_000 });
   return data;
 }
