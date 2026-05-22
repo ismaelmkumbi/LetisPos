@@ -2,10 +2,12 @@ package io.smartpos.sales.domain.model;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.DynamicInsert;
 import java.time.Instant;
 import java.util.UUID;
 
 @Entity
+@DynamicInsert
 @Table(name = "brand_profiles")
 @Getter
 @Setter
