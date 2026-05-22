@@ -25,6 +25,7 @@ services:
       MINIO_ENDPOINT: http://minio:9000
       MINIO_ACCESS_KEY: smartpos
       MINIO_SECRET_KEY: smartpos-secret
+      SPRING_APPLICATION_JSON: '{"minio":{"endpoint":"http://minio:9000","access-key":"smartpos","secret-key":"smartpos-secret"}}'
       NOTIFICATION_SERVICE_URL: http://notification-service:8089
       REPORT_SERVICE_URL: http://report-service:8087
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
