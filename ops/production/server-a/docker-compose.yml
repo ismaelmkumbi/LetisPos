@@ -23,6 +23,7 @@ services:
       KAFKA_BOOTSTRAP: 10.0.0.3:9094
       KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094
       NOTIFICATION_SERVICE_URL: http://notification-service:8089
+      REPORT_SERVICE_URL: http://report-service:8087
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://api.openai.com/v1}
       OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}

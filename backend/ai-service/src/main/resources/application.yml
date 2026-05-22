@@ -58,6 +58,7 @@ smartpos:
     auth-service-url: ${AUTH_SERVICE_URL:http://localhost:8081}
     notification-service-url: ${NOTIFICATION_SERVICE_URL:http://localhost:8089}
     document-service-url: ${DOCUMENT_SERVICE_URL:http://localhost:8093}
+    report-service-url: ${REPORT_SERVICE_URL:http://report-service:8087}
     # Active provider — one of: anthropic | openai | deepseek | stub
     provider: ${AI_PROVIDER:stub}
     anthropic:
