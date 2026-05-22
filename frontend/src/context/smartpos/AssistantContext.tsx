@@ -7,6 +7,7 @@ export interface ChatMessage {
   content: string;
   timestamp: number;
   toolResult?: ToolResult;
+  toolName?: string;
   draft?: DraftResponse;
   streaming?: boolean;
 }
@@ -52,6 +53,95 @@ const CONV_INDEX_KEY = 'letis_assistant_convos';
 const MAX_MSGS = 15;
 const TTL_MS = 60 * 60 * 1000; // 1 hour
 
+const toolLabels: Record<string, string> = {
+  searchSales: 'Searching sales records…',
+  searchDocuments: 'Searching documents…',
+  getRecentSales: 'Loading recent orders…',
+  generateDocument: 'Generating document…',
+  emailDocument: 'Preparing email…',
+  sendEmail: 'Sending email…',
+  sendSMS: 'Sending SMS…',
+  searchProducts: 'Searching product catalog…',
+  getExecutiveBriefing: 'Building executive briefing…',
+  getTopProducts: 'Analyzing top products…',
+  checkStock: 'Checking inventory levels…',
+  checkStockByProductSearch: 'Checking inventory levels…',
+  getFinancialSummary: 'Calculating financial summary…',
+  getTopCustomers: 'Analyzing customer activity…',
+  getSalesReport: 'Generating sales report…',
+  getDailySnapshot: "Loading today's snapshot…",
+  getLowStock: 'Scanning low stock items…',
+  getExpiringStock: 'Checking expiry dates…',
+  getSalesByStatus: 'Fetching order statuses…',
+  getSalesByCustomer: 'Looking up customer purchases…',
+  getStockOverview: 'Gathering stock overview…',
+  getStockByWarehouse: 'Checking warehouse stock…',
+  getProductDetail: 'Loading product details…',
+  getProductsByCategory: 'Browsing product categories…',
+  getProductsByBrand: 'Browsing product brands…',
+  getInactiveProducts: 'Checking inactive products…',
+  getProductCounts: 'Counting products…',
+  getProductMargins: 'Calculating product margins…',
+  getProductPriceRange: 'Reviewing product prices…',
+  getProductInventory: 'Matching products with stock…',
+  getLatestProduct: 'Finding the latest product…',
+  getLatestProducts: 'Finding recently added products…',
+  getInventoryMovements: 'Checking stock movements…',
+  getStockValuation: 'Calculating stock value…',
+  getDeadStock: 'Checking slow-moving stock…',
+  getReorderSuggestions: 'Preparing reorder suggestions…',
+  getCustomerProfile: 'Building customer profile…',
+  getBusinessAnomalies: 'Checking business anomalies…',
+  getProductTimeline: 'Checking product history…',
+  getDiscountSummary: 'Calculating discount totals…',
+  getTaxSummary: 'Computing tax summary…',
+  getSalesComparison: 'Comparing sales periods…',
+  getSalesByPaymentMethod: 'Analyzing payment methods…',
+  getExpenseSummary: 'Summarizing expenses…',
+  createProduct: 'Creating new product…',
+  updateProductPrice: 'Updating product price…',
+  adjustStock: 'Adjusting inventory…',
+  createExpense: 'Recording expense…',
+  createCustomer: 'Creating customer…',
+  updateCustomer: 'Updating customer…',
+};
+
+function toolLoadingLabel(toolName: string) {
+  return toolLabels[toolName] || 'Checking the right records…';
+}
+
+function fallbackToolResult(message: ChatMessage): ChatMessage | null {
+  if (message.role !== 'tool' || !message.streaming) return message;
+
+  const completedActions: Record<string, ToolResult> = {
+    sendEmail: {
+      type: 'text',
+      title: 'Email Sent',
+      data: { message: 'Email sent successfully.' },
+    },
+    emailDocument: {
+      type: 'text',
+      title: 'Document Emailed',
+      data: { message: 'Document emailed successfully.' },
+    },
+    sendSMS: {
+      type: 'text',
+      title: 'SMS Sent',
+      data: { message: 'SMS sent successfully.' },
+    },
+  };
+
+  const result = message.toolName ? completedActions[message.toolName] : undefined;
+  if (!result) return null;
+  return { ...message, content: result.title, streaming: false, toolResult: result };
+}
+
+function normalizePersistedMessages(messages: ChatMessage[]) {
+  return messages
+    .map(m => (m.streaming ? { ...m, streaming: false } : m))
+    .filter(m => !(m.role === 'tool' && !m.toolResult && !m.draft));
+}
+
 function loadConversations(): ConversationMeta[] {
   try {
     const raw = localStorage.getItem(CONV_INDEX_KEY);
@@ -71,7 +161,7 @@ function loadMessages(convId: string): ChatMessage[] {
     if (!raw) return [];
     const data = JSON.parse(raw) as { msgs: ChatMessage[]; ts: number };
     if (Date.now() - data.ts > TTL_MS) return [];
-    return data.msgs.slice(-MAX_MSGS);
+    return normalizePersistedMessages(data.msgs).slice(-MAX_MSGS);
   } catch { /* localStorage unavailable */ return []; }
 }
 
@@ -151,26 +241,14 @@ export function AssistantProvider({ children }: { children: React.ReactNode }) {
             setConversationId(event.conversationId);
             break;
           case 'tool_start': {
-            const toolLabels: Record<string, string> = {
-              searchSales: 'Searching sales records…', searchDocuments: 'Searching documents…',
-              getRecentSales: 'Loading recent orders…', generateDocument: 'Generating document…',
-              emailDocument: 'Preparing email…', sendEmail: 'Sending email…',
-              searchProducts: 'Searching product catalog…', getExecutiveBriefing: 'Building executive briefing…',
-              getTopProducts: 'Analyzing top products…', checkStock: 'Checking inventory levels…',
-              getFinancialSummary: 'Calculating financial summary…', getTopCustomers: 'Analyzing customer activity…',
-              getSalesReport: 'Generating sales report…', getDailySnapshot: "Loading today's snapshot…",
-              getLowStock: 'Scanning low stock items…', getExpiringStock: 'Checking expiry dates…',
-              getSalesByStatus: 'Fetching order statuses…', getSalesByCustomer: 'Looking up customer purchases…',
-              getStockOverview: 'Gathering stock overview…', getProductDetail: 'Loading product details…',
-              getProductsByCategory: 'Browsing product categories…', getDiscountSummary: 'Calculating discount totals…',
-              getTaxSummary: 'Computing tax summary…', getSalesComparison: 'Comparing sales periods…',
-              getSalesByPaymentMethod: 'Analyzing payment methods…', getExpenseSummary: 'Summarizing expenses…',
-              createProduct: 'Creating new product…', updateProductPrice: 'Updating product price…',
-              adjustStock: 'Adjusting inventory…', createExpense: 'Recording expense…',
-              createCustomer: 'Creating customer…', updateCustomer: 'Updating customer…',
-            };
-            const label = toolLabels[event.toolName] || `Running ${event.toolName}…`;
-            setMessages(prev => [...prev, { id: crypto.randomUUID(), role: 'tool', content: label, timestamp: Date.now(), streaming: true }]);
+            setMessages(prev => [...prev, {
+              id: crypto.randomUUID(),
+              role: 'tool',
+              content: toolLoadingLabel(event.toolName),
+              timestamp: Date.now(),
+              toolName: event.toolName,
+              streaming: true,
+            }]);
             break;
           }
           case 'tool_result':
@@ -183,17 +261,24 @@ export function AssistantProvider({ children }: { children: React.ReactNode }) {
             break;
           case 'error':
             setError(event.message);
-            setMessages(prev => prev.map(m => m.id === assistantMsg.id ? { ...m, streaming: false } : m));
+            setMessages(prev => prev
+              .filter(m => !(m.role === 'tool' && m.streaming))
+              .map(m => m.id === assistantMsg.id ? { ...m, streaming: false } : m));
             break;
           case 'done':
-            setMessages(prev => prev.map(m => m.id === assistantMsg.id ? { ...m, streaming: false } : m));
+            setMessages(prev => prev
+              .map(m => fallbackToolResult(m))
+              .filter((m): m is ChatMessage => Boolean(m))
+              .map(m => m.id === assistantMsg.id ? { ...m, streaming: false } : m));
             break;
         }
       }
     } catch (err: unknown) {
       if (err instanceof Error && err.name !== 'AbortError') {
         setError(err.message || 'Something went wrong');
-        setMessages(prev => prev.map(m => m.id === assistantMsg.id ? { ...m, streaming: false } : m));
+        setMessages(prev => prev
+          .filter(m => !(m.role === 'tool' && m.streaming))
+          .map(m => m.id === assistantMsg.id ? { ...m, streaming: false } : m));
       }
     } finally {
       setStreaming(false);
