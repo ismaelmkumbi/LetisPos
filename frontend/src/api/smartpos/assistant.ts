@@ -57,50 +57,79 @@ export async function* streamChat(
 
   const decoder = new TextDecoder();
   let buffer = '';
+  let currentEvent = '';
+  let dataLines: string[] = [];
+
+  function parseEvent(eventName: string, dataStr: string): StreamEvent | null {
+    if (!dataStr || dataStr === '{}') {
+      return eventName === 'done' ? { type: 'done' } : null;
+    }
+
+    try {
+      const payload = JSON.parse(dataStr);
+      switch (eventName) {
+        case 'meta':
+          return { type: 'meta', conversationId: payload.conversationId || '' };
+        case 'token':
+          return { type: 'token', token: payload.token || '' };
+        case 'tool_start':
+          return { type: 'tool_start', toolName: payload.toolName || '' };
+        case 'tool_result':
+          return { type: 'tool_result', result: payload as ToolResult };
+        case 'draft':
+          return { type: 'draft', draft: payload as DraftResponse };
+        case 'error':
+          return { type: 'error', message: payload.message || 'Unknown error', code: payload.code || 'UNKNOWN' };
+        case 'done':
+          return { type: 'done' };
+        default:
+          return null;
+      }
+    } catch {
+      return null;
+    }
+  }
+
+  function flushEvent(): StreamEvent | null {
+    if (!currentEvent) return null;
+    const event = parseEvent(currentEvent, dataLines.join('\n').trim());
+    currentEvent = '';
+    dataLines = [];
+    return event;
+  }
 
   while (true) {
     const { done, value } = await reader.read();
-    if (done) break;
+    if (done) {
+      const tail = buffer.trim();
+      if (tail) {
+        for (const line of tail.split(/\r?\n/)) {
+          if (line.startsWith('event:')) {
+            currentEvent = line.slice(6).trim();
+          } else if (line.startsWith('data:')) {
+            dataLines.push(line.slice(5).trim());
+          }
+        }
+      }
+      const finalEvent = flushEvent();
+      if (finalEvent) yield finalEvent;
+      break;
+    }
 
     buffer += decoder.decode(value, { stream: true });
-    const lines = buffer.split('\n');
+    const lines = buffer.split(/\r?\n/);
     buffer = lines.pop() || '';
 
-    let currentEvent = '';
     for (const line of lines) {
       if (line.startsWith('event:')) {
+        const pendingEvent = flushEvent();
+        if (pendingEvent) yield pendingEvent;
         currentEvent = line.slice(6).trim();
       } else if (line.startsWith('data:')) {
-        const dataStr = line.slice(5).trim();
-        if (!dataStr || dataStr === '{}') {
-          if (currentEvent === 'done') yield { type: 'done' };
-          continue;
-        }
-        try {
-          const payload = JSON.parse(dataStr);
-          switch (currentEvent) {
-            case 'meta':
-              yield { type: 'meta', conversationId: payload.conversationId || '' };
-              break;
-            case 'token':
-              yield { type: 'token', token: payload.token || '' };
-              break;
-            case 'tool_start':
-              yield { type: 'tool_start', toolName: payload.toolName || '' };
-              break;
-            case 'tool_result':
-              yield { type: 'tool_result', result: payload as ToolResult };
-              break;
-            case 'draft':
-              yield { type: 'draft', draft: payload as DraftResponse };
-              break;
-            case 'error':
-              yield { type: 'error', message: payload.message || 'Unknown error', code: payload.code || 'UNKNOWN' };
-              break;
-          }
-        } catch {
-          // skip unparseable data
-        }
+        dataLines.push(line.slice(5).trim());
+      } else if (line.trim() === '') {
+        const event = flushEvent();
+        if (event) yield event;
       }
     }
   }
