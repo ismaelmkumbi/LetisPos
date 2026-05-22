@@ -38,11 +38,6 @@ function formatPercent(value: unknown): string {
   return `${numeric >= 0 ? '+' : ''}${new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(numeric)}%`;
 }
 
-const shimmer = keyframes`
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-`;
-
 function MessageActions({ id, content, isUser, onRegenerate }: { id: string; content: string; isUser?: boolean; onRegenerate?: () => void }) {
   const c = useChatTheme();
   const { editAndResend } = useAssistant();
@@ -121,48 +116,58 @@ export function TextBlock({ content, isUser, msgId, onRegenerate }: { content: s
   );
 }
 
-export function StreamingBlock() {
+const dotPulse = keyframes`
+  0%, 80%, 100% { transform: scale(0.4); opacity: 0.3; }
+  40% { transform: scale(1); opacity: 1; }
+`;
+
+export function StreamingBlock({ label = 'Thinking' }: { label?: string }) {
   const c = useChatTheme();
   return (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: 2, mb: 1 }}>
-      <IconSparkles size={14} style={{ color: c.accent, opacity: 0.5 }} />
-      <Box
-        sx={{
-          width: 120, height: 18, borderRadius: 1,
-          background: `linear-gradient(90deg, ${c.accent}0d 0%, ${c.accent}1f 50%, ${c.accent}0d 100%)`,
-          backgroundSize: '200% 100%',
-          animation: `${shimmer} 1.8s ease-in-out infinite`,
-        }}
-      />
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, px: 2, mb: 1.5, animation: `${messageIn} 0.3s ease-out` }}>
+      <Box sx={{ display: 'flex', gap: 0.4, ml: 0.5 }}>
+        {[0, 1, 2].map(i => (
+          <Box key={i} sx={{
+            width: 6, height: 6, borderRadius: '50%', bgcolor: c.accent,
+            animation: `${dotPulse} 1.4s ease-in-out infinite`,
+            animationDelay: `${i * 0.2}s`,
+          }} />
+        ))}
+      </Box>
+      <Typography sx={{ fontSize: '0.8rem', color: c.textSecondary, fontWeight: 500 }}>
+        {label}…
+      </Typography>
     </Box>
   );
 }
 
-export function ToolLoadingBlock({ label }: { label: string }) {
+export function ToolLoadingBlock({ label, step, total }: { label: string; step?: number; total?: number }) {
   const c = useChatTheme();
+  const progressText = step && total ? `Step ${step}/${total}` : null;
   return (
     <Box
       sx={{
-        mx: 2, mb: 1, px: 2, py: 1.2,
-        borderRadius: 2,
-        border: `1px solid ${c.border}`,
-        bgcolor: c.inputBg,
+        mx: 2, mb: 1, px: 2.5, py: 1.4,
+        borderRadius: 2.5,
+        border: `1px solid ${c.accentBorder}`,
+        bgcolor: c.accentBg,
         display: 'flex', alignItems: 'center', gap: 1.5,
         animation: `${messageIn} 0.3s ease-out`,
       }}
     >
-      <Box
-        sx={{
-          width: 16, height: 16, borderRadius: '50%',
-          border: `2px solid ${c.border}`,
-          borderTopColor: c.accent,
-          animation: 'spin 0.8s linear infinite',
-          '@keyframes spin': { to: { transform: 'rotate(360deg)' } },
-        }}
-      />
-      <Typography sx={{ fontSize: '0.82rem', color: c.textSecondary, fontStyle: 'italic' }}>
-        {label}
-      </Typography>
+      <Box sx={{ position: 'relative', width: 20, height: 20, flexShrink: 0 }}>
+        <Box sx={{ position: 'absolute', inset: 0, borderRadius: '50%', border: `2px solid ${c.border}`, borderTopColor: c.accent, animation: 'spin 0.8s linear infinite', '@keyframes spin': { to: { transform: 'rotate(360deg)' } } }} />
+      </Box>
+      <Box sx={{ flex: 1, minWidth: 0 }}>
+        <Typography sx={{ fontSize: '0.78rem', color: c.text, fontWeight: 500, lineHeight: 1.3 }}>
+          {label}
+        </Typography>
+        {progressText && (
+          <Typography sx={{ fontSize: '0.65rem', color: c.textMuted, mt: 0.15 }}>
+            {progressText}
+          </Typography>
+        )}
+      </Box>
     </Box>
   );
 }

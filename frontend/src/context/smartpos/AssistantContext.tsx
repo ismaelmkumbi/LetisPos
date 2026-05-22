@@ -152,14 +152,22 @@ export function AssistantProvider({ children }: { children: React.ReactNode }) {
             break;
           case 'tool_start': {
             const toolLabels: Record<string, string> = {
-              searchSales: 'Searching sales…', searchDocuments: 'Searching documents…',
+              searchSales: 'Searching sales records…', searchDocuments: 'Searching documents…',
               getRecentSales: 'Loading recent orders…', generateDocument: 'Generating document…',
-              emailDocument: 'Sending email…', sendEmail: 'Sending email…',
-              searchProducts: 'Searching products…', getExecutiveBriefing: 'Building executive briefing…',
-              getTopProducts: 'Loading top products…', checkStock: 'Checking inventory…',
-              getFinancialSummary: 'Loading financials…', getTopCustomers: 'Loading customers…',
-              getSalesReport: 'Generating sales report…', getDailySnapshot: 'Loading daily snapshot…',
-              getLowStock: 'Checking low stock…', getExpiringStock: 'Checking expiry dates…',
+              emailDocument: 'Preparing email…', sendEmail: 'Sending email…',
+              searchProducts: 'Searching product catalog…', getExecutiveBriefing: 'Building executive briefing…',
+              getTopProducts: 'Analyzing top products…', checkStock: 'Checking inventory levels…',
+              getFinancialSummary: 'Calculating financial summary…', getTopCustomers: 'Analyzing customer activity…',
+              getSalesReport: 'Generating sales report…', getDailySnapshot: "Loading today's snapshot…",
+              getLowStock: 'Scanning low stock items…', getExpiringStock: 'Checking expiry dates…',
+              getSalesByStatus: 'Fetching order statuses…', getSalesByCustomer: 'Looking up customer purchases…',
+              getStockOverview: 'Gathering stock overview…', getProductDetail: 'Loading product details…',
+              getProductsByCategory: 'Browsing product categories…', getDiscountSummary: 'Calculating discount totals…',
+              getTaxSummary: 'Computing tax summary…', getSalesComparison: 'Comparing sales periods…',
+              getSalesByPaymentMethod: 'Analyzing payment methods…', getExpenseSummary: 'Summarizing expenses…',
+              createProduct: 'Creating new product…', updateProductPrice: 'Updating product price…',
+              adjustStock: 'Adjusting inventory…', createExpense: 'Recording expense…',
+              createCustomer: 'Creating customer…', updateCustomer: 'Updating customer…',
             };
             const label = toolLabels[event.toolName] || `Running ${event.toolName}…`;
             setMessages(prev => [...prev, { id: crypto.randomUUID(), role: 'tool', content: label, timestamp: Date.now(), streaming: true }]);

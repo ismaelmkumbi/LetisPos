@@ -93,9 +93,16 @@ export default function ChatMessages() {
         }}
       >
         {messages.map((msg, i) => {
+          // Count tool steps in current round
+          const lastUserIdx = [...messages].reverse().findIndex(m => m.role === 'user');
+          const roundStart = lastUserIdx >= 0 ? messages.length - lastUserIdx : 0;
+          const roundTools = messages.slice(roundStart).filter(m => m.role === 'tool');
+          const totalTools = roundTools.filter(m => m.streaming || m.toolResult).length;
+          const doneTools = roundTools.filter(m => m.toolResult).length;
+
           if (msg.role === 'user') return <TextBlock key={msg.id} content={msg.content} isUser msgId={msg.id} />;
           if (msg.role === 'assistant') {
-            if (msg.streaming && !msg.content) return <StreamingBlock key={msg.id} />;
+            if (msg.streaming && !msg.content) return <StreamingBlock key={msg.id} label="Analyzing your request" />;
             return <TextBlock key={msg.id} content={msg.content} msgId={msg.id} onRegenerate={isLatestResponse(i) ? regenerateLast : undefined} />;
           }
           if (msg.role === 'tool' && msg.toolResult) {
@@ -106,13 +113,16 @@ export default function ChatMessages() {
             if (r.type === 'text') return <ToolTextBlock key={msg.id} result={r} />;
             return <ChartBlock key={msg.id} result={r} />;
           }
-          if (msg.role === 'tool' && msg.streaming) return <ToolLoadingBlock key={msg.id} label={msg.content} />;
+          if (msg.role === 'tool' && msg.streaming) {
+            const runningStep = doneTools + 1;
+            return <ToolLoadingBlock key={msg.id} label={msg.content} step={runningStep} total={totalTools || undefined} />;
+          }
           if (msg.role === 'draft' && msg.draft) {
             return <DraftBlock key={msg.id} draft={msg.draft} onConfirm={() => confirmDraftAction(msg.draft!.draftId)} onReject={() => rejectDraftAction(msg.draft!.draftId)} />;
           }
           return null;
         })}
-        {streaming && messages[messages.length - 1]?.role === 'user' && <StreamingBlock />}
+        {streaming && messages[messages.length - 1]?.role === 'user' && <StreamingBlock label="Analyzing your request" />}
         {error && <ErrorBlock message={error} />}
         <div ref={bottomRef} />
       </Box>
