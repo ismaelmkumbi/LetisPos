@@ -231,11 +231,31 @@ export function AssistantProvider({ children }: { children: React.ReactNode }) {
 
     try {
       let fullContent = '';
+      let assistantTextMovedAfterTool = false;
       for await (const event of streamChat({ message }, conversationId, controller.signal)) {
         switch (event.type) {
           case 'token':
             fullContent += event.token;
-            setMessages(prev => prev.map(m => m.id === assistantMsg.id ? { ...m, content: fullContent } : m));
+            setMessages(prev => {
+              const assistantIndex = prev.findIndex(m => m.id === assistantMsg.id);
+              if (assistantIndex < 0) return prev;
+
+              const updatedAssistant = { ...prev[assistantIndex], content: fullContent };
+              const hasLaterToolOrDraft = prev
+                .slice(assistantIndex + 1)
+                .some(m => m.role === 'tool' || m.role === 'draft');
+
+              if (!assistantTextMovedAfterTool && hasLaterToolOrDraft) {
+                assistantTextMovedAfterTool = true;
+                return [
+                  ...prev.slice(0, assistantIndex),
+                  ...prev.slice(assistantIndex + 1),
+                  updatedAssistant,
+                ];
+              }
+
+              return prev.map(m => m.id === assistantMsg.id ? updatedAssistant : m);
+            });
             break;
           case 'meta':
             setConversationId(event.conversationId);
