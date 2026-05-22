@@ -183,6 +183,12 @@ const SmartPosTemplateEditor = Loadable(
 const SmartPosPrinterSettings = Loadable(
   lazy(() => import('../views/smartpos/settings/PrinterSettingsPage')),
 );
+const SmartPosBrandIdentity = Loadable(
+  lazy(() => import('../views/smartpos/settings/BrandIdentityPage')),
+);
+const SmartPosDocTheme = Loadable(
+  lazy(() => import('../views/smartpos/settings/DocumentThemePage')),
+);
 const SmartPosHelpCenter = Loadable(
   lazy(() => import('../views/smartpos/support/HelpCenterPage')),
 );
@@ -609,6 +615,8 @@ const Router = [
       { path: 'billing', element: <TenantBillingPage /> },
       { path: 'billing/history', element: <PaymentHistoryPage /> },
       // Settings
+      { path: 'settings/brand-identity', element: <SmartPosBrandIdentity /> },
+      { path: 'settings/document-themes', element: <SmartPosDocTheme /> },
       { path: 'settings/i18n', element: <SmartPosI18nAdmin /> },
       { path: 'settings/receipt', element: <SmartPosReceiptSettings /> },
       { path: 'settings/tax-pricing', element: <SmartPosTaxPricing /> },
