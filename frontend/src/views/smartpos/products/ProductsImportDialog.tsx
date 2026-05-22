@@ -13,7 +13,7 @@ import { useContext } from 'react';
  *   3. Review   — editable preview table; user fixes AI mistakes
  *   4. Result   — bulk-create products and show per-row outcome
  */
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Alert,
   Box,
@@ -181,6 +181,17 @@ export default function ProductsImportDialog({
   const [templates, setTemplates] = useState<ImportTemplate[]>([]);
 
   const cameraInputRef = useRef<HTMLInputElement>(null);
+  const autoImportRef = useRef(false);
+
+  // Auto-trigger AI import when phone camera photos arrive
+  useEffect(() => {
+    if (autoImportRef.current && imageDataUrls.length > 0 && !busy) {
+      autoImportRef.current = false;
+      setStep(1);
+      // Defer so step change renders before the heavy AI call
+      setTimeout(() => runAiImportFromImages(), 100);
+    }
+  }, [imageDataUrls, busy]);
 
   const reset = () => {
     setStep(0);
@@ -188,6 +199,7 @@ export default function ProductsImportDialog({
     setBusy(false);
     setStatus(null);
     setInputMode('spreadsheet');
+    autoImportRef.current = false;
     setFile(null);
     setHeaders([]);
     setParsedRows([]);
@@ -798,6 +810,7 @@ export default function ProductsImportDialog({
                     setImagePreviews(dataUrls);
                     setInputMode('photos');
                     ensureLookups();
+                    autoImportRef.current = true;
                   }}
                   onUseWebcam={() => setInputMode('photos')}
                   onClose={() => {
