@@ -15,8 +15,8 @@ import SystemServices from './SystemServices';
 import { brand } from '../theme';
 
 const cardSx = {
-  border: `1px solid ${brand.neutral[700]}`, borderRadius: '12px',
-  bgcolor: brand.neutral[800], boxShadow: '0 18px 40px rgba(15,23,42,0.045)',
+  border: `1px solid ${brand.neutral[700]}`, borderRadius: '10px',
+  bgcolor: brand.neutral[800], boxShadow: '0 4px 16px rgba(15,23,42,0.04)',
 } as const;
 
 function ago(ts: string) {
@@ -46,45 +46,37 @@ export default function ServerPanel({ server, metrics: m, backendSvcs, services 
 
   return (
     <Card elevation={0} sx={{ ...cardSx }}>
-      <CardContent sx={{ p: 2.25, '&:last-child': { pb: 2.25 } }}>
+      <CardContent sx={{ p: 1.25, '&:last-child': { pb: 1.25 } }}>
         {/* Header */}
-        <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-          <Box sx={{ minWidth: 0, flex: 1 }}>
-            <Stack direction="row" spacing={1} sx={{ mb: 0.5, alignItems: 'center' }}>
-              <Typography variant="h6" sx={{ fontWeight: 800, color: brand.neutral[50], fontSize: '1.1rem', letterSpacing: '-0.02em' }}>
-                {server.hostname}
-              </Typography>
-            </Stack>
-            <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
-              <Typography variant="caption" sx={{ color: brand.neutral[400], fontWeight: 500, fontSize: '0.75rem' }}>
-                v{server.version || '—'}
-              </Typography>
-              <Box sx={{ width: 3, height: 3, borderRadius: '50%', bgcolor: brand.neutral[600] }} />
-              <Typography variant="caption" sx={{ color: brand.neutral[400], fontWeight: 500, fontSize: '0.75rem' }}>
-                seen {ago(server.lastSeen)}
-              </Typography>
-            </Stack>
-          </Box>
-          <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+        <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+          <Stack direction="row" spacing={1} sx={{ alignItems: 'baseline' }}>
+            <Typography sx={{ fontWeight: 800, color: brand.neutral[50], fontSize: '0.85rem', letterSpacing: '-0.02em' }}>
+              {server.hostname}
+            </Typography>
+            <Typography variant="caption" sx={{ color: brand.neutral[500], fontWeight: 500, fontSize: '0.62rem' }}>
+              seen {ago(server.lastSeen)}
+            </Typography>
+          </Stack>
+          <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
             <Chip
               label={`${upCount}/${backendSvcs.length} UP`}
               size="small"
               sx={{
-                height: 24, fontWeight: 700, fontSize: '0.65rem',
+                height: 20, fontWeight: 700, fontSize: '0.6rem',
                 bgcolor: upCount === backendSvcs.length ? brand.success.light : brand.warning.light,
                 color: upCount === backendSvcs.length ? brand.success.dark : brand.warning.dark,
-                borderRadius: '8px',
+                borderRadius: '6px',
               }}
             />
             <Chip
               label={server.status}
               size="small"
-              icon={<Circle sx={{ fontSize: '7px !important', fill: server.status === 'online' ? brand.success.main : brand.error.main }} />}
+              icon={<Circle sx={{ fontSize: '6px !important', fill: server.status === 'online' ? brand.success.main : brand.error.main }} />}
               sx={{
-                height: 24, fontWeight: 700, fontSize: '0.65rem', letterSpacing: '0.04em', textTransform: 'uppercase',
+                height: 20, fontWeight: 700, fontSize: '0.6rem', letterSpacing: '0.04em', textTransform: 'uppercase',
                 bgcolor: server.status === 'online' ? brand.success.light : brand.error.light,
                 color: server.status === 'online' ? brand.success.dark : brand.error.dark,
-                borderRadius: '8px',
+                borderRadius: '6px',
                 border: `1px solid ${server.status === 'online' ? brand.success.main : brand.error.main}20`,
               }}
             />
@@ -92,7 +84,7 @@ export default function ServerPanel({ server, metrics: m, backendSvcs, services 
         </Stack>
 
         {/* Metric Tiles */}
-        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 1, mb: 2 }}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 0.5, mb: 1 }}>
           <StatTile label="CPU" value={latest?.cpuPercent?.toFixed(1) || '—'} unit="%" color={brand.info.main} bar loading={loading} />
           <StatTile label="Memory" value={memPct || '—'} unit="%" color={brand.purple.main} bar loading={loading} />
           <StatTile label="Disk" value={diskPct || '—'} unit="%" color={brand.warning.main} bar loading={loading} />
@@ -111,30 +103,30 @@ export default function ServerPanel({ server, metrics: m, backendSvcs, services 
           onClose={() => setDetailSvc(null)}
           maxWidth="sm"
           fullWidth
-          slotProps={{ paper: { sx: { borderRadius: '14px', bgcolor: brand.neutral[800], border: `1px solid ${brand.neutral[700]}` } } }}
+          slotProps={{ paper: { sx: { borderRadius: '12px', bgcolor: brand.neutral[800], border: `1px solid ${brand.neutral[700]}` } } }}
         >
           {detailSvc && (
             <>
-              <DialogTitle sx={{ fontWeight: 800, fontSize: '1.1rem', letterSpacing: '-0.02em', pb: 0 }}>
-                <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
-                  <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: detailSvc.status === 'UP' ? brand.success.main : brand.error.main, boxShadow: detailSvc.status === 'UP' ? `0 0 8px ${brand.success.main}80` : 'none' }} />
+              <DialogTitle sx={{ fontWeight: 800, fontSize: '1rem', letterSpacing: '-0.02em', pb: 0 }}>
+                <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+                  <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: detailSvc.status === 'UP' ? brand.success.main : brand.error.main, boxShadow: detailSvc.status === 'UP' ? `0 0 6px ${brand.success.main}80` : 'none' }} />
                   {detailSvc.name}
                   <Chip
                     label={detailSvc.status}
                     size="small"
-                    sx={{ height: 22, fontWeight: 700, fontSize: '0.65rem', bgcolor: detailSvc.status === 'UP' ? brand.success.light : brand.error.light, color: detailSvc.status === 'UP' ? brand.success.dark : brand.error.dark, borderRadius: '6px' }}
+                    sx={{ height: 20, fontWeight: 700, fontSize: '0.6rem', bgcolor: detailSvc.status === 'UP' ? brand.success.light : brand.error.light, color: detailSvc.status === 'UP' ? brand.success.dark : brand.error.dark, borderRadius: '5px' }}
                   />
                 </Stack>
               </DialogTitle>
-              <DialogContent sx={{ pt: 2 }}>
-                <Stack spacing={2}>
+              <DialogContent sx={{ pt: 1.5 }}>
+                <Stack spacing={1.5}>
                   <ServiceDetailDialog svc={detailSvc} />
                   <ServiceActions server={server.id as ServerId} svcName={svcSlug} />
                   <ServiceLogViewer server={server.id as ServerId} svcName={svcSlug} />
                 </Stack>
               </DialogContent>
-              <DialogActions sx={{ px: 3, pb: 2 }}>
-                <Button onClick={() => setDetailSvc(null)} sx={{ fontWeight: 600, borderRadius: '10px', textTransform: 'none', color: brand.neutral[400] }}>Close</Button>
+              <DialogActions sx={{ px: 2, pb: 1.5 }}>
+                <Button onClick={() => setDetailSvc(null)} sx={{ fontWeight: 600, borderRadius: '8px', textTransform: 'none', color: brand.neutral[400], fontSize: '0.75rem' }}>Close</Button>
               </DialogActions>
             </>
           )}

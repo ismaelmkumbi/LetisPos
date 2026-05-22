@@ -63,12 +63,12 @@ export default function Dashboard() {
     <Box sx={{ pb: 1, bgcolor: brand.neutral[900], minHeight: '100vh' }}>
       <TopBar servers={servers} onlineCount={online} onRefresh={fetchData} onLogout={logout} />
       {refreshing && (
-        <LinearProgress sx={{ mx: 2, mb: 1, borderRadius: '4px', height: 3, bgcolor: brand.neutral[800], '& .MuiLinearProgress-bar': { bgcolor: brand.primary[500] } }} />
+        <LinearProgress sx={{ mx: 1, borderRadius: '3px', height: 2, bgcolor: brand.neutral[800], '& .MuiLinearProgress-bar': { bgcolor: brand.primary[500] } }} />
       )}
-      <Box sx={{ px: 2 }}>
-        <Grid container spacing={1.5}>
+      <Box sx={{ px: 1 }}>
+        <Grid container spacing={1}>
           {servers.map((s) => (
-            <Grid size={{ xs: 12 }} key={s.id}>
+            <Grid size={{ xs: 12, xl: 4 }} key={s.id}>
               <ServerPanel
                 server={s}
                 metrics={metrics[s.id] || []}
