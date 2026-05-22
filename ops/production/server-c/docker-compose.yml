@@ -157,6 +157,10 @@ services:
       KAFKA_BOOTSTRAP: kafka:9092
       SERVER_PORT: "8083"
       AUTH_JWKS_URI: http://10.0.0.1:8081/.well-known/jwks.json
+      MINIO_ENDPOINT: http://10.0.0.1:9000
+      MINIO_ACCESS_KEY: smartpos
+      MINIO_SECRET_KEY: smartpos-secret
+      MINIO_BUCKET: smartpos-product-images
       JAVA_TOOL_OPTIONS: "-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:+UseZGC -XX:+ExitOnOutOfMemoryError"
     ports:
       - "0.0.0.0:8083:8083"
