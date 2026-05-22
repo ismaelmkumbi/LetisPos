@@ -90,19 +90,35 @@ export async function getServers(): Promise<Server[]> {
 export const getMetrics = (server: ServerId) =>
   agents[server].get('/metrics').then((r) => {
     const m = r.data;
+    // The LSA agent returns nested structures:
+    // { cpu: { percent_used }, memory: { used_bytes, total_bytes },
+    //   disk: { mounts: [{path, used_bytes, total_bytes}] },
+    //   load_avg: { load1, load5, load15 } }
     const rootDisk = m.disk?.mounts?.find((d: Record<string, unknown>) => d.path === '/') ?? {};
+    const cpu = m.cpu?.percent_used ?? null;
+    const mem = m.memory?.used_bytes ?? null;
+    const memTotal = m.memory?.total_bytes ?? null;
+    const diskUsed = (rootDisk as Record<string, number>).used_bytes ?? null;
+    const diskTotal = (rootDisk as Record<string, number>).total_bytes ?? null;
+    const l1 = m.load_avg?.load1 ?? null;
+    const l5 = m.load_avg?.load5 ?? null;
+    const l15 = m.load_avg?.load15 ?? null;
+    console.log(`[metrics ${server}] cpu=${cpu} mem=${mem} disk=${diskUsed} load=${l1}`);
     return [{
       time: new Date().toISOString(),
       serverName: server,
-      cpuPercent: m.cpu?.percent_used ?? null,
-      memUsedBytes: m.memory?.used_bytes ?? null,
-      memTotalBytes: m.memory?.total_bytes ?? null,
-      diskUsedBytes: (rootDisk as Record<string, number>).used_bytes ?? null,
-      diskTotalBytes: (rootDisk as Record<string, number>).total_bytes ?? null,
-      load1: m.load_avg?.load1 ?? null,
-      load5: m.load_avg?.load5 ?? null,
-      load15: m.load_avg?.load15 ?? null,
+      cpuPercent: typeof cpu === 'number' ? cpu : null,
+      memUsedBytes: typeof mem === 'number' ? mem : null,
+      memTotalBytes: typeof memTotal === 'number' ? memTotal : null,
+      diskUsedBytes: typeof diskUsed === 'number' ? diskUsed : null,
+      diskTotalBytes: typeof diskTotal === 'number' ? diskTotal : null,
+      load1: typeof l1 === 'number' ? l1 : null,
+      load5: typeof l5 === 'number' ? l5 : null,
+      load15: typeof l15 === 'number' ? l15 : null,
     }];
+  }).catch((err) => {
+    console.error(`[metrics ${server}] FAILED:`, err);
+    return [];
   });
 
 export const getServices = (server: ServerId) =>
