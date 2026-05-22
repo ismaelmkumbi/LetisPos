@@ -326,13 +326,13 @@ export default function ProductsListPage() {
         status: statusFilter === 'all' ? undefined : statusFilter === 'active',
         categoryId: categoryFilter || undefined,
         brandId: brandFilter || undefined,
+        variant: variantFilter || undefined,
       })
         .then((p) => {
           if (!cancelled) {
-            const filtered = variantFilter ? p.content.filter((product) => product.variant) : p.content;
-            setRows(filtered);
-            setTotalPages(variantFilter ? Math.ceil(filtered.length / 20) || 1 : (p.totalPages || 1));
-            setTotalElements(variantFilter ? filtered.length : (p.totalElements || 0));
+            setRows(p.content);
+            setTotalPages(p.totalPages || 1);
+            setTotalElements(p.totalElements || 0);
           }
         })
         .catch((e) => {
@@ -375,11 +375,19 @@ export default function ProductsListPage() {
   const handleBatchDelete = async () => {
     setBatchDeleting(true);
     try {
-      await Promise.all(Array.from(sel.selectedIds).map((id) => deleteProduct(id)));
+      const results = await Promise.allSettled(
+        Array.from(sel.selectedIds).map((id) => deleteProduct(id)),
+      );
+      const failed = results.filter((r) => r.status === 'rejected').length;
       setRefreshToken((n) => n + 1);
       sel.clearSelection();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Batch delete failed');
+      if (failed > 0) {
+        setToast({ message: `${failed} product(s) failed to delete`, severity: 'error' });
+      } else {
+        setToast({ message: 'Products deleted', severity: 'success' });
+      }
+    } catch {
+      setToast({ message: 'Batch delete failed', severity: 'error' });
     } finally {
       setBatchDeleting(false);
       setBatchDeleteOpen(false);

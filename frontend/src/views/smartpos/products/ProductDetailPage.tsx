@@ -286,9 +286,29 @@ export default function ProductDetailPage() {
     return () => window.removeEventListener('scroll', onScroll);
   }, [isEdit]);
 
+  // ── dirty-state tracking ──────────────────────────────────────────────────
+  const isDirty = useMemo(() => {
+    if (!product || !isEdit) return false;
+    const original = toForm(product);
+    return JSON.stringify(original) !== JSON.stringify(form);
+  }, [product, form, isEdit]);
+
+  // Warn on tab close / refresh when there are unsaved edits
+  useEffect(() => {
+    if (!isDirty) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [isDirty]);
+
   const [loading, setLoading] = useState(!isCreate);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [imageUploading, setImageUploading] = useState(false);
+  const [imageUploadError, setImageUploadError] = useState<string | null>(null);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [product, setProduct] = useState<Product | null>(null);
   const [form, setForm] = useState<ProductForm>(emptyForm);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -478,6 +498,14 @@ export default function ProductDetailPage() {
       setError('Product name is required.');
       return;
     }
+    if ((form.price ?? 0) < 0) {
+      setError('Price cannot be negative.');
+      return;
+    }
+    if ((form.cost ?? 0) < 0) {
+      setError('Cost cannot be negative.');
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
@@ -551,7 +579,13 @@ export default function ProductDetailPage() {
     {
       label: 'Cancel',
       icon: <IconX size={17} />,
-      onClick: () => navigate(isCreate ? '/smartpos/products' : `/smartpos/products/${id}`),
+      onClick: () => {
+        if (isDirty) {
+          setShowCancelConfirm(true);
+        } else {
+          navigate(isCreate ? '/smartpos/products' : `/smartpos/products/${id}`);
+        }
+      },
       variant: 'ghost',
     },
     {
@@ -719,10 +753,11 @@ export default function ProductDetailPage() {
                     component="label"
                     size="small"
                     variant="outlined"
+                    disabled={imageUploading}
                     startIcon={<IconPhoto size={14} />}
                     sx={{ borderRadius: '8px', textTransform: 'none', fontWeight: 600, fontSize: '0.75rem', flexShrink: 0 }}
                   >
-                    Upload
+                    {imageUploading ? 'Uploading…' : 'Upload'}
                     <input
                       type="file"
                       accept="image/*"
@@ -731,17 +766,26 @@ export default function ProductDetailPage() {
                       onChange={async (e) => {
                         const file = e.target.files?.[0];
                         if (!file) return;
+                        setImageUploadError(null);
+                        setImageUploading(true);
                         try {
                           const { uploadProductImage } = await import('src/api/smartpos/products');
                           const result = await uploadProductImage(file);
                           setField('imageUrl', result.url);
                         } catch {
-                          // silently fail, user can retry
+                          setImageUploadError('Upload failed — check your connection and retry.');
+                        } finally {
+                          setImageUploading(false);
                         }
                       }}
                     />
                   </Button>
                 </Stack>
+                {imageUploadError && (
+                  <Typography variant="caption" sx={{ color: brand.error.main, fontWeight: 500 }}>
+                    {imageUploadError}
+                  </Typography>
+                )}
                 <TextField
                   size="small"
                   value={form.imageUrl ?? ''}
@@ -909,6 +953,11 @@ export default function ProductDetailPage() {
                   <LabeledField label="Cost Price">
                     <ValueOrInput edit={isEdit} value={String(form.cost ?? '')} onChange={(v) => setField('cost', Number(v) || 0)} prefix="TSh" />
                   </LabeledField>
+                  {isEdit && (form.cost ?? 0) > 0 && (form.price ?? 0) > 0 && (form.cost ?? 0) > (form.price ?? 0) && (
+                    <Typography variant="caption" sx={{ color: brand.warning.dark, fontWeight: 600, mt: -0.5 }}>
+                      Cost exceeds retail price — you may be selling at a loss
+                    </Typography>
+                  )}
                   <LabeledField label="Minimum Sell Price">
                     <ValueOrInput edit={isEdit} value={String(form.minPrice ?? '')} onChange={(v) => setField('minPrice', Number(v) || 0)} prefix="TSh" />
                   </LabeledField>
@@ -1116,8 +1165,14 @@ export default function ProductDetailPage() {
                     {isEdit ? (
                       <TextField select size="small" value={form.categoryId ?? ''} onChange={(e) => setField('categoryId', e.target.value || undefined)} fullWidth>
                         <MenuItem value="">Select category</MenuItem>
-                        {categories.filter((c) => !c.parentId).map((c) => (
-                          <MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>
+                        {categories.map((c) => (
+                          <MenuItem
+                            key={c.id}
+                            value={c.id}
+                            sx={{ pl: c.parentId ? 3 : 2, fontWeight: c.parentId ? 400 : 600 }}
+                          >
+                            {c.parentId ? '— ' : ''}{c.name}
+                          </MenuItem>
                         ))}
                       </TextField>
                     ) : (
@@ -1173,7 +1228,7 @@ export default function ProductDetailPage() {
 
       {/* ── Floating save button ────────────────────────────────────────────── */}
       {(isEdit || (isCreate && appliedAiFields.size > 0)) && (
-        <Zoom in={showFloatingSave || (isCreate && appliedAiFields.size > 0)}>
+        <Zoom in={(isEdit && (showFloatingSave || isDirty)) || (isCreate && appliedAiFields.size > 0)}>
           <Box
             sx={{
               position: 'fixed',
@@ -1189,7 +1244,7 @@ export default function ProductDetailPage() {
             }}
           >
             <Stack direction="row" spacing={1.5} alignItems="center" sx={{ pl: 0.75 }}>
-              {isEdit && (
+              {isEdit && isDirty && (
                 <>
                   <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: brand.warning.main, flexShrink: 0 }} />
                   <Typography sx={{ color: brand.neutral[600], fontSize: 12, fontWeight: 600, mr: 0.5 }}>
@@ -1724,6 +1779,35 @@ function VariantMatrixBuilder({
           )}
         </Stack>
       )}
+
+      {/* Cancel confirmation dialog */}
+      <Dialog open={showCancelConfirm} onClose={() => setShowCancelConfirm(false)}>
+        <DialogTitle sx={{ fontWeight: 800, fontSize: '1.05rem' }}>Discard Changes?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            You have unsaved changes. Leaving this page will discard them.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5 }}>
+          <Button
+            onClick={() => setShowCancelConfirm(false)}
+            sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600 }}
+          >
+            Keep Editing
+          </Button>
+          <Button
+            color="error"
+            variant="contained"
+            onClick={() => {
+              setShowCancelConfirm(false);
+              navigate(isCreate ? '/smartpos/products' : `/smartpos/products/${id}`);
+            }}
+            sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 800 }}
+          >
+            Discard
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }
