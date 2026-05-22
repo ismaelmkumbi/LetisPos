@@ -36,6 +36,7 @@ jobs:
     outputs:
       backend: ${{ steps.filter.outputs.backend }}
       frontend: ${{ steps.filter.outputs.frontend }}
+      ops: ${{ steps.filter.outputs.ops }}
       services: ${{ steps.services.outputs.list }}
     steps:
       - uses: actions/checkout@v4
