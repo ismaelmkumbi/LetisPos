@@ -228,7 +228,7 @@ export default function ProductsListPage() {
   }, []);
 
   // ── Row action menu ──────────────────────────────────────────────────────────
-  const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
+  const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
   const [menuProduct, setMenuProduct] = useState<Product | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
 
@@ -855,7 +855,7 @@ export default function ProductsListPage() {
                 size="small"
                 onClick={(e) => {
                   e.stopPropagation();
-                  setMenuAnchor(e.currentTarget);
+                  setMenuPosition({ top: e.clientY, left: e.clientX });
                   setMenuProduct(p);
                 }}
                 sx={actionBtnSx}
@@ -1634,18 +1634,18 @@ export default function ProductsListPage() {
         }}
       />
 
-      {/* Row action menu */}
+      {/* Row action menu — positioned at click coordinates to avoid DOM layout issues */}
       <Menu
-        anchorEl={menuAnchor}
-        open={Boolean(menuAnchor)}
-        onClose={() => { setMenuAnchor(null); setMenuProduct(null); }}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+        open={Boolean(menuPosition)}
+        onClose={() => { setMenuPosition(null); setMenuProduct(null); }}
+        anchorReference="anchorPosition"
+        anchorPosition={menuPosition ? { top: menuPosition.top, left: menuPosition.left } : undefined}
         transformOrigin={{ vertical: 'top', horizontal: 'left' }}
-        slotProps={{ paper: { sx: { borderRadius: '12px', minWidth: 190, mt: 0.5 } } }}
+        slotProps={{ paper: { sx: { borderRadius: '12px', minWidth: 190 } } }}
       >
         <MenuItem
           onClick={() => {
-            setMenuAnchor(null);
+            setMenuPosition(null);
             if (menuProduct) navigate(`/smartpos/products/${menuProduct.id}/edit`);
           }}
           sx={{ borderRadius: '8px', mx: 0.5, fontWeight: 600, fontSize: '0.85rem' }}
@@ -1656,7 +1656,7 @@ export default function ProductsListPage() {
         {menuProduct?.variant && (
           <MenuItem
             onClick={() => {
-              setMenuAnchor(null);
+              setMenuPosition(null);
               if (menuProduct) navigate(`/smartpos/products/${menuProduct.id}/variants`);
             }}
             sx={{ borderRadius: '8px', mx: 0.5, fontWeight: 600, fontSize: '0.85rem' }}
@@ -1667,7 +1667,7 @@ export default function ProductsListPage() {
         )}
         <MenuItem
           onClick={() => {
-            setMenuAnchor(null);
+            setMenuPosition(null);
             if (menuProduct) setDeleteTarget(menuProduct);
           }}
           sx={{ borderRadius: '8px', mx: 0.5, fontWeight: 600, fontSize: '0.85rem', color: brand.error.main }}
