@@ -644,9 +644,9 @@ services:
     deploy:
       resources:
         limits:
-          memory: 640M
+          memory: 896M
         reservations:
-          memory: 256M
+          memory: 384M
     environment:
       AUTH_JWKS_URI: http://auth-service:8081/.well-known/jwks.json
       DB_PASSWORD: report_pass
@@ -665,7 +665,7 @@ services:
       S3_SECRET_KEY: smartpos-secret
       SALES_URI: http://10.0.0.3:8085
       SERVER_PORT: '8087'
-      JAVA_TOOL_OPTIONS: "-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0 -XX:+UseZGC -XX:ZCollectionInterval=10 -XX:+ExitOnOutOfMemoryError"
+      JAVA_TOOL_OPTIONS: "-XX:+UseContainerSupport -XX:MaxRAMPercentage=65.0 -XX:InitialRAMPercentage=50.0 -XX:+UseZGC -XX:ZCollectionInterval=10 -XX:+ExitOnOutOfMemoryError"
       SPRING_DATA_REDIS_HOST: 10.0.0.3
       SPRING_KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094
     healthcheck:
