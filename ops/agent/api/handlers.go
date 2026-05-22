@@ -9,7 +9,7 @@ import (
 )
 
 type ServicesHandler struct {
-	Systemd *manager.SystemdManager
+	Mgr manager.ServiceManager
 }
 
 func (h *ServicesHandler) List(w http.ResponseWriter, r *http.Request) {
@@ -17,7 +17,7 @@ func (h *ServicesHandler) List(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	svcs, err := h.Systemd.List()
+	svcs, err := h.Mgr.List()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -40,11 +40,11 @@ func (h *ServicesHandler) Action(w http.ResponseWriter, r *http.Request) {
 	var err error
 	switch action {
 	case "restart":
-		err = h.Systemd.Restart(name)
+		err = h.Mgr.Restart(name)
 	case "stop":
-		err = h.Systemd.Stop(name)
+		err = h.Mgr.Stop(name)
 	case "start":
-		err = h.Systemd.Start(name)
+		err = h.Mgr.Start(name)
 	default:
 		http.Error(w, "unknown action", http.StatusBadRequest)
 		return

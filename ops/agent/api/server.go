@@ -23,13 +23,13 @@ type Server struct {
 	lastMetrics *collector.SystemMetrics
 }
 
-func New(cfg *config.Config, sysMgr *manager.SystemdManager, logStreamer *logs.Streamer) *Server {
+func New(cfg *config.Config, mgr manager.ServiceManager, logStreamer *logs.Streamer) *Server {
 	s := &Server{cfg: cfg}
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", s.handleHealth)
 	mux.HandleFunc("/metrics", s.handleMetrics)
 
-	svcH := &ServicesHandler{Systemd: sysMgr}
+	svcH := &ServicesHandler{Mgr: mgr}
 	mux.HandleFunc("/services", svcH.List)
 	mux.HandleFunc("/services/", svcH.Action)
 

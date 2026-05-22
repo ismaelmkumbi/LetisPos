@@ -6,3 +6,11 @@ type ServiceInfo struct {
 	Status string `json:"status"`
 	Desc   string `json:"description"`
 }
+
+type ServiceManager interface {
+	List() ([]ServiceInfo, error)
+	Restart(name string) error
+	Stop(name string) error
+	Start(name string) error
+	Close()
+}

@@ -37,10 +37,8 @@ func main() {
 		cancel()
 	}()
 
-	sysMgr, err := manager.NewSystemd()
-	if err != nil {
-		log.Printf("systemd: %v (management endpoints disabled)", err)
-	}
+	sysMgr := manager.NewDocker(cfg.ComposeDir)
+	log.Printf("docker manager: using compose dir %s", cfg.ComposeDir)
 	logStreamer := logs.New()
 	srv := api.New(cfg, sysMgr, logStreamer)
 
