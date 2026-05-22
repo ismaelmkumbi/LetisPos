@@ -150,7 +150,7 @@ export async function uploadBrandAsset({
   form.append('category', category);
   if (name) form.append('name', name);
   const { data } = await api.post<BrandAsset>('/api/v1/brand/assets', form, {
-    headers: { 'Content-Type': 'multipart/form-data' },
+    headers: { 'Content-Type': null as never },
     timeout: 60_000,
   });
   return data;
@@ -181,7 +181,7 @@ export async function aiAnalyzeLogo(
   const { data } = await api.post<AiAnalyzeLogoResponse>(
     '/api/v1/brand/ai/analyze-logo',
     form,
-    { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 30_000 },
+    { headers: { 'Content-Type': null as never }, timeout: 30_000 },
   );
   return data;
 }

@@ -407,7 +407,10 @@ export async function uploadProductImage(file: File): Promise<{ url: string }> {
   const compressed = await compressImage(file);
   const form = new FormData();
   form.append('file', compressed, file.name || 'image.jpg');
-  // Do NOT set Content-Type manually — the browser must set it with the boundary
-  const { data } = await api.post<{ url: string }>('/api/v1/products/images', form);
+  // Delete the instance default 'application/json' so the browser auto-sets
+  // multipart/form-data with the correct boundary for FormData.
+  const { data } = await api.post<{ url: string }>('/api/v1/products/images', form, {
+    headers: { 'Content-Type': null as never },
+  });
   return data;
 }
