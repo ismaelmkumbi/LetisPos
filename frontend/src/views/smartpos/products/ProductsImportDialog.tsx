@@ -191,6 +191,10 @@ export default function ProductsImportDialog({
       // Defer so step change renders before the heavy AI call
       setTimeout(() => runAiImportFromImages(), 100);
     }
+    // Only fire when image data arrives or busy state changes.
+    // runAiImportFromImages is intentionally not a dep — its identity
+    // changes every render but we only want to call it once per trigger.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [imageDataUrls, busy]);
 
   const reset = () => {
