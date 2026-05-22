@@ -1,7 +1,6 @@
 package io.smartpos.sales.api;
 
 import feign.FeignException;
-import io.smartpos.common.context.TenantNotInContextException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.security.access.AccessDeniedException;
@@ -42,13 +41,6 @@ public class GlobalExceptionHandler {
         return pd;
     }
 
-    @ExceptionHandler(TenantNotInContextException.class)
-    public ProblemDetail tenantNotInContext(TenantNotInContextException ex) {
-        ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
-        pd.setTitle("Bad request");
-        return pd;
-    }
-
     @ExceptionHandler(AccessDeniedException.class)
     public ProblemDetail accessDenied(AccessDeniedException ex) {
         ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, ex.getMessage());
@@ -58,6 +50,12 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ProblemDetail generic(Exception ex) {
+        // Handle TenantNotInContextException without depending on the class at compile time
+        if (ex.getClass().getName().contains("TenantNotInContextException")) {
+            ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+            pd.setTitle("Bad request");
+            return pd;
+        }
         ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.INTERNAL_SERVER_ERROR,
                 "Unexpected error: " + ex.getMessage());
         pd.setTitle("Server error");
