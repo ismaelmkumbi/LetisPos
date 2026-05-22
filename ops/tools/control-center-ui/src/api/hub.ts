@@ -90,37 +90,78 @@ export async function getServers(): Promise<Server[]> {
 export const getMetrics = (server: ServerId) =>
   agents[server].get('/metrics').then((r) => {
     const m = r.data;
+    const rootDisk = m.disk?.mounts?.find((d: Record<string, unknown>) => d.path === '/') ?? {};
     return [{
       time: new Date().toISOString(),
       serverName: server,
-      cpuPercent: m.cpu_percent ?? null,
-      memUsedBytes: m.mem_used ?? null,
-      memTotalBytes: m.mem_total ?? null,
-      diskUsedBytes: m.disk_used ?? null,
-      diskTotalBytes: m.disk_total ?? null,
-      load1: m.load1 ?? null,
-      load5: m.load5 ?? null,
-      load15: m.load15 ?? null,
+      cpuPercent: m.cpu?.percent_used ?? null,
+      memUsedBytes: m.memory?.used_bytes ?? null,
+      memTotalBytes: m.memory?.total_bytes ?? null,
+      diskUsedBytes: (rootDisk as Record<string, number>).used_bytes ?? null,
+      diskTotalBytes: (rootDisk as Record<string, number>).total_bytes ?? null,
+      load1: m.load_avg?.load1 ?? null,
+      load5: m.load_avg?.load5 ?? null,
+      load15: m.load_avg?.load15 ?? null,
     }];
   });
 
 export const getServices = (server: ServerId) =>
   agents[server].get('/services').then((r) => (Array.isArray(r.data) ? r.data : []));
 
+const CATEGORY_MAP: Record<string, string> = {
+  gateway: 'Core', nginx: 'Core', auth: 'Core', 'user-service': 'Core', 'user': 'Core',
+  'control-hub': 'Core', 'control-center': 'Core',
+  product: 'Catalog', catalog: 'Catalog', inventory: 'Inventory',
+  sales: 'Sales', order: 'Sales', cart: 'Sales',
+  payment: 'Finance', billing: 'Finance', commerce: 'Finance',
+  report: 'Insight', analytics: 'Insight',
+  ai: 'Intelligence', intelligence: 'Intelligence', ml: 'Intelligence',
+  hrm: 'People', crm: 'People', notification: 'Platform',
+  document: 'Platform', integration: 'Platform', audit: 'Platform',
+  minio: 'Platform', gotenberg: 'Platform', prometheus: 'Platform',
+  'node-exporter': 'Platform', alertmanager: 'Platform', backup: 'Platform',
+  redis: 'Platform', kafka: 'Platform', postgres: 'Platform',
+  frontend: 'Core',
+};
+
+function deriveServiceCategory(name: string, image: string): string {
+  const lower = (name + ' ' + image).toLowerCase();
+  for (const [key, cat] of Object.entries(CATEGORY_MAP)) {
+    if (lower.includes(key)) return cat;
+  }
+  return 'Platform';
+}
+
+function extractServicePort(_name: string, desc: string): number {
+  // Try docker-compose port pattern in description: "0.0.0.0:8080->8080/tcp"
+  const m = desc.match(/(\d+)->\d+\/tcp/);
+  if (m) return Number(m[1]);
+  // Try standalone port in name: "letispos-auth" has well-known ports
+  return 0;
+}
+
+function normalizeDockerStatus(status: string): 'UP' | 'DOWN' {
+  return status === 'running' || status === 'UP' || status === 'up' ? 'UP' : 'DOWN';
+}
+
 export const getBackendServices = (server: ServerId) =>
   agents[server].get('/services').then((r) => {
     if (!Array.isArray(r.data)) return [];
-    return r.data.map((raw: Record<string, unknown>) => ({
-      name: String(raw.name || ''),
-      category: String(raw.category || 'Platform'),
-      port: Number(raw.port) || 0,
-      status: (raw.status === 'UP' ? 'UP' : 'DOWN') as 'UP' | 'DOWN',
-      description: String(raw.description || ''),
-      cpuPercent: typeof raw.cpuPercent === 'number' ? raw.cpuPercent : undefined,
-      memUsedBytes: typeof raw.memUsedBytes === 'number' ? raw.memUsedBytes : undefined,
-      pid: typeof raw.pid === 'number' ? raw.pid : undefined,
-      command: typeof raw.command === 'string' ? raw.command : undefined,
-    }));
+    return r.data.map((raw: Record<string, unknown>) => {
+      const name = String(raw.name || '');
+      const desc = String(raw.description || '');
+      return {
+        name,
+        category: String(raw.category || deriveServiceCategory(name, desc)),
+        port: Number(raw.port) || extractServicePort(name, desc) || 0,
+        status: normalizeDockerStatus(String(raw.status || '')),
+        description: desc,
+        cpuPercent: typeof raw.cpuPercent === 'number' ? raw.cpuPercent : undefined,
+        memUsedBytes: typeof raw.memUsedBytes === 'number' ? raw.memUsedBytes : undefined,
+        pid: typeof raw.pid === 'number' ? raw.pid : undefined,
+        command: typeof raw.command === 'string' ? raw.command : undefined,
+      };
+    });
   });
 
 export const serviceAction = (server: ServerId, svc: string, action: string) =>
