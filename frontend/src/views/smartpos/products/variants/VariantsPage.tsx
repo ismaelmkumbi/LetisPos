@@ -12,7 +12,7 @@ import { useVariantState } from './useVariantState';
 import { VariantCardGrid } from './VariantCardGrid';
 import { VariantTableView } from './VariantTableView';
 import { VariantGeneratorDialog } from './VariantGeneratorDialog';
-import { VariantBulkEditDialog } from './VariantBulkEditDialog';
+import { VariantBulkEditDialog, type BulkField } from './VariantBulkEditDialog';
 import { VariantSkeletonGrid } from './VariantSkeletonGrid';
 
 type ViewMode = 'card' | 'table';
@@ -105,8 +105,8 @@ export default function VariantsPage() {
   }, [selectedIds, removeVariants, clearSelection]);
 
   const handleBulkApply = useCallback(
-    (field: string, value: number) => {
-      updateMany(Array.from(selectedIds), field as any, value);
+    (field: BulkField, value: number) => {
+      updateMany(Array.from(selectedIds), field, value);
       clearSelection();
     },
     [selectedIds, updateMany, clearSelection],
@@ -168,7 +168,7 @@ export default function VariantsPage() {
           mb: 2,
           p: 0.5,
           borderRadius: '10px',
-          bgcolor: brand.neutral[100],
+          bgcolor: isDark ? brand.neutral[800] : brand.neutral[100],
           display: 'inline-flex',
         }}
       >
@@ -178,10 +178,18 @@ export default function VariantsPage() {
             onClick={() => switchView('card')}
             sx={{
               borderRadius: '8px',
-              bgcolor: viewMode === 'card' ? '#fff' : 'transparent',
-              boxShadow: viewMode === 'card' ? `0 1px 3px ${brand.neutral[300]}` : 'none',
-              color: viewMode === 'card' ? brand.primary[600] : brand.neutral[500],
-              '&:hover': { bgcolor: viewMode === 'card' ? '#fff' : brand.neutral[200] },
+              bgcolor: viewMode === 'card'
+                ? isDark ? brand.neutral[700] : '#fff'
+                : 'transparent',
+              boxShadow: viewMode === 'card'
+                ? `0 1px 3px ${isDark ? 'rgba(0,0,0,0.4)' : brand.neutral[300]}`
+                : 'none',
+              color: viewMode === 'card' ? brand.primary[500] : isDark ? brand.neutral[400] : brand.neutral[500],
+              '&:hover': {
+                bgcolor: viewMode === 'card'
+                  ? isDark ? brand.neutral[700] : '#fff'
+                  : isDark ? brand.neutral[700] : brand.neutral[200],
+              },
             }}
           >
             <IconLayoutGrid size={18} />
@@ -193,10 +201,18 @@ export default function VariantsPage() {
             onClick={() => switchView('table')}
             sx={{
               borderRadius: '8px',
-              bgcolor: viewMode === 'table' ? '#fff' : 'transparent',
-              boxShadow: viewMode === 'table' ? `0 1px 3px ${brand.neutral[300]}` : 'none',
-              color: viewMode === 'table' ? brand.primary[600] : brand.neutral[500],
-              '&:hover': { bgcolor: viewMode === 'table' ? '#fff' : brand.neutral[200] },
+              bgcolor: viewMode === 'table'
+                ? isDark ? brand.neutral[700] : '#fff'
+                : 'transparent',
+              boxShadow: viewMode === 'table'
+                ? `0 1px 3px ${isDark ? 'rgba(0,0,0,0.4)' : brand.neutral[300]}`
+                : 'none',
+              color: viewMode === 'table' ? brand.primary[500] : isDark ? brand.neutral[400] : brand.neutral[500],
+              '&:hover': {
+                bgcolor: viewMode === 'table'
+                  ? isDark ? brand.neutral[700] : '#fff'
+                  : isDark ? brand.neutral[700] : brand.neutral[200],
+              },
             }}
           >
             <IconList size={18} />

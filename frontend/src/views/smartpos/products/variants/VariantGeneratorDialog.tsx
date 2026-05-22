@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useContext } from 'react';
 import {
   Button,
   Dialog,
@@ -14,6 +14,7 @@ import {
   Chip,
 } from '@mui/material';
 import { IconPlus, IconTrash } from '@tabler/icons-react';
+import { CustomizerContext } from 'src/context/CustomizerContext';
 import { brand } from 'src/theme/smartpos/brand';
 import type { VariantInput } from 'src/api/smartpos/products';
 
@@ -69,6 +70,8 @@ export function VariantGeneratorDialog({
   onGenerate,
   existingCount,
 }: VariantGeneratorDialogProps) {
+  const { activeMode } = useContext(CustomizerContext);
+  const isDark = activeMode === 'dark';
   const [axes, setAxes] = useState<Axis[]>([{ key: '0', name: '', values: '' }]);
   const [merge, setMerge] = useState(existingCount > 0);
 
@@ -178,8 +181,8 @@ export function VariantGeneratorDialog({
               mt: 2.5,
               p: 2,
               borderRadius: '12px',
-              bgcolor: brand.primary[50],
-              border: `1px solid ${brand.primary[200]}`,
+              bgcolor: isDark ? 'rgba(22,163,74,0.12)' : brand.primary[50],
+              border: `1px solid ${isDark ? brand.primary[800] : brand.primary[200]}`,
             }}
           >
             <Chip
@@ -194,7 +197,7 @@ export function VariantGeneratorDialog({
                 minWidth: 32,
               }}
             />
-            <Typography variant="body2" sx={{ fontWeight: 600, color: brand.primary[800] }}>
+            <Typography variant="body2" sx={{ fontWeight: 600, color: isDark ? brand.primary[300] : brand.primary[800] }}>
               {count === 1 ? 'variant will be generated' : 'variants will be generated'}
             </Typography>
           </Stack>

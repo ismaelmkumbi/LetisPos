@@ -1,7 +1,15 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { AxiosError } from 'axios';
 import { getProduct, updateProduct } from 'src/api/smartpos/products';
-import type { Product, Variant, UUID } from 'src/api/smartpos/types';
 import type { VariantInput } from 'src/api/smartpos/products';
+import type { Product, Variant, UUID } from 'src/api/smartpos/types';
+
+function extractErrorMessage(err: unknown, fallback: string): string {
+  if (err instanceof AxiosError) {
+    return (err.response?.data as { detail?: string } | undefined)?.detail ?? err.message ?? fallback;
+  }
+  return err instanceof Error ? err.message : fallback;
+}
 
 export interface UseVariantStateReturn {
   product: Product | null;
@@ -38,9 +46,9 @@ export function useVariantState(productId: UUID): UseVariantStateReturn {
         const v = p.variants ?? [];
         setVariants(v);
         originalRef.current = JSON.parse(JSON.stringify(v));
-      } catch (err: any) {
+      } catch (err: unknown) {
         if (cancelled) return;
-        setError(err?.response?.data?.detail ?? err?.message ?? 'Failed to load product');
+        setError(extractErrorMessage(err, 'Failed to load product'));
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -58,10 +66,15 @@ export function useVariantState(productId: UUID): UseVariantStateReturn {
     setVariants((prev) => prev.map((v) => (v.id === id ? { ...v, ...patch } : v)));
   }, []);
 
-  const updateMany = useCallback((ids: UUID[], field: keyof Variant, value: number | string | null) => {
-    const idSet = new Set(ids);
-    setVariants((prev) => prev.map((v) => (idSet.has(v.id) ? { ...v, [field]: value } : v)));
-  }, []);
+  const updateMany = useCallback(
+    (ids: UUID[], field: keyof Variant, value: number | string | null) => {
+      const idSet = new Set(ids);
+      setVariants((prev) =>
+        prev.map((v) => (idSet.has(v.id) ? { ...v, [field]: value } : v)),
+      );
+    },
+    [],
+  );
 
   const addVariants = useCallback((newVariants: VariantInput[]) => {
     setVariants((prev) => {
@@ -100,13 +113,13 @@ export function useVariantState(productId: UUID): UseVariantStateReturn {
         minPrice: v.minPrice ?? undefined,
         imageUrl: v.imageUrl ?? undefined,
       }));
-      const updated = await updateProduct(productId, { variants: payload } as any);
+      const updated = await updateProduct(productId, { variants: payload });
       setProduct(updated);
       const updatedVariants = updated.variants ?? [];
       setVariants(updatedVariants);
       originalRef.current = JSON.parse(JSON.stringify(updatedVariants));
-    } catch (err: any) {
-      setError(err?.response?.data?.detail ?? err?.message ?? 'Failed to save variants');
+    } catch (err: unknown) {
+      setError(extractErrorMessage(err, 'Failed to save variants'));
     } finally {
       setSaving(false);
     }

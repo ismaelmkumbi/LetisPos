@@ -18,7 +18,8 @@ export function VariantTableView({ variants, loading, onDelete }: VariantTableVi
 
   const columns = useMemo(
     () => [sel.selectionColumn(), ...variantColumns({ onDelete, isDark })],
-    [sel.selectionColumn, onDelete, isDark],
+    // sel is the useSelection object — its identity changes when variants change
+    [sel, sel.selectionColumn, onDelete, isDark],
   );
 
   return (

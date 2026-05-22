@@ -29,8 +29,10 @@ export function VariantImageUpload({
       try {
         const result = await uploadProductImage(file);
         onChange(result.url);
-      } catch (err: any) {
-        setError(err?.response?.data?.detail ?? 'Upload failed');
+      } catch (err: unknown) {
+        const msg =
+          err instanceof Error ? err.message : 'Upload failed';
+        setError(msg);
       } finally {
         setUploading(false);
       }
