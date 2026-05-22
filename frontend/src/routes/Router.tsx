@@ -1,7 +1,7 @@
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 import React, { lazy } from 'react';
-import { createBrowserRouter, Navigate } from 'react-router';
+import { createBrowserRouter, Navigate, Outlet } from 'react-router';
 import Loadable from '../layouts/full/shared/loadable/Loadable';
 import { RequireAuth } from 'src/routes/smartpos/RequireAuth';
 import RequireAdmin from 'src/components/smartpos/RequireAdmin';
@@ -574,9 +574,15 @@ const Router = [
           { path: 'bundles', element: <SmartPosBundles /> },
           { path: 'price-lists', element: <SmartPosPriceLists /> },
           { path: 'price-lists/:id', element: <SmartPosPriceListDetail /> },
-          { path: ':id/variants', element: <SmartPosVariantsPage /> },
-          { path: ':id', element: <SmartPosProductDetail /> },
-          { path: ':id/edit', element: <SmartPosProductDetail /> },
+          {
+            path: ':id',
+            element: <Outlet />,
+            children: [
+              { index: true, element: <SmartPosProductDetail /> },
+              { path: 'edit', element: <SmartPosProductDetail /> },
+              { path: 'variants', element: <SmartPosVariantsPage /> },
+            ],
+          },
         ],
       },
       // Notifications
