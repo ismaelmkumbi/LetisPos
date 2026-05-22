@@ -33,7 +33,7 @@ export default function VariantsPage() {
   const { id } = useParams<{ id: string }>();
   const productId = id!;
   const { activeMode } = useContext(CustomizerContext);
-  void activeMode; // consumed by child components via context
+  const isDark = activeMode === 'dark';
 
   const {
     product,
