@@ -109,18 +109,7 @@ public class AnthropicProvider implements AiProvider {
             throw new IllegalStateException("ANTHROPIC_API_KEY not configured");
         }
 
-        // Convert OpenAI-format tools to Anthropic-format tools
-        List<Map<String, Object>> anthropicTools = new ArrayList<>();
-        for (Map<String, Object> tool : tools) {
-            Map<String, Object> fn = (Map<String, Object>) tool.get("function");
-            if (fn != null) {
-                Map<String, Object> at = new LinkedHashMap<>();
-                at.put("name", fn.get("name"));
-                at.put("description", fn.get("description"));
-                at.put("input_schema", fn.get("parameters"));
-                anthropicTools.add(at);
-            }
-        }
+        List<Map<String, Object>> anthropicTools = toAnthropicTools(tools);
 
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("model", props.anthropic().model());
@@ -129,8 +118,8 @@ public class AnthropicProvider implements AiProvider {
             ? List.of(Map.of("type", "text", "text", systemPrompt,
                              "cache_control", Map.of("type", "ephemeral")))
             : List.of(Map.of("type", "text", "text", "")));
-        body.put("messages", messages);
-        body.put("tools", anthropicTools);
+        body.put("messages", toAnthropicMessages(messages));
+        if (!anthropicTools.isEmpty()) body.put("tools", anthropicTools);
         body.put("thinking", Map.of("type", "adaptive"));
         body.put("output_config", Map.of("effort", "high"));
 
@@ -197,18 +186,7 @@ public class AnthropicProvider implements AiProvider {
             throw new IllegalStateException("ANTHROPIC_API_KEY not configured");
         }
 
-        // Convert OpenAI-format tools to Anthropic-format tools
-        List<Map<String, Object>> anthropicTools = new ArrayList<>();
-        for (Map<String, Object> tool : tools) {
-            Map<String, Object> fn = (Map<String, Object>) tool.get("function");
-            if (fn != null) {
-                Map<String, Object> at = new LinkedHashMap<>();
-                at.put("name", fn.get("name"));
-                at.put("description", fn.get("description"));
-                at.put("input_schema", fn.get("parameters"));
-                anthropicTools.add(at);
-            }
-        }
+        List<Map<String, Object>> anthropicTools = toAnthropicTools(tools);
 
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("model", props.anthropic().model());
@@ -217,8 +195,8 @@ public class AnthropicProvider implements AiProvider {
             ? List.of(Map.of("type", "text", "text", systemPrompt,
                              "cache_control", Map.of("type", "ephemeral")))
             : List.of(Map.of("type", "text", "text", "")));
-        body.put("messages", messages);
-        body.put("tools", anthropicTools);
+        body.put("messages", toAnthropicMessages(messages));
+        if (!anthropicTools.isEmpty()) body.put("tools", anthropicTools);
         body.put("thinking", Map.of("type", "adaptive"));
         body.put("output_config", Map.of("effort", "high"));
         body.put("stream", true);
@@ -317,6 +295,86 @@ public class AnthropicProvider implements AiProvider {
         }
 
         return new ToolCallResult(text.toString(), toolCalls, pTok, cTok);
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<Map<String, Object>> toAnthropicTools(List<Map<String, Object>> tools) {
+        if (tools == null || tools.isEmpty()) return List.of();
+        List<Map<String, Object>> anthropicTools = new ArrayList<>();
+        for (Map<String, Object> tool : tools) {
+            Map<String, Object> fn = (Map<String, Object>) tool.get("function");
+            if (fn != null) {
+                Map<String, Object> at = new LinkedHashMap<>();
+                at.put("name", fn.get("name"));
+                at.put("description", fn.get("description"));
+                at.put("input_schema", fn.get("parameters"));
+                anthropicTools.add(at);
+            }
+        }
+        return anthropicTools;
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<Map<String, Object>> toAnthropicMessages(List<Map<String, Object>> messages) {
+        List<Map<String, Object>> converted = new ArrayList<>();
+        List<Map<String, Object>> pendingToolResults = new ArrayList<>();
+
+        for (Map<String, Object> message : messages) {
+            String role = String.valueOf(message.get("role"));
+            if (!"tool".equals(role)) {
+                flushToolResults(converted, pendingToolResults);
+            }
+
+            if ("user".equals(role)) {
+                converted.add(Map.of("role", "user",
+                    "content", String.valueOf(message.getOrDefault("content", ""))));
+            } else if ("assistant".equals(role)) {
+                List<Map<String, Object>> content = new ArrayList<>();
+                String text = String.valueOf(message.getOrDefault("content", ""));
+                if (!text.isBlank()) {
+                    content.add(Map.of("type", "text", "text", text));
+                }
+                List<Map<String, Object>> calls =
+                    (List<Map<String, Object>>) message.get("tool_calls");
+                if (calls != null) {
+                    for (Map<String, Object> call : calls) {
+                        Map<String, Object> fn = (Map<String, Object>) call.get("function");
+                        Object input = Map.of();
+                        if (fn != null) {
+                            Object args = fn.get("arguments");
+                            if (args instanceof String s && !s.isBlank()) {
+                                try {
+                                    input = om.readValue(s, Map.class);
+                                } catch (JsonProcessingException ignored) {
+                                    input = Map.of();
+                                }
+                            }
+                        }
+                        content.add(Map.of(
+                            "type", "tool_use",
+                            "id", String.valueOf(call.get("id")),
+                            "name", fn != null ? String.valueOf(fn.get("name")) : "",
+                            "input", input));
+                    }
+                }
+                if (content.isEmpty()) content.add(Map.of("type", "text", "text", ""));
+                converted.add(Map.of("role", "assistant", "content", content));
+            } else if ("tool".equals(role)) {
+                pendingToolResults.add(Map.of(
+                    "type", "tool_result",
+                    "tool_use_id", String.valueOf(message.get("tool_call_id")),
+                    "content", String.valueOf(message.getOrDefault("content", ""))));
+            }
+        }
+        flushToolResults(converted, pendingToolResults);
+        return converted;
+    }
+
+    private void flushToolResults(List<Map<String, Object>> converted,
+                                  List<Map<String, Object>> pendingToolResults) {
+        if (pendingToolResults.isEmpty()) return;
+        converted.add(Map.of("role", "user", "content", List.copyOf(pendingToolResults)));
+        pendingToolResults.clear();
     }
 
     private static Integer asInt(Object v) {

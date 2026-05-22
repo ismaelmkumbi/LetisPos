@@ -22,10 +22,10 @@ public class KnowledgeBase {
     private final WebClient http = WebClient.builder().build();
     private final ObjectMapper om = new ObjectMapper();
 
-    @Value("${OPENAI_API_KEY:}")
+    @Value("${smartpos.ai.openai.api-key:${OPENAI_API_KEY:}}")
     private String openAiKey;
 
-    @Value("${OPENAI_BASE_URL:https://api.openai.com/v1}")
+    @Value("${smartpos.ai.openai.base-url:${OPENAI_BASE_URL:https://api.openai.com/v1}}")
     private String openAiBaseUrl;
 
     private final List<Chunk> chunks = new ArrayList<>();
@@ -131,16 +131,19 @@ public class KnowledgeBase {
 
         double[] queryVec = embed(query);
         if (queryVec == null) return List.of();
+        String normalizedDomain = domain == null ? "" : domain.toLowerCase(Locale.ROOT);
 
         return chunks.stream()
             .map(c -> new Object() {
                 final Chunk chunk = c;
-                final double score = cosine(queryVec, c.embedding);
+                final double score = cosine(queryVec, c.embedding)
+                    + (normalizedDomain.isBlank() || "general".equals(normalizedDomain)
+                        || normalizedDomain.equals(c.category.toLowerCase(Locale.ROOT)) ? 0.05 : 0.0);
             })
             .filter(x -> x.score > 0.3)
             .sorted((a, b) -> Double.compare(b.score, a.score))
             .limit(3)
-            .map(x -> x.chunk.text)
+            .map(x -> "[" + x.chunk.title + "]\n" + x.chunk.text)
             .toList();
     }
 

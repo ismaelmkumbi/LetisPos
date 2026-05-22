@@ -161,21 +161,17 @@ public class IntentClassifierService {
             return allToolNames;
         }
         Set<String> narrowed = new HashSet<>();
-        String domainLower = intent.primaryDomain().name().toLowerCase();
+        Set<Domain> domains = EnumSet.of(intent.primaryDomain());
+        domains.addAll(intent.secondaryDomains());
         for (String tool : allToolNames) {
             String t = tool.toLowerCase();
-            // Keep: domain-matching tools, platform/admin tools, cross-domain tools,
-            // and write actions (send*, email*, create*, update*, adjust*)
-            if (t.contains(domainLower)
-                || t.contains("platform") || t.contains("tenant")
-                || t.startsWith("send") || t.startsWith("email")
-                || t.startsWith("create") || t.startsWith("update")
-                || t.startsWith("adjust") || t.startsWith("generate")
+            // Keep cross-domain tools and tools relevant to the classified domains.
+            if (matchesAnyDomain(t, domains)
                 || t.equals("searchdocuments") || t.equals("searchsales")
                 || t.equals("getnotificationtemplates")
                 || t.equals("getexecutivebriefing")
                 || t.equals("getdailysnapshot")
-                || t.equals("getexpensesummary")) {
+                || t.startsWith("send") || t.startsWith("email")) {
                 narrowed.add(tool);
             }
         }
@@ -185,6 +181,39 @@ public class IntentClassifierService {
                 .forEach(narrowed::add);
         }
         return narrowed.isEmpty() ? allToolNames : narrowed;
+    }
+
+    private boolean matchesAnyDomain(String tool, Set<Domain> domains) {
+        for (Domain domain : domains) {
+            if (matchesDomain(tool, domain)) return true;
+        }
+        return false;
+    }
+
+    private boolean matchesDomain(String tool, Domain domain) {
+        return switch (domain) {
+            case SALES -> tool.contains("sales") || tool.equals("getrecentsales")
+                || tool.equals("gettopproducts") || tool.equals("gettopcustomers")
+                || tool.equals("generatedocument") || tool.equals("emaildocument");
+            case INVENTORY -> tool.contains("stock") || tool.contains("warehouse")
+                || tool.contains("inventory") || tool.equals("checkstock")
+                || tool.equals("checkstockbyproductsearch")
+                || tool.equals("getlowstock") || tool.equals("getexpiringstock")
+                || tool.equals("searchproducts") || tool.equals("getproductinventory")
+                || tool.equals("adjuststock") || tool.equals("createpurchaseorder");
+            case PRODUCTS -> tool.contains("product") || tool.equals("searchproducts")
+                || tool.equals("createproduct") || tool.equals("updateproductprice");
+            case CUSTOMERS -> tool.contains("customer") || tool.equals("gettopcustomers")
+                || tool.equals("getsalesbycustomer");
+            case FINANCE -> tool.contains("financial") || tool.contains("expense")
+                || tool.contains("payment") || tool.contains("tax")
+                || tool.contains("discount") || tool.equals("createexpense");
+            case HRM -> tool.contains("employee") || tool.contains("attendance")
+                || tool.contains("leave") || tool.contains("payroll") || tool.contains("hr");
+            case PLATFORM_ADMIN -> tool.contains("tenant") || tool.contains("platform");
+            case HELP -> tool.contains("search") || tool.startsWith("get");
+            case GENERAL -> true;
+        };
     }
 
     private double computeConfidence(String lower, Domain primary) {
@@ -201,6 +230,15 @@ public class IntentClassifierService {
     // ── Classification logic ──
 
     private Domain classifyDomain(String lower) {
+        if (lower.matches(".*\\b(how many|quantity|qty)\\b.*\\b(do we have|available|left|in stock)\\b.*")
+            || lower.matches(".*\\b(do we have|available|left|in stock)\\b.*")) {
+            return Domain.INVENTORY;
+        }
+        if (lower.matches(".*\\b(invoice|receipt|quotation|document)\\b.*\\b(email|send|generate)\\b.*")
+            || lower.matches(".*\\b(email|send|generate)\\b.*\\b(invoice|receipt|quotation|document)\\b.*")) {
+            return Domain.SALES;
+        }
+
         Domain best = Domain.GENERAL;
         int bestScore = 0;
 

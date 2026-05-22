@@ -19,6 +19,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -89,7 +90,7 @@ public class AssistantService {
         List<Map<String, Object>> history = conversationStore.loadMessages(tenantId, convId);
 
         // Extract summary from history (look for the system message with "Previous conversation summary:")
-        String summary = null;
+        String summary = conversationStore.loadSummary(tenantId, convId);
         for (Map<String, Object> msg : history) {
             if ("system".equals(msg.get("role"))
                 && String.valueOf(msg.get("content")).startsWith("Previous conversation summary")) {
@@ -167,7 +168,8 @@ public class AssistantService {
                 org.springframework.security.core.context.SecurityContextHolder.setContext(securityCtx);
                 TenantContext.set(tenantId);
                 processConversation(emitter, systemPrompt, cleanHistory, tools,
-                    userId, tenantId, convId, 0, isSuperAdmin, effectiveMaxRounds, profile);
+                    userId, tenantId, convId, 0, isSuperAdmin, effectiveMaxRounds, profile,
+                    enrichedUserMessage, request.message());
                 emitter.complete();
             } catch (Exception e) {
                 log.error("Assistant chat error", e);
@@ -194,7 +196,9 @@ public class AssistantService {
                                       UUID userId, UUID tenantId,
                                       UUID conversationId, int round,
                                       boolean isSuperAdmin, int maxRounds,
-                                      RoleProfile profile) throws IOException {
+                                      RoleProfile profile,
+                                      String enrichedUserMessage,
+                                      String rawUserMessage) throws IOException {
         if (round >= maxRounds) {
             emitter.send(SseEmitter.event().name("done").data("{}"));
             return;
@@ -264,6 +268,8 @@ public class AssistantService {
         // Process tool calls from native function calling
         List<ToolResult> collectedToolResults = new java.util.ArrayList<>();
         List<String> toolErrors = new java.util.ArrayList<>();
+        Map<String, ToolResult> toolResultsByCallId = new LinkedHashMap<>();
+        Map<String, String> toolErrorsByCallId = new LinkedHashMap<>();
         boolean hasWriteDrafts = false;
         if (!result.toolCalls().isEmpty()) {
             for (var tc : result.toolCalls()) {
@@ -285,16 +291,19 @@ public class AssistantService {
                         try {
                             ToolResult toolResult = toolExecutor.execute(tc.name(), parsedArgs, userId);
                             collectedToolResults.add(toolResult);
+                            toolResultsByCallId.put(tc.id(), toolResult);
                             emitter.send(SseEmitter.event().name("tool_result")
                                 .data(Map.of("type", toolResult.type(), "title", toolResult.title(),
                                              "data", toolResult.data())));
                         } catch (Exception e) {
                             toolErrors.add(tc.name() + ": " + e.getMessage());
+                            toolErrorsByCallId.put(tc.id(), tc.name() + ": " + e.getMessage());
                             emitter.send(SseEmitter.event().name("error")
                                 .data(Map.of("message", e.getMessage(), "code", "TOOL_ERROR")));
                         }
                     } else {
                         hasWriteDrafts = true;
+                        toolErrorsByCallId.put(tc.id(), "Draft created; waiting for user confirmation.");
                         String draftSummary = "Execute " + tc.name();
                         var draft = toolExecutor.createDraft(tc.name(), parsedArgs,
                             draftSummary, userId, tenantId);
@@ -308,11 +317,13 @@ public class AssistantService {
                     try {
                         ToolResult toolResult = toolExecutor.execute(tc.name(), parsedArgs, userId);
                         collectedToolResults.add(toolResult);
+                        toolResultsByCallId.put(tc.id(), toolResult);
                         emitter.send(SseEmitter.event().name("tool_result")
                             .data(Map.of("type", toolResult.type(), "title", toolResult.title(),
                                          "data", toolResult.data())));
                     } catch (Exception e) {
                         toolErrors.add(tc.name() + ": " + e.getMessage());
+                        toolErrorsByCallId.put(tc.id(), tc.name() + ": " + e.getMessage());
                         emitter.send(SseEmitter.event().name("error")
                             .data(Map.of("message", e.getMessage(), "code", "TOOL_ERROR")));
                     }
@@ -326,6 +337,7 @@ public class AssistantService {
                                 "Available tools: " + String.join(", ", available),
                             "code", "UNKNOWN_TOOL")));
                     toolErrors.add("Unknown tool: " + tc.name());
+                    toolErrorsByCallId.put(tc.id(), "Unknown tool: " + tc.name());
                 }
             }
 
@@ -352,14 +364,16 @@ public class AssistantService {
                 Map<String, Object> toolMsg = new java.util.LinkedHashMap<>();
                 toolMsg.put("role", "tool");
                 toolMsg.put("tool_call_id", tc.id());
-                if (i < collectedToolResults.size()) {
+                ToolResult matchedResult = toolResultsByCallId.get(tc.id());
+                String matchedError = toolErrorsByCallId.get(tc.id());
+                if (matchedResult != null) {
                     try {
-                        toolMsg.put("content", om.writeValueAsString(collectedToolResults.get(i)));
+                        toolMsg.put("content", om.writeValueAsString(matchedResult));
                     } catch (Exception e) {
                         toolMsg.put("content", "{}");
                     }
-                } else if (i < toolErrors.size()) {
-                    toolMsg.put("content", "{\"error\":\"" + toolErrors.get(i) + "\"}");
+                } else if (matchedError != null) {
+                    toolMsg.put("content", om.writeValueAsString(Map.of("error", matchedError)));
                 } else {
                     toolMsg.put("content", "{}");
                 }
@@ -372,7 +386,7 @@ public class AssistantService {
             if (!hasWriteDrafts && round + 1 < maxRounds) {
                 processConversation(emitter, systemPrompt, messages, tools,
                     userId, tenantId, conversationId, round + 1,
-                    isSuperAdmin, maxRounds, profile);
+                    isSuperAdmin, maxRounds, profile, enrichedUserMessage, rawUserMessage);
                 return; // the recursive call handles saving and done
             }
 
@@ -382,7 +396,11 @@ public class AssistantService {
             if (synthesis != null && !synthesis.isBlank()) {
                 emitter.send(SseEmitter.event().name("token")
                     .data(Map.of("token", synthesis)));
+                messages.add(Map.of("role", "assistant", "content", synthesis));
             }
+        } else {
+            messages.add(Map.of("role", "assistant",
+                "content", result.text() != null ? result.text() : ""));
         }
 
         // Save conversation history
@@ -390,16 +408,35 @@ public class AssistantService {
         for (Map<String, Object> msg : messages) {
             @SuppressWarnings("unchecked")
             List<Map<String, Object>> tcList = (List<Map<String, Object>>) msg.get("tool_calls");
+            String content = String.valueOf(msg.getOrDefault("content", ""));
+            if ("user".equals(msg.get("role")) && content.equals(enrichedUserMessage)) {
+                content = rawUserMessage;
+            }
             savedMessages.add(new ConversationStore.Message(
                 String.valueOf(msg.get("role")),
-                String.valueOf(msg.getOrDefault("content", "")),
+                content,
                 tcList,
-                String.valueOf(msg.getOrDefault("tool_call_id", null)),
+                msg.get("tool_call_id") == null ? null : String.valueOf(msg.get("tool_call_id")),
                 null));
         }
-        conversationStore.save(tenantId, conversationId, savedMessages, null);
+        String existingSummary = conversationStore.loadSummary(tenantId, conversationId);
+        String nextSummary = existingSummary;
+        if (savedMessages.size() > 20) {
+            List<ConversationStore.Message> older = savedMessages.subList(0, savedMessages.size() - 20);
+            nextSummary = mergeSummaries(existingSummary, summarizer.summarize(older));
+        }
+        conversationStore.save(tenantId, conversationId, savedMessages, nextSummary);
 
         emitter.send(SseEmitter.event().name("done").data("{}"));
+    }
+
+    private String mergeSummaries(String existingSummary, String newSummary) {
+        if (newSummary == null || newSummary.isBlank()) return existingSummary;
+        if (existingSummary == null || existingSummary.isBlank()) return newSummary;
+        return summarizer.summarize(List.of(
+            new ConversationStore.Message("system", existingSummary, null, null, null),
+            new ConversationStore.Message("system", newSummary, null, null, null)
+        ));
     }
 
     private String synthesizeToolAnswer(AiProvider provider, String systemPrompt, String userMessage,

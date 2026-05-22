@@ -76,7 +76,6 @@ public class OpenAiProvider implements AiProvider {
                                              List<Map<String, Object>> tools) {
         // Build single-turn messages list from pair
         List<Map<String, Object>> messages = new ArrayList<>();
-        messages.add(Map.of("role", "system", "content", systemPrompt != null ? systemPrompt : ""));
         messages.add(Map.of("role", "user", "content", userPrompt));
         return completeWithTools(systemPrompt, messages, tools);
     }
@@ -96,8 +95,10 @@ public class OpenAiProvider implements AiProvider {
             systemPrompt != null ? systemPrompt : ""));
         fullMessages.addAll(messages);
         body.put("messages", fullMessages);
-        body.put("tools", tools);
-        body.put("tool_choice", "auto");
+        if (tools != null && !tools.isEmpty()) {
+            body.put("tools", tools);
+            body.put("tool_choice", "auto");
+        }
         return executeToolCall(body);
     }
 

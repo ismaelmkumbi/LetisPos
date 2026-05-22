@@ -35,30 +35,43 @@ public class ConversationStore {
     }
 
     public List<Map<String, Object>> loadMessages(UUID tenantId, UUID conversationId) {
+        Conversation conv = loadConversation(tenantId, conversationId);
+        if (conv == null) return List.of();
+        List<Map<String, Object>> messages = new ArrayList<>();
+        if (conv.summary != null && !conv.summary.isBlank()) {
+            messages.add(Map.of("role", "system",
+                "content", "Previous conversation summary: " + conv.summary));
+        }
+        for (Message m : conv.messages) {
+            Map<String, Object> entry = new LinkedHashMap<>();
+            entry.put("role", m.role);
+            entry.put("content", m.content != null ? m.content : "");
+            if (m.toolCalls != null) entry.put("tool_calls", m.toolCalls);
+            if (m.toolCallId != null && !"null".equals(m.toolCallId)) {
+                entry.put("tool_call_id", m.toolCallId);
+            }
+            messages.add(entry);
+        }
+        return messages;
+    }
+
+    public String loadSummary(UUID tenantId, UUID conversationId) {
+        Conversation conv = loadConversation(tenantId, conversationId);
+        return conv == null ? null : conv.summary;
+    }
+
+    private Conversation loadConversation(UUID tenantId, UUID conversationId) {
         String redisKey = key(tenantId, conversationId);
         String json = redis.opsForValue().get(redisKey);
-        if (json == null || json.isBlank()) return List.of();
+        if (json == null || json.isBlank()) return null;
         try {
             Conversation conv = om.readValue(json, Conversation.class);
-            List<Map<String, Object>> messages = new ArrayList<>();
-            if (conv.summary != null && !conv.summary.isBlank()) {
-                messages.add(Map.of("role", "system",
-                    "content", "Previous conversation summary: " + conv.summary));
-            }
-            for (Message m : conv.messages) {
-                Map<String, Object> entry = new LinkedHashMap<>();
-                entry.put("role", m.role);
-                entry.put("content", m.content != null ? m.content : "");
-                if (m.toolCalls != null) entry.put("tool_calls", m.toolCalls);
-                if (m.toolCallId != null) entry.put("tool_call_id", m.toolCallId);
-                messages.add(entry);
-            }
             // Refresh TTL on read so active conversations persist
             redis.expire(redisKey, TTL);
-            return messages;
+            return conv;
         } catch (JsonProcessingException e) {
             log.warn("Failed to deserialize conversation {} for tenant {}", conversationId, tenantId, e);
-            return List.of();
+            return null;
         }
     }
 
