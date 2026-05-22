@@ -156,6 +156,12 @@ export default function ProductsListPage() {
   // ── Bulk selection ───────────────────────────────────────────────────────────
   const sel = useSelection(rows);
 
+  // Clear selection when rows change (page change, filter, etc.)
+  useEffect(() => {
+    sel.clearSelection();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [totalElements]);
+
   // ── Quick duplicate product ──────────────────────────────────────────────────
   const [copyingId, setCopyingId] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; severity: 'success' | 'error' } | null>(null);
@@ -1632,10 +1638,10 @@ export default function ProductsListPage() {
       <Menu
         anchorEl={menuAnchor}
         open={Boolean(menuAnchor)}
-        onClose={() => setMenuAnchor(null)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-        slotProps={{ paper: { sx: { borderRadius: '12px', minWidth: 180, mt: 0.5 } } }}
+        onClose={() => { setMenuAnchor(null); setMenuProduct(null); }}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+        slotProps={{ paper: { sx: { borderRadius: '12px', minWidth: 190, mt: 0.5 } } }}
       >
         <MenuItem
           onClick={() => {
