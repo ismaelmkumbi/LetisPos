@@ -11,6 +11,7 @@ import io.smartpos.auth.domain.repository.TenantRepository;
 import io.smartpos.auth.domain.repository.UserRepository;
 import io.smartpos.auth.infrastructure.config.JwtProperties;
 import io.smartpos.auth.infrastructure.feign.UserServiceClient;
+import io.smartpos.auth.infrastructure.security.ClaimsCacheService;
 import io.smartpos.auth.infrastructure.security.JwtTokenService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -47,9 +48,12 @@ public class LoginUseCase {
      * blip) we issue a token with empty claims rather than failing login.
      * The frontend's separate {@code /users/{id}} call will still work
      * once user-service is up, so the UI stays functional.
+     *
+     * Claims are cached in Redis for 60s via {@link ClaimsCacheService}
+     * to eliminate the inter-service HTTP calls on every login.
      */
     @Autowired(required = false)
-    private UserServiceClient userServiceClient;
+    private ClaimsCacheService claimsCacheService;
 
     @Transactional
     public AuthResponse login(LoginRequest request, String userAgent, String ipAddress) {
@@ -200,18 +204,18 @@ public class LoginUseCase {
             }
         }
 
-        if (userServiceClient == null) {
+        if (claimsCacheService == null) {
             return new HydratedClaims(user.getTenantId(), tenantStatus, billingPlan,
                     List.of(), List.of(), List.of(), maxUsers, maxStores);
         }
         try {
-            UserServiceClient.AuthClaims fetched = userServiceClient.authClaims(user.getId());
+            UserServiceClient.AuthClaims fetched = claimsCacheService.authClaims(user.getId());
 
-            // Resolve features from user-service
+            // Resolve features from user-service (cached)
             List<String> features = List.of();
             if (billingPlan != null && user.getTenantId() != null) {
                 try {
-                    java.util.Set<String> resolved = userServiceClient.resolvedFeatures(
+                    java.util.Set<String> resolved = claimsCacheService.resolvedFeatures(
                             user.getTenantId().toString(),
                             user.getId().toString(),
                             billingPlan);

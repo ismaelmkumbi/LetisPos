@@ -141,6 +141,35 @@ public class JwtTokenService {
         }
     }
 
+    /**
+     * Parse the JWT once and return all relevant claims in a single record.
+     * Avoids paying RSA signature verification cost 4× per /me request.
+     */
+    public record ParsedClaims(String subject, List<String> roles,
+                                List<String> permissions, List<String> features) {}
+
+    public ParsedClaims parseAllClaims(String token) {
+        var payload = Jwts.parser()
+                .verifyWith(keyPair.getPublic())
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
+
+        @SuppressWarnings("unchecked")
+        List<String> roles = (List<String>) payload.get("roles");
+        @SuppressWarnings("unchecked")
+        List<String> permissions = (List<String>) payload.get("permissions");
+        @SuppressWarnings("unchecked")
+        List<String> features = (List<String>) payload.get("features");
+
+        return new ParsedClaims(
+                payload.getSubject(),
+                roles != null ? roles : List.of(),
+                permissions != null ? permissions : List.of(),
+                features != null ? features : List.of()
+        );
+    }
+
     public KeyPair keyPair() { return keyPair; }
     public String keyId()    { return props.keyId(); }
 }
