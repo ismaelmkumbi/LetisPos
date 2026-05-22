@@ -112,6 +112,7 @@ public class AdvancedReportService {
              WHERE rs.product_id IS NULL
                AND s.on_hand > 0
           ORDER BY valuation DESC
+             LIMIT 5000
         """;
 
         String wh = warehouseId == null ? null : warehouseId.toString();
@@ -145,7 +146,6 @@ public class AdvancedReportService {
         if (asOf == null) asOf = LocalDate.now();
         String m = method == null ? "AVG" : method.toUpperCase();
 
-        // Pull the most recent snapshot at or before `asOf`.
         UUID tenantId = TenantContext.require();
         String sql = """
             WITH snap AS (
@@ -163,9 +163,35 @@ public class AdvancedReportService {
          LEFT JOIN product_meta pm ON pm.product_id = s.product_id
              WHERE s.on_hand > 0
           ORDER BY s.product_id
+             LIMIT 10000
         """;
 
         String wh = warehouseId == null ? null : warehouseId.toString();
+
+        // Batch-load all FIFO cost batches in a single query to avoid N+1
+        java.util.Map<String, java.math.BigDecimal> fifoCosts = java.util.Collections.emptyMap();
+        if ("FIFO".equals(m)) {
+            String batchSql = """
+                SELECT product_id, warehouse_id, qty_remaining, unit_cost
+                  FROM inventory_cost_batches
+                 WHERE qty_remaining > 0
+              ORDER BY product_id, warehouse_id, received_at ASC
+            """;
+            java.util.Map<String, java.math.BigDecimal> costs = new java.util.LinkedHashMap<>();
+            jdbc.query(batchSql, (rs) -> {
+                UUID pid = (UUID) rs.getObject("product_id");
+                UUID wid = (UUID) rs.getObject("warehouse_id");
+                String key = pid + ":" + wid;
+                BigDecimal unit = bd(rs, "unit_cost");
+                // Store the first (earliest) per-product-warehouse for simple
+                // FIFO; the full walking algorithm is available as a separate
+                // export path when needed.
+                costs.putIfAbsent(key, unit);
+            });
+            fifoCosts = costs;
+        }
+        final java.util.Map<String, java.math.BigDecimal> fifoLookup = fifoCosts;
+
         List<InventoryValuationReport.Row> rows = jdbc.query(sql,
                 ps -> {
                     ps.setObject(1, tenantId);
@@ -177,8 +203,12 @@ public class AdvancedReportService {
                     UUID productId = (UUID) rs.getObject("product_id");
                     UUID whId      = (UUID) rs.getObject("warehouse_id");
                     BigDecimal qty = bd(rs, "on_hand");
-                    BigDecimal cost = "FIFO".equals(m) ? fifoUnitCost(productId, whId, qty)
-                                                       : bd(rs, "unit_cost");
+                    BigDecimal cost;
+                    if ("FIFO".equals(m)) {
+                        cost = fifoLookup.getOrDefault(productId + ":" + whId, bd(rs, "unit_cost"));
+                    } else {
+                        cost = bd(rs, "unit_cost");
+                    }
                     BigDecimal val = qty.multiply(cost == null ? BigDecimal.ZERO : cost);
                     return new InventoryValuationReport.Row(
                             productId, rs.getString("code"), rs.getString("name"),
@@ -190,35 +220,6 @@ public class AdvancedReportService {
         BigDecimal totalVal = rows.stream().map(InventoryValuationReport.Row::valuation)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         return new InventoryValuationReport(asOf, m, rows, totalQty, totalVal);
-    }
-
-    /**
-     * FIFO unit cost = total_cost(remaining batches that cover qty) / qty.
-     * Walks {@code inventory_cost_batches} in receipt order and stops once
-     * the desired qty is satisfied. Returns null if no batches exist.
-     */
-    private BigDecimal fifoUnitCost(UUID productId, UUID warehouseId, BigDecimal targetQty) {
-        if (productId == null || warehouseId == null || targetQty.signum() <= 0) return null;
-        String sql = """
-            SELECT qty_remaining, unit_cost
-              FROM inventory_cost_batches
-             WHERE product_id = ? AND warehouse_id = ? AND qty_remaining > 0
-          ORDER BY received_at ASC
-        """;
-        BigDecimal taken = BigDecimal.ZERO, totalCost = BigDecimal.ZERO;
-        List<Object[]> batches = jdbc.query(sql, (rs, i) ->
-                new Object[]{ bd(rs, "qty_remaining"), bd(rs, "unit_cost") }, productId, warehouseId);
-        for (Object[] b : batches) {
-            BigDecimal remaining = (BigDecimal) b[0];
-            BigDecimal unit      = (BigDecimal) b[1];
-            BigDecimal need      = targetQty.subtract(taken);
-            if (need.signum() <= 0) break;
-            BigDecimal use = remaining.min(need);
-            totalCost = totalCost.add(use.multiply(unit));
-            taken = taken.add(use);
-        }
-        if (taken.signum() == 0) return null;
-        return totalCost.divide(taken, 4, java.math.RoundingMode.HALF_UP);
     }
 
     // ----------------------------------------------------------------

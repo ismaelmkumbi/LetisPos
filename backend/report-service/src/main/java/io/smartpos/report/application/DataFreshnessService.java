@@ -31,10 +31,11 @@ public class DataFreshnessService {
     private static final String ERROR = "ERROR";
 
     /**
-     * Polls all source services every 5 minutes and updates the
-     * dashboard_data_freshness table.
+     * Polls source services every 15 minutes and updates the
+     * dashboard_data_freshness table. Uses lightweight queries to
+     * avoid putting load on downstream services.
      */
-    @Scheduled(fixedRateString = "${smartpos.report.freshness.interval-ms:300000}")
+    @Scheduled(fixedRateString = "${smartpos.report.freshness.interval-ms:900000}")
     public void refreshFreshness() {
         log.debug("Running data freshness poll");
         check("sales",      () -> sales.salesStats(null, null, null, null));
