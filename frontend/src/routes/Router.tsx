@@ -26,6 +26,9 @@ const SmartPosProducts = Loadable(
 const SmartPosProductDetail = Loadable(
   lazy(() => import('../views/smartpos/products/ProductDetailPage')),
 );
+const SmartPosVariantsPage = Loadable(
+  lazy(() => import('../views/smartpos/products/variants/VariantsPage')),
+);
 const SmartPosSerials = Loadable(lazy(() => import('../views/smartpos/products/SerialsListPage')));
 const SmartPosCategories = Loadable(
   lazy(() => import('../views/smartpos/products/CategoriesListPage')),
@@ -571,6 +574,7 @@ const Router = [
           { path: 'bundles', element: <SmartPosBundles /> },
           { path: 'price-lists', element: <SmartPosPriceLists /> },
           { path: 'price-lists/:id', element: <SmartPosPriceListDetail /> },
+          { path: ':id/variants', element: <SmartPosVariantsPage /> },
           { path: ':id', element: <SmartPosProductDetail /> },
           { path: ':id/edit', element: <SmartPosProductDetail /> },
         ],
