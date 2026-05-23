@@ -60,8 +60,11 @@ export interface RegisterPayload {
   phoneNumber?: string;
 }
 
-export async function register(payload: RegisterPayload): Promise<{ userId: string }> {
-  const { data } = await api.post<{ userId: string }>('/api/v1/auth/register', payload);
+export async function register(payload: RegisterPayload): Promise<LoginResponse> {
+  const { data } = await api.post<LoginResponse>('/api/v1/auth/register', payload);
+  tokenStore.set(data.accessToken);
+  tokenStore.setTenantId(data.user?.tenantId || null);
+  schedulePreemptiveRefresh(data.accessToken);
   return data;
 }
 
