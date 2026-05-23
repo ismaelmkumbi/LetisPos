@@ -145,7 +145,7 @@ export default function DashboardPage() {
       else next.delete('period');
       return next;
     }, { replace: true });
-  }, []);
+  }, [setSearchParams]);
   const handleWarehouseChange = useCallback((id: string) => {
     setWarehouseId(id as UUID | '');
     setSearchParams((prev) => {
@@ -154,7 +154,7 @@ export default function DashboardPage() {
       else next.delete('warehouseId');
       return next;
     }, { replace: true });
-  }, []);
+  }, [setSearchParams]);
 
   const handleManualRefresh = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ['dashboard'] });
