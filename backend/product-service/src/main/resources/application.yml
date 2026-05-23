@@ -87,6 +87,7 @@ smartpos:
     secret-key: ${MINIO_SECRET_KEY:smartpos-secret}
     bucket: ${MINIO_BUCKET:smartpos-product-images}
     presigned-ttl-seconds: ${MINIO_PRESIGNED_TTL:3600}
+    public-endpoint: ${MINIO_PUBLIC_ENDPOINT:#{null}}
 
 management:
   endpoints:
