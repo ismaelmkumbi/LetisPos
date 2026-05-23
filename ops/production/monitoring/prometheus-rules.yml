@@ -89,3 +89,23 @@ groups:
           severity: warning
         annotations:
           summary: "PostgreSQL connections above 80%"
+
+  - name: kafka-health
+    rules:
+      - alert: DltBacklog
+        expr: kafka_consumergroup_lag{group=~".*-dlt"} > 0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "DLT backlog for {{ $labels.group }}"
+          description: "Consumer group {{ $labels.group }} has {{ $value }} unprocessed DLT messages on topic {{ $labels.topic }}."
+
+      - alert: KafkaConsumerLag
+        expr: kafka_consumergroup_lag{group!~".*-dlt"} > 1000
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Kafka consumer lag > 1000 for {{ $labels.group }}"
+          description: "Consumer group {{ $labels.group }} is {{ $value }} messages behind on topic {{ $labels.topic }}."

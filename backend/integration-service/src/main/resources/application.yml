@@ -8,12 +8,12 @@ spring:
     name: integration-service
 
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/integration_db}?preferQueryMode=${DB_PREFER_QUERY_MODE:simple}
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/integration_db}
     username: ${DB_USER:integration_user}
     password: ${DB_PASSWORD:integration_pass}
     hikari:
       maximum-pool-size: 8
-      minimum-idle: 2
+      keepalive-time: 30000
 
   jpa:
     hibernate:
@@ -73,6 +73,6 @@ management:
 logging:
   level:
     root: INFO
-    io.smartpos: DEBUG
+    io.smartpos: INFO
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{traceId:-}] %logger{36} - %msg%n"

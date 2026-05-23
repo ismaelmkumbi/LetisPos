@@ -8,12 +8,12 @@ spring:
     name: notification-service
 
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/notification_db}?preferQueryMode=${DB_PREFER_QUERY_MODE:simple}
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/notification_db}
     username: ${DB_USER:notification_user}
     password: ${DB_PASSWORD:notification_pass}
     hikari:
       maximum-pool-size: 10
-      minimum-idle: 2
+      keepalive-time: 30000
 
   jpa:
     hibernate:
@@ -91,6 +91,6 @@ management:
 logging:
   level:
     root: INFO
-    io.smartpos: DEBUG
+    io.smartpos: INFO
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{traceId:-}] %logger{36} - %msg%n"

@@ -10,7 +10,7 @@ services:
     environment:
       AUTH_JWKS_URI: http://10.0.0.1:8081/.well-known/jwks.json
       DB_PASSWORD: commerce_pass
-      DB_URL: jdbc:postgresql://postgres:5432/commerce_db?preferQueryMode=simple
+      DB_URL: jdbc:postgresql://postgres:5432/commerce_db
       DB_USERNAME: commerce_user
       FLYWAY_VALIDATE_ON_MIGRATE: 'false'
       SPRING_FLYWAY_VALIDATE_ON_MIGRATE: 'false'
@@ -24,7 +24,7 @@ services:
       REDIS_PORT: '6379'
       SALES_SERVICE_URL: http://sales-service:8085
       SERVER_PORT: '8094'
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/commerce_db?preferQueryMode=simple
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/commerce_db
       SPRING_DATA_REDIS_HOST: redis
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       JAVA_TOOL_OPTIONS: -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0

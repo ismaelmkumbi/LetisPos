@@ -8,17 +8,16 @@ spring:
     name: product-service
 
   datasource:
-    # `preferQueryMode=simple` disables Postgres prepared-statement parameter
-    # type inference. Required because several JPQL queries use the
-    # `(:param IS NULL OR ...)` pattern with String parameters, and Postgres
-    # otherwise tries `lower(bytea)` when the param is bound as null.
-    # Host port 5434 matches smartpos/infra/docker-compose.yml (Postgres published as 5434:5432).
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/product_db?preferQueryMode=${DB_PREFER_QUERY_MODE:simple}}
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/product_db}
     username: ${DB_USER:product_user}
     password: ${DB_PASSWORD:product_pass}
     hikari:
-      maximum-pool-size: 10
-      minimum-idle: 2
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 3000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      keepalive-time: 30000
 
   jpa:
     hibernate:
@@ -97,7 +96,7 @@ management:
 
 logging:
   level:
-    root: INFO
-    io.smartpos: DEBUG
+    root: WARN
+    io.smartpos: INFO
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{traceId:-}] %logger{36} - %msg%n"

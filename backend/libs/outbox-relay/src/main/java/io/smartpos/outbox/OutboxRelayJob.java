@@ -7,30 +7,26 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.kafka.core.KafkaTemplate;
-import org.springframework.kafka.support.SendResult;
 import org.springframework.scheduling.annotation.Scheduled;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Periodically drains the {@code outbox} table to Kafka.
- *
- * <p>Per-row publishing with synchronous ack: if Kafka rejects the send or
- * times out, the row stays unpublished and the next poll retries. This yields
- * <strong>at-least-once</strong> delivery (consumers must be idempotent).
+ * Periodically drains the {@code outbox} table to Kafka using batched async
+ * sends. Failed sends are logged and retried on the next poll cycle. This
+ * yields <strong>at-least-once</strong> delivery (consumers must be idempotent).
  *
  * <p>Topic naming: {@code ${topic-prefix}.${event-type-kebab}.v1}
  * <br>Example: event_type "SaleConfirmed" → "smartpos.sales.sale-confirmed.v1"
  *
  * <p>Partition key = {@code aggregate_id} so events for the same aggregate
  * always land on the same partition (→ in-order consumption per aggregate).
- *
- * <p>Scheduling uses {@code @Scheduled(fixedDelayString)} so it's only
- * registered if {@code @EnableScheduling} is active in the application.
  */
 @Slf4j
 public class OutboxRelayJob {
@@ -84,27 +80,46 @@ public class OutboxRelayJob {
         if (rows.isEmpty()) return;
         log.debug("Outbox relay draining {} row(s)", rows.size());
 
-        int published = 0, failed = 0;
+        List<CompletableFuture<Void>> futures = new ArrayList<>();
         for (OutboxRow row : rows) {
+            String topic = buildTopic(row);
+            String key = row.aggregateId().toString();
+            String body;
             try {
-                publishOne(row);
-                jdbc.update(markPublishedSql, row.id());
-                published++;
+                body = buildEnvelope(row);
             } catch (Exception e) {
-                failed++;
-                log.error("Failed to relay outbox row id={} event={}: {}",
-                        row.id(), row.eventType(), e.getMessage());
+                log.error("Failed to serialise outbox row id={}: {}", row.id(), e.getMessage());
+                continue;
             }
+            var future = kafka.send(topic, key, body)
+                .whenComplete((result, ex) -> {
+                    if (ex == null) {
+                        jdbc.update(markPublishedSql, row.id());
+                        log.debug("Relayed event {} to {}/{}@{}", row.eventType(),
+                                result.getRecordMetadata().topic(),
+                                result.getRecordMetadata().partition(),
+                                result.getRecordMetadata().offset());
+                    } else {
+                        log.error("Failed to relay outbox row id={} event={}: {}",
+                                row.id(), row.eventType(), ex.getMessage());
+                    }
+                });
+            futures.add(future);
         }
-        if (published > 0 || failed > 0) {
-            log.info("Outbox relay batch: published={} failed={}", published, failed);
+
+        try {
+            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
+                    .orTimeout(props.sendTimeoutMs(), TimeUnit.MILLISECONDS)
+                    .exceptionally(ex -> {
+                        log.warn("Outbox batch incomplete after {}ms", props.sendTimeoutMs());
+                        return null;
+                    });
+        } catch (Exception e) {
+            log.warn("Outbox batch wait interrupted: {}", e.getMessage());
         }
     }
 
-    private void publishOne(OutboxRow row) throws Exception {
-        String topic = buildTopic(row);
-        String key   = row.aggregateId().toString();
-
+    private String buildEnvelope(OutboxRow row) throws Exception {
         JsonNode payload = row.payloadJson() == null
                 ? objectMapper.nullNode()
                 : objectMapper.readTree(row.payloadJson());
@@ -118,14 +133,7 @@ public class OutboxRelayJob {
                 row.createdAt(),
                 payload
         );
-        String body = objectMapper.writeValueAsString(envelope);
-
-        SendResult<String, String> result = kafka.send(topic, key, body)
-                .get(props.sendTimeoutMs(), TimeUnit.MILLISECONDS);
-        log.debug("Relayed event {} to {}/{}@{}", row.eventType(),
-                result.getRecordMetadata().topic(),
-                result.getRecordMetadata().partition(),
-                result.getRecordMetadata().offset());
+        return objectMapper.writeValueAsString(envelope);
     }
 
     String buildTopic(OutboxRow row) {

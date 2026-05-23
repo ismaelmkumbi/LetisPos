@@ -1,0 +1,135 @@
+{
+  "title": "LetisPOS — JVM & Service Health",
+  "uid": "letispos-jvm",
+  "panels": [
+    {
+      "title": "Service Uptime",
+      "targets": [
+        {
+          "expr": "process_uptime_seconds{job=~\"spring-.*\"}",
+          "legendFormat": "{{service}}"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 }
+    },
+    {
+      "title": "CPU Usage %",
+      "targets": [
+        {
+          "expr": "rate(process_cpu_usage{job=~\"spring-.*\"}[1m]) * 100",
+          "legendFormat": "{{service}}"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 }
+    },
+    {
+      "title": "Heap Memory (MB)",
+      "targets": [
+        {
+          "expr": "jvm_memory_used_bytes{area=\"heap\", job=~\"spring-.*\"} / 1048576",
+          "legendFormat": "{{service}} — used"
+        },
+        {
+          "expr": "jvm_memory_max_bytes{area=\"heap\", job=~\"spring-.*\"} / 1048576",
+          "legendFormat": "{{service}} — max"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 }
+    },
+    {
+      "title": "GC Pause Time (ms)",
+      "targets": [
+        {
+          "expr": "rate(jvm_gc_pause_seconds_sum{job=~\"spring-.*\"}[1m]) * 1000",
+          "legendFormat": "{{service}} — {{action}} {{cause}}"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 }
+    },
+    {
+      "title": "HTTP Request Rate (req/s)",
+      "targets": [
+        {
+          "expr": "rate(http_server_requests_seconds_count{job=~\"spring-.*\"}[1m])",
+          "legendFormat": "{{service}} — {{status}}"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 }
+    },
+    {
+      "title": "P99 Latency (ms)",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.99, rate(http_server_requests_seconds_bucket{job=~\"spring-.*\"}[1m])) * 1000",
+          "legendFormat": "{{service}}"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 }
+    },
+    {
+      "title": "HikariCP Connections",
+      "targets": [
+        {
+          "expr": "hikaricp_connections_active{job=~\"spring-.*\"}",
+          "legendFormat": "{{service}} — active"
+        },
+        {
+          "expr": "hikaricp_connections_idle{job=~\"spring-.*\"}",
+          "legendFormat": "{{service}} — idle"
+        },
+        {
+          "expr": "hikaricp_connections_pending{job=~\"spring-.*\"}",
+          "legendFormat": "{{service}} — pending"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 }
+    },
+    {
+      "title": "Tomcat Threads",
+      "targets": [
+        {
+          "expr": "tomcat_threads_busy{job=~\"spring-.*\"}",
+          "legendFormat": "{{service}} — busy"
+        },
+        {
+          "expr": "tomcat_threads_config_max{job=~\"spring-.*\"}",
+          "legendFormat": "{{service}} — max"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 24 }
+    },
+    {
+      "title": "Business — Sales per Minute",
+      "targets": [
+        {
+          "expr": "rate(sales_created_total[1m]) * 60",
+          "legendFormat": "sales/min"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 32 }
+    },
+    {
+      "title": "5xx Error Rate %",
+      "targets": [
+        {
+          "expr": "rate(http_server_requests_seconds_count{status=~\"5..\", job=~\"spring-.*\"}[5m]) / rate(http_server_requests_seconds_count{job=~\"spring-.*\"}[5m]) * 100",
+          "legendFormat": "{{service}}"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 32 }
+    },
+    {
+      "title": "Kafka Consumer Lag",
+      "targets": [
+        {
+          "expr": "kafka_consumergroup_lag{group!~\".*-dlt\"}",
+          "legendFormat": "{{group}} / {{topic}}"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 32 }
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["letispos", "jvm", "spring-boot"],
+  "refresh": "30s"
+}

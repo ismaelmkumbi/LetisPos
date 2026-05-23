@@ -13,12 +13,13 @@ spring:
     name: ai-service
 
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/ai_db}?preferQueryMode=${DB_PREFER_QUERY_MODE:simple}
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/ai_db}
     username: ${DB_USER:ai_user}
     password: ${DB_PASSWORD:ai_pass}
     hikari:
-      maximum-pool-size: 8
+      maximum-pool-size: 10
       minimum-idle: 2
+      keepalive-time: 30000
 
   jpa:
     hibernate:
@@ -97,7 +98,7 @@ management:
 logging:
   level:
     root: INFO
-    io.smartpos: DEBUG
+    io.smartpos: INFO
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{traceId:-}] %logger{36} - %msg%n"
 

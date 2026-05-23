@@ -10,7 +10,7 @@ services:
     environment:
       AUTH_JWKS_URI: http://10.0.0.1:8081/.well-known/jwks.json
       DB_PASSWORD: report_pass
-      DB_URL: jdbc:postgresql://10.0.0.3:5432/report_db?preferQueryMode=simple
+      DB_URL: jdbc:postgresql://10.0.0.3:5432/report_db
       DB_USERNAME: report_user
       FLYWAY_VALIDATE_ON_MIGRATE: 'false'
       INVENTORY_URI: http://10.0.0.3:8084
@@ -61,7 +61,7 @@ services:
       AUTH_SERVICE_URL: http://10.0.0.1:8081
       CUSTOMER_SERVICE_URL: http://10.0.0.3:8085
       DB_PASSWORD: ai_pass
-      DB_URL: jdbc:postgresql://10.0.0.3:5432/ai_db?preferQueryMode=simple
+      DB_URL: jdbc:postgresql://10.0.0.3:5432/ai_db
       DB_USERNAME: ai_user
       DOCUMENT_SERVICE_URL: http://document-service:8093
       FLYWAY_VALIDATE_ON_MIGRATE: 'false'
@@ -121,7 +121,7 @@ services:
       AI_SERVICE_URI: http://ai-service:8091
       AUTH_JWKS_URI: http://10.0.0.1:8081/.well-known/jwks.json
       DB_PASSWORD: document_pass
-      DB_URL: jdbc:postgresql://10.0.0.3:5432/document_db?preferQueryMode=simple
+      DB_URL: jdbc:postgresql://10.0.0.3:5432/document_db
       DB_USER: document_user
       FLYWAY_VALIDATE_ON_MIGRATE: 'false'
       GOTENBERG_URL: http://gotenberg:3000
@@ -200,7 +200,7 @@ services:
     environment:
       AUTH_JWKS_URI: http://10.0.0.1:8081/.well-known/jwks.json
       DB_PASSWORD: audit_pass
-      DB_URL: jdbc:postgresql://10.0.0.3:5432/audit_db?preferQueryMode=simple
+      DB_URL: jdbc:postgresql://10.0.0.3:5432/audit_db
       DB_USERNAME: audit_user
       FLYWAY_VALIDATE_ON_MIGRATE: 'false'
       KAFKA_BOOTSTRAP: 10.0.0.3:9094
@@ -210,7 +210,7 @@ services:
       SERVER_PORT: '8095'
       JAVA_TOOL_OPTIONS: -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0
         -XX:+UseZGC -XX:ZCollectionInterval=10 -XX:+ExitOnOutOfMemoryError
-      SPRING_DATASOURCE_URL: jdbc:postgresql://10.0.0.3:5432/audit_db?preferQueryMode=simple
+      SPRING_DATASOURCE_URL: jdbc:postgresql://10.0.0.3:5432/audit_db
       SPRING_DATA_REDIS_HOST: 10.0.0.3
       SPRING_KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094
     healthcheck:
@@ -243,7 +243,7 @@ services:
     environment:
       AUTH_JWKS_URI: http://10.0.0.1:8081/.well-known/jwks.json
       DB_PASSWORD: billing_pass
-      DB_URL: jdbc:postgresql://10.0.0.3:5432/billing_db?preferQueryMode=simple
+      DB_URL: jdbc:postgresql://10.0.0.3:5432/billing_db
       DB_USERNAME: billing_user
       FLYWAY_VALIDATE_ON_MIGRATE: 'false'
       KAFKA_BOOTSTRAP: 10.0.0.3:9094
@@ -253,7 +253,7 @@ services:
       SERVER_PORT: '8096'
       JAVA_TOOL_OPTIONS: -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0
         -XX:+UseZGC -XX:ZCollectionInterval=10 -XX:+ExitOnOutOfMemoryError
-      SPRING_DATASOURCE_URL: jdbc:postgresql://10.0.0.3:5432/billing_db?preferQueryMode=simple
+      SPRING_DATASOURCE_URL: jdbc:postgresql://10.0.0.3:5432/billing_db
       SPRING_DATA_REDIS_HOST: 10.0.0.3
       SPRING_KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094
     healthcheck:
@@ -286,7 +286,7 @@ services:
     environment:
       AUTH_JWKS_URI: http://10.0.0.1:8081/.well-known/jwks.json
       DB_PASSWORD: crm_pass
-      DB_URL: jdbc:postgresql://10.0.0.3:5432/crm_db?preferQueryMode=simple
+      DB_URL: jdbc:postgresql://10.0.0.3:5432/crm_db
       DB_USERNAME: crm_user
       FLYWAY_VALIDATE_ON_MIGRATE: 'false'
       KAFKA_BOOTSTRAP: 10.0.0.3:9094
@@ -296,7 +296,7 @@ services:
       SERVER_PORT: '8097'
       JAVA_TOOL_OPTIONS: -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0
         -XX:+UseZGC -XX:ZCollectionInterval=10 -XX:+ExitOnOutOfMemoryError
-      SPRING_DATASOURCE_URL: jdbc:postgresql://10.0.0.3:5432/crm_db?preferQueryMode=simple
+      SPRING_DATASOURCE_URL: jdbc:postgresql://10.0.0.3:5432/crm_db
       SPRING_DATA_REDIS_HOST: 10.0.0.3
       SPRING_KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094
     healthcheck:
@@ -329,7 +329,7 @@ services:
     environment:
       AUTH_JWKS_URI: http://10.0.0.1:8081/.well-known/jwks.json
       DB_PASSWORD: integration_pass
-      DB_URL: jdbc:postgresql://10.0.0.3:5432/integration_db?preferQueryMode=simple
+      DB_URL: jdbc:postgresql://10.0.0.3:5432/integration_db
       DB_USERNAME: integration_user
       FLYWAY_VALIDATE_ON_MIGRATE: 'false'
       KAFKA_BOOTSTRAP: 10.0.0.3:9094
@@ -371,7 +371,7 @@ services:
     environment:
       AUTH_JWKS_URI: http://10.0.0.1:8081/.well-known/jwks.json
       DB_PASSWORD: hrm_pass
-      DB_URL: jdbc:postgresql://10.0.0.3:5432/hrm_db?preferQueryMode=simple
+      DB_URL: jdbc:postgresql://10.0.0.3:5432/hrm_db
       DB_USERNAME: hrm_user
       FLYWAY_VALIDATE_ON_MIGRATE: 'false'
       KAFKA_BOOTSTRAP: 10.0.0.3:9094
@@ -413,7 +413,7 @@ services:
     environment:
       AUTH_JWKS_URI: http://10.0.0.1:8081/.well-known/jwks.json
       DB_PASSWORD: notification_pass
-      DB_URL: jdbc:postgresql://10.0.0.3:5432/notification_db?preferQueryMode=simple
+      DB_URL: jdbc:postgresql://10.0.0.3:5432/notification_db
       DB_USERNAME: notification_user
       FLYWAY_VALIDATE_ON_MIGRATE: 'false'
       KAFKA_BOOTSTRAP: 10.0.0.3:9094

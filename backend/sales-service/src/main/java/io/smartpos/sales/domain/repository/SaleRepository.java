@@ -41,9 +41,6 @@ public interface SaleRepository extends JpaRepository<Sale, UUID> {
     @Query("SELECT s FROM Sale s WHERE s.id = :id")
     Optional<Sale> findByIdWithLines(@Param("id") UUID id);
 
-    @Query("SELECT COUNT(s) FROM Sale s WHERE s.ref LIKE CONCAT(:prefix, '%') AND s.tenantId = :tenantId")
-    long countByRefStartingWith(@Param("prefix") String prefix, @Param("tenantId") UUID tenantId);
-
     @Query("""
         SELECT s FROM Sale s
         WHERE s.warehouseId = :warehouseId

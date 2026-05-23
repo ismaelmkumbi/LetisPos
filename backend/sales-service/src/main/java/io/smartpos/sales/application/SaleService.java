@@ -29,6 +29,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
@@ -74,6 +75,7 @@ public class SaleService {
     private final UserFeign userFeign;
     private final ProductNameResolver productNameResolver;
     private final ProductClient productClient;
+    private final TransactionTemplate txTemplate;
 
     @Value("${smartpos.sales.default-currency:TZS}")
     private String defaultCurrency;
@@ -328,11 +330,80 @@ public class SaleService {
     // ---------- Create & confirm (back-office) ----------
 
     /**
-     * Create + reserve stock atomically. The sale becomes CONFIRMED on success.
-     * Payment is tracked separately (starts as UNPAID).
+     * Create + reserve stock. Split across three lightweight transactions so
+     * Feign calls never hold a DB connection open.
+     *
+     * Phase 1: Persist Sale in DRAFT (short DB tx).
+     * Phase 2: Reserve stock via Inventory Service (Feign, no DB tx).
+     * Phase 3: On success → confirm + emit SaleConfirmed (short DB tx).
+     *          On failure → cancel draft (compensating tx).
+     *
+     * The inventory reservation is idempotent by saleId and expires after TTL,
+     * so a retry of this entire flow is safe.
      */
-    @Transactional
     public SaleDto create(CreateSaleRequest req, UUID userId, boolean isPosFastPath) {
+        Sale sale = buildSale(req, userId);
+
+        // Phase 1: Persist DRAFT (transactional)
+        Sale saved = txTemplate.execute(status -> saleRepo.save(sale));
+        if (saved == null) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Failed to persist sale draft");
+        }
+
+        // Phase 2: Reserve stock (Feign — no DB tx held)
+        List<InventoryClient.ReservationLine> reservationLines = saved.getLines().stream()
+                .map(l -> new InventoryClient.ReservationLine(
+                        l.getProductId(), l.getVariantId(), saved.getWarehouseId(), l.getQty()))
+                .toList();
+        try {
+            inventory.reserve(new InventoryClient.ReserveRequest(
+                    saved.getId(), reservationLines, reservationTtlMinutes));
+        } catch (FeignException e) {
+            String detail = extractProblemDetail(e);
+            log.warn("Stock reservation failed for sale {}: {}", saved.getId(), detail);
+            // Compensate: cancel the DRAFT sale
+            txTemplate.executeWithoutResult(st -> {
+                Sale draft = saleRepo.findById(saved.getId()).orElse(null);
+                if (draft != null) draft.cancel();
+            });
+            throw new ResponseStatusException(HttpStatus.CONFLICT, detail);
+        } catch (Exception e) {
+            log.warn("Stock reservation failed for sale {}: {}", saved.getId(), e.getMessage());
+            txTemplate.executeWithoutResult(st -> {
+                Sale draft = saleRepo.findById(saved.getId()).orElse(null);
+                if (draft != null) draft.cancel();
+            });
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Could not reserve stock: " + e.getMessage());
+        }
+
+        // Phase 3: Confirm + emit events (transactional)
+        return txTemplate.execute(status -> {
+            Sale confirmed = saleRepo.findByIdWithLines(saved.getId()).orElseThrow();
+            confirmed.confirm();
+            outbox.publish("Sale", confirmed.getId(), "SaleConfirmed", saleEventPayload(confirmed));
+
+            if (isPosFastPath) {
+                try {
+                    inventory.commit(confirmed.getId());
+                    confirmed.setPaidTotal(confirmed.getGrandTotal());
+                    confirmed.recomputePaymentStatus();
+                    outbox.publish("Sale", confirmed.getId(), "SaleCompleted",
+                            Map.of("saleId", confirmed.getId(), "ref", confirmed.getRef()));
+                } catch (Exception e) {
+                    log.error("POS commit failed for sale {} — will need manual reconciliation",
+                            confirmed.getId(), e);
+                    throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+                            "Stock commit failed: " + e.getMessage());
+                }
+            }
+            return SaleDto.from(confirmed);
+        });
+    }
+
+    /** Build a DRAFT Sale entity from the request (no side effects). */
+    private Sale buildSale(CreateSaleRequest req, UUID userId) {
         TaxMethod headerTaxMethod = req.taxMethod() == null ? TaxMethod.EXCLUSIVE : req.taxMethod();
         Sale sale = Sale.builder()
                 .ref(nextRef())
@@ -340,7 +411,7 @@ public class SaleService {
                 .customerId(req.customerId())
                 .warehouseId(req.warehouseId())
                 .userId(userId)
-                .pos(Boolean.TRUE.equals(req.isPos()) || isPosFastPath)
+                .pos(Boolean.TRUE.equals(req.isPos()) || userId != null)
                 .taxMethod(headerTaxMethod)
                 .currency(req.currency() != null ? req.currency() : defaultCurrency)
                 .exchangeRate(req.exchangeRate() != null ? req.exchangeRate() : BigDecimal.ONE)
@@ -374,86 +445,42 @@ public class SaleService {
             sumTax      = sumTax.add(calc.tax());
         }
 
-        // Snapshot weighted average cost from Inventory for each line
+        // Snapshot WAC from Inventory (read-only Feign call — no DB tx held)
         List<UUID> productIds = sale.getLines().stream()
-                .map(SaleLine::getProductId)
-                .distinct()
-                .toList();
+                .map(SaleLine::getProductId).distinct().toList();
         if (!productIds.isEmpty()) {
             try {
                 var costs = inventory.getCosts(sale.getWarehouseId(), productIds);
                 var costMap = costs.stream().collect(Collectors.toMap(
                         c -> new AbstractMap.SimpleEntry<>(c.productId(), c.variantId()),
-                        c -> c.weightedAvgCost(),
-                        (a, b) -> a));
+                        c -> c.weightedAvgCost(), (a, b) -> a));
                 for (SaleLine line : sale.getLines()) {
-                    BigDecimal wac = costMap.get(new AbstractMap.SimpleEntry<>(line.getProductId(), line.getVariantId()));
+                    BigDecimal wac = costMap.get(
+                            new AbstractMap.SimpleEntry<>(line.getProductId(), line.getVariantId()));
                     if (wac != null && wac.signum() > 0) {
                         line.setUnitCost(wac);
                     } else {
-                        // Fall back to product cost when WAC is unavailable
                         try {
                             var product = productClient.getProduct(line.getProductId());
                             if (product.cost() != null && product.cost().signum() > 0) {
                                 line.setUnitCost(product.cost());
                             }
-                        } catch (Exception ignored) {
-                            // product-service unreachable — leave unitCost as default
-                        }
+                        } catch (Exception ignored) { /* leave unitCost as default */ }
                     }
                 }
             } catch (Exception e) {
                 log.warn("Could not fetch WAC for sale {}: {}", sale.getId(), e.getMessage());
-                // sale proceeds with unitCost = 0 (default) — non-blocking
             }
         }
 
-        PricingEngine.DocCalc doc = pricing.calcDocument(sumSubtotal, sumTax, req.discount(), req.shipping());
+        PricingEngine.DocCalc doc = pricing.calcDocument(
+                sumSubtotal, sumTax, req.discount(), req.shipping());
         sale.setSubtotal(doc.subtotal());
         sale.setTaxTotal(doc.taxTotal());
         sale.setDiscountTotal(doc.discountTotal());
         sale.setShipping(doc.shipping());
         sale.setGrandTotal(doc.grandTotal());
-
-        Sale saved = saleRepo.save(sale);
-
-        // ---- reserve stock via Inventory saga ----
-        List<InventoryClient.ReservationLine> reservationLines = saved.getLines().stream()
-                .map(l -> new InventoryClient.ReservationLine(
-                        l.getProductId(), l.getVariantId(), saved.getWarehouseId(), l.getQty()))
-                .toList();
-        try {
-            inventory.reserve(new InventoryClient.ReserveRequest(
-                    saved.getId(), reservationLines, reservationTtlMinutes));
-        } catch (FeignException e) {
-            String detail = extractProblemDetail(e);
-            log.warn("Stock reservation failed for sale {}: {}", saved.getId(), detail);
-            throw new ResponseStatusException(HttpStatus.CONFLICT, detail);
-        } catch (Exception e) {
-            log.warn("Stock reservation failed for sale {}: {}", saved.getId(), e.getMessage());
-            throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "Could not reserve stock: " + e.getMessage());
-        }
-
-        saved.confirm();
-        outbox.publish("Sale", saved.getId(), "SaleConfirmed", saleEventPayload(saved));
-
-        // POS fast path commits immediately (payment already taken at counter)
-        if (isPosFastPath) {
-            try {
-                inventory.commit(saved.getId());
-                saved.setPaidTotal(saved.getGrandTotal());
-                saved.recomputePaymentStatus();
-                outbox.publish("Sale", saved.getId(), "SaleCompleted",
-                        Map.of("saleId", saved.getId(), "ref", saved.getRef()));
-            } catch (Exception e) {
-                log.error("POS commit failed for sale {} — will need manual reconciliation", saved.getId(), e);
-                // Keep the sale CONFIRMED; operator can retry commit or cancel.
-                throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
-                        "Stock commit failed: " + e.getMessage());
-            }
-        }
-        return SaleDto.from(saved);
+        return sale;
     }
 
     // ---------- Commit (finalise after payment arrives) ----------
@@ -553,9 +580,11 @@ public class SaleService {
     // ---------- helpers ----------
 
     String nextRef() {
-        String prefix = "INV-" + Year.now().getValue() + "-";
-        long n = saleRepo.countByRefStartingWith(prefix, TenantContext.get().orElse(null)) + 1;
-        return prefix + String.format("%06d", n);
+        // Timestamp-based unique ref — zero DB queries, collision-resistant
+        // Format: INV-2026-584729-a3f2
+        long ts = System.currentTimeMillis() % 1_000_000;
+        String suffix = UUID.randomUUID().toString().substring(0, 4);
+        return "INV-" + Year.now().getValue() + "-" + ts + "-" + suffix;
     }
 
     private static BigDecimal nz(BigDecimal v) { return v == null ? BigDecimal.ZERO : v; }

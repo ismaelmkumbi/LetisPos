@@ -10,7 +10,10 @@ spring:
     username: ${DB_USERNAME:commerce_user}
     password: ${DB_PASSWORD:commerce_pass}
     hikari:
-      maximum-pool-size: 10
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 3000
+      keepalive-time: 30000
 
   jpa:
     hibernate:
@@ -108,7 +111,7 @@ management:
 
 logging:
   level:
-    root: INFO
-    io.smartpos.commerce: DEBUG
+    root: WARN
+    io.smartpos.commerce: INFO
  
 

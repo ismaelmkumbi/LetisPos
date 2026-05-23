@@ -14,8 +14,7 @@ services:
       APP_BASE_URL: https://letispos.com
       AUDIT_SERVICE_URL: http://10.0.0.2:8095
       DB_PASSWORD: auth_pass
-      DB_URL: jdbc:postgresql://10.0.0.3:5432/auth_db?preferQueryMode=simple
-      DB_USERNAME: auth_user
+      DB_URL: jdbc:postgresql://10.0.0.3:5432/auth_db      DB_USERNAME: auth_user
       FLYWAY_VALIDATE_ON_MIGRATE: 'false'
       JWT_ALLOW_EPHEMERAL_KEYS: 'false'
       JWT_PRIVATE_KEY_PATH: /run/secrets/letispos-jwt/private.pem
@@ -27,7 +26,8 @@ services:
       RESEND_API_KEY: ${RESEND_API_KEY:-}
       SERVER_PORT: '8081'
       JAVA_TOOL_OPTIONS: -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0
-        -XX:+UseZGC -XX:ZCollectionInterval=10 -XX:+ExitOnOutOfMemoryError
+        -XX:+UseZGC -XX:ZCollectionInterval=10 -XX:SoftMaxHeapSize=512M -XX:ZUncommitDelay=300
+        -XX:+ExitOnOutOfMemoryError -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/tmp
       SPRING_DATA_REDIS_HOST: 10.0.0.3
       SPRING_KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094
       USER_SERVICE_URL: http://user-service:8082
@@ -36,7 +36,7 @@ services:
     healthcheck:
       interval: 15s
       retries: 10
-      start_period: 180s
+      start_period: 40s
       test:
       - CMD-SHELL
       - wget -qO- http://localhost:8081/actuator/health || exit 1
@@ -63,8 +63,7 @@ services:
     environment:
       AUTH_JWKS_URI: http://auth-service:8081/.well-known/jwks.json
       DB_PASSWORD: control_hub_pass
-      DB_URL: jdbc:postgresql://10.0.0.3:5432/control_hub_db?preferQueryMode=simple
-      DB_USER: control_hub_user
+      DB_URL: jdbc:postgresql://10.0.0.3:5432/control_hub_db      DB_USER: control_hub_user
       FLYWAY_VALIDATE_ON_MIGRATE: 'false'
       SPRING_FLYWAY_VALIDATE_ON_MIGRATE: 'false'
       KAFKA_BOOTSTRAP: 10.0.0.3:9094
@@ -75,11 +74,12 @@ services:
       SPRING_DATA_REDIS_HOST: 10.0.0.3
       SPRING_KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094
       JAVA_TOOL_OPTIONS: -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0
-        -XX:+UseZGC -XX:ZCollectionInterval=10 -XX:+ExitOnOutOfMemoryError
+        -XX:+UseZGC -XX:ZCollectionInterval=10 -XX:SoftMaxHeapSize=512M -XX:ZUncommitDelay=300
+        -XX:+ExitOnOutOfMemoryError -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/tmp
     healthcheck:
       interval: 15s
       retries: 10
-      start_period: 180s
+      start_period: 40s
       test:
       - CMD-SHELL
       - wget -qO- http://localhost:8098/actuator/health || exit 1
@@ -142,14 +142,15 @@ services:
       SALES_URI: http://10.0.0.3:8085
       SERVER_PORT: '8080'
       JAVA_TOOL_OPTIONS: -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0
-        -XX:+UseZGC -XX:ZCollectionInterval=10 -XX:+ExitOnOutOfMemoryError
+        -XX:+UseZGC -XX:ZCollectionInterval=10 -XX:SoftMaxHeapSize=512M -XX:ZUncommitDelay=300
+        -XX:+ExitOnOutOfMemoryError -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/tmp
       SPRING_DATA_REDIS_HOST: 10.0.0.3
       SPRING_KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094
       USER_URI: http://user-service:8082
     healthcheck:
       interval: 15s
       retries: 10
-      start_period: 180s
+      start_period: 40s
       test:
       - CMD-SHELL
       - wget -qO- http://localhost:8080/actuator/health || exit 1
@@ -193,14 +194,15 @@ services:
       SALES_URI: http://10.0.0.3:8085
       SERVER_PORT: '8080'
       JAVA_TOOL_OPTIONS: -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0
-        -XX:+UseZGC -XX:ZCollectionInterval=10 -XX:+ExitOnOutOfMemoryError
+        -XX:+UseZGC -XX:ZCollectionInterval=10 -XX:SoftMaxHeapSize=512M -XX:ZUncommitDelay=300
+        -XX:+ExitOnOutOfMemoryError -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/tmp
       SPRING_DATA_REDIS_HOST: 10.0.0.3
       SPRING_KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094
       USER_URI: http://user-service:8082
     healthcheck:
       interval: 15s
       retries: 10
-      start_period: 180s
+      start_period: 40s
       test:
       - CMD-SHELL
       - wget -qO- http://localhost:8080/actuator/health || exit 1
@@ -277,8 +279,7 @@ services:
     environment:
       AUTH_JWKS_URI: http://auth-service:8081/.well-known/jwks.json
       DB_PASSWORD: user_pass
-      DB_URL: jdbc:postgresql://10.0.0.3:5432/user_db?preferQueryMode=simple
-      DB_USERNAME: user_user
+      DB_URL: jdbc:postgresql://10.0.0.3:5432/user_db      DB_USERNAME: user_user
       FLYWAY_VALIDATE_ON_MIGRATE: 'false'
       KAFKA_BOOTSTRAP: 10.0.0.3:9094
       KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094
@@ -286,13 +287,14 @@ services:
       REDIS_PORT: '6379'
       SERVER_PORT: '8082'
       JAVA_TOOL_OPTIONS: -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0
-        -XX:+UseZGC -XX:ZCollectionInterval=10 -XX:+ExitOnOutOfMemoryError
+        -XX:+UseZGC -XX:ZCollectionInterval=10 -XX:SoftMaxHeapSize=512M -XX:ZUncommitDelay=300
+        -XX:+ExitOnOutOfMemoryError -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/tmp
       SPRING_DATA_REDIS_HOST: 10.0.0.3
       SPRING_KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094
     healthcheck:
       interval: 15s
       retries: 10
-      start_period: 180s
+      start_period: 40s
       test:
       - CMD-SHELL
       - wget -qO- http://localhost:8082/actuator/health || exit 1

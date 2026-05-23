@@ -5,12 +5,12 @@ spring:
   application.name: document-service
 
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/documents_db}?preferQueryMode=${DB_PREFER_QUERY_MODE:simple}
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/documents_db}
     username: ${DB_USER:documents_user}
     password: ${DB_PASSWORD:documents_pass}
     hikari:
       maximum-pool-size: 10
-      minimum-idle: 2
+      keepalive-time: 30000
 
   jpa:
     hibernate.ddl-auto: ${SPRING_JPA_DDL_AUTO:none}

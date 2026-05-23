@@ -22,12 +22,13 @@ spring:
             url: ${BILLING_URI:http://localhost:8094}
 
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/auth_db}?preferQueryMode=${DB_PREFER_QUERY_MODE:simple}
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/auth_db}
     username: ${DB_USER:auth_user}
     password: ${DB_PASSWORD:auth_pass}
     hikari:
-      maximum-pool-size: 10
-      minimum-idle: 2
+      maximum-pool-size: 15
+      minimum-idle: 3
+      keepalive-time: 30000
 
   jpa:
     hibernate:
@@ -123,8 +124,8 @@ smartpos:
 
 logging:
   level:
-    root: INFO
-    io.smartpos: DEBUG
+    root: WARN
+    io.smartpos: INFO
     org.springframework.security: INFO
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{traceId:-}] %logger{36} - %msg%n"
