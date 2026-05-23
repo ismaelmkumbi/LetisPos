@@ -1,5 +1,5 @@
 import { Box, Typography } from '@mui/material';
-import payment from 'src/assets/images/products/payment-complete.gif';
+import payment from 'src/assets/images/products/payment-complete.png';
 
 const FinalStep = () => {
   return (

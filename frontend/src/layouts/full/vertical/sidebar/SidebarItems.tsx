@@ -8,7 +8,7 @@ import NavItem from './NavItem';
 import NavCollapse from './NavCollapse';
 import NavGroup from './NavGroup/NavGroup';
 
-import { CustomizerContext } from 'src/context/CustomizerContext';
+import { CustomizerContext, MobileSidebarContext } from 'src/context/CustomizerContext';
 import { useAuth } from 'src/context/smartpos/AuthContext';
 import type { MenuNode } from 'src/api/smartpos/features';
 import { mapIcon } from './IconMap';
@@ -36,7 +36,8 @@ const SidebarItems = () => {
   const { pathname } = useLocation();
   const pathDirect = pathname;
   const pathWithoutLastPart = pathname.slice(0, pathname.lastIndexOf('/'));
-  const { isCollapse, isMobileSidebar, setIsMobileSidebar } = useContext(CustomizerContext);
+  const { isCollapse } = useContext(CustomizerContext);
+  const { isMobileSidebar, setIsMobileSidebar } = useContext(MobileSidebarContext);
   const { user } = useAuth();
 
   const lgUp = useMediaQuery((theme: any) => theme.breakpoints.up('lg'));

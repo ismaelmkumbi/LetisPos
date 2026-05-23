@@ -35,12 +35,6 @@ export default defineConfig({
         },
     },
 
-
-    
-    // plugins: [react(),svgr({
-    //   exportAsDefault: true
-    // })],
-
     plugins: [svgr(), react()],
 
     server: {
@@ -48,23 +42,70 @@ export default defineConfig({
     },
 
     build: {
-        chunkSizeWarningLimit: 700,
+        // ES2020 produces smaller bundles for modern browsers (all evergreen
+        // browsers support it).  Drops legacy polyfills and transform overhead.
+        target: 'es2020',
+        chunkSizeWarningLimit: 500,
         rollupOptions: {
             output: {
                 // Pull heavy vendors into their own chunks so the main bundle
                 // stays lean and cache-friendly. SmartPOS pages only load
                 // charts when the dashboard/reports mount.
-                manualChunks: {
-                    'vendor-react':    ['react', 'react-dom', 'react-router'],
-                    'vendor-mui':      ['@mui/material', '@mui/system', '@mui/icons-material'],
-                    'vendor-mui-x':    ['@mui/x-charts', '@mui/x-date-pickers'],
-                    'vendor-charts':   ['apexcharts', 'react-apexcharts'],
-                    'vendor-editor':   ['@tiptap/react', '@tiptap/starter-kit'],
-                    'vendor-i18n':     ['i18next', 'react-i18next'],
-                    'vendor-forms':    ['formik', 'yup'],
-                    'vendor-query':    ['@tanstack/react-query'],
-                    'vendor-table':    ['@tanstack/react-table'],
-                    'vendor-fetch':    ['axios', 'swr'],
+                manualChunks(id) {
+                    if (id.includes('node_modules')) {
+                        // Core React — must match /react/ NOT /react-* or @*/react
+                        if (id.includes('/react/') || id.includes('/react-dom/') || id.includes('/react-router/')) {
+                            return 'vendor-react';
+                        }
+                        if (id.includes('@mui/material') || id.includes('@mui/system') || id.includes('@mui/icons-material')) {
+                            return 'vendor-mui';
+                        }
+                        if (id.includes('@mui/x-charts') || id.includes('@mui/x-date-pickers')) {
+                            return 'vendor-mui-x';
+                        }
+                        if (id.includes('@mui') && (id.includes('@mui/lab') || id.includes('@mui/x-tree-view'))) {
+                            return 'vendor-mui-x';
+                        }
+                        if (id.includes('apexcharts') || id.includes('react-apexcharts')) {
+                            return 'vendor-charts';
+                        }
+                        if (id.includes('@tiptap')) {
+                            return 'vendor-editor';
+                        }
+                        if (id.includes('i18next') || id.includes('react-i18next')) {
+                            return 'vendor-i18n';
+                        }
+                        if (id.includes('formik') || id.includes('yup')) {
+                            return 'vendor-forms';
+                        }
+                        if (id.includes('@tanstack/react-query')) {
+                            return 'vendor-query';
+                        }
+                        if (id.includes('@tanstack/react-table')) {
+                            return 'vendor-table';
+                        }
+                        if (id.includes('axios') || id.includes('swr')) {
+                            return 'vendor-fetch';
+                        }
+                        if (id.includes('xlsx')) {
+                            return 'vendor-xlsx';
+                        }
+                        if (id.includes('pdfjs-dist')) {
+                            return 'vendor-pdf';
+                        }
+                        if (id.includes('react-syntax-highlighter')) {
+                            return 'vendor-syntax-highlighter';
+                        }
+                        if (id.includes('framer-motion') || id.includes('react-spring')) {
+                            return 'vendor-animation';
+                        }
+                        if (id.includes('emoji-picker-react')) {
+                            return 'vendor-emoji';
+                        }
+                        if (id.includes('fuse.js')) {
+                            return 'vendor-fuse';
+                        }
+                    }
                 },
             },
         },

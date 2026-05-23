@@ -4,18 +4,14 @@ import Logo from '../../shared/logo/Logo';
 import Scrollbar from 'src/components/custom-scroll/Scrollbar';
 import { Profile } from './SidebarProfile/Profile';
 import config from 'src/context/config';
-import { CustomizerContext } from 'src/context/CustomizerContext';
+import { CustomizerContext, MobileSidebarContext } from 'src/context/CustomizerContext';
 import { useContext } from 'react';
 import { brand } from 'src/theme/smartpos/brand';
 
 const Sidebar = () => {
   const lgUp = useMediaQuery((theme: any) => theme.breakpoints.up('lg'));
-  const {
-    isCollapse,
-    isMobileSidebar,
-    setIsMobileSidebar,
-    activeMode,
-  } = useContext(CustomizerContext);
+  const { isCollapse, activeMode } = useContext(CustomizerContext);
+  const { isMobileSidebar, setIsMobileSidebar } = useContext(MobileSidebarContext);
   const MiniSidebarWidth = config.miniSidebarWidth;
   const SidebarWidth = config.sidebarWidth;
   const theme = useTheme();

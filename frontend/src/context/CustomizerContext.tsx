@@ -1,5 +1,5 @@
 
-import { createContext, useState, ReactNode, useEffect } from 'react';
+import { createContext, useCallback, useMemo, useState, ReactNode, useEffect } from 'react';
 import config from './config'
 import React from "react";
 
@@ -21,13 +21,43 @@ interface CustomizerContextState {
     setIsBorderRadius: (radius: number) => void;
     isCollapse: string;
     setIsCollapse: (collapse: string) => void;
-    isMobileSidebar: boolean;
-    setIsMobileSidebar: (isMobileSidebar: boolean) => void
+    isLanguage: string;
+    setIsLanguage: (lang: string) => void;
 }
 
+// Volatile mobile-sidebar state split into its own context so toggling
+// the hamburger menu does not re-render every component that reads
+// activeMode / isBorderRadius / isCollapse.
+interface MobileSidebarState {
+    isMobileSidebar: boolean;
+    setIsMobileSidebar: (v: boolean) => void;
+}
+export const MobileSidebarContext = createContext<MobileSidebarState>({
+    isMobileSidebar: false,
+    setIsMobileSidebar: () => {},
+});
+
 // Create the context with an initial value
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const CustomizerContext = createContext<CustomizerContextState | any>(undefined);
+export const CustomizerContext = createContext<CustomizerContextState>({
+    activeDir: config.activeDir,
+    setActiveDir: () => {},
+    activeMode: config.activeMode,
+    setActiveMode: () => {},
+    activeTheme: config.activeTheme,
+    setActiveTheme: () => {},
+    activeLayout: config.activeLayout,
+    setActiveLayout: () => {},
+    isCardShadow: config.isCardShadow,
+    setIsCardShadow: () => {},
+    isLayout: config.isLayout,
+    setIsLayout: () => {},
+    isBorderRadius: config.isBorderRadius,
+    setIsBorderRadius: () => {},
+    isCollapse: config.isCollapse,
+    setIsCollapse: () => {},
+    isLanguage: config.isLanguage,
+    setIsLanguage: () => {},
+});
 
 // Define the type for the children prop
 interface CustomizerContextProps {
@@ -57,33 +87,46 @@ export const CustomizerContextProvider: React.FC<CustomizerContextProps> = ({ ch
 
     }, [activeMode, activeDir, activeTheme, activeLayout, isLayout, isCollapse]);
 
-    return (
-        <CustomizerContext.Provider
-            value={{
+    const setActiveDirCb = useCallback((dir: string) => setActiveDir(dir), []);
+    const setActiveModeCb = useCallback((mode: string) => setActiveMode(mode), []);
+    const setActiveThemeCb = useCallback((theme: string) => setActiveTheme(theme), []);
+    const setActiveLayoutCb = useCallback((layout: string) => setActiveLayout(layout), []);
+    const setIsCardShadowCb = useCallback((shadow: boolean) => setIsCardShadow(shadow), []);
+    const setIsLayoutCb = useCallback((layout: string) => setIsLayout(layout), []);
+    const setIsBorderRadiusCb = useCallback((radius: number) => setIsBorderRadius(radius), []);
+    const setIsCollapseCb = useCallback((collapse: string) => setIsCollapse(collapse), []);
+    const setIsLanguageCb = useCallback((lang: string) => setIsLanguage(lang), []);
+    const setIsMobileSidebarCb = useCallback((v: boolean) => setIsMobileSidebar(v), []);
 
-                activeDir,
-                setActiveDir,
-                activeMode,
-                setActiveMode,
-                activeTheme,
-                setActiveTheme,
-                activeLayout,
-                setActiveLayout,
-                isCardShadow,
-                setIsCardShadow,
-                isLayout,
-                setIsLayout,
-                isBorderRadius,
-                setIsBorderRadius,
-                isCollapse,
-                setIsCollapse,
-                isLanguage,
-                setIsLanguage,
-                isMobileSidebar,
-                setIsMobileSidebar
-            }}
-        >
+    // Stable value — only changes when its dependencies change (not on
+    // every render).  Prevents cascading re-renders when the provider
+    // itself re-renders for reasons unrelated to these values.
+    const value = useMemo<CustomizerContextState>(() => ({
+        activeDir, setActiveDir: setActiveDirCb,
+        activeMode, setActiveMode: setActiveModeCb,
+        activeTheme, setActiveTheme: setActiveThemeCb,
+        activeLayout, setActiveLayout: setActiveLayoutCb,
+        isCardShadow, setIsCardShadow: setIsCardShadowCb,
+        isLayout, setIsLayout: setIsLayoutCb,
+        isBorderRadius, setIsBorderRadius: setIsBorderRadiusCb,
+        isCollapse, setIsCollapse: setIsCollapseCb,
+        isLanguage, setIsLanguage: setIsLanguageCb,
+    }), [
+        activeDir, activeMode, activeTheme, activeLayout,
+        isCardShadow, isLayout, isBorderRadius, isCollapse,
+        isLanguage,
+    ]);
+
+    const mobileValue = useMemo<MobileSidebarState>(() => ({
+        isMobileSidebar,
+        setIsMobileSidebar: setIsMobileSidebarCb,
+    }), [isMobileSidebar]);
+
+    return (
+        <CustomizerContext.Provider value={value}>
+        <MobileSidebarContext.Provider value={mobileValue}>
             {children}
+        </MobileSidebarContext.Provider>
         </CustomizerContext.Provider>
     );
 };

@@ -3,12 +3,13 @@ import NavListing from './NavListing/NavListing';
 import Logo from '../../shared/logo/Logo';
 import SidebarItems from '../../vertical/sidebar/SidebarItems';
 import { useContext } from 'react';
-import { CustomizerContext } from 'src/context/CustomizerContext';
+import { CustomizerContext, MobileSidebarContext } from 'src/context/CustomizerContext';
 import config from 'src/context/config';
 
 const Navigation = () => {
   const lgUp = useMediaQuery((theme: Theme) => theme.breakpoints.up('lg'));
-  const { isLayout, isMobileSidebar, setIsMobileSidebar } = useContext(CustomizerContext);
+  const { isLayout } = useContext(CustomizerContext);
+  const { isMobileSidebar, setIsMobileSidebar } = useContext(MobileSidebarContext);
   const SidebarWidth = config.sidebarWidth;
 
   if (lgUp) {

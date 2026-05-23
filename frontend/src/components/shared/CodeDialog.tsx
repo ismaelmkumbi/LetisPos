@@ -1,7 +1,10 @@
 import React from "react";
 import { IconCode, IconX } from "@tabler/icons-react";
-import SyntaxHighlighter from "react-syntax-highlighter";
-import { docco } from "react-syntax-highlighter/dist/esm/styles/hljs";
+import { Light as SyntaxHighlighter } from "react-syntax-highlighter";
+import ts from "react-syntax-highlighter/dist/esm/languages/hljs/typescript";
+import docco from "react-syntax-highlighter/dist/esm/styles/hljs/docco";
+
+SyntaxHighlighter.registerLanguage("typescript", ts);
 
 import Dialog from "@mui/material/Dialog";
 import DialogContent from "@mui/material/DialogContent";

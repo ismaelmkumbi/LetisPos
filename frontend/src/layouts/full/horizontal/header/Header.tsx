@@ -23,7 +23,7 @@ import Navigation from 'src/layouts/full/vertical/header/Navigation';
 import Logo from 'src/layouts/full/shared/logo/Logo';
 import { ProductProvider } from 'src/context/EcommerceContext/index'
 import config from 'src/context/config';
-import { CustomizerContext } from 'src/context/CustomizerContext';
+import { CustomizerContext, MobileSidebarContext } from 'src/context/CustomizerContext';
 
 
 const Header = () => {
@@ -31,7 +31,8 @@ const Header = () => {
   const lgUp = useMediaQuery((theme: Theme) => theme.breakpoints.up('lg'));
 
   // drawer
-  const { isLayout, setIsMobileSidebar, isMobileSidebar, activeMode, setActiveMode } = React.useContext(CustomizerContext);
+  const { isLayout, activeMode, setActiveMode } = React.useContext(CustomizerContext);
+  const { isMobileSidebar, setIsMobileSidebar } = React.useContext(MobileSidebarContext);
   const TopbarHeight = config.topbarHeight;
 
   const AppBarStyled = styled(AppBar)(({ theme }) => ({

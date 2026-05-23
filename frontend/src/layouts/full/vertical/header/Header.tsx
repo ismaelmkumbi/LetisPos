@@ -15,7 +15,7 @@ import Profile from './Profile';
 import Search from './Search';
 import Language from './Language';
 import Navigation from './Navigation';
-import { CustomizerContext } from 'src/context/CustomizerContext';
+import { CustomizerContext, MobileSidebarContext } from 'src/context/CustomizerContext';
 import { brand } from 'src/theme/smartpos/brand';
 import { Link as RouterLink, useLocation } from 'react-router';
 
@@ -28,8 +28,8 @@ const Header = () => {
   const isDashboard = pathname === '/smartpos' || pathname === '/smartpos/dashboard';
 
   const TopbarHeight = config.topbarHeight;
-  const { activeMode, setActiveMode, setIsCollapse, isCollapse, isMobileSidebar, setIsMobileSidebar } =
-    useContext(CustomizerContext);
+  const { activeMode, setActiveMode, setIsCollapse, isCollapse } = useContext(CustomizerContext);
+  const { isMobileSidebar, setIsMobileSidebar } = useContext(MobileSidebarContext);
   const isDark = activeMode === 'dark';
   const theme = useTheme();
 

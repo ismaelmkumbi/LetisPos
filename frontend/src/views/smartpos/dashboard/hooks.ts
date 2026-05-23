@@ -20,7 +20,7 @@ import {
 import { periodRange, previousPeriod } from './utils';
 
 /** Stagger helper — spreads concurrent requests by `index * delayMs`. */
-function stagger<T>(fn: () => Promise<T>, index: number, delayMs = 30): Promise<T> {
+function stagger<T>(fn: () => Promise<T>, index: number, delayMs = 200): Promise<T> {
   return new Promise((resolve, reject) =>
     setTimeout(() => fn().then(resolve, reject), index * delayMs),
   );

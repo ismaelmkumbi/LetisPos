@@ -68,7 +68,6 @@ import { useContext } from 'react';
 import { CustomizerContext } from 'src/context/CustomizerContext';
 import { brand } from 'src/theme/smartpos/brand';
 import { StatusIndicator, type OperationalState } from './StatusIndicator';
-import * as XLSX from 'xlsx';
 
 // ─── Public API — UNCHANGED from v1 ──────────────────────────────────────────
 
@@ -450,7 +449,7 @@ export function DataTable<T>({
   };
 
   // ── Excel export ───────────────────────────────────────────────────────────
-  const handleExcelExport = () => {
+  const handleExcelExport = async () => {
     const visibleCols = table
       .getVisibleLeafColumns()
       .map((vc) => columns.find((c) => c.key === vc.id))
@@ -468,6 +467,8 @@ export function DataTable<T>({
       return rowData;
     });
 
+    // Dynamic import — 415KB xlsx lib only loads when user clicks "Export Excel"
+    const XLSX = await import('xlsx');
     const ws = XLSX.utils.json_to_sheet(data, { header: headers });
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Products');
