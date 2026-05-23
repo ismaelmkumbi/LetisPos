@@ -48,7 +48,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 2G
+          memory: 3G
         reservations:
           memory: 1G
     healthcheck:
@@ -86,7 +86,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 384M
+          memory: 512M
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -131,7 +131,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 1G
+          memory: 1536M
         reservations:
           memory: 512M
     healthcheck:
@@ -168,7 +168,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 640M
+          memory: 768M
         reservations:
           memory: 320M
     healthcheck:
@@ -197,9 +197,9 @@ services:
     deploy:
       resources:
         limits:
-          memory: 512M
+          memory: 768M
         reservations:
-          memory: 192M
+          memory: 256M
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:8084/actuator/health"]
       <<: *health-defaults
@@ -228,9 +228,9 @@ services:
     deploy:
       resources:
         limits:
-          memory: 640M
+          memory: 896M
         reservations:
-          memory: 320M
+          memory: 384M
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:8085/actuator/health"]
       <<: *health-defaults
@@ -258,9 +258,9 @@ services:
     deploy:
       resources:
         limits:
-          memory: 512M
+          memory: 768M
         reservations:
-          memory: 192M
+          memory: 256M
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:8086/actuator/health"]
       <<: *health-defaults

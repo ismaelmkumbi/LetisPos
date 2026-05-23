@@ -1,5 +1,5 @@
 'use client';
-import { FC, useContext, useState, useEffect } from 'react';
+import { FC, lazy, Suspense, useContext, useState, useEffect } from 'react';
 import { styled, Container, Box, useTheme } from '@mui/material';
 import { Outlet, useLocation } from 'react-router';
 import Header from './vertical/header/Header';
@@ -10,15 +10,20 @@ import ScrollToTop from '../../components/shared/ScrollToTop';
 import LoadingBar from '../../LoadingBar';
 import { CustomizerContext } from 'src/context/CustomizerContext';
 import config from 'src/context/config';
-import { CommandPalette } from 'src/components/smartpos/CommandPalette';
-import { KeyboardShortcutsHelp } from 'src/components/smartpos/KeyboardShortcuts';
-import { FloatingActions } from 'src/components/smartpos/FloatingActions';
-import { AssistantProvider } from 'src/context/smartpos/AssistantContext';
-import ChatFAB from 'src/components/smartpos/assistant/ChatFAB';
-import ChatOverlay from 'src/components/smartpos/assistant/ChatOverlay';
 import { BreadcrumbNav } from 'src/components/smartpos/BreadcrumbNav';
-import MobileBottomNav from 'src/components/smartpos/MobileBottomNav';
-import MoreMenuSheet from 'src/components/smartpos/MoreMenuSheet';
+
+const CommandPalette = lazy(() => import('src/components/smartpos/CommandPalette'));
+const KeyboardShortcutsHelp = lazy(() => import('src/components/smartpos/KeyboardShortcuts'));
+const FloatingActions = lazy(() => import('src/components/smartpos/FloatingActions'));
+const AssistantProvider = lazy(() =>
+  import('src/context/smartpos/AssistantContext').then((module) => ({
+    default: module.AssistantProvider,
+  })),
+);
+const ChatFAB = lazy(() => import('src/components/smartpos/assistant/ChatFAB'));
+const ChatOverlay = lazy(() => import('src/components/smartpos/assistant/ChatOverlay'));
+const MobileBottomNav = lazy(() => import('src/components/smartpos/MobileBottomNav'));
+const MoreMenuSheet = lazy(() => import('src/components/smartpos/MoreMenuSheet'));
 
 const MainWrapper = styled('div')(() => ({
   display: 'flex',
@@ -54,6 +59,7 @@ const FullLayout: FC = () => {
   // Enterprise UI state
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [keyboardHelpOpen, setKeyboardHelpOpen] = useState(false);
+  const [extrasReady, setExtrasReady] = useState(false);
 
   // Check if on SmartPOS route
   const isSmartPos = location.pathname.startsWith('/smartpos');
@@ -82,6 +88,13 @@ const FullLayout: FC = () => {
   useEffect(() => {
     setCommandPaletteOpen(false);
   }, [location.pathname]);
+
+  useEffect(() => {
+    setExtrasReady(false);
+    if (!isSmartPos) return;
+    const timer = window.setTimeout(() => setExtrasReady(true), 350);
+    return () => window.clearTimeout(timer);
+  }, [isSmartPos, location.pathname]);
 
   return (
     <>
@@ -131,8 +144,8 @@ const FullLayout: FC = () => {
       </MainWrapper>
 
       {/* Enterprise UI Components - only on SmartPOS routes */}
-      {isSmartPos && (
-        <>
+      {isSmartPos && extrasReady && (
+        <Suspense fallback={null}>
           {/* Global Command Palette (Cmd+K) */}
           <CommandPalette
             open={commandPaletteOpen}
@@ -157,7 +170,7 @@ const FullLayout: FC = () => {
           {/* Mobile bottom nav + more menu sheet */}
           <MobileBottomNav />
           <MoreMenuSheet />
-        </>
+        </Suspense>
       )}
     </>
   );

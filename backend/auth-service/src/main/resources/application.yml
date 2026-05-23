@@ -51,6 +51,13 @@ spring:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
 
+  cache:
+    type: redis
+    redis:
+      time-to-live: ${AUTH_CLAIMS_CACHE_TTL_MS:60000}
+      cache-null-values: false
+      key-prefix: "smartpos:auth:"
+
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:9094}
     producer:

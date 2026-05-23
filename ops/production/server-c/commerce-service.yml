@@ -1,0 +1,53 @@
+services:
+  commerce-service:
+    container_name: letispos-commerce
+    deploy:
+      resources:
+        limits:
+          memory: 768M
+        reservations:
+          memory: 320M
+    environment:
+      AUTH_JWKS_URI: http://10.0.0.1:8081/.well-known/jwks.json
+      DB_PASSWORD: commerce_pass
+      DB_URL: jdbc:postgresql://postgres:5432/commerce_db?preferQueryMode=simple
+      DB_USERNAME: commerce_user
+      FLYWAY_VALIDATE_ON_MIGRATE: 'false'
+      SPRING_FLYWAY_VALIDATE_ON_MIGRATE: 'false'
+      INVENTORY_SERVICE_URL: http://inventory-service:8084
+      KAFKA_BOOTSTRAP: kafka:9092
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      NOTIFICATION_SERVICE_URL: http://10.0.0.2:8089
+      PAYMENT_SERVICE_URL: http://payment-service:8086
+      PRODUCT_SERVICE_URL: http://product-service:8083
+      REDIS_HOST: redis
+      REDIS_PORT: '6379'
+      SALES_SERVICE_URL: http://sales-service:8085
+      SERVER_PORT: '8094'
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/commerce_db?preferQueryMode=simple
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      JAVA_TOOL_OPTIONS: -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0
+        -XX:+UseZGC -XX:ZCollectionInterval=10 -XX:+ExitOnOutOfMemoryError
+    healthcheck:
+      interval: 15s
+      retries: 10
+      start_period: 180s
+      test:
+      - CMD-SHELL
+      - wget -qO- http://localhost:8094/actuator/health || exit 1
+      timeout: 5s
+    image: ghcr.io/ismaelmkumbi/commerce-service:latest
+    logging:
+      driver: json-file
+      options:
+        max-file: '3'
+        max-size: 20m
+    networks:
+    - server-c-net
+    restart: unless-stopped
+    ports:
+    - 10.0.0.3:8094:8094
+networks:
+  server-c-net:
+    driver: bridge

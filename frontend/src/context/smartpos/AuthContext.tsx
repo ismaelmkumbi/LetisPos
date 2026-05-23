@@ -84,6 +84,7 @@ export function SmartPosAuthProvider({ children }: { children: React.ReactNode }
       // On page reload (no loginResp), fetch /me. Otherwise skip it.
       const me = baseUser ?? await fetchMe();
       tokenStore.setTenantId(me.tenantId || null);
+      setUser(me);
 
       // Fire profile + tenants + menu in parallel (non-blocking enrichment)
       const [profileResult, tenantsResult, menuResult] = await Promise.allSettled([
@@ -134,7 +135,8 @@ export function SmartPosAuthProvider({ children }: { children: React.ReactNode }
     }
     // Fire loadMe in background — don't block navigation.
     // Pass loginResp to skip redundant /me API call.
-    loadMe(loginResp).finally(() => setLoading(false));
+    void loadMe(loginResp);
+    setLoading(false);
     window.dispatchEvent(new CustomEvent('smartpos:auth:login'));
   }, [loadMe]);
 
