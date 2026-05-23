@@ -33,6 +33,8 @@ jobs:
   changes:
     name: Detect changes
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     outputs:
       backend: ${{ steps.filter.outputs.backend }}
       frontend: ${{ steps.filter.outputs.frontend }}
@@ -188,6 +190,8 @@ jobs:
     needs: [build-backend, changes]
     if: always() && !cancelled() && needs.build-backend.result == 'success'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
 
@@ -212,6 +216,8 @@ jobs:
     if: always() && !cancelled() &&
         (needs.build-control-center.result == 'success' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
 
@@ -236,6 +242,8 @@ jobs:
     if: always() && !cancelled() &&
         (needs.build-backend.result == 'success' || needs.build-frontend.result == 'success' || needs.build-control-center.result == 'success')
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
 
@@ -282,6 +290,8 @@ jobs:
     name: Smoke test
     needs: [deploy-a]
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
 
