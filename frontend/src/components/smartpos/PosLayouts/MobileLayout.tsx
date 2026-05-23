@@ -120,8 +120,12 @@ export default function MobileLayout(props: PosLayoutProps) {
 
   const renderProductCard = (p: Product) => {
     const stock = props.stockMap[p.id];
-    const outOfStock = stock && stock.available <= 0;
-    const lowStock = stock && stock.available > 0 && stock.available <= 5;
+    const cartQty = props.lines
+      .filter(l => l.productId === p.id)
+      .reduce((sum, l) => sum + l.qty, 0);
+    const effectiveStock = stock ? stock.available - cartQty : 0;
+    const outOfStock = stock && effectiveStock <= 0;
+    const lowStock = stock && effectiveStock > 0 && effectiveStock <= 5;
 
     return (
       <Card
@@ -164,7 +168,7 @@ export default function MobileLayout(props: PosLayoutProps) {
           {stock && (
             <Chip
               size="small"
-              label={outOfStock ? 'Out' : lowStock ? `${stock.available}` : undefined}
+              label={outOfStock ? 'Out' : lowStock ? `${effectiveStock}` : undefined}
               sx={{
                 position: 'absolute',
                 top: 8,

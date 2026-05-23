@@ -240,7 +240,11 @@ export default function SidebarLayout(props: PosLayoutProps) {
             <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(165px, 1fr))', gap: 1.5 }}>
               {props.products.map((p) => {
                 const stock = props.stockMap[p.id];
-                const outOfStock = stock && stock.available <= 0;
+                const cartQty = props.lines
+                  .filter(l => l.productId === p.id)
+                  .reduce((sum, l) => sum + l.qty, 0);
+                const effectiveStock = stock ? stock.available - cartQty : 0;
+                const outOfStock = stock && effectiveStock <= 0;
                 return (
                   <Card
                     key={p.id}

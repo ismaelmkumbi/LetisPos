@@ -209,8 +209,12 @@ export default function CompactLayout(props: PosLayoutProps) {
           >
             {props.products.map((p) => {
               const stock = props.stockMap[p.id];
-              const outOfStock = stock && stock.available <= 0;
-              const lowStock = stock && stock.available > 0 && stock.available <= 5;
+              const cartQty = props.lines
+                .filter(l => l.productId === p.id)
+                .reduce((sum, l) => sum + l.qty, 0);
+              const effectiveStock = stock ? stock.available - cartQty : 0;
+              const outOfStock = stock && effectiveStock <= 0;
+              const lowStock = stock && effectiveStock > 0 && effectiveStock <= 5;
               return (
                 <Card
                   key={p.id}
@@ -245,7 +249,7 @@ export default function CompactLayout(props: PosLayoutProps) {
                     {stock && (
                       <Chip
                         size="small"
-                        label={outOfStock ? 'Out of stock' : lowStock ? `${stock.available} left` : `${stock.available}`}
+                        label={outOfStock ? 'Out of stock' : lowStock ? `${effectiveStock} left` : `${effectiveStock}`}
                         sx={{
                           position: 'absolute', top: 6, left: 6, height: 20, fontSize: '0.625rem', fontWeight: 800,
                           bgcolor: outOfStock ? brand.error.light : lowStock ? brand.warning.light : brand.success.light,
