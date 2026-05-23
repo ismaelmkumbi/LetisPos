@@ -14,6 +14,9 @@ import io.smartpos.sales.infrastructure.feign.ProductClient;
 import io.smartpos.sales.infrastructure.feign.UserFeign;
 import io.smartpos.common.context.TenantContext;
 import org.springframework.security.core.context.SecurityContextHolder;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.JsonNode;
+import feign.FeignException;
 import jakarta.persistence.EntityManager;
 import org.springframework.dao.DataIntegrityViolationException;
 import lombok.RequiredArgsConstructor;
@@ -58,6 +61,8 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class SaleService {
+
+    private static final ObjectMapper objectMapper = new ObjectMapper();
 
     private final SaleRepository   saleRepo;
     private final PurchaseRepository purchaseRepo;
@@ -420,6 +425,10 @@ public class SaleService {
         try {
             inventory.reserve(new InventoryClient.ReserveRequest(
                     saved.getId(), reservationLines, reservationTtlMinutes));
+        } catch (FeignException e) {
+            String detail = extractProblemDetail(e);
+            log.warn("Stock reservation failed for sale {}: {}", saved.getId(), detail);
+            throw new ResponseStatusException(HttpStatus.CONFLICT, detail);
         } catch (Exception e) {
             log.warn("Stock reservation failed for sale {}: {}", saved.getId(), e.getMessage());
             throw new ResponseStatusException(HttpStatus.CONFLICT,
@@ -592,5 +601,25 @@ public class SaleService {
         if (auth == null) return false;
         return auth.getAuthorities().stream()
             .anyMatch(a -> a.getAuthority().equals("ROLE_SUPER_ADMIN"));
+    }
+
+    /**
+     * Extract the RFC 7807 Problem Detail {@code detail} field from a Feign
+     * error response body. Falls back to the HTTP status reason if the body
+     * can't be parsed.
+     */
+    private static String extractProblemDetail(FeignException e) {
+        try {
+            String body = e.contentUTF8();
+            if (body != null && !body.isBlank()) {
+                JsonNode node = objectMapper.readTree(body);
+                if (node.has("detail")) {
+                    return node.get("detail").asText();
+                }
+            }
+        } catch (Exception ignored) {
+            // Response body wasn't JSON — use the status reason
+        }
+        return "Stock reservation failed (HTTP " + e.status() + ")";
     }
 }

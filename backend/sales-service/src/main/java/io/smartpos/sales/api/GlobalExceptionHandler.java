@@ -1,5 +1,7 @@
 package io.smartpos.sales.api;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.JsonNode;
 import feign.FeignException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
@@ -35,10 +37,25 @@ public class GlobalExceptionHandler {
     public ProblemDetail feign(FeignException ex) {
         HttpStatus status = HttpStatus.resolve(ex.status());
         if (status == null || status.value() < 400) status = HttpStatus.BAD_GATEWAY;
-        ProblemDetail pd = ProblemDetail.forStatusAndDetail(status,
-                "Downstream call failed: " + safe(ex.contentUTF8()));
+        String detail = extractProblemDetail(ex);
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(status, detail);
         pd.setTitle("Downstream error");
         return pd;
+    }
+
+    /** Extract the RFC 7807 {@code detail} field from a Feign error response body. */
+    private static String extractProblemDetail(FeignException ex) {
+        try {
+            String body = ex.contentUTF8();
+            if (body != null && !body.isBlank()) {
+                JsonNode node = new ObjectMapper().readTree(body);
+                if (node.has("detail")) {
+                    return node.get("detail").asText();
+                }
+                return safe(body);
+            }
+        } catch (Exception ignored) {}
+        return "Downstream call failed (HTTP " + ex.status() + ")";
     }
 
     @ExceptionHandler(AccessDeniedException.class)
