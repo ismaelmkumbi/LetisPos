@@ -42,9 +42,6 @@ export default defineConfig({
     },
 
     build: {
-        // ES2020 produces smaller bundles for modern browsers (all evergreen
-        // browsers support it).  Drops legacy polyfills and transform overhead.
-        target: 'es2020',
         chunkSizeWarningLimit: 500,
         rollupOptions: {
             output: {
@@ -53,8 +50,8 @@ export default defineConfig({
                 // charts when the dashboard/reports mount.
                 manualChunks(id) {
                     if (id.includes('node_modules')) {
-                        // Core React — must match /react/ NOT /react-* or @*/react
-                        if (id.includes('/react/') || id.includes('/react-dom/') || id.includes('/react-router/')) {
+                        // Core React — only the exact packages, NOT @emotion/react, @tanstack/react-*, etc.
+                        if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/') || id.includes('node_modules/react-router/')) {
                             return 'vendor-react';
                         }
                         if (id.includes('@mui/material') || id.includes('@mui/system') || id.includes('@mui/icons-material')) {
