@@ -32,15 +32,11 @@ public class SecurityConfig {
         return http
                 .csrf(c -> c.disable())
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                // Nginx at the edge adds security headers; do not duplicate them here.
-                .headers(h -> h
-                        .contentSecurityPolicy(c -> c.disable())
-                        .frameOptions(f -> f.disable())
-                        .hsts(hsts -> hsts.disable())
-                        .cacheControl(c -> c.disable())
-                        .contentTypeOptions(c -> c.disable())
-                        .referrerPolicy(rp -> rp.disable())
-                        .xssProtection(x -> x.disable()))
+                // Nginx at the edge adds security headers; do not duplicate them in the
+                // reactive filter chain. HttpHeaderWriterWebFilter was also crashing
+                // when it tried to add headers to a response already committed by a
+                // streaming upstream (UnsupportedOperationException on ReadOnlyHttpHeaders).
+                .headers(ServerHttpSecurity.HeaderSpec::disable)
                 .authorizeExchange(r -> r
                         // CORS preflights must never require auth — browsers send them
                         // before the real request and without the Authorization header.
