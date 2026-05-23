@@ -46,12 +46,6 @@ spring:
     validate-on-migrate: ${FLYWAY_VALIDATE_ON_MIGRATE:false}
     locations: classpath:db/migration
 
-  cache:
-    type: redis
-    redis:
-      time-to-live: 60000       # 60s — auth claims rarely change within a session
-      cache-null-values: false
-
   data:
     redis:
       host: ${REDIS_HOST:localhost}
