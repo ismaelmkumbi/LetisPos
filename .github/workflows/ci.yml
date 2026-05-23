@@ -62,6 +62,8 @@ jobs:
       crm_service: ${{ steps.filter.outputs.crm_service }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # full history so paths-filter can diff against github.event.before
 
       - uses: dorny/paths-filter@v3
         id: filter
