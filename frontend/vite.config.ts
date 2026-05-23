@@ -45,63 +45,95 @@ export default defineConfig({
         chunkSizeWarningLimit: 500,
         rollupOptions: {
             output: {
-                // Pull heavy vendors into their own chunks so the main bundle
-                // stays lean and cache-friendly. SmartPOS pages only load
-                // charts when the dashboard/reports mount.
+                // Static chunks for core vendors — proven stable config.
+                // Additional dynamic rules below for lazy-loadable packages.
                 manualChunks(id) {
-                    if (id.includes('node_modules')) {
-                        // Core React — only the exact packages, NOT @emotion/react, @tanstack/react-*, etc.
-                        if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/') || id.includes('node_modules/react-router/')) {
-                            return 'vendor-react';
-                        }
-                        if (id.includes('@mui/material') || id.includes('@mui/system') || id.includes('@mui/icons-material')) {
-                            return 'vendor-mui';
-                        }
-                        if (id.includes('@mui/x-charts') || id.includes('@mui/x-date-pickers')) {
-                            return 'vendor-mui-x';
-                        }
-                        if (id.includes('@mui') && (id.includes('@mui/lab') || id.includes('@mui/x-tree-view'))) {
-                            return 'vendor-mui-x';
-                        }
-                        if (id.includes('apexcharts') || id.includes('react-apexcharts')) {
-                            return 'vendor-charts';
-                        }
-                        if (id.includes('@tiptap')) {
-                            return 'vendor-editor';
-                        }
-                        if (id.includes('i18next') || id.includes('react-i18next')) {
-                            return 'vendor-i18n';
-                        }
-                        if (id.includes('formik') || id.includes('yup')) {
-                            return 'vendor-forms';
-                        }
-                        if (id.includes('@tanstack/react-query')) {
-                            return 'vendor-query';
-                        }
-                        if (id.includes('@tanstack/react-table')) {
-                            return 'vendor-table';
-                        }
-                        if (id.includes('axios') || id.includes('swr')) {
-                            return 'vendor-fetch';
-                        }
-                        if (id.includes('xlsx')) {
-                            return 'vendor-xlsx';
-                        }
-                        if (id.includes('pdfjs-dist')) {
-                            return 'vendor-pdf';
-                        }
-                        if (id.includes('react-syntax-highlighter')) {
-                            return 'vendor-syntax-highlighter';
-                        }
-                        if (id.includes('framer-motion') || id.includes('react-spring')) {
-                            return 'vendor-animation';
-                        }
-                        if (id.includes('emoji-picker-react')) {
-                            return 'vendor-emoji';
-                        }
-                        if (id.includes('fuse.js')) {
-                            return 'vendor-fuse';
-                        }
+                    if (!id.includes('node_modules')) return;
+
+                    // ── Core React (must be together — splitting causes init errors) ──
+                    if (id.includes('node_modules/react/') ||
+                        id.includes('node_modules/react-dom/') ||
+                        id.includes('node_modules/scheduler/') ||
+                        id.includes('node_modules/react-router/')) {
+                        return 'vendor-react';
+                    }
+
+                    // ── MUI ──
+                    if (id.includes('node_modules/@mui/material/') ||
+                        id.includes('node_modules/@mui/system/') ||
+                        id.includes('node_modules/@mui/icons-material/') ||
+                        id.includes('node_modules/@mui/utils/') ||
+                        id.includes('node_modules/@mui/styled-engine/') ||
+                        id.includes('node_modules/@mui/private-theming/')) {
+                        return 'vendor-mui';
+                    }
+
+                    // ── MUI X (charts + date pickers — lazy) ──
+                    if (id.includes('node_modules/@mui/x-charts/') ||
+                        id.includes('node_modules/@mui/x-date-pickers/') ||
+                        id.includes('node_modules/@mui/x-tree-view/') ||
+                        id.includes('node_modules/@mui/lab/')) {
+                        return 'vendor-mui-x';
+                    }
+
+                    // ── ApexCharts (used by dashboard + reports) ──
+                    if (id.includes('node_modules/apexcharts/') ||
+                        id.includes('node_modules/react-apexcharts/')) {
+                        return 'vendor-charts';
+                    }
+
+                    // ── TipTap editor ──
+                    if (id.includes('node_modules/@tiptap/')) {
+                        return 'vendor-editor';
+                    }
+
+                    // ── i18n ──
+                    if (id.includes('node_modules/i18next/') ||
+                        id.includes('node_modules/react-i18next/')) {
+                        return 'vendor-i18n';
+                    }
+
+                    // ── Forms ──
+                    if (id.includes('node_modules/formik/') ||
+                        id.includes('node_modules/yup/')) {
+                        return 'vendor-forms';
+                    }
+
+                    // ── Data fetching ──
+                    if (id.includes('node_modules/@tanstack/react-query/')) {
+                        return 'vendor-query';
+                    }
+                    if (id.includes('node_modules/@tanstack/react-table/')) {
+                        return 'vendor-table';
+                    }
+                    if (id.includes('node_modules/axios/') ||
+                        id.includes('node_modules/swr/')) {
+                        return 'vendor-fetch';
+                    }
+
+                    // ── Heavy packages — lazy loaded on demand only ──
+                    if (id.includes('node_modules/xlsx/')) {
+                        return 'vendor-xlsx';
+                    }
+                    if (id.includes('node_modules/pdfjs-dist/')) {
+                        return 'vendor-pdf';
+                    }
+                    if (id.includes('node_modules/react-syntax-highlighter/')) {
+                        return 'vendor-syntax-highlighter';
+                    }
+
+                    // ── Animation ──
+                    if (id.includes('node_modules/framer-motion/') ||
+                        id.includes('node_modules/react-spring/')) {
+                        return 'vendor-animation';
+                    }
+
+                    // ── Misc ──
+                    if (id.includes('node_modules/emoji-picker-react/')) {
+                        return 'vendor-emoji';
+                    }
+                    if (id.includes('node_modules/fuse.js/')) {
+                        return 'vendor-fuse';
                     }
                 },
             },
