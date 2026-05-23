@@ -12,8 +12,6 @@ spring:
 
   cloud:
     gateway:
-      default-filters:
-        - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin
       routes:
         # ---- Auth Service (public: login, refresh, register, jwks) ----
         - id: auth-public
@@ -215,25 +213,6 @@ spring:
           filters:
             - name: Retry
               args: { retries: 2 }
-
-      globalcors:
-        cors-configurations:
-          '[/**]':
-            allowed-origin-patterns:
-              - "http://localhost:*"
-              - "http://127.0.0.1:*"
-              - "https://*.smartpos.io"
-              - "https://*.letispos.com"
-              - "https://letispos.com"
-            allowed-methods:
-              - "*"
-            allowed-headers:
-              - "Authorization"
-              - "Content-Type"
-              - "X-Tenant-ID"
-              - "X-Requested-With"
-              - "X-Capture-Token"
-            allow-credentials: true
 
   security:
     oauth2:

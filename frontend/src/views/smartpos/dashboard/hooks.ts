@@ -16,7 +16,15 @@ import {
 } from 'src/api/smartpos/dashboardIntelligence';
 import { periodRange, previousPeriod } from './utils';
 
-/** Main dashboard KPIs + chart series (always fetched). */
+/** Stagger helper — spreads concurrent requests by `index * delayMs`. */
+function stagger<T>(fn: () => Promise<T>, index: number, delayMs = 30): Promise<T> {
+  return new Promise((resolve, reject) =>
+    setTimeout(() => fn().then(resolve, reject), index * delayMs),
+  );
+}
+
+/** Main dashboard KPIs + chart series — waves of 3 then 4 to avoid gateway
+ *  reactive-pipeline race conditions that close HTTP/2 connections. */
 export function useDashboardData(
   period: Period,
   warehouseId: string | undefined,
@@ -27,6 +35,7 @@ export function useDashboardData(
 
   return useQueries({
     queries: [
+      // Wave 1 — critical KPIs (indices 0-2, no stagger delay)
       {
         queryKey: ['dashboard', 'main', period, warehouseId, tenantId],
         queryFn: () => getDashboard({ period, warehouseId }),
@@ -38,7 +47,7 @@ export function useDashboardData(
         queryKey: ['dashboard', 'prev', prev, warehouseId, tenantId],
         queryFn: () =>
           prev
-            ? getDashboard({ period: prev, warehouseId })
+            ? stagger(() => getDashboard({ period: prev, warehouseId }), 0)
             : Promise.resolve(null),
         enabled: !!tenantId && !!prev,
         staleTime: 60_000,
@@ -46,43 +55,41 @@ export function useDashboardData(
       },
       {
         queryKey: ['dashboard', 'paymentMix', range.dateFrom, range.dateTo, tenantId],
-        queryFn: () => getPaymentMethodMix(range),
+        queryFn: () => stagger(() => getPaymentMethodMix(range), 1),
         enabled: !!tenantId,
         staleTime: 30_000,
         placeholderData: keepPreviousData,
       },
+      // Wave 2 — secondary data (indices 3-6, staggered 30-120ms)
       {
         queryKey: ['dashboard', 'recentSales', range, warehouseId, tenantId],
         queryFn: () =>
-          listSales({
-            ...range,
-            warehouseId,
-            status: 'CONFIRMED',
-            page: 0,
-            size: 5,
-            sort: 'date,desc',
-          }),
+          stagger(() =>
+            listSales({
+              ...range, warehouseId, status: 'CONFIRMED',
+              page: 0, size: 5, sort: 'date,desc',
+            }), 3),
         enabled: !!tenantId,
         staleTime: 30_000,
         placeholderData: keepPreviousData,
       },
       {
         queryKey: ['dashboard', 'expiringBatches', tenantId],
-        queryFn: () => getExpiringBatches({ withinDays: 30 }),
+        queryFn: () => stagger(() => getExpiringBatches({ withinDays: 30 }), 4),
         enabled: !!tenantId,
         staleTime: 60_000,
         placeholderData: keepPreviousData,
       },
       {
         queryKey: ['dashboard', 'forecast', period, warehouseId, tenantId],
-        queryFn: () => getForecast({ period, warehouseId, days: 30 }),
+        queryFn: () => stagger(() => getForecast({ period, warehouseId, days: 30 }), 5),
         enabled: !!tenantId,
         staleTime: 60_000,
         placeholderData: keepPreviousData,
       },
       {
         queryKey: ['dashboard', 'arAging', tenantId],
-        queryFn: () => getArAging(),
+        queryFn: () => stagger(() => getArAging(), 6),
         enabled: !!tenantId,
         staleTime: 60_000,
         placeholderData: keepPreviousData,
@@ -111,13 +118,14 @@ export function useDashboardData(
 export function useDashboardIntelligence(
   warehouseId: string | undefined,
   tenantId: string | undefined,
+  enabled = true,
 ) {
   const wid = warehouseId || undefined;
 
   const demandForecast = useQuery({
     queryKey: ['dashboard', 'demandForecast', wid, tenantId],
     queryFn: () => getDemandForecast(7, wid),
-    enabled: !!tenantId,
+    enabled: enabled && !!tenantId,
     staleTime: 60_000,
     select: (resp) => resp.data,
     placeholderData: keepPreviousData,
@@ -126,7 +134,7 @@ export function useDashboardIntelligence(
   const reorderRecs = useQuery({
     queryKey: ['dashboard', 'reorderRecs', wid, tenantId],
     queryFn: () => getReorderRecommendations(wid),
-    enabled: !!tenantId,
+    enabled: enabled && !!tenantId,
     staleTime: 60_000,
     select: (resp) => resp.data,
     placeholderData: keepPreviousData,
@@ -135,7 +143,7 @@ export function useDashboardIntelligence(
   const profitOpps = useQuery({
     queryKey: ['dashboard', 'profitOpps', wid, tenantId],
     queryFn: () => getProfitOpportunities(wid),
-    enabled: !!tenantId,
+    enabled: enabled && !!tenantId,
     staleTime: 60_000,
     select: (resp) => resp.data,
     placeholderData: keepPreviousData,
@@ -144,7 +152,7 @@ export function useDashboardIntelligence(
   const customerRetention = useQuery({
     queryKey: ['dashboard', 'customerRetention', tenantId],
     queryFn: () => getCustomerRetention(),
-    enabled: !!tenantId,
+    enabled: enabled && !!tenantId,
     staleTime: 60_000,
     select: (resp) => resp.data,
     placeholderData: keepPreviousData,
@@ -153,7 +161,7 @@ export function useDashboardIntelligence(
   const cashFlowForecast = useQuery({
     queryKey: ['dashboard', 'cashFlowForecast', tenantId],
     queryFn: () => getCashFlowForecast(30),
-    enabled: !!tenantId,
+    enabled: enabled && !!tenantId,
     staleTime: 60_000,
     select: (resp) => resp.data,
     placeholderData: keepPreviousData,
