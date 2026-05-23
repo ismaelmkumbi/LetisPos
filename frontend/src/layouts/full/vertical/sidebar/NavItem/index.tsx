@@ -209,7 +209,7 @@ const NavItem = ({ item, level, pathDirect, hideMenu, onClick }: ItemType) => {
     return (
       <Box
         component="li"
-        sx={{ listStyle: 'none' }}
+        sx={{ listStyle: 'none', contentVisibility: 'auto', containIntrinsicSize: 'auto 48px' }}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
       >
@@ -244,7 +244,7 @@ const NavItem = ({ item, level, pathDirect, hideMenu, onClick }: ItemType) => {
     );
   }
 
-  return <Box component="li" sx={{ listStyle: 'none' }}>{button}</Box>;
+  return <Box component="li" sx={{ listStyle: 'none', contentVisibility: 'auto', containIntrinsicSize: 'auto 48px' }}>{button}</Box>;
 };
 
 export default NavItem;

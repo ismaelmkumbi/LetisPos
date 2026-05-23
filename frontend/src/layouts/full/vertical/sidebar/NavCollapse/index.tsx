@@ -126,6 +126,8 @@ const NavCollapse = ({
     backgroundColor: open && level < 2 ? theme.palette.primary.main : '',
     whiteSpace: 'nowrap',
     minHeight: 44,
+    contentVisibility: 'auto',
+    containIntrinsicSize: 'auto 48px',
     justifyContent: hideMenu ? 'center' : 'flex-start',
     '&:hover': {
       backgroundColor: pathname.includes(menu.href) || open

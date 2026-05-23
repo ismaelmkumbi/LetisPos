@@ -3,18 +3,18 @@ import { Alert, Box, Button, Grid, LinearProgress, Stack, Typography } from '@mu
 import { useSearchParams, Link } from 'react-router';
 
 import { type Period } from 'src/api/smartpos/reports';
-import { listWarehouses, type Warehouse } from 'src/api/smartpos/inventory';
 import { useAuth } from 'src/context/smartpos/AuthContext';
 import { useOnboarding } from 'src/context/smartpos/OnboardingContext';
 import { CustomizerContext } from 'src/context/CustomizerContext';
 import type { UUID } from 'src/api/smartpos/types';
 import { useQueryClient } from '@tanstack/react-query';
-import { useDashboardData, useDashboardIntelligence } from './hooks';
+import { useDashboardData, useDashboardIntelligence, useWarehouses } from './hooks';
 import { authTheme as at } from 'src/theme/smartpos/authTheme';
 import { brand } from 'src/theme/smartpos/brand';
 import OnboardingBanner from './OnboardingBanner';
 import CelebrationModal from 'src/views/smartpos/onboarding/CelebrationModal';
 
+import WidgetErrorBoundary from 'src/components/smartpos/WidgetErrorBoundary';
 import DashboardGreetingBar, { loadLayout, type SectionKey } from './GreetingBar';
 import DashboardSkeleton from './Skeleton';
 import BusinessPulseCard from './BusinessPulseCard';
@@ -61,15 +61,19 @@ export default function DashboardPage() {
     (searchParams.get('warehouseId') ?? '') as UUID | '',
   );
 
-  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
-  const [lastUpdated, setLastUpdated] = useState<number | null>(null);
+  const { data: warehouses = [] } = useWarehouses(user?.tenantId);
+  const [secondaryWidgetsEnabled, setSecondaryWidgetsEnabled] = useState(false);
   const [visibleSections, setVisibleSections] = useState<Set<SectionKey>>(() =>
     loadLayout(user?.tenantId ?? ''),
   );
 
   // React Query: caches dashboard data 30s, re-fetches in background
   const dash = useDashboardData(period, warehouseId || undefined, user?.tenantId);
-  const intel = useDashboardIntelligence(warehouseId || undefined, user?.tenantId);
+  const intel = useDashboardIntelligence(
+    warehouseId || undefined,
+    user?.tenantId,
+    secondaryWidgetsEnabled,
+  );
 
   // Derive values that were previously from separate state
   const data = dash.data;
@@ -86,7 +90,7 @@ export default function DashboardPage() {
   const expiringUnitsAtRisk = Array.isArray(dash.expiringBatches)
     ? dash.expiringBatches.reduce((sum: number, b: { onHand?: number }) => sum + (b?.onHand ?? 0), 0)
     : 0;
-  const sectionError = dash.recentSales.length === 0 && !dash.isLoading
+  const sectionError = dash.recentSalesUnavailable && !dash.isLoading
     ? 'Live recent sales could not be loaded.'
     : null;
 
@@ -123,25 +127,34 @@ export default function DashboardPage() {
     }
   }, [user?.tenantId]);
 
-  useEffect(() => {
-    listWarehouses()
-      .then((rows) => setWarehouses(rows.filter((r) => r.active)))
-      .catch(() => setWarehouses([]));
-  }, [user?.tenantId]);
+  // Use TanStack Query's built-in timestamp — stable across background refetches
+  const lastUpdated = dash.dataUpdatedAt ?? null;
 
-  const setFilter = (key: 'period' | 'warehouseId', value: string) => {
-    if (key === 'period') setPeriod(value as Period);
-    else setWarehouseId(value as UUID | '');
-    const next = new URLSearchParams(searchParams);
-    if (value) next.set(key, value);
-    else next.delete(key);
-    setSearchParams(next, { replace: true });
-  };
-
-  // Track last successful data arrival for the "last updated" timestamp
   useEffect(() => {
-    if (data) setLastUpdated(Date.now());
-  }, [data]);
+    setSecondaryWidgetsEnabled(false);
+    if (!data || loading) return;
+    const timer = window.setTimeout(() => setSecondaryWidgetsEnabled(true), 650);
+    return () => window.clearTimeout(timer);
+  }, [data, loading, period, warehouseId]);
+
+  const handlePeriodChange = useCallback((p: string) => {
+    setPeriod(p as Period);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (p) next.set('period', p);
+      else next.delete('period');
+      return next;
+    }, { replace: true });
+  }, []);
+  const handleWarehouseChange = useCallback((id: string) => {
+    setWarehouseId(id as UUID | '');
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (id) next.set('warehouseId', id);
+      else next.delete('warehouseId');
+      return next;
+    }, { replace: true });
+  }, []);
 
   const handleManualRefresh = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ['dashboard'] });
@@ -225,15 +238,29 @@ export default function DashboardPage() {
     };
   }, [customerRetention]);
 
-  const showSection = (key: SectionKey) => visibleSections.has(key);
-  const rightColumnVisible =
-    showSection('sideRail')
-    || showSection('paymentMix')
-    || showSection('goalProgress')
-    || showSection('profitOpportunities')
-    || showSection('reorderRecommendations')
-    || showSection('cashFlowForecast')
-    || showSection('recentTransactions');
+  // Pre-compute all visibility booleans so downstream React.memo widgets are stable
+  const vis = useMemo(() => {
+    const v = (key: SectionKey) => visibleSections.has(key);
+    return {
+      kpiGrid: v('kpiGrid'),
+      revenueChart: v('revenueChart'),
+      financialHealth: v('financialHealth'),
+      operationsOverview: v('operationsOverview'),
+      demandForecast: v('demandForecast'),
+      customerRetention: v('customerRetention'),
+      topPerformers: v('topPerformers'),
+      sideRail: v('sideRail'),
+      paymentMix: v('paymentMix'),
+      goalProgress: v('goalProgress'),
+      cashFlowForecast: v('cashFlowForecast'),
+      profitOpportunities: v('profitOpportunities'),
+      reorderRecommendations: v('reorderRecommendations'),
+      recentTransactions: v('recentTransactions'),
+      rightColumn: v('sideRail') || v('paymentMix') || v('goalProgress')
+        || v('profitOpportunities') || v('reorderRecommendations')
+        || v('cashFlowForecast') || v('recentTransactions'),
+    };
+  }, [visibleSections]);
 
   return (
     <Box sx={{ pb: { xs: 'calc(96px + env(safe-area-inset-bottom, 0px))', md: 1 } }}>
@@ -243,8 +270,8 @@ export default function DashboardPage() {
         warehouses={warehouses}
         dateRangeLabel={dateRangeLabel}
         isDark={isDark}
-        onPeriodChange={(p) => setFilter('period', p)}
-        onWarehouseChange={(id) => setFilter('warehouseId', id)}
+        onPeriodChange={handlePeriodChange}
+        onWarehouseChange={handleWarehouseChange}
         lastUpdated={lastUpdated}
         onRefresh={handleManualRefresh}
       />
@@ -353,9 +380,9 @@ export default function DashboardPage() {
       ) : (
         <>
           <Grid container spacing={1.5} alignItems="flex-start">
-            <Grid size={{ xs: 12, xl: rightColumnVisible ? 9 : 12 }}>
+            <Grid size={{ xs: 12, xl: vis.rightColumn ? 9 : 12 }}>
               {/* KPI Grid */}
-              {showSection('kpiGrid') && (
+              {vis.kpiGrid && (
                 <Box
                   sx={{
                     mb: 1.5,
@@ -394,9 +421,10 @@ export default function DashboardPage() {
               )}
 
               {/* ── ROW 2: Revenue chart ── */}
-              {showSection('revenueChart') && (
-                <Box sx={{ mb: 1.5 }}>
-                  <RevenueChart
+              {vis.revenueChart && (
+                <WidgetErrorBoundary>
+                  <Box sx={{ mb: 1.5 }}>
+                    <RevenueChart
                     salesSeries={salesSeries}
                     orderSeries={orderSeries}
                     period={period}
@@ -408,13 +436,14 @@ export default function DashboardPage() {
                     forecast={forecast}
                   />
                 </Box>
+              </WidgetErrorBoundary>
               )}
 
               {/* ── ROW 3: Financial Health + Operations ── */}
-              {(showSection('financialHealth') || showSection('operationsOverview')) && (
+              {(vis.financialHealth || vis.operationsOverview) && (
                 <Grid container spacing={1.5} sx={{ mb: 1.5 }}>
-                  {showSection('financialHealth') && (
-                    <Grid size={{ xs: 12, lg: showSection('operationsOverview') ? 6 : 12 }}>
+                  {vis.financialHealth && (
+                    <Grid size={{ xs: 12, lg: vis.operationsOverview ? 6 : 12 }}>
                       <FinancialHealth
                         data={data}
                         expensesDelta={expensesDelta}
@@ -425,8 +454,8 @@ export default function DashboardPage() {
                       />
                     </Grid>
                   )}
-                  {showSection('operationsOverview') && (
-                    <Grid size={{ xs: 12, lg: showSection('financialHealth') ? 6 : 12 }}>
+                  {vis.operationsOverview && (
+                    <Grid size={{ xs: 12, lg: vis.financialHealth ? 6 : 12 }}>
                       <OperationsOverview
                         data={data}
                         inventoryValueDelta={inventoryValueDelta}
@@ -440,39 +469,48 @@ export default function DashboardPage() {
               )}
 
               {/* ── ROW 4: Demand Forecast — full width (ProfitOpps moved to rail) ── */}
-              {showSection('demandForecast') && (
-                <Box sx={{ mb: 1.5 }}>
-                  <DemandForecastCard
-                    data={demandForecast}
-                    loading={demandLoading}
-                    isDark={isDark}
-                  />
-                </Box>
+              {vis.demandForecast && (
+                <WidgetErrorBoundary>
+                  <Box sx={{ mb: 1.5 }}>
+                    <DemandForecastCard
+                      data={demandForecast}
+                      loading={demandLoading}
+                      isDark={isDark}
+                    />
+                  </Box>
+                </WidgetErrorBoundary>
               )}
 
               {/* ── ROW 5: Customer Retention ── */}
-              {showSection('customerRetention') && (
-                <Grid container spacing={1.5} sx={{ mb: 1.5 }}>
-                  <Grid size={{ xs: 12 }}>
-                    <CustomerRetentionCard
-                      data={customerRetention}
-                      loading={retentionLoading}
-                      isDark={isDark}
-                    />
+              {vis.customerRetention && (
+                <WidgetErrorBoundary>
+                  <Grid container spacing={1.5} sx={{ mb: 1.5 }}>
+                    <Grid size={{ xs: 12 }}>
+                      <CustomerRetentionCard
+                        data={customerRetention}
+                        loading={retentionLoading}
+                        isDark={isDark}
+                      />
+                    </Grid>
                   </Grid>
-                </Grid>
+                </WidgetErrorBoundary>
               )}
 
               {/* ── Bottom: Top Performers ── */}
-              {showSection('topPerformers') && (
+              {vis.topPerformers && (
                 <Box sx={{ mb: 1.5 }}>
-                  <TopPerformers period={period} warehouseId={warehouseId} limit={5} />
+                  <TopPerformers
+                    period={period}
+                    warehouseId={warehouseId}
+                    limit={5}
+                    enabled={secondaryWidgetsEnabled}
+                  />
                 </Box>
               )}
 
             </Grid>
 
-            {rightColumnVisible && (
+            {vis.rightColumn && (
               <Grid size={{ xs: 12, xl: 3 }}>
                 {/* Right rail: compact decision cards first, expandable lists lower. */}
                 <Stack
@@ -481,7 +519,7 @@ export default function DashboardPage() {
                     pb: 2,
                   }}
                 >
-                  {showSection('sideRail') && (
+                  {vis.sideRail && (
                     <DashboardSideRail
                       data={data}
                       revenueTrend={revenueTrend}
@@ -492,25 +530,29 @@ export default function DashboardPage() {
                       atRiskCustomerCount={atRiskStats.count}
                       atRiskRevenue={atRiskStats.revenue}
                       anomalySlot={
-                        <AnomalyAlerts warehouseId={warehouseId} />
+                        <AnomalyAlerts warehouseId={warehouseId} enabled={secondaryWidgetsEnabled} />
                       }
                     />
                   )}
 
-                  {showSection('paymentMix') && (
-                    <PaymentMixCard
+                  {vis.paymentMix && (
+                    <WidgetErrorBoundary>
+                      <PaymentMixCard
                       paymentMix={paymentMix}
                       paymentMixUnavailable={paymentMixUnavailable}
                       isDark={isDark}
                       layout="rail"
                     />
+                  </WidgetErrorBoundary>
                   )}
 
-                  {showSection('cashFlowForecast') && (
-                    <CashFlowForecastCard data={cashFlowForecast} loading={cashFlowLoading} isDark={isDark} />
+                  {vis.cashFlowForecast && (
+                    <WidgetErrorBoundary>
+                      <CashFlowForecastCard data={cashFlowForecast} loading={cashFlowLoading} isDark={isDark} />
+                    </WidgetErrorBoundary>
                   )}
 
-                  {showSection('goalProgress') && (
+                  {vis.goalProgress && (
                     <GoalProgress
                       currentRevenue={data?.sales.net ?? 0}
                       currentOrders={data?.sales.count ?? 0}
@@ -519,15 +561,15 @@ export default function DashboardPage() {
                     />
                   )}
 
-                  {showSection('profitOpportunities') && (
+                  {vis.profitOpportunities && (
                     <ProfitOpportunitiesCard data={profitOpps} loading={profitLoading} isDark={isDark} />
                   )}
 
-                  {showSection('reorderRecommendations') && (
+                  {vis.reorderRecommendations && (
                     <ReorderRecommendationsCard data={reorderRecs} loading={reorderLoading} isDark={isDark} />
                   )}
 
-                  {showSection('recentTransactions') && (
+                  {vis.recentTransactions && (
                     <RecentTransactions rows={recentSales} />
                   )}
                 </Stack>

@@ -17,6 +17,7 @@ import { formatMoney } from 'src/utils/smartpos/currency';
 import { cardSx, methodLabel, moneyShort } from './utils';
 import EmptyPanel from './EmptyPanel';
 import type { PaymentMethodMixRow } from 'src/api/smartpos/reports';
+import { memo } from 'react';
 
 const NUM_FONT = "'JetBrains Mono', 'DM Mono', monospace";
 const LBL_FONT = "'Outfit', 'DM Sans', sans-serif";
@@ -186,7 +187,7 @@ function PaymentRow({
   );
 }
 
-export default function PaymentMixCard({
+function PaymentMixCard({
   paymentMix,
   paymentMixUnavailable,
   isDark,
@@ -356,3 +357,5 @@ export default function PaymentMixCard({
     </Card>
   );
 }
+
+export default memo(PaymentMixCard);

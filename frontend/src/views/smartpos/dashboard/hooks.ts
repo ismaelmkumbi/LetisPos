@@ -4,8 +4,11 @@
  * while fresh data loads in the background (stale-while-revalidate).
  */
 import { keepPreviousData, useQueries, useQuery } from '@tanstack/react-query';
+import { listWarehouses, type Warehouse } from 'src/api/smartpos/inventory';
 import {
   getDashboard, getPaymentMethodMix, getForecast, getArAging,
+  getTopProductsV2, getTopCustomersV2, getTopSuppliersV2,
+  getAnomalies,
   type Period,
 } from 'src/api/smartpos/reports';
 import { listSales } from 'src/api/smartpos/sales';
@@ -102,6 +105,7 @@ export function useDashboardData(
         paymentMix: results[2].data ?? [],
         paymentMixUnavailable: results[2].isError,
         recentSales: results[3].data?.content ?? [],
+        recentSalesUnavailable: results[3].isError,
         expiringBatches: results[4].data ?? [],
         forecast: results[5].data ?? null,
         arAging: results[6].data ?? null,
@@ -109,6 +113,7 @@ export function useDashboardData(
         isFetching: results.some((r) => r.isFetching),
         isError: results[0].isError,
         error: results[0].error,
+        dataUpdatedAt: results[0].dataUpdatedAt,
       };
     },
   });
@@ -168,4 +173,65 @@ export function useDashboardIntelligence(
   });
 
   return { demandForecast, reorderRecs, profitOpps, customerRetention, cashFlowForecast };
+}
+
+/** Warehouses — cached with long staleTime since they change rarely. */
+export function useWarehouses(tenantId: string | undefined) {
+  return useQuery({
+    queryKey: ['warehouses', tenantId],
+    queryFn: () => listWarehouses().then((rows) => rows.filter((r) => r.active)),
+    enabled: !!tenantId,
+    staleTime: 5 * 60_000,
+    select: (rows) => rows as Warehouse[],
+  });
+}
+
+/** Top performers — cached per period/warehouse. */
+export function useTopPerformers(
+  period: Period,
+  warehouseId: string | undefined,
+  tenantId: string | undefined,
+  enabled: boolean,
+  limit = 5,
+) {
+  const wid = warehouseId || undefined;
+
+  const products = useQuery({
+    queryKey: ['dashboard', 'topProducts', period, wid, tenantId],
+    queryFn: () => getTopProductsV2({ period, warehouseId: wid, limit }),
+    enabled: enabled && !!tenantId,
+    staleTime: 60_000,
+    placeholderData: keepPreviousData,
+  });
+
+  const customers = useQuery({
+    queryKey: ['dashboard', 'topCustomers', period, wid, tenantId],
+    queryFn: () => getTopCustomersV2({ period, warehouseId: wid, limit }),
+    enabled: enabled && !!tenantId,
+    staleTime: 60_000,
+    placeholderData: keepPreviousData,
+  });
+
+  const suppliers = useQuery({
+    queryKey: ['dashboard', 'topSuppliers', period, wid, tenantId],
+    queryFn: () => getTopSuppliersV2({ period, warehouseId: wid, limit }),
+    enabled: enabled && !!tenantId,
+    staleTime: 60_000,
+    placeholderData: keepPreviousData,
+  });
+
+  return { products, customers, suppliers };
+}
+
+/** Anomaly alerts — cached per warehouse, silently suppresses errors. */
+export function useAnomalies(warehouseId: string | undefined, tenantId: string | undefined, enabled: boolean) {
+  const wid = warehouseId || undefined;
+
+  return useQuery({
+    queryKey: ['dashboard', 'anomalies', wid, tenantId],
+    queryFn: () => getAnomalies({ warehouseId: wid }),
+    enabled: enabled && !!tenantId,
+    staleTime: 60_000,
+    placeholderData: keepPreviousData,
+  });
 }

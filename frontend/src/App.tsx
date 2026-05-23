@@ -15,8 +15,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 30_000,        // 30s — dashboard data fresh enough
-      gcTime: 5 * 60_000,       // 5min garbage collection (former cacheTime)
+      staleTime: 30_000,        // 30s — stale-while-revalidate window
+      gcTime: 10 * 60_000,      // 10min — better cache reuse on tab/browser back
       retry: 1,
       refetchOnWindowFocus: false,
     },

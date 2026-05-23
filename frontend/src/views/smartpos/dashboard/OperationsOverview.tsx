@@ -1,5 +1,5 @@
 import { Card, CardContent, Grid, Typography } from '@mui/material';
-import { useContext } from 'react';
+import { useContext, memo } from 'react';
 import { CustomizerContext } from 'src/context/CustomizerContext';
 import { formatNumber } from 'src/utils/smartpos/currency';
 import { cardSx, titleColor } from './utils';
@@ -15,7 +15,7 @@ interface OperationsOverviewProps {
   stockMovementDelta?: Delta;
 }
 
-export default function OperationsOverview({
+function OperationsOverview({
   data,
   inventoryValueDelta,
   stockAtRiskDelta,
@@ -68,3 +68,5 @@ export default function OperationsOverview({
     </Card>
   );
 }
+
+export default memo(OperationsOverview);

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import {
   Box,
   Card,
@@ -117,7 +117,7 @@ function ProgressRow({
   );
 }
 
-export default function GoalProgress({
+function GoalProgress({
   currentRevenue,
   currentOrders,
   currentMargin,
@@ -244,3 +244,5 @@ export default function GoalProgress({
     </>
   );
 }
+
+export default memo(GoalProgress);

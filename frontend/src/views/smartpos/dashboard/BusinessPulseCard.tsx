@@ -10,7 +10,7 @@ import {
   Box, Card, CardContent, Chip, Stack, Typography,
 } from '@mui/material';
 import { IconArrowDown, IconArrowUp, IconTrendingUp, IconTrendingDown } from '@tabler/icons-react';
-import { useContext } from 'react';
+import { useContext, memo } from 'react';
 import { CustomizerContext } from 'src/context/CustomizerContext';
 import { formatMoney } from 'src/utils/smartpos/currency';
 import { darkToneBg, PERIOD_LABELS, profitMargin } from './utils';
@@ -27,7 +27,7 @@ interface BusinessPulseCardProps {
   delta?: Delta;
 }
 
-export default function BusinessPulseCard({ data, salesSeries, period, delta }: BusinessPulseCardProps) {
+function BusinessPulseCard({ data, salesSeries, period, delta }: BusinessPulseCardProps) {
   const { activeMode } = useContext(CustomizerContext);
   const isDark = activeMode === 'dark';
 
@@ -231,3 +231,5 @@ export default function BusinessPulseCard({ data, salesSeries, period, delta }: 
     </Card>
   );
 }
+
+export default memo(BusinessPulseCard);

@@ -18,7 +18,7 @@ import {
 import { IconArrowRight, IconDotsVertical } from '@tabler/icons-react';
 import Chart from 'react-apexcharts';
 import type { ApexOptions } from 'apexcharts';
-import { useMemo, useCallback } from 'react';
+import { useMemo, useCallback, memo } from 'react';
 import { useNavigate } from 'react-router';
 import { brand } from 'src/theme/smartpos/brand';
 import { formatMoney, formatNumber } from 'src/utils/smartpos/currency';
@@ -56,7 +56,7 @@ function LegendDot({ color, label, dashed, isDark }: { color: string; label: str
   );
 }
 
-export default function RevenueChart({
+function RevenueChart({
   salesSeries,
   orderSeries = [],
   period,
@@ -85,6 +85,8 @@ export default function RevenueChart({
     }
     return base;
   }, [data, forecast, hasForecast]);
+
+  const histLen = useMemo(() => data?.salesSeries?.length ?? 0, [data?.salesSeries?.length]);
 
   // ─── ApexCharts options ─────────────────────────────────────────────────────
   const chartOptions: ApexOptions = useMemo(() => {
@@ -234,7 +236,6 @@ export default function RevenueChart({
       }
 
       // Annotation: forecast start vertical line
-      const histLen = data?.salesSeries?.length ?? 0;
       if (histLen > 0) {
         base.annotations = {
           xaxis: [
@@ -263,7 +264,7 @@ export default function RevenueChart({
     return base;
   }, [
     categories, isDark, hasOrders, hasForecast, previousSalesSeries,
-    data, handleDataPointSelection,
+    histLen, handleDataPointSelection,
   ]);
 
   // ─── Series ──────────────────────────────────────────────────────────────────
@@ -435,3 +436,5 @@ export default function RevenueChart({
     </Card>
   );
 }
+
+export default memo(RevenueChart);

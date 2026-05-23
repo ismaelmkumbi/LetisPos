@@ -10,7 +10,7 @@
  */
 import { Grid } from '@mui/material';
 import { IconBriefcase, IconReceipt, IconShoppingCart, IconWallet } from '@tabler/icons-react';
-import { useMemo } from 'react';
+import { useMemo, memo } from 'react';
 import { useNavigate } from 'react-router';
 import { brand } from 'src/theme/smartpos/brand';
 import { formatMoney, formatNumber } from 'src/utils/smartpos/currency';
@@ -30,7 +30,7 @@ interface KpiGridProps {
   purchasesDelta?: Delta;
 }
 
-export default function KpiGrid({
+function KpiGrid({
   data,
   salesSeries,
   revenueTrend,
@@ -117,3 +117,5 @@ export default function KpiGrid({
     </>
   );
 }
+
+export default memo(KpiGrid);

@@ -5,9 +5,8 @@
  * - On API error (including 500): renders nothing — anomalies are non-critical
  *   and a backend outage should not pollute the dashboard UI.
  * - On empty result: renders nothing (no "all clear" noise).
- * - Typography upgraded: Outfit labels, JetBrains Mono values.
  */
-import { useContext, useEffect, useState, useCallback } from 'react';
+import { useContext } from 'react';
 import {
   Box, Card, CardActionArea, CardContent,
   LinearProgress, Stack, Typography,
@@ -16,16 +15,19 @@ import { IconAlertTriangle, IconChevronRight, IconInfoCircle } from '@tabler/ico
 import { Link as RouterLink } from 'react-router';
 import { brand } from 'src/theme/smartpos/brand';
 import { formatMoney, formatNumber } from 'src/utils/smartpos/currency';
-import { getAnomalies, type Anomaly } from 'src/api/smartpos/reports';
 import type { UUID } from 'src/api/smartpos/types';
 import { CustomizerContext } from 'src/context/CustomizerContext';
+import { useAuth } from 'src/context/smartpos/AuthContext';
 import { darkToneBg } from './utils';
+import { useAnomalies } from './hooks';
+import type { Anomaly } from 'src/api/smartpos/reports';
 
 const NUM_FONT = "'JetBrains Mono', 'DM Mono', monospace";
 const LBL_FONT = "'Outfit', 'DM Sans', sans-serif";
 
 interface AnomalyAlertsProps {
   warehouseId: UUID | '';
+  enabled?: boolean;
 }
 
 function AnomalyCard({ anomaly, isDark }: { anomaly: Anomaly; isDark: boolean }) {
@@ -95,30 +97,23 @@ function AnomalyCard({ anomaly, isDark }: { anomaly: Anomaly; isDark: boolean })
   );
 }
 
-export default function AnomalyAlerts({ warehouseId }: AnomalyAlertsProps) {
+function AnomalyAlerts({ warehouseId, enabled = true }: AnomalyAlertsProps) {
+  const { user } = useAuth();
   const { activeMode } = useContext(CustomizerContext);
   const isDark = activeMode === 'dark';
-  const [anomalies, setAnomalies]   = useState<Anomaly[]>([]);
-  const [loading, setLoading]       = useState(true);
-  const [failed, setFailed]         = useState(false);
 
-  const fetchAnomalies = useCallback(async () => {
-    setLoading(true);
-    setFailed(false);
-    try {
-      const result = await getAnomalies({ warehouseId: warehouseId || undefined });
-      setAnomalies(result);
-    } catch {
-      // Silently suppress all API errors — anomaly detection is non-critical
-      setFailed(true);
-    } finally {
-      setLoading(false);
-    }
-  }, [warehouseId]);
+  const anomaliesQuery = useAnomalies(
+    warehouseId || undefined,
+    user?.tenantId,
+    enabled,
+  );
 
-  useEffect(() => { fetchAnomalies(); }, [fetchAnomalies]);
+  const anomalies = anomaliesQuery.data ?? [];
+  const loading = anomaliesQuery.isLoading;
+  const failed = anomaliesQuery.isError;
 
   // Render nothing on error, on empty, or while loading with no prior data
+  if (!enabled) return null;
   if (failed || (!loading && anomalies.length === 0)) return null;
 
   return (
@@ -150,3 +145,5 @@ export default function AnomalyAlerts({ warehouseId }: AnomalyAlertsProps) {
     </Box>
   );
 }
+
+export default AnomalyAlerts;

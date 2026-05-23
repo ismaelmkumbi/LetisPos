@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useState } from 'react';
 import {
   Box,
   Card,
@@ -14,14 +14,13 @@ import {
 import { useNavigate } from 'react-router';
 import { useContext } from 'react';
 import { CustomizerContext } from 'src/context/CustomizerContext';
+import { useAuth } from 'src/context/smartpos/AuthContext';
 import { brand } from 'src/theme/smartpos/brand';
 import { formatMoney } from 'src/utils/smartpos/currency';
 import { cardSx, titleColor, muted } from './utils';
 import EmptyPanel from './EmptyPanel';
+import { useTopPerformers } from './hooks';
 import {
-  getTopProductsV2,
-  getTopCustomersV2,
-  getTopSuppliersV2,
   type TopPerformer,
   type Period,
 } from 'src/api/smartpos/reports';
@@ -34,7 +33,8 @@ interface TopPerformersProps {
   period: Period;
   warehouseId: UUID | '';
   limit?: number;
-  customerSegments?: Map<string, TopCustomer>;  // customerId → segment info
+  enabled?: boolean;
+  customerSegments?: Map<string, TopCustomer>;
 }
 
 function segmentColor(segment: string): string {
@@ -154,49 +154,41 @@ function PerformerRow({
   );
 }
 
-export default function TopPerformers({
+function TopPerformers({
   period,
   warehouseId,
   limit = 5,
+  enabled = true,
   customerSegments,
 }: TopPerformersProps) {
+  const { user } = useAuth();
   const { activeMode: _am } = useContext(CustomizerContext);
   const isDark = _am === 'dark';
   const navigate = useNavigate();
 
   const [tab, setTab] = useState<TabKey>('products');
-  const [products, setProducts] = useState<TopPerformer[]>([]);
-  const [customers, setCustomers] = useState<TopPerformer[]>([]);
-  const [suppliers, setSuppliers] = useState<TopPerformer[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const wid = warehouseId || undefined;
-      const [p, c, s] = await Promise.all([
-        getTopProductsV2({ period, warehouseId: wid, limit }),
-        getTopCustomersV2({ period, warehouseId: wid, limit }),
-        getTopSuppliersV2({ period, warehouseId: wid, limit }),
-      ]);
-      setProducts(p);
-      setCustomers(c);
-      setSuppliers(s);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load');
-    } finally {
-      setLoading(false);
-    }
-  }, [period, warehouseId, limit]);
+  const performers = useTopPerformers(
+    period,
+    warehouseId || undefined,
+    user?.tenantId,
+    enabled,
+    limit,
+  );
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  const loading = performers.products.isLoading;
+  const error =
+    (performers.products.isError && (performers.products.error as Error)?.message)
+    || (performers.customers.isError && (performers.customers.error as Error)?.message)
+    || (performers.suppliers.isError && (performers.suppliers.error as Error)?.message)
+    || null;
 
   const currentList: TopPerformer[] =
-    tab === 'products' ? products : tab === 'customers' ? customers : suppliers;
+    tab === 'products'
+      ? (performers.products.data ?? [])
+      : tab === 'customers'
+        ? (performers.customers.data ?? [])
+        : (performers.suppliers.data ?? []);
 
   const handleRowClick = (performer: TopPerformer) => {
     if (tab === 'products') navigate(`/smartpos/products/${performer.id}`);
@@ -291,3 +283,5 @@ export default function TopPerformers({
     </Card>
   );
 }
+
+export default TopPerformers;

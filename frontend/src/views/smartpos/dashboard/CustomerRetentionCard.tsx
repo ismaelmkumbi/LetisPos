@@ -19,6 +19,7 @@ import { formatMoney } from 'src/utils/smartpos/currency';
 import { cardSx, darkToneBg, titleColor, muted } from './utils';
 import EmptyPanel from './EmptyPanel';
 import type { CustomerRetention, AtRiskCustomer } from 'src/api/smartpos/dashboardIntelligence';
+import { memo } from 'react';
 
 interface CustomerRetentionCardProps {
   data: CustomerRetention | null;
@@ -43,7 +44,7 @@ function segmentBadge(segment: string, isDark: boolean) {
   );
 }
 
-export default function CustomerRetentionCard({
+function CustomerRetentionCard({
   data,
   loading,
   isDark,
@@ -179,3 +180,5 @@ export default function CustomerRetentionCard({
     </Card>
   );
 }
+
+export default memo(CustomerRetentionCard);

@@ -13,6 +13,7 @@ import { formatMoney } from 'src/utils/smartpos/currency';
 import type { ProfitOpportunities, UnderpricedItem } from 'src/api/smartpos/dashboardIntelligence';
 import { cardSx, titleColor, muted } from './utils';
 import EmptyPanel from './EmptyPanel';
+import { memo } from 'react';
 
 interface ProfitOpportunitiesCardProps {
   data: ProfitOpportunities | null;
@@ -104,7 +105,7 @@ function OpportunityRow({
   );
 }
 
-export default function ProfitOpportunitiesCard({
+function ProfitOpportunitiesCard({
   data,
   loading,
   isDark,
@@ -177,3 +178,5 @@ export default function ProfitOpportunitiesCard({
     </Card>
   );
 }
+
+export default memo(ProfitOpportunitiesCard);

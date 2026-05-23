@@ -11,6 +11,7 @@ import { brand } from 'src/theme/smartpos/brand';
 import type { DemandForecast, ForecastedProduct } from 'src/api/smartpos/dashboardIntelligence';
 import { cardSx, darkToneBg, titleColor, muted, formatDateRange } from './utils';
 import EmptyPanel from './EmptyPanel';
+import { memo } from 'react';
 
 interface DemandForecastCardProps {
   data: DemandForecast | null;
@@ -140,7 +141,7 @@ function ForecastRow({
   );
 }
 
-export default function DemandForecastCard({
+function DemandForecastCard({
   data,
   loading,
   isDark,
@@ -217,3 +218,5 @@ export default function DemandForecastCard({
     </Card>
   );
 }
+
+export default memo(DemandForecastCard);

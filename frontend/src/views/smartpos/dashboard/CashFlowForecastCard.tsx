@@ -16,6 +16,7 @@ import { formatMoney } from 'src/utils/smartpos/currency';
 import { cardSx, darkToneBg, titleColor, muted, chartFont } from './utils';
 import EmptyPanel from './EmptyPanel';
 import type { CashFlowForecast } from 'src/api/smartpos/dashboardIntelligence';
+import { memo } from 'react';
 
 interface CashFlowForecastCardProps {
   data: CashFlowForecast | null;
@@ -95,7 +96,7 @@ function cashFlowSparkOptions(color: string, safetyThreshold: number): ApexOptio
   };
 }
 
-export default function CashFlowForecastCard({
+function CashFlowForecastCard({
   data,
   loading,
   isDark,
@@ -257,3 +258,5 @@ export default function CashFlowForecastCard({
     </Card>
   );
 }
+
+export default memo(CashFlowForecastCard);

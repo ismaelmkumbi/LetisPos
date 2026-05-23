@@ -27,6 +27,7 @@ import { formatMoney, formatNumber } from 'src/utils/smartpos/currency';
 import { cardSx, darkToneBg, headingColor } from './utils';
 import type { Dashboard } from 'src/api/smartpos/reports';
 import type { Trend, AlertStripProps } from './types';
+import { memo } from 'react';
 
 const LBL_FONT = "'Outfit', 'DM Sans', sans-serif";
 const NUM_FONT = "'JetBrains Mono', 'DM Mono', monospace";
@@ -96,7 +97,7 @@ interface DashboardSideRailProps {
   atRiskRevenue?: number;
 }
 
-export default function DashboardSideRail({
+function DashboardSideRail({
   data,
   revenueTrend,
   isDark,
@@ -316,3 +317,5 @@ export default function DashboardSideRail({
     </Stack>
   );
 }
+
+export default memo(DashboardSideRail);

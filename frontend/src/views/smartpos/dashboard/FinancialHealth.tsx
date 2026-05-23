@@ -1,6 +1,6 @@
 import { Card, CardContent, Grid, Typography } from '@mui/material';
 import { IconAlertTriangle, IconShoppingCart, IconWalletOff, IconX } from '@tabler/icons-react';
-import { useContext } from 'react';
+import { useContext, memo } from 'react';
 import { CustomizerContext } from 'src/context/CustomizerContext';
 import { formatMoney } from 'src/utils/smartpos/currency';
 import { cardSx, titleColor, profitMargin } from './utils';
@@ -17,7 +17,7 @@ interface FinancialHealthProps {
   arAging?: ArAging | null;
 }
 
-export default function FinancialHealth({
+function FinancialHealth({
   data,
   expensesDelta,
   profitMarginDelta,
@@ -89,3 +89,5 @@ export default function FinancialHealth({
     </Card>
   );
 }
+
+export default memo(FinancialHealth);

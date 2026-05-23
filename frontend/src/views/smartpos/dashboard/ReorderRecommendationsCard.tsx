@@ -12,6 +12,7 @@ import { brand } from 'src/theme/smartpos/brand';
 import type { ReorderRecommendations, ReorderRecommendationItem } from 'src/api/smartpos/dashboardIntelligence';
 import { cardSx, darkToneBg, titleColor, muted } from './utils';
 import EmptyPanel from './EmptyPanel';
+import { memo } from 'react';
 
 interface ReorderRecommendationsCardProps {
   data: ReorderRecommendations | null;
@@ -136,7 +137,7 @@ function RecommendationRow({
   );
 }
 
-export default function ReorderRecommendationsCard({
+function ReorderRecommendationsCard({
   data,
   loading,
   isDark,
@@ -213,3 +214,5 @@ export default function ReorderRecommendationsCard({
     </Card>
   );
 }
+
+export default memo(ReorderRecommendationsCard);

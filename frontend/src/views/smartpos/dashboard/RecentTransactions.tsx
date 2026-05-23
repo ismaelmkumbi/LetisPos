@@ -15,7 +15,7 @@ import {
 } from '@mui/material';
 import { IconAlertTriangle, IconReceipt } from '@tabler/icons-react';
 import { Link as RouterLink, useNavigate } from 'react-router';
-import { useContext } from 'react';
+import { useContext, memo } from 'react';
 import { CustomizerContext } from 'src/context/CustomizerContext';
 import { brand } from 'src/theme/smartpos/brand';
 import { formatMoney } from 'src/utils/smartpos/currency';
@@ -48,7 +48,7 @@ interface RecentTransactionsProps {
   fraudReasons?: Map<string, string>;
 }
 
-export default function RecentTransactions({ rows, fraudAlertIds, fraudReasons }: RecentTransactionsProps) {
+function RecentTransactions({ rows, fraudAlertIds, fraudReasons }: RecentTransactionsProps) {
   const { activeMode } = useContext(CustomizerContext);
   const isDark = activeMode === 'dark';
   const navigate = useNavigate();
@@ -227,3 +227,5 @@ export default function RecentTransactions({ rows, fraudAlertIds, fraudReasons }
     </Card>
   );
 }
+
+export default memo(RecentTransactions);
