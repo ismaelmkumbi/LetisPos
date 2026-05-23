@@ -115,12 +115,15 @@ export const CustomizerContextProvider: React.FC<CustomizerContextProps> = ({ ch
         activeDir, activeMode, activeTheme, activeLayout,
         isCardShadow, isLayout, isBorderRadius, isCollapse,
         isLanguage,
+        setActiveDirCb, setActiveModeCb, setActiveThemeCb, setActiveLayoutCb,
+        setIsCardShadowCb, setIsLayoutCb, setIsBorderRadiusCb, setIsCollapseCb,
+        setIsLanguageCb,
     ]);
 
     const mobileValue = useMemo<MobileSidebarState>(() => ({
         isMobileSidebar,
         setIsMobileSidebar: setIsMobileSidebarCb,
-    }), [isMobileSidebar]);
+    }), [isMobileSidebar, setIsMobileSidebarCb]);
 
     return (
         <CustomizerContext.Provider value={value}>

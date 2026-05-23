@@ -241,7 +241,7 @@ const Customizer: FC = () => {
                           color: "white",
                         }}
                         aria-label={`${thcolor.bgColor}`}
-                        onClick={() => setActiveTheme(thcolor.disp)}
+                        onClick={() => setActiveTheme(thcolor.disp ?? thcolor.bgColor)}
                       >
                         {activeTheme === thcolor.disp ? (
                           <IconCheck width={13} />
