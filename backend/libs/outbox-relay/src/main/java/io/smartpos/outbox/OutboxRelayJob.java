@@ -80,7 +80,7 @@ public class OutboxRelayJob {
         if (rows.isEmpty()) return;
         log.debug("Outbox relay draining {} row(s)", rows.size());
 
-        List<CompletableFuture<Void>> futures = new ArrayList<>();
+        List<CompletableFuture<?>> futures = new ArrayList<>();
         for (OutboxRow row : rows) {
             String topic = buildTopic(row);
             String key = row.aggregateId().toString();
