@@ -391,6 +391,7 @@ public class DocumentService {
                 ctx.put("paperWidth", mapPaperWidth(b.paperSize()));
                 ctx.put("paperHeight", mapPaperHeight(b.paperSize()));
                 ctx.put("footerMessage", b.footerMessage() != null ? b.footerMessage() : "");
+                ctx.put("poweredBy", "Powered by Letis POS");
                 return ctx;
             } catch (Exception e) {
                 log.warn("Failed to fetch PosSetting for warehouse {}: {}", warehouseId, e.getMessage());
@@ -427,15 +428,16 @@ public class DocumentService {
                 ctx.put("paperWidth", "210mm");
                 ctx.put("paperHeight", "297mm");
                 ctx.put("footerMessage", "");
+                ctx.put("poweredBy", "Powered by Letis POS");
                 return ctx;
             }
         } catch (Exception e) {
             log.debug("Brand profile fetch failed, falling back to defaults: {}", e.getMessage());
         }
 
-        // Default Letis POS branding
+        // Default Letis POS branding — shows business name at top, attribution at bottom
         java.util.HashMap<String, Object> defaults = new java.util.HashMap<>();
-        defaults.put("name", "Letis POS");
+        defaults.put("name", "Your Business Name");
         defaults.put("logoUrl", letisLogoDataUri());
         defaults.put("address", "");
         defaults.put("phone", "");
@@ -457,6 +459,7 @@ public class DocumentService {
         defaults.put("paperWidth", "8.27");
         defaults.put("paperHeight", "11.69");
         defaults.put("footerMessage", "");
+        defaults.put("poweredBy", "Powered by Letis POS");
         return defaults;
     }
 
