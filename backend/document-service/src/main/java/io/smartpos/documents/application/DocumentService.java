@@ -41,6 +41,7 @@ public class DocumentService {
     private final io.smartpos.documents.infrastructure.feign.PurchaseClient purchaseClient;
     private final io.smartpos.documents.infrastructure.feign.PaymentClient paymentClient;
     private final io.smartpos.documents.infrastructure.feign.PosSettingClient posSettingClient;
+    private final io.smartpos.documents.infrastructure.feign.BrandProfileClient brandProfileClient;
     private final io.smartpos.documents.infrastructure.feign.CustomerClient customerClient;
     private final io.smartpos.documents.infrastructure.feign.ProductClient productClient;
     private final I18nLabelRepository i18nRepo;
@@ -394,6 +395,42 @@ public class DocumentService {
             } catch (Exception e) {
                 log.warn("Failed to fetch PosSetting for warehouse {}: {}", warehouseId, e.getMessage());
             }
+        }
+
+        // Try Brand Profile (tenant-level) as fallback
+        try {
+            var bp = brandProfileClient.getProfile();
+            if (bp != null) {
+                String primary = (bp.primaryColor() != null && !bp.primaryColor().isBlank())
+                        ? bp.primaryColor() : "#16A34A";
+                String logo = (bp.logoUrl() != null && !bp.logoUrl().isBlank())
+                        ? bp.logoUrl() : (bp.logoSvgUrl() != null ? bp.logoSvgUrl() : letisLogoDataUri());
+                java.util.HashMap<String, Object> ctx = new java.util.HashMap<>();
+                ctx.put("name", bp.businessName() != null && !bp.businessName().isBlank()
+                        ? bp.businessName() : "Letis POS");
+                ctx.put("logoUrl", logo);
+                ctx.put("address", "");
+                ctx.put("phone", "");
+                ctx.put("email", "");
+                ctx.put("tin", "");
+                ctx.put("website", bp.website() != null ? bp.website() : "https://letispos.com");
+                ctx.put("showLogo", true);
+                ctx.put("logoSize", 64);
+                ctx.put("primaryColor", primary);
+                ctx.put("primaryColorDark", darken(primary, 0.15));
+                ctx.put("primaryColorLight", lighten(primary, 0.88));
+                ctx.put("primaryColorBorder", lighten(primary, 0.60));
+                ctx.put("accentColor", (bp.accentColor() != null && !bp.accentColor().isBlank())
+                        ? bp.accentColor() : primary);
+                ctx.put("fontFamily", (bp.fontFamily() != null && !bp.fontFamily().isBlank())
+                        ? bp.fontFamily() : "'Helvetica Neue', Arial, sans-serif");
+                ctx.put("paperWidth", "210mm");
+                ctx.put("paperHeight", "297mm");
+                ctx.put("footerMessage", "");
+                return ctx;
+            }
+        } catch (Exception e) {
+            log.debug("Brand profile fetch failed, falling back to defaults: {}", e.getMessage());
         }
 
         // Default Letis POS branding
