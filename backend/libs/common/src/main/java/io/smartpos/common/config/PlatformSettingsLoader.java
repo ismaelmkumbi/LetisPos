@@ -24,6 +24,14 @@ public class PlatformSettingsLoader implements EnvironmentPostProcessor {
 
     @Override
     public void postProcessEnvironment(ConfigurableEnvironment env, SpringApplication application) {
+        // user-service owns the platform_settings table — it reads directly
+        // from its own DB, not via HTTP. Skip to avoid circular startup.
+        String appName = env.getProperty("spring.application.name", "");
+        if ("user-service".equals(appName)) {
+            log.info("Skipping platform settings fetch — this is user-service (settings owner).");
+            return;
+        }
+
         String userServiceUrl = env.getProperty("USER_SERVICE_URL", "http://user-service:8082");
         String url = userServiceUrl + "/api/internal/platform-settings";
 
