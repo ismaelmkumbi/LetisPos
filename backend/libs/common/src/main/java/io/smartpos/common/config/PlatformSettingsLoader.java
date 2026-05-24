@@ -15,10 +15,9 @@ import java.util.Map;
  * application context is created, so they are available as {@code platform.*}
  * properties during YAML resolution.
  *
- * Usage in application.yml:
- *   api-key: ${platform.ai.openai.api_key:${OPENAI_API_KEY:}}
- *
- * DB value wins when present; env var is the fallback.
+ * There is NO env-var fallback for secrets. The admin panel is the single
+ * source of truth. If user-service is unreachable or the settings table is
+ * empty, the application will fail to resolve required keys on startup.
  */
 @Slf4j
 public class PlatformSettingsLoader implements EnvironmentPostProcessor {
@@ -28,32 +27,40 @@ public class PlatformSettingsLoader implements EnvironmentPostProcessor {
         String userServiceUrl = env.getProperty("USER_SERVICE_URL", "http://user-service:8082");
         String url = userServiceUrl + "/api/internal/platform-settings";
 
+        Map<String, String> settings;
         try {
             RestTemplate rest = new RestTemplate();
             @SuppressWarnings("unchecked")
-            Map<String, String> settings = rest.getForObject(url, Map.class);
-            if (settings == null || settings.isEmpty()) {
-                log.info("Platform settings API returned empty — using env vars only");
-                return;
-            }
-
-            Map<String, Object> prefixed = new LinkedHashMap<>();
-            int loaded = 0;
-            for (var entry : settings.entrySet()) {
-                if (entry.getValue() != null && !entry.getValue().isBlank()) {
-                    prefixed.put("platform." + entry.getKey(), entry.getValue());
-                    loaded++;
-                }
-            }
-
-            if (!prefixed.isEmpty()) {
-                env.getPropertySources()
-                   .addFirst(new MapPropertySource("platformSettings", prefixed));
-                log.info("Loaded {} platform settings from user-service (available as platform.*)", loaded);
-            }
+            Map<String, String> raw = rest.getForObject(url, Map.class);
+            settings = raw;
         } catch (Exception e) {
-            log.warn("Could not load platform settings from user-service at {}: {}. Using env vars only.",
+            log.error("Cannot load platform settings from user-service at {}: {}",
                     url, e.getMessage());
+            log.error("The admin panel is the only source for API keys. " +
+                    "Make sure user-service is running and the platform_settings table is populated.");
+            throw new IllegalStateException(
+                    "Platform settings unavailable — user-service must be running before this service. " +
+                    "Cause: " + e.getMessage(), e);
         }
+
+        if (settings == null || settings.isEmpty()) {
+            log.error("Platform settings table is empty. Configure API keys in Admin → Platform Settings.");
+            throw new IllegalStateException(
+                    "Platform settings table is empty. " +
+                    "A super admin must configure API keys in Admin → Platform Settings before starting services.");
+        }
+
+        Map<String, Object> prefixed = new LinkedHashMap<>();
+        int loaded = 0;
+        for (var entry : settings.entrySet()) {
+            if (entry.getValue() != null && !entry.getValue().isBlank()) {
+                prefixed.put("platform." + entry.getKey(), entry.getValue());
+                loaded++;
+            }
+        }
+
+        env.getPropertySources()
+           .addFirst(new MapPropertySource("platformSettings", prefixed));
+        log.info("Loaded {} platform settings from user-service (available as platform.*)", loaded);
     }
 }
