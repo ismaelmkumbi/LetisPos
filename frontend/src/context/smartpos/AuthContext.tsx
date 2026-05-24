@@ -119,7 +119,10 @@ export function SmartPosAuthProvider({ children }: { children: React.ReactNode }
       await loadMe();
       setLoading(false);
     })();
-    const onLogout = () => setUser(null);
+    const onLogout = () => {
+      setUser(null);
+      window.location.href = '/auth/login';
+    };
     window.addEventListener('smartpos:auth:logout', onLogout);
     return () => window.removeEventListener('smartpos:auth:logout', onLogout);
   }, [loadMe]);

@@ -634,8 +634,8 @@ public class SaleService {
 
     /**
      * Extract the RFC 7807 Problem Detail {@code detail} field from a Feign
-     * error response body. Falls back to the HTTP status reason if the body
-     * can't be parsed.
+     * error response body and rewrite inventory-service messages into
+     * cashier-friendly text.
      */
     private static String extractProblemDetail(FeignException e) {
         try {
@@ -643,12 +643,30 @@ public class SaleService {
             if (body != null && !body.isBlank()) {
                 JsonNode node = objectMapper.readTree(body);
                 if (node.has("detail")) {
-                    return node.get("detail").asText();
+                    String detail = node.get("detail").asText();
+                    return rewriteInventoryMessage(detail);
                 }
             }
         } catch (Exception ignored) {
             // Response body wasn't JSON — use the status reason
         }
         return "Stock reservation failed (HTTP " + e.status() + ")";
+    }
+
+    /** Rewrite inventory-service error detail into cashier-friendly text. */
+    private static String rewriteInventoryMessage(String detail) {
+        if (detail == null) return "Not enough stock to complete this sale.";
+        // "Insufficient stock: requested=22 available=3.0000"
+        var m = java.util.regex.Pattern
+                .compile("Insufficient stock:\\s*requested=([0-9.]+)\\s+available=([0-9.]+)")
+                .matcher(detail);
+        if (m.find()) {
+            int requested = new java.math.BigDecimal(m.group(1)).intValue();
+            int available = new java.math.BigDecimal(m.group(2)).intValue();
+            return String.format(
+                    "Not enough stock — you need %d but only %d %s available.",
+                    requested, available, available == 1 ? "is" : "are");
+        }
+        return detail;
     }
 }

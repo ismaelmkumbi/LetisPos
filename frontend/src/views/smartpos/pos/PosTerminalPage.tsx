@@ -20,9 +20,11 @@ import {
   List,
   ListItem,
   ListItemText,
+  Snackbar,
   Stack,
   Typography,
 } from '@mui/material';
+import MuiAlert from '@mui/material/Alert';
 import { IconPrinter } from '@tabler/icons-react';
 import { listProducts, getProduct, getProductByBarcode, type Product, type ProductSearchParams } from 'src/api/smartpos/products';
 import { listCustomers, createCustomer } from 'src/api/smartpos/customers';
@@ -104,6 +106,13 @@ export default function PosTerminalPage() {
   const [discountType, setDiscountType] = useState<'FIXED' | 'PERCENT'>('FIXED');
   const [submitting, setSubmitting] = useState(false);
   const [banner, setBanner] = useState<{ kind: 'success' | 'error'; text: string } | null>(null);
+  const [toast, setToast] = useState<{ text: string; kind: 'warning' | 'error' } | null>(null);
+
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => setToast(null), 2500);
+    return () => clearTimeout(timer);
+  }, [toast]);
   const [lastSale, setLastSale] = useState<Sale | null>(null);
 
   const [categoryId, setCategoryId] = useState<string>('');
@@ -336,7 +345,18 @@ export default function PosTerminalPage() {
   const addProduct = (p: Product) => {
     const stock = stockMap[p.id];
     if (stock && stock.available <= 0) {
-      setBanner({ kind: 'error', text: `${p.name} is out of stock. Receive stock first.` });
+      setToast({ kind: 'error', text: `${p.name} is out of stock.` });
+      playPosErrorSound();
+      return;
+    }
+    // Check if adding one more would exceed available stock (minus what's in cart)
+    const cartQty = lines.filter((l) => l.productId === p.id).reduce((sum, l) => sum + l.qty, 0);
+    if (stock && cartQty >= stock.available) {
+      setToast({
+        kind: 'warning',
+        text: `Not enough stock — only ${stock.available} available.`,
+      });
+      playPosErrorSound();
       return;
     }
     playPosAddBeep();
@@ -441,7 +461,19 @@ export default function PosTerminalPage() {
   };
 
   const inc = (i: number) =>
-    setLines((ls) => ls.map((l, idx) => (idx === i ? { ...l, qty: l.qty + 1 } : l)));
+    setLines((ls) => ls.map((l, idx) => {
+      if (idx !== i) return l;
+      const stock = stockMap[l.productId];
+      if (stock && l.qty >= stock.available) {
+        setToast({
+          kind: 'warning',
+          text: `Not enough stock — only ${stock.available} available.`,
+        });
+        playPosErrorSound();
+        return l;
+      }
+      return { ...l, qty: l.qty + 1 };
+    }));
   const dec = (i: number) =>
     setLines((ls) => ls.map((l, idx) => (idx === i ? { ...l, qty: Math.max(1, l.qty - 1) } : l)));
   const rm = (i: number) => setLines((ls) => ls.filter((_, idx) => idx !== i));
@@ -1003,6 +1035,28 @@ export default function PosTerminalPage() {
           setWalkInPaymentOpen(true);
         }}
       />
+
+      <Snackbar
+        open={!!toast}
+        autoHideDuration={2500}
+        onClose={() => setToast(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        sx={{ mb: { xs: 10, sm: 4 } }}
+      >
+        <MuiAlert
+          severity={toast?.kind ?? 'warning'}
+          variant="filled"
+          onClose={() => setToast(null)}
+          sx={{
+            fontWeight: 600,
+            borderRadius: '10px',
+            minWidth: 280,
+            boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
+          }}
+        >
+          {toast?.text}
+        </MuiAlert>
+      </Snackbar>
     </Box>
   );
 }

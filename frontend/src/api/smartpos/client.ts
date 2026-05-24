@@ -200,6 +200,12 @@ if (typeof window !== 'undefined') {
 initAccessFromStorage();
 schedulePreemptiveRefresh(getAccessToken());
 
+let sessionExpired = false;
+
+export function resetSessionExpired(): void {
+  sessionExpired = false;
+}
+
 api.interceptors.response.use(
   (r) => r,
   async (error: AxiosError) => {
@@ -211,9 +217,13 @@ api.interceptors.response.use(
     if (url.includes('/auth/login') || url.includes('/auth/refresh') || url.includes('/auth/logout')) {
       return Promise.reject(error);
     }
+    if (sessionExpired) {
+      return Promise.reject(error);
+    }
     original._retry = true;
     const newToken = await refreshAccessToken();
     if (!newToken) {
+      sessionExpired = true;
       tokenStore.clear();
       window.dispatchEvent(new CustomEvent('smartpos:auth:logout'));
       return Promise.reject(error);
