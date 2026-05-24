@@ -148,6 +148,7 @@ const SmartPosSessions = Loadable(lazy(() => import('../views/smartpos/admin/Ses
 const SmartPosDataRetention = Loadable(lazy(() => import('../views/smartpos/admin/DataRetentionPage')));
 const SmartPosBackups = Loadable(lazy(() => import('../views/smartpos/admin/BackupsPage')));
 const SmartPosTroubleshooting = Loadable(lazy(() => import('../views/smartpos/admin/TroubleshootingPage')));
+const SmartPosPlatformSettings = Loadable(lazy(() => import('../views/smartpos/admin/PlatformSettingsPage')));
 const TenantDashboardPage = Loadable(
   lazy(() => import('../views/smartpos/admin/TenantDashboardPage')),
 );
@@ -503,8 +504,6 @@ const WidgetCharts = Loadable(lazy(() => import('../views/widgets/charts/WidgetC
 // authentication
 const Login = Loadable(lazy(() => import('../views/authentication/auth1/Login')));
 const Login2 = Loadable(lazy(() => import('../views/authentication/auth2/Login2')));
-const Register = Loadable(lazy(() => import('../views/authentication/auth1/Register')));
-const Register2 = Loadable(lazy(() => import('../views/authentication/auth2/Register2')));
 const ForgotPassword = Loadable(lazy(() => import('../views/authentication/auth1/ForgotPassword')));
 const ResetPassword = Loadable(lazy(() => import('../views/authentication/auth1/ResetPassword')));
 const ForgotPassword2 = Loadable(
@@ -720,6 +719,7 @@ const Router = [
       { path: 'admin/backups', element: <RequireAuth><RequireAdmin><SmartPosBackups /></RequireAdmin></RequireAuth> },
       { path: 'admin/troubleshooting', element: <RequireAuth><RequireAdmin><SmartPosTroubleshooting /></RequireAdmin></RequireAuth> },
       { path: 'admin/features', element: <RequireAuth><RequireAdmin><FeatureManager /></RequireAdmin></RequireAuth> },
+      { path: 'admin/platform-settings', element: <RequireAuth><RequireAdmin><SmartPosPlatformSettings /></RequireAdmin></RequireAuth> },
       // Commerce admin
       commerceAdminRoutes,
       // Marketing
@@ -853,8 +853,6 @@ const Router = [
       { path: '/auth/login', element: <SmartPosLogin /> },
       { path: '/auth/login-demo', element: <Login /> },
       { path: '/auth/login2', element: <Login2 /> },
-      { path: '/auth/register', element: <Register /> },
-      { path: '/auth/register2', element: <Register2 /> },
       { path: '/auth/forgot-password', element: <ForgotPassword /> },
       { path: '/auth/forgot-password2', element: <ForgotPassword2 /> },
       { path: '/auth/reset-password', element: <ResetPassword /> },
