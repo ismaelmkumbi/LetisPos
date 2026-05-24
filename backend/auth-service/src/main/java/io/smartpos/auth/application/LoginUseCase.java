@@ -73,6 +73,19 @@ public class LoginUseCase {
             throw new BadCredentialsException("Invalid credentials");
         }
 
+        return issueTokens(user, userAgent, ipAddress);
+    }
+
+    /**
+     * Issues tokens for a freshly registered user — skips the email lookup
+     * and password check since registration already validated everything.
+     */
+    @Transactional
+    public AuthResponse loginAfterRegistration(User user, String userAgent, String ipAddress) {
+        return issueTokens(user, userAgent, ipAddress);
+    }
+
+    private AuthResponse issueTokens(User user, String userAgent, String ipAddress) {
         user.recordSuccessfulLogin();
         userRepository.save(user);
 
