@@ -1,40 +1,38 @@
 /**
- * Document Theme Page — applies brand identity colors, typography, and logo
- * across all document templates. Provides per-document-type overrides.
+ * Document Theme Page — per-document-type brand overrides persisted to server.
+ * Inherits from Brand Profile; overridden fields are stored per doc type.
  */
 import { useEffect, useState, useCallback } from 'react';
 import {
-  Alert,
-  Box,
-  Stack,
-  Tab,
-  Tabs,
-  ToggleButton,
-  ToggleButtonGroup,
-  Typography,
-  Zoom,
+  Alert, Box, Button, Dialog, DialogActions, DialogContent,
+  DialogContentText, DialogTitle,
+  Stack, Tab, Tabs, ToggleButton, ToggleButtonGroup, Typography, Zoom,
 } from '@mui/material';
 import {
-  IconFileInvoice,
-  IconReceipt,
-  IconQuotes,
-  IconTruckDelivery,
-  IconReport,
-  IconEye,
+  IconFileInvoice, IconReceipt, IconQuotes, IconTruckDelivery,
+  IconReport, IconEye,
 } from '@tabler/icons-react';
 import PageHeader from 'src/components/smartpos/PageHeader';
 import {
-  cardSx,
-  SectionTitle,
-  FloatingSaveBar,
-  CardSkeletonGroup,
+  cardSx, SectionTitle, FloatingSaveBar, CardSkeletonGroup,
 } from 'src/components/smartpos/SettingsHelpers';
 import { brand } from 'src/theme/smartpos/brand';
 import { getBrandProfile, type BrandProfile } from 'src/api/smartpos/brand';
+import { api } from 'src/api/smartpos/client';
 import BrandColorPicker from 'src/components/smartpos/brand/BrandColorPicker';
 import BrandLivePreview from 'src/components/smartpos/brand/BrandLivePreview';
 
-// ── Document types ──────────────────────────────────────────────────────────
+// ── Types ──────────────────────────────────────────────────────────────────
+
+interface DocThemeOverride {
+  docType: string;
+  primaryColor?: string;
+  accentColor?: string;
+  fontFamily?: string;
+  headerStyle?: string;
+  showWatermark?: boolean;
+  showQrCode?: boolean;
+}
 
 const DOC_TYPES = [
   { key: 'invoice', label: 'Invoice', icon: <IconFileInvoice size={18} /> },
@@ -44,28 +42,31 @@ const DOC_TYPES = [
   { key: 'statement', label: 'Statement', icon: <IconReport size={18} /> },
 ] as const;
 
+const DEFAULT_OVERRIDE: DocThemeOverride = {
+  docType: '',
+  headerStyle: 'solid',
+  showWatermark: false,
+  showQrCode: false,
+};
+
 const toggleGroupSx = {
   '& .MuiToggleButton-root': {
     textTransform: 'none', fontWeight: 700, fontSize: '0.82rem', py: 0.8, px: 2, borderRadius: '8px',
   },
 };
 
-// ── Theme overrides (per doc type) ─────────────────────────────────────────
-
-interface DocThemeOverride {
-  primaryColor?: string;
-  accentColor?: string;
-  fontFamily?: string;
-  headerStyle?: 'solid' | 'minimal' | 'detailed';
-  showWatermark?: boolean;
-  showQrCode?: boolean;
+// ── API helpers ────────────────────────────────────────────────────────────
+async function fetchThemes(): Promise<DocThemeOverride[]> {
+  const { data } = await api.get<DocThemeOverride[]>('/api/v1/brand/document-themes');
+  return data;
 }
-
-const DEFAULT_OVERRIDE: DocThemeOverride = {
-  headerStyle: 'solid',
-  showWatermark: false,
-  showQrCode: false,
-};
+async function saveThemes(themes: DocThemeOverride[]): Promise<DocThemeOverride[]> {
+  const { data } = await api.put<DocThemeOverride[]>('/api/v1/brand/document-themes', themes);
+  return data;
+}
+async function resetThemes(): Promise<void> {
+  await api.post('/api/v1/brand/document-themes/reset');
+}
 
 // ── Page ───────────────────────────────────────────────────────────────────
 
@@ -77,56 +78,68 @@ export default function DocumentThemePage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
+  const [resetOpen, setResetOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
-    getBrandProfile()
-      .then((p) => {
-        if (!cancelled) {
-          setProfile(p);
-          // Load overrides from localStorage for now (will migrate to API)
-          try {
-            const saved = localStorage.getItem('brand:doc-theme-overrides');
-            if (saved) setOverrides(JSON.parse(saved));
-          } catch { /* ignore */ }
-        }
-      })
-      .catch((e) => { if (!cancelled) setError(e instanceof Error ? e.message : 'Failed to load'); })
-      .finally(() => { if (!cancelled) setLoading(false); });
+    (async () => {
+      setLoading(true);
+      try {
+        const [p, themes] = await Promise.all([getBrandProfile(), fetchThemes()]);
+        if (cancelled) return;
+        setProfile(p);
+        const map: Record<string, DocThemeOverride> = {};
+        for (const t of themes) map[t.docType] = t;
+        setOverrides(map);
+      } catch (e) {
+        if (!cancelled) setError(e instanceof Error ? e.message : 'Failed to load');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
     return () => { cancelled = true; };
   }, []);
 
-  const currentOverride = overrides[activeDoc] || DEFAULT_OVERRIDE;
+  const currentOverride: DocThemeOverride = overrides[activeDoc] || { ...DEFAULT_OVERRIDE, docType: activeDoc };
 
   const updateOverride = useCallback(
     (patch: Partial<DocThemeOverride>) => {
       setOverrides((prev) => ({
         ...prev,
-        [activeDoc]: { ...(prev[activeDoc] || DEFAULT_OVERRIDE), ...patch },
+        [activeDoc]: { ...(prev[activeDoc] || DEFAULT_OVERRIDE), docType: activeDoc, ...patch },
       }));
     },
     [activeDoc],
   );
 
+  const showInfo = (msg: string) => { setInfo(msg); setTimeout(() => setInfo(null), 3500); };
+
   const handleSave = async () => {
     setSaving(true);
+    setError(null);
     try {
-      localStorage.setItem('brand:doc-theme-overrides', JSON.stringify(overrides));
-      setInfo('Document themes saved.');
-      setTimeout(() => setInfo(null), 3000);
-    } catch {
-      setError('Save failed');
+      const themes = Object.values(overrides).filter((t) => t.docType);
+      await saveThemes(themes);
+      showInfo('Document themes saved.');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Save failed');
     } finally {
       setSaving(false);
     }
   };
 
-  const handleReset = () => {
-    setOverrides({});
-    localStorage.removeItem('brand:doc-theme-overrides');
-    setInfo('Themes reset to brand defaults.');
-    setTimeout(() => setInfo(null), 3000);
+  const handleReset = async () => {
+    setResetOpen(false);
+    setSaving(true);
+    try {
+      await resetThemes();
+      setOverrides({});
+      showInfo('Themes reset to brand defaults.');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Reset failed');
+    } finally {
+      setSaving(false);
+    }
   };
 
   // ── Render ───────────────────────────────────────────────────────────────
@@ -134,7 +147,7 @@ export default function DocumentThemePage() {
   if (loading) {
     return (
       <Box>
-        <PageHeader title="Document Themes" subtitle="Brand colors, typography & layout per document type" />
+        <PageHeader title="Document Themes" subtitle="Per-document brand overrides" />
         <CardSkeletonGroup heights={[120, 200, 160]} count={3} />
       </Box>
     );
@@ -153,8 +166,7 @@ export default function DocumentThemePage() {
     <Box>
       <PageHeader
         title="Document Themes"
-        subtitle="Brand colors, typography, and layout overrides per document type"
-        badge={{ label: 'Beta', tone: 'primary' }}
+        subtitle="Per-document brand overrides — colors, layout, and display options for each document type"
       />
 
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
@@ -172,34 +184,27 @@ export default function DocumentThemePage() {
             sx={{ mt: 1 }}
           >
             {DOC_TYPES.map((doc) => (
-              <Tab
-                key={doc.key}
-                value={doc.key}
-                label={doc.label}
-                icon={doc.icon}
-                iconPosition="start"
-                sx={{
-                  textTransform: 'none',
-                  fontWeight: 700,
-                  fontSize: '0.82rem',
-                  minHeight: 44,
-                }}
+              <Tab key={doc.key} value={doc.key} label={doc.label}
+                icon={doc.icon} iconPosition="start"
+                sx={{ textTransform: 'none', fontWeight: 700, fontSize: '0.82rem', minHeight: 44 }}
               />
             ))}
           </Tabs>
         </Box>
 
-        {/* Per-document overrides + preview */}
+        {/* Overrides + preview */}
         <Stack direction={{ xs: 'column', lg: 'row' }} spacing={2.5}>
-          {/* Overrides */}
           <Box sx={{ ...cardSx, p: 2.5, flex: 1 }}>
-            <SectionTitle icon={<IconEye size={20} />} title={`${DOC_TYPES.find((d) => d.key === activeDoc)?.label} Theme`} />
+            <SectionTitle
+              icon={<IconEye size={20} />}
+              title={`${DOC_TYPES.find((d) => d.key === activeDoc)?.label} Theme`}
+            />
             <Stack spacing={2}>
               <BrandColorPicker
                 label="Primary Color Override"
                 value={currentOverride.primaryColor || profile.primaryColor}
                 onChange={(c) => updateOverride({ primaryColor: c })}
-                hint="Leave as brand default to inherit from Brand Identity."
+                hint="Inherits from Brand Identity if not set."
               />
               <BrandColorPicker
                 label="Accent Color Override"
@@ -208,13 +213,10 @@ export default function DocumentThemePage() {
               />
 
               <Box>
-                <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
-                  Header Style
-                </Typography>
+                <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>Header Style</Typography>
                 <ToggleButtonGroup
                   value={currentOverride.headerStyle || 'solid'}
-                  exclusive
-                  size="small"
+                  exclusive size="small"
                   onChange={(_, v) => v && updateOverride({ headerStyle: v })}
                   sx={toggleGroupSx}
                 >
@@ -226,69 +228,43 @@ export default function DocumentThemePage() {
 
               <Stack spacing={1}>
                 {[
-                  { key: 'showWatermark', label: 'Show watermark on this document' },
-                  { key: 'showQrCode', label: 'Show QR code' },
+                  { key: 'showWatermark' as const, label: 'Show watermark' },
+                  { key: 'showQrCode' as const, label: 'Show QR code' },
                 ].map((tog) => (
                   <Box
                     key={tog.key}
-                    onClick={() =>
-                      updateOverride({
-                        [tog.key]: !(currentOverride[tog.key as keyof DocThemeOverride] as boolean),
-                      })
-                    }
+                    onClick={() => updateOverride({ [tog.key]: !currentOverride[tog.key] })}
                     sx={{
-                      p: 1.5,
-                      borderRadius: '10px',
-                      border: `1px solid ${(currentOverride[tog.key as keyof DocThemeOverride] as boolean) ? brand.primary[300] : brand.neutral[200]}`,
-                      bgcolor: (currentOverride[tog.key as keyof DocThemeOverride] as boolean) ? brand.primary[50] + 'CC' : '#fff',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
+                      p: 1.5, borderRadius: '10px',
+                      border: `1px solid ${currentOverride[tog.key] ? brand.primary[300] : brand.neutral[200]}`,
+                      bgcolor: currentOverride[tog.key] ? brand.primary[50] + 'CC' : '#fff',
+                      cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                       transition: 'all 0.2s',
                       '&:hover': { borderColor: brand.primary[400] },
                     }}
                   >
-                    <Typography sx={{ fontWeight: 600, fontSize: '0.82rem' }}>
-                      {tog.label}
-                    </Typography>
-                    <Box
-                      sx={{
-                        width: 44,
-                        height: 24,
-                        borderRadius: '12px',
-                        bgcolor: (currentOverride[tog.key as keyof DocThemeOverride] as boolean)
-                          ? brand.primary[600] : brand.neutral[300],
-                        position: 'relative',
-                        transition: 'background 0.2s',
-                        '&::after': {
-                          content: '""',
-                          position: 'absolute',
-                          top: 2,
-                          left: (currentOverride[tog.key as keyof DocThemeOverride] as boolean) ? 22 : 2,
-                          width: 20,
-                          height: 20,
-                          borderRadius: '50%',
-                          bgcolor: '#fff',
-                          transition: 'left 0.2s ease',
-                          boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
-                        },
-                      }}
-                    />
+                    <Typography sx={{ fontWeight: 600, fontSize: '0.82rem' }}>{tog.label}</Typography>
+                    <Box sx={{
+                      width: 44, height: 24, borderRadius: '12px',
+                      bgcolor: currentOverride[tog.key] ? brand.primary[600] : brand.neutral[300],
+                      position: 'relative', transition: 'background 0.2s',
+                      '&::after': {
+                        content: '""', position: 'absolute', top: 2, width: 20, height: 20,
+                        borderRadius: '50%', bgcolor: '#fff', transition: 'left 0.2s ease',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                        left: currentOverride[tog.key] ? 22 : 2,
+                      },
+                    }} />
                   </Box>
                 ))}
               </Stack>
             </Stack>
           </Box>
 
-          {/* Preview */}
           <Box sx={{ flex: 1 }}>
-            <Box sx={{ mb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
-              <IconEye size={18} color={brand.neutral[500]} />
-              <Typography sx={{ fontWeight: 700, fontSize: '0.78rem', color: brand.neutral[500], textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                Live Preview
-              </Typography>
-            </Box>
+            <Typography sx={{ mb: 1, fontWeight: 700, fontSize: '0.78rem', color: brand.neutral[500], textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              Live Preview
+            </Typography>
             <Box sx={{ maxWidth: 360, mx: 'auto' }}>
               <BrandLivePreview
                 profile={{
@@ -302,16 +278,29 @@ export default function DocumentThemePage() {
           </Box>
         </Stack>
 
-        {/* Floating save bar */}
         <Zoom in>
           <FloatingSaveBar
             saving={saving}
             onSave={handleSave}
-            onReset={handleReset}
+            onReset={() => setResetOpen(true)}
             saveLabel="Save Document Themes"
           />
         </Zoom>
       </Stack>
+
+      {/* Reset confirmation */}
+      <Dialog open={resetOpen} onClose={() => setResetOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700 }}>Reset all themes?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            This will remove all per-document overrides and revert to brand defaults for every document type.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setResetOpen(false)} sx={{ textTransform: 'none', fontWeight: 600 }}>Cancel</Button>
+          <Button onClick={handleReset} color="error" variant="contained" sx={{ textTransform: 'none', fontWeight: 700 }}>Reset All</Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }
