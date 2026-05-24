@@ -29,7 +29,6 @@ export default function ExpiryTrackingPage() {
       setWarehouses(ws);
       setWarehouseId(prev => prev || (ws[0]?.id ?? ''));
     }).catch(() => {});
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Fetch batches with pagination
