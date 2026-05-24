@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Alert, Box, Chip, MenuItem, Stack, TextField, Typography } from '@mui/material';
 import { IconClock } from '@tabler/icons-react';
 
@@ -23,19 +23,12 @@ export default function ExpiryTrackingPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [totalElements, setTotalElements] = useState(0);
 
-  // Load warehouses once on mount
-  useEffect(() => {
-    listWarehouses().then(ws => {
-      setWarehouses(ws);
-      setWarehouseId(prev => prev || (ws[0]?.id ?? ''));
-    }).catch(() => {});
-  }, []);
-
-  // Fetch batches with pagination
-  const fetchBatches = useCallback((p = 0) => {
-    if (!warehouseId) return;
+  // Shared fetch — called by both filter changes and pagination.
+  // Uses a ref to avoid stale-closure issues when filters change rapidly.
+  const doFetch = (p: number, wId: string, wDays: number) => {
     setLoading(true);
-    getExpiringBatches({ warehouseId: warehouseId || undefined, withinDays, page: p, size: PAGE_SIZE })
+    setError(null);
+    getExpiringBatches({ warehouseId: wId, withinDays: wDays, page: p, size: PAGE_SIZE })
       .then(pageResult => {
         setBatches(pageResult.content);
         setTotalPages(pageResult.totalPages ?? 1);
@@ -43,24 +36,35 @@ export default function ExpiryTrackingPage() {
       })
       .catch(e => setError(e instanceof Error ? e.message : 'Failed to load'))
       .finally(() => setLoading(false));
-  }, [warehouseId, withinDays]);
+  };
 
-  useEffect(() => { fetchBatches(page); }, [page, fetchBatches]);
+  // Load warehouses once on mount
+  useEffect(() => {
+    listWarehouses().then(ws => {
+      setWarehouses(ws);
+      const wId = ws[0]?.id ?? '';
+      if (wId) {
+        setWarehouseId(wId);
+        doFetch(0, wId, 30);
+      }
+    }).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Reload when filters change (reset to page 0)
   useEffect(() => {
     if (!warehouseId) return;
     setPage(0);
-    setLoading(true);
-    getExpiringBatches({ warehouseId, withinDays, page: 0, size: PAGE_SIZE })
-      .then(pageResult => {
-        setBatches(pageResult.content);
-        setTotalPages(pageResult.totalPages ?? 1);
-        setTotalElements(pageResult.totalElements ?? 0);
-      })
-      .catch(e => setError(e instanceof Error ? e.message : 'Failed to load'))
-      .finally(() => setLoading(false));
+    doFetch(0, warehouseId, withinDays);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [warehouseId, withinDays]);
+
+  // Fetch when page changes (skip page=0 — already fetched by filter effect)
+  useEffect(() => {
+    if (!warehouseId || page === 0) return;
+    doFetch(page, warehouseId, withinDays);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page]);
 
   // Resolve product names — single bulk fetch instead of N individual requests
   useEffect(() => {
