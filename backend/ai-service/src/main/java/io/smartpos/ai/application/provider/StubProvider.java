@@ -2,6 +2,9 @@ package io.smartpos.ai.application.provider;
 
 import org.springframework.stereotype.Component;
 
+import java.util.List;
+import java.util.Map;
+
 /**
  * Deterministic fallback used when no API key is configured.
  *
@@ -77,6 +80,40 @@ public class StubProvider implements AiProvider {
                                           java.util.List<String> imageDataUrls) {
         // Stub: returns empty rows so the UI flow works end-to-end without a real API key.
         return new Result("{\"rows\":[],\"warnings\":[\"Stub provider — configure AI_PROVIDER and API key for vision.\"]}", 0, 0);
+    }
+
+    @Override
+    public ToolCallResult completeWithTools(String systemPrompt, String userPrompt,
+            java.util.List<java.util.Map<String, Object>> tools) {
+        return new ToolCallResult(
+            "AI provider not configured. Set an API key in Admin → Platform Settings → OpenAI and restart the AI service.",
+            java.util.List.of(), 0, 0);
+    }
+
+    @Override
+    public ToolCallResult completeWithTools(String systemPrompt,
+            List<Map<String, Object>> messages,
+            List<Map<String, Object>> tools) {
+        return new ToolCallResult(
+            "AI provider not configured. Set an API key in Admin → Platform Settings → OpenAI and restart the AI service.",
+            java.util.List.of(), 0, 0);
+    }
+
+    @Override
+    public Result complete(String systemPrompt, List<Map<String, Object>> messages) {
+        return new Result(
+            "AI provider not configured. Set an API key in Admin → Platform Settings → OpenAI and restart the AI service.",
+            0, 0);
+    }
+
+    @Override
+    public ToolCallResult completeWithToolsStreaming(String systemPrompt,
+            List<Map<String, Object>> messages,
+            List<Map<String, Object>> tools,
+            TokenCallback onToken) {
+        String msg = "AI provider not configured — set an API key in Admin → Platform Settings → OpenAI.";
+        onToken.onToken(msg);
+        return new ToolCallResult(msg, java.util.List.of(), 0, 0);
     }
 
     private static String extractAfter(String haystack, String needle) {
