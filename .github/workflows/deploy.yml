@@ -228,7 +228,7 @@ jobs:
     name: Deploy → Server B (monitoring)
     needs: [build-backend, build-frontend, build-control-center, changes, deploy-c]
     if: always() && !cancelled() &&
-        (needs.build-control-center.result == 'success' || github.event_name == 'workflow_dispatch')
+        (needs.build-control-center.result == 'success' || needs.build-control-center.result == 'skipped' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     permissions:
       contents: read
