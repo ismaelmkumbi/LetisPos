@@ -7,6 +7,19 @@ export interface PlatformSettingDto {
   label: string;
   description: string | null;
   encrypted: boolean;
+  serviceKey: string | null;
+  serviceName: string | null;
+  serviceIcon: string | null;
+  sortOrder: number;
+}
+
+export interface ServiceGroup {
+  serviceKey: string;
+  serviceName: string;
+  serviceIcon: string;
+  category: string;
+  sortOrder: number;
+  settings: PlatformSettingDto[];
 }
 
 export interface UpdateEntry {
@@ -14,11 +27,9 @@ export interface UpdateEntry {
   value: string;
 }
 
-/** Returns all platform settings grouped by category. */
-export async function listPlatformSettings(): Promise<Record<string, PlatformSettingDto[]>> {
-  const { data } = await api.get<Record<string, PlatformSettingDto[]>>(
-    '/api/v1/admin/platform-settings',
-  );
+/** Returns all platform settings grouped by service (for the table view). */
+export async function listServices(): Promise<ServiceGroup[]> {
+  const { data } = await api.get<ServiceGroup[]>('/api/v1/admin/platform-settings');
   return data;
 }
 

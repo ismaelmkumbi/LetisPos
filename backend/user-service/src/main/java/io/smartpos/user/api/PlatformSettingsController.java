@@ -26,14 +26,22 @@ public class PlatformSettingsController {
 
     @GetMapping
     @PreAuthorize("hasAuthority('admin')")
-    public ResponseEntity<Map<String, List<PlatformSettingDto>>> listAll() {
-        List<PlatformSetting> all = repo.findAll();
-        Map<String, List<PlatformSettingDto>> grouped = new LinkedHashMap<>();
+    public ResponseEntity<List<ServiceGroup>> listServices() {
+        // Group by service_key → each service has its settings as children
+        List<PlatformSetting> all = repo.findAllGroupedByService();
+        Map<String, ServiceGroup> groups = new LinkedHashMap<>();
         for (PlatformSetting s : all) {
-            grouped.computeIfAbsent(s.getCategory(), k -> new java.util.ArrayList<>())
-                    .add(PlatformSettingDto.from(s));
+            String sk = s.getServiceKey() != null ? s.getServiceKey() : s.getCategory();
+            groups.computeIfAbsent(sk, k -> new ServiceGroup(
+                    sk,
+                    s.getServiceName() != null ? s.getServiceName() : s.getCategory(),
+                    s.getServiceIcon() != null ? s.getServiceIcon() : "settings",
+                    s.getCategory(),
+                    s.getSortOrder(),
+                    new java.util.ArrayList<>()
+            )).settings().add(PlatformSettingDto.from(s));
         }
-        return ResponseEntity.ok(grouped);
+        return ResponseEntity.ok(new java.util.ArrayList<>(groups.values()));
     }
 
     @PutMapping
@@ -50,14 +58,19 @@ public class PlatformSettingsController {
         return ResponseEntity.ok(updated);
     }
 
+    public record ServiceGroup(String serviceKey, String serviceName, String serviceIcon,
+                                String category, int sortOrder, List<PlatformSettingDto> settings) {}
+
     public record PlatformSettingDto(
             String key, String value, String category,
-            String label, String description, boolean encrypted) {
+            String label, String description, boolean encrypted,
+            String serviceKey, String serviceName, String serviceIcon, int sortOrder) {
         static PlatformSettingDto from(PlatformSetting s) {
             return new PlatformSettingDto(
                     s.getKey(),
                     s.isEncrypted() && s.getValue() != null ? "****" : s.getValue(),
-                    s.getCategory(), s.getLabel(), s.getDescription(), s.isEncrypted());
+                    s.getCategory(), s.getLabel(), s.getDescription(), s.isEncrypted(),
+                    s.getServiceKey(), s.getServiceName(), s.getServiceIcon(), s.getSortOrder());
         }
     }
 
