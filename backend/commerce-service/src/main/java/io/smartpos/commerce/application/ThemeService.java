@@ -5,6 +5,8 @@ import io.smartpos.commerce.domain.repository.ThemeRepository;
 import io.smartpos.common.context.TenantContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,10 +20,10 @@ public class ThemeService {
     private final ThemeRepository repository;
 
     @Transactional(readOnly = true)
+    @Cacheable(value = "theme", key = "#storeId")
     public Theme getTheme(UUID storeId) {
-        UUID tenantId = TenantContext.require();
         return repository.findByStoreId(storeId)
-            .orElseGet(() -> createDefault(tenantId, storeId));
+            .orElseGet(() -> createDefault(TenantContext.require(), storeId));
     }
 
     @Transactional
@@ -37,6 +39,7 @@ public class ThemeService {
     }
 
     @Transactional
+    @CacheEvict(value = "theme", key = "#storeId")
     public Theme updateTheme(UUID storeId, Theme updates) {
         Theme theme = getTheme(storeId);
         if (updates.getSettings() != null) {
