@@ -182,18 +182,27 @@ export default function ProductsImportDialog({
 
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const autoImportRef = useRef(false);
+  const imageDataUrlsRef = useRef<string[]>([]);
+  // Keep ref in sync so timeouts never read a stale empty array
+  imageDataUrlsRef.current = imageDataUrls;
 
   // Auto-trigger AI import when phone camera photos arrive
   useEffect(() => {
     if (autoImportRef.current && imageDataUrls.length > 0 && !busy) {
       autoImportRef.current = false;
       setStep(1);
-      // Defer so step change renders before the heavy AI call
-      setTimeout(() => runAiImportFromImages(), 100);
+      // Capture the URLs in a local const so the timeout closure is stable
+      const urls = imageDataUrls;
+      setTimeout(() => {
+        if (urls.length === 0) {
+          setError('Please add at least one image.');
+          return;
+        }
+        // Read latest URLs from ref in case more were added during the defer
+        const latestUrls = imageDataUrlsRef.current;
+        runAiImportFromImagesWith(latestUrls.length > 0 ? latestUrls : urls);
+      }, 100);
     }
-    // Only fire when image data arrives or busy state changes.
-    // runAiImportFromImages is intentionally not a dep — its identity
-    // changes every render but we only want to call it once per trigger.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [imageDataUrls, busy]);
 
@@ -506,8 +515,9 @@ export default function ProductsImportDialog({
   };
 
   // ── Step 2 · AI mapping from images ────────────────────────────────────
-  const runAiImportFromImages = async () => {
-    if (imageDataUrls.length === 0) {
+  // Accepts URLs as param so timeouts never read a stale empty closure.
+  const runAiImportFromImagesWith = async (urls: string[]) => {
+    if (urls.length === 0) {
       setError('Please add at least one image.');
       return;
     }
@@ -515,7 +525,7 @@ export default function ProductsImportDialog({
     setError(null);
     try {
       const resp = await aiImportFromImages({
-        imageDataUrls,
+        imageDataUrls: urls,
         hint:
           'The image may contain a handwritten or printed list of products. ' +
           'IMPORTANT: Each physical line usually represents ONE product — a full product name may consist of multiple words on the same line (e.g. "Remote Azam" is one product, not two). ' +
@@ -1160,7 +1170,7 @@ export default function ProductsImportDialog({
               variant="contained"
               startIcon={<IconSparkles size={18} />}
               disabled={busy}
-              onClick={inputMode === 'photos' ? runAiImportFromImages : runAiMap}
+              onClick={inputMode === 'photos' ? () => runAiImportFromImagesWith(imageDataUrls) : runAiMap}
               sx={{
                 bgcolor: brand.primary[600],
                 color: '#fff',
