@@ -53,7 +53,8 @@ function serviceIcon(icon: string) {
 }
 
 function configuredCount(svc: ServiceGroup): number {
-  return svc.settings.filter((s) => s.value && s.value !== '****').length;
+  // Encrypted values are masked as "****" by the API — that counts as configured.
+  return svc.settings.filter((s) => s.value != null && s.value !== '').length;
 }
 
 function serviceStatus(svc: ServiceGroup): OperationalState {
@@ -291,19 +292,33 @@ export default function PlatformSettingsPage() {
               const editedValue = edits[s.key] !== undefined ? edits[s.key] : null;
               const isRevealed = revealed.has(s.key);
               const displayValue = editedValue ?? s.value ?? '';
+              // Encrypted values shown as **** have a real value underneath
+              const hasValue = s.encrypted ? (s.value === '****') : (s.value != null && s.value !== '');
 
               return (
                 <Box key={s.key}>
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      color: brand.neutral[500], fontWeight: 700, fontSize: '0.7rem',
-                      textTransform: 'uppercase', letterSpacing: '0.04em',
-                      display: 'block', mb: 0.5,
-                    }}
-                  >
-                    {s.label}
-                  </Typography>
+                  <Stack direction="row" spacing={0.75} alignItems="center" sx={{ mb: 0.5 }}>
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        color: brand.neutral[500], fontWeight: 700, fontSize: '0.7rem',
+                        textTransform: 'uppercase', letterSpacing: '0.04em',
+                      }}
+                    >
+                      {s.label}
+                    </Typography>
+                    {!hasValue && !editedValue && (
+                      <Chip
+                        label="Not set"
+                        size="small"
+                        sx={{
+                          height: 18, fontWeight: 700, fontSize: '0.6rem',
+                          bgcolor: brand.warning.light, color: brand.warning.dark,
+                          borderRadius: '4px',
+                        }}
+                      />
+                    )}
+                  </Stack>
                   {s.description && (
                     <Typography variant="caption" sx={{ color: brand.neutral[400], display: 'block', mb: 0.5 }}>
                       {s.description}

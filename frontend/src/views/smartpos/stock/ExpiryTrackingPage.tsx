@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, Box, Chip, MenuItem, Stack, TextField, Typography } from '@mui/material';
 import { IconClock } from '@tabler/icons-react';
 
 import { getExpiringBatches, type ProductBatch } from 'src/api/smartpos/batches';
 import { listWarehouses, type Warehouse } from 'src/api/smartpos/inventory';
+import { getProduct } from 'src/api/smartpos/products';
 import { PageHeader } from 'src/components/smartpos/PageHeader';
 import DataTable, { type Column } from 'src/components/smartpos/DataTable';
 import { brand } from 'src/theme/smartpos/brand';
@@ -15,12 +16,19 @@ export default function ExpiryTrackingPage() {
   const [withinDays, setWithinDays] = useState(30);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [productNames, setProductNames] = useState<Record<string, string>>({});
 
+  // Load warehouses once on mount — no dependency on warehouseId
   useEffect(() => {
-    listWarehouses().then(ws => { setWarehouses(ws); if (!warehouseId && ws[0]) setWarehouseId(ws[0].id); }).catch(() => {});
-  }, [warehouseId]);
+    listWarehouses().then(ws => {
+      setWarehouses(ws);
+      setWarehouseId(prev => prev || (ws[0]?.id ?? ''));
+    }).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  useEffect(() => {
+  // Fetch batches when filters change
+  const fetchBatches = useCallback(() => {
     if (!warehouseId) return;
     setLoading(true);
     getExpiringBatches({ warehouseId: warehouseId || undefined, withinDays })
@@ -28,6 +36,32 @@ export default function ExpiryTrackingPage() {
       .catch(e => setError(e instanceof Error ? e.message : 'Failed to load'))
       .finally(() => setLoading(false));
   }, [warehouseId, withinDays]);
+
+  useEffect(() => { fetchBatches(); }, [fetchBatches]);
+
+  // Resolve product names for displayed batches
+  useEffect(() => {
+    const unseen = batches
+      .map(b => b.productId)
+      .filter((id): id is string => !!id && !productNames[id]);
+    if (unseen.length === 0) return;
+    let cancelled = false;
+    Promise.all(unseen.map((id) => getProduct(id).catch(() => null)))
+      .then((products) => {
+        if (cancelled) return;
+        setProductNames(prev => {
+          const next = { ...prev };
+          for (let i = 0; i < unseen.length; i++) {
+            const product = products[i];
+            next[unseen[i]] = product?.name ?? unseen[i].slice(0, 8) + '…';
+          }
+          return next;
+        });
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [batches]);
 
   const urgencyTone = (expiryDate: string): { bg: string; fg: string; label: string } => {
     const days = Math.ceil((new Date(expiryDate).getTime() - Date.now()) / 86400000);
@@ -47,7 +81,7 @@ export default function ExpiryTrackingPage() {
 
   const columns: Column<ProductBatch>[] = useMemo(() => [
     { key: 'batchNumber', label: 'Batch #', render: r => <Typography sx={{ fontFamily: "'DM Mono', monospace", fontWeight: 700, fontSize: '0.8125rem' }}>{r.batchNumber}</Typography> },
-    { key: 'productId', label: 'Product', render: r => <Typography sx={{ fontFamily: "'DM Mono', monospace", fontSize: '0.75rem', color: brand.neutral[500] }}>{r.productId.slice(0, 8)}&hellip;</Typography> },
+    { key: 'productId', label: 'Product', render: r => <Typography variant="body2" sx={{ fontSize: '0.8rem', fontWeight: 500 }}>{productNames[r.productId] || r.productId.slice(0, 8) + '…'}</Typography> },
     { key: 'onHand', label: 'On Hand', align: 'right', render: r => <Typography sx={{ fontWeight: 600 }}>{r.onHand}</Typography> },
     {
       key: 'expiryDate', label: 'Expires',

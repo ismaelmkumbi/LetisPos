@@ -218,8 +218,8 @@ public class AdjustmentService {
     }
 
     private String nextRef() {
-        String prefix = "ADJ-" + Year.now().getValue() + "-";
-        long n = adjRepo.countByRefStartingWith(prefix) + 1;
-        return prefix + String.format("%06d", n);
+        long ts = System.currentTimeMillis() % 1_000_000;
+        String suffix = UUID.randomUUID().toString().substring(0, 4);
+        return "ADJ-" + Year.now().getValue() + "-" + ts + "-" + suffix;
     }
 }

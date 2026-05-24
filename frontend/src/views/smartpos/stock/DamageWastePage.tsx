@@ -28,7 +28,7 @@ import {
 
 import { api } from 'src/api/smartpos/client';
 import { listWarehouses, type Warehouse } from 'src/api/smartpos/inventory';
-import { listProducts } from 'src/api/smartpos/products';
+import { getProduct, listProducts } from 'src/api/smartpos/products';
 import type { Product, Page, UUID } from 'src/api/smartpos/types';
 import DataTable, { type Column, StatusBadge } from 'src/components/smartpos/DataTable';
 import { PageHeader } from 'src/components/smartpos/PageHeader';
@@ -145,7 +145,7 @@ export default function DamageWastePage() {
   const fetchPending = useCallback(async (page = 0) => {
     setPendingLoading(true);
     try {
-      const { data } = await api.get<Page<{ id: UUID; ref: string; date: string; warehouseId: UUID; status: string; reasonCode?: string; notes?: string; lines?: { productId: UUID; variantId?: UUID; qtyDelta: number }[] }>>('/api/v1/adjustments', {
+      const { data } = await api.get<Page<{ id: UUID; ref: string; date: string; warehouseId: UUID; status: string; reason?: string; reasonCode?: string; notes?: string; lines?: { productId: UUID; variantId?: UUID; qtyDelta: number }[] }>>('/api/v1/adjustments', {
         params: { status: 'PENDING_REVIEW', page, size: 20 },
       });
       const rows: DamageRecord[] = data.content.map((adj) => ({
@@ -157,7 +157,7 @@ export default function DamageWastePage() {
         variantId: adj.lines?.[0]?.variantId || null,
         qty: Math.abs(adj.lines?.[0]?.qtyDelta || 0),
         reasonCode: adj.reasonCode || 'Other',
-        type: 'DAMAGE',
+        type: (adj.reason === 'WASTE' ? 'WASTE' : 'DAMAGE') as DamageType,
         notes: adj.notes,
         status: adj.status as DamageStatus,
       }));
@@ -172,22 +172,25 @@ export default function DamageWastePage() {
     }
   }, []);
 
-  // Fetch product names for displayed records
+  // Resolve product names for displayed records — batch fetch unseen IDs
   useEffect(() => {
-    const unseen = pendingRows.map((r) => r.productId).filter((id) => id && !productNames[id]);
+    const unseen = pendingRows
+      .map((r) => r.productId)
+      .filter((id): id is string => !!id && !productNames[id]);
     if (unseen.length === 0) return;
     let cancelled = false;
-    listProducts({ size: 200 })
-      .then((p) => {
+    Promise.all(unseen.map((id) => getProduct(id).catch(() => null)))
+      .then((products) => {
         if (cancelled) return;
         setProductNames((prev) => {
           const next = { ...prev };
-          for (const product of p.content) next[product.id] = product.name;
-          for (const id of unseen) { if (!next[id]) next[id] = id.slice(0, 8) + '…'; }
+          for (let i = 0; i < unseen.length; i++) {
+            const product = products[i];
+            next[unseen[i]] = product?.name ?? unseen[i].slice(0, 8) + '…';
+          }
           return next;
         });
-      })
-      .catch(() => {});
+      });
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingRows]);
@@ -203,7 +206,7 @@ export default function DamageWastePage() {
         productId: form.product.id,
         qty: Number(form.qty),
         reasonCode: form.reasonCode,
-        type: form.type,
+        movementType: form.type,
         notes: form.notes || null,
       });
       setSuccessMsg(`Recorded ${form.type.toLowerCase()} of ${form.qty} × ${form.product.name}`);
