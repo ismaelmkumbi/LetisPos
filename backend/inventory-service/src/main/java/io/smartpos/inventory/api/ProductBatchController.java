@@ -12,7 +12,6 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
-import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -51,9 +50,10 @@ public class ProductBatchController {
 
     @GetMapping("/expiring")
     @PreAuthorize("hasAuthority('product.view')")
-    public List<ProductBatchDto> expiring(
+    public Page<ProductBatchDto> expiring(
             @RequestParam(required = false) UUID warehouseId,
-            @RequestParam(defaultValue = "30") int withinDays) {
-        return service.getExpiring(warehouseId, withinDays);
+            @RequestParam(defaultValue = "30") int withinDays,
+            Pageable pageable) {
+        return service.getExpiring(warehouseId, withinDays, pageable);
     }
 }

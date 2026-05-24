@@ -138,22 +138,20 @@ public class ProductBatchService {
 
     /**
      * Returns ACTIVE batches that will expire within {@code withinDays} days
-     * and still have positive on-hand stock.
+     * and still have positive on-hand stock. Paginated — the frontend should
+     * never load every batch at once.
      */
     @Transactional(readOnly = true)
-    public List<ProductBatchDto> getExpiring(UUID warehouseId, int withinDays) {
+    public Page<ProductBatchDto> getExpiring(UUID warehouseId, int withinDays, Pageable pageable) {
         LocalDate cutoff = LocalDate.now().plusDays(withinDays);
+        Page<ProductBatch> page;
         if (warehouseId != null) {
-            return batchRepo.findByWarehouseIdAndExpiryDateBeforeAndStatusAndOnHandGreaterThan(
-                            warehouseId, cutoff, "ACTIVE", BigDecimal.ZERO)
-                    .stream()
-                    .map(ProductBatchDto::from)
-                    .toList();
+            page = batchRepo.findByWarehouseIdAndExpiryDateBeforeAndStatusAndOnHandGreaterThan(
+                    warehouseId, cutoff, "ACTIVE", BigDecimal.ZERO, pageable);
+        } else {
+            page = batchRepo.findByExpiryDateBeforeAndStatusAndOnHandGreaterThan(
+                    cutoff, "ACTIVE", BigDecimal.ZERO, pageable);
         }
-        return batchRepo.findByExpiryDateBeforeAndStatusAndOnHandGreaterThan(
-                        cutoff, "ACTIVE", BigDecimal.ZERO)
-                .stream()
-                .map(ProductBatchDto::from)
-                .toList();
+        return page.map(ProductBatchDto::from);
     }
 }

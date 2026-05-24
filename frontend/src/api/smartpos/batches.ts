@@ -46,8 +46,8 @@ export async function createBatch(body: CreateBatchInput): Promise<ProductBatch>
 }
 
 export async function getExpiringBatches(
-  params?: { warehouseId?: UUID; withinDays?: number },
-): Promise<ProductBatch[]> {
-  const { data } = await api.get<ProductBatch[]>('/api/v1/batches/expiring', { params });
+  params?: { warehouseId?: UUID; withinDays?: number; page?: number; size?: number },
+): Promise<Page<ProductBatch>> {
+  const { data } = await api.get<Page<ProductBatch>>('/api/v1/batches/expiring', { params });
   return data;
 }

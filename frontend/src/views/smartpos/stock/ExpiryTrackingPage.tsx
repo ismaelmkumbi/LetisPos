@@ -4,10 +4,12 @@ import { IconClock } from '@tabler/icons-react';
 
 import { getExpiringBatches, type ProductBatch } from 'src/api/smartpos/batches';
 import { listWarehouses, type Warehouse } from 'src/api/smartpos/inventory';
-import { getProduct } from 'src/api/smartpos/products';
+import { listProducts } from 'src/api/smartpos/products';
 import { PageHeader } from 'src/components/smartpos/PageHeader';
 import DataTable, { type Column } from 'src/components/smartpos/DataTable';
 import { brand } from 'src/theme/smartpos/brand';
+
+const PAGE_SIZE = 25;
 
 export default function ExpiryTrackingPage() {
   const [batches, setBatches] = useState<ProductBatch[]>([]);
@@ -17,42 +19,54 @@ export default function ExpiryTrackingPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [productNames, setProductNames] = useState<Record<string, string>>({});
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalElements, setTotalElements] = useState(0);
 
-  // Load warehouses once on mount — no dependency on warehouseId
+  // Load warehouses once on mount
   useEffect(() => {
     listWarehouses().then(ws => {
       setWarehouses(ws);
       setWarehouseId(prev => prev || (ws[0]?.id ?? ''));
     }).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Fetch batches when filters change
-  const fetchBatches = useCallback(() => {
+  // Fetch batches with pagination
+  const fetchBatches = useCallback((p = 0) => {
     if (!warehouseId) return;
     setLoading(true);
-    getExpiringBatches({ warehouseId: warehouseId || undefined, withinDays })
-      .then(bs => setBatches(bs))
+    getExpiringBatches({ warehouseId: warehouseId || undefined, withinDays, page: p, size: PAGE_SIZE })
+      .then(pageResult => {
+        setBatches(pageResult.content);
+        setTotalPages(pageResult.totalPages ?? 1);
+        setTotalElements(pageResult.totalElements ?? 0);
+      })
       .catch(e => setError(e instanceof Error ? e.message : 'Failed to load'))
       .finally(() => setLoading(false));
   }, [warehouseId, withinDays]);
 
-  useEffect(() => { fetchBatches(); }, [fetchBatches]);
+  useEffect(() => { fetchBatches(page); }, [page, fetchBatches]);
 
-  // Resolve product names for displayed batches
+  // Reload when filters change (reset to page 0)
+  useEffect(() => { fetchBatches(0); setPage(0); }, [warehouseId, withinDays]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Resolve product names — single bulk fetch instead of N individual requests
   useEffect(() => {
     const unseen = batches
       .map(b => b.productId)
       .filter((id): id is string => !!id && !productNames[id]);
     if (unseen.length === 0) return;
     let cancelled = false;
-    Promise.all(unseen.map((id) => getProduct(id).catch(() => null)))
-      .then((products) => {
+    // Single API call loads up to 500 products; caches misses via fallback UUID
+    listProducts({ size: 500, sort: 'createdAt,desc' })
+      .then(p => {
         if (cancelled) return;
         setProductNames(prev => {
           const next = { ...prev };
-          for (let i = 0; i < unseen.length; i++) {
-            const product = products[i];
-            next[unseen[i]] = product?.name ?? unseen[i].slice(0, 8) + '…';
+          for (const product of p.content) next[product.id] = product.name;
+          for (const id of unseen) {
+            if (!next[id]) next[id] = id.slice(0, 8) + '…';
           }
           return next;
         });
@@ -69,12 +83,17 @@ export default function ExpiryTrackingPage() {
     return { bg: brand.neutral[100], fg: brand.neutral[600], label: `${days}d` };
   };
 
+  // Metrics based on the current page view — approximate when paginated.
+  // For accurate counts a backend summary endpoint is needed, but the page
+  // header metric gives the user a directional read.
   const critical = batches.filter(b => {
-    const d = new Date(b.expiryDate!).getTime() - Date.now();
+    if (!b.expiryDate) return false;
+    const d = new Date(b.expiryDate).getTime() - Date.now();
     return d < 7 * 86400000;
   }).length;
   const warning = batches.filter(b => {
-    const d = new Date(b.expiryDate!).getTime() - Date.now();
+    if (!b.expiryDate) return false;
+    const d = new Date(b.expiryDate).getTime() - Date.now();
     return d >= 7 * 86400000 && d < 30 * 86400000;
   }).length;
 
@@ -113,14 +132,14 @@ export default function ExpiryTrackingPage() {
         metrics={[
           { label: 'Critical (≤7d)', value: String(critical) },
           { label: 'Warning (≤30d)', value: String(warning) },
-          { label: 'Total', value: String(batches.length) },
+          { label: 'Total', value: String(totalElements) },
         ]}
       />
       <Stack direction="row" spacing={1.5} sx={{ mb: 2 }}>
-        <TextField select size="small" label="Warehouse" value={warehouseId} onChange={e => setWarehouseId(e.target.value)} sx={{ minWidth: 200 }}>
+        <TextField select size="small" label="Warehouse" value={warehouseId} onChange={e => { setWarehouseId(e.target.value); setPage(0); }} sx={{ minWidth: 200 }}>
           {warehouses.map(w => <MenuItem key={w.id} value={w.id}>{w.name}</MenuItem>)}
         </TextField>
-        <TextField select size="small" label="Expiring within" value={withinDays} onChange={e => setWithinDays(Number(e.target.value))} sx={{ minWidth: 160 }}>
+        <TextField select size="small" label="Expiring within" value={withinDays} onChange={e => { setWithinDays(Number(e.target.value)); setPage(0); }} sx={{ minWidth: 160 }}>
           <MenuItem value={7}>7 days</MenuItem>
           <MenuItem value={30}>30 days</MenuItem>
           <MenuItem value={60}>60 days</MenuItem>
@@ -128,10 +147,22 @@ export default function ExpiryTrackingPage() {
         </TextField>
       </Stack>
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
-      <DataTable columns={columns} rows={batches} loading={loading} page={0} totalPages={1}
-        getRowKey={r => r.id} emptyText="No expiring batches found" emptyIcon={<IconClock size={32} />}
-        enableExport exportFileName="expiry-tracking"
-        toolbarTitle={batches.length > 0 ? `${batches.length} expiring batches` : undefined} />
+      <DataTable
+        columns={columns}
+        rows={batches}
+        loading={loading}
+        page={page}
+        totalPages={totalPages}
+        totalElements={totalElements}
+        pageSize={PAGE_SIZE}
+        onPageChange={setPage}
+        getRowKey={r => r.id}
+        emptyText="No expiring batches found"
+        emptyIcon={<IconClock size={32} />}
+        enableExport
+        exportFileName="expiry-tracking"
+        toolbarTitle={totalElements > 0 ? `${totalElements} expiring batches` : undefined}
+      />
     </Box>
   );
 }
