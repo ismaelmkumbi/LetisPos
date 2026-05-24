@@ -104,7 +104,7 @@ export default function StockLevelsPage() {
     getExpiringBatches({ warehouseId: warehouseId || undefined, withinDays: expiringDays })
       .then((batches) => {
         if (cancelled) return;
-        setExpiringProductIds(new Set(batches.map((b) => b.productId)));
+        setExpiringProductIds(new Set(batches.content.map((b) => b.productId)));
       })
       .catch(() => {
         if (cancelled) return;
