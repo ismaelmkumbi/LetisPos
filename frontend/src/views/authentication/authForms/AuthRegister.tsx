@@ -140,7 +140,7 @@ const AuthRegister: React.FC<Props> = ({ title, subtitle, subtext }) => {
     setError(null);
     setSubmitting(true);
     try {
-      const { user: { id: userId } } = await register({
+      const { userId } = await register({
         email: email.trim().toLowerCase(),
         password,
         firstName: firstName.trim(),
