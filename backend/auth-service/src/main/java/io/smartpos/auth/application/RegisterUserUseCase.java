@@ -37,11 +37,10 @@ public class RegisterUserUseCase {
     private final ObjectMapper objectMapper;
     private final TenantService tenantService;
     private final BillingClient billingClient;
-    private final SendVerificationUseCase sendVerificationUseCase;
     private final TransactionTemplate transactionTemplate;
 
     @Transactional
-    public UUID register(RegisterRequest req) {
+    public User register(RegisterRequest req) {
         // Validate channel
         String channelStr = req.channel() != null ? req.channel().toUpperCase() : "EMAIL";
         VerificationChannel channel;
@@ -56,9 +55,15 @@ public class RegisterUserUseCase {
             if (req.email() == null || req.email().isBlank()) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email is required for EMAIL channel.");
             }
-            if (userRepository.existsByEmailIgnoreCase(req.email())) {
-                throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already registered");
-            }
+            userRepository.findByEmailIgnoreCase(req.email()).ifPresent(existing -> {
+                if (existing.getStatus() == UserStatus.PENDING) {
+                    // Stale unverified signup — delete it and allow re-registration
+                    userRepository.delete(existing);
+                    log.info("Removed stale PENDING user for email={} to allow re-registration", req.email());
+                } else {
+                    throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already registered");
+                }
+            });
         } else {
             if (req.phoneNumber() == null || req.phoneNumber().isBlank()) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Phone number is required for PHONE channel.");
@@ -93,13 +98,13 @@ public class RegisterUserUseCase {
             }
         }
 
-        // Create user as PENDING
+        // Create user as ACTIVE — signup is login, no verification step
         User user = User.builder()
                 .email(channel == VerificationChannel.EMAIL ? req.email().toLowerCase() : null)
                 .phoneNumber(channel == VerificationChannel.PHONE ? req.phoneNumber() : null)
                 .username(channel == VerificationChannel.EMAIL ? req.email().toLowerCase() : req.phoneNumber())
                 .passwordHash(passwordEncoder.encode(req.password()))
-                .status(UserStatus.PENDING)
+                .status(UserStatus.ACTIVE)
                 .tenantId(tenantId)
                 .build();
         try {
@@ -111,11 +116,8 @@ public class RegisterUserUseCase {
         // Emit UserRegistered event via outbox so User Service can create a profile.
         publishUserRegistered(user, req);
 
-        // Send verification — run in separate transaction to avoid poisoning registration
-        sendVerificationAsync(user, channel);
-
         log.info("Registered user id={} channel={} tenantId={}", user.getId(), channel, tenantId);
-        return user.getId();
+        return user;
     }
 
     /**
@@ -138,18 +140,6 @@ public class RegisterUserUseCase {
                 log.info("Billing subscription deferred for tenant {} (billing service unavailable or auth pending): {}", tenant.getId(), e.getMessage());
             }
         });
-    }
-
-    /**
-     * Sends verification. Email delivery is non-blocking — failures are
-     * caught and logged, so registration always succeeds.
-     */
-    private void sendVerificationAsync(User user, VerificationChannel channel) {
-        try {
-            sendVerificationUseCase.send(user, channel);
-        } catch (Exception e) {
-            log.warn("Failed to send verification for user={}: {}", user.getId(), e.getMessage());
-        }
     }
 
     private void publishUserRegistered(User user, RegisterRequest req) {
