@@ -15,9 +15,9 @@ import java.util.Map;
  * application context is created, so they are available as {@code platform.*}
  * properties during YAML resolution.
  *
- * There is NO env-var fallback for secrets. The admin panel is the single
- * source of truth. If user-service is unreachable or the settings table is
- * empty, the application will fail to resolve required keys on startup.
+ * If user-service is unreachable or the table is empty, a warning is logged
+ * and the application continues with empty defaults — functionality that
+ * requires configured keys will report clear errors at runtime.
  */
 @Slf4j
 public class PlatformSettingsLoader implements EnvironmentPostProcessor {
@@ -35,27 +35,21 @@ public class PlatformSettingsLoader implements EnvironmentPostProcessor {
         String userServiceUrl = env.getProperty("USER_SERVICE_URL", "http://user-service:8082");
         String url = userServiceUrl + "/api/internal/platform-settings";
 
-        Map<String, String> settings;
+        Map<String, String> settings = null;
         try {
             RestTemplate rest = new RestTemplate();
             @SuppressWarnings("unchecked")
             Map<String, String> raw = rest.getForObject(url, Map.class);
             settings = raw;
         } catch (Exception e) {
-            log.error("Cannot load platform settings from user-service at {}: {}",
-                    url, e.getMessage());
-            log.error("The admin panel is the only source for API keys. " +
-                    "Make sure user-service is running and the platform_settings table is populated.");
-            throw new IllegalStateException(
-                    "Platform settings unavailable — user-service must be running before this service. " +
-                    "Cause: " + e.getMessage(), e);
+            log.warn("Could not load platform settings from user-service at {}: {}. " +
+                    "API keys will be empty until user-service is available.", url, e.getMessage());
         }
 
         if (settings == null || settings.isEmpty()) {
-            log.error("Platform settings table is empty. Configure API keys in Admin → Platform Settings.");
-            throw new IllegalStateException(
-                    "Platform settings table is empty. " +
-                    "A super admin must configure API keys in Admin → Platform Settings before starting services.");
+            log.info("No platform settings available — API keys will be empty. " +
+                    "Configure them in Admin → Platform Settings.");
+            return;
         }
 
         Map<String, Object> prefixed = new LinkedHashMap<>();
@@ -67,8 +61,10 @@ public class PlatformSettingsLoader implements EnvironmentPostProcessor {
             }
         }
 
-        env.getPropertySources()
-           .addFirst(new MapPropertySource("platformSettings", prefixed));
+        if (!prefixed.isEmpty()) {
+            env.getPropertySources()
+               .addFirst(new MapPropertySource("platformSettings", prefixed));
+        }
         log.info("Loaded {} platform settings from user-service (available as platform.*)", loaded);
     }
 }

@@ -67,10 +67,10 @@ smartpos:
     # Twilio configuration — used by SMS + WhatsApp channels.
     # All keys come exclusively from Platform Settings (admin panel).
     twilio:
-      account-sid: ${platform.sms.twilio.account_sid}
-      auth-token:  ${platform.sms.twilio.auth_token}
-      sms-from:    ${platform.sms.twilio.phone_number}
-      whatsapp-from: ${platform.sms.twilio.whatsapp_number}
+      account-sid: ${platform.sms.twilio.account_sid:}
+      auth-token:  ${platform.sms.twilio.auth_token:}
+      sms-from:    ${platform.sms.twilio.phone_number:}
+      whatsapp-from: ${platform.sms.twilio.whatsapp_number:}
     retry:
       max-attempts: 3
       backoff-seconds: 60

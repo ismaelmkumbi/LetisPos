@@ -79,15 +79,15 @@ smartpos:
     # No env-var fallback — the admin panel is the single source of truth.
     provider: ${platform.ai.provider:stub}
     anthropic:
-      api-key: ${platform.ai.anthropic.api_key}
+      api-key: ${platform.ai.anthropic.api_key:}
       model:   ${platform.ai.anthropic.model:claude-sonnet-4-6}
       max-tokens: ${ANTHROPIC_MAX_TOKENS:1024}
     openai:
-      api-key:  ${platform.ai.openai.api_key}
+      api-key:  ${platform.ai.openai.api_key:}
       model:    ${platform.ai.openai.model:gpt-4o-mini}
       base-url: ${platform.ai.openai.base_url:https://api.openai.com/v1}
     deepseek:
-      api-key:  ${platform.ai.deepseek.api_key}
+      api-key:  ${platform.ai.deepseek.api_key:}
       model:    ${platform.ai.deepseek.model:deepseek-chat}
       base-url: ${DEEPSEEK_BASE_URL:https://api.deepseek.com/v1}
 

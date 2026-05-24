@@ -38,20 +38,20 @@ smartpos:
   billing:
     stripe:
       enabled: ${platform.payment.stripe.enabled:false}
-      secret-key: ${platform.payment.stripe.secret_key}
-      webhook-secret: ${platform.payment.stripe.webhook_secret}
-      price-starter-monthly: ${platform.payment.stripe.price_starter_monthly}
+      secret-key: ${platform.payment.stripe.secret_key:}
+      webhook-secret: ${platform.payment.stripe.webhook_secret:}
+      price-starter-monthly: ${platform.payment.stripe.price_starter_monthly:}
       price-starter-annual: ${STRIPE_PRICE_STARTER_ANNUAL:}
-      price-business-monthly: ${platform.payment.stripe.price_business_monthly}
+      price-business-monthly: ${platform.payment.stripe.price_business_monthly:}
       price-business-annual: ${STRIPE_PRICE_BUSINESS_ANNUAL:}
-      price-professional-monthly: ${platform.payment.stripe.price_professional_monthly}
+      price-professional-monthly: ${platform.payment.stripe.price_professional_monthly:}
       price-professional-annual: ${STRIPE_PRICE_PROFESSIONAL_ANNUAL:}
       price-enterprise-monthly: ${STRIPE_PRICE_ENTERPRISE_MONTHLY:}
     daraja:
       enabled: ${platform.payment.mpesa.enabled:false}
-      consumer-key: ${platform.payment.mpesa.consumer_key}
-      consumer-secret: ${platform.payment.mpesa.consumer_secret}
-      passkey: ${platform.payment.mpesa.passkey}
+      consumer-key: ${platform.payment.mpesa.consumer_key:}
+      consumer-secret: ${platform.payment.mpesa.consumer_secret:}
+      passkey: ${platform.payment.mpesa.passkey:}
       shortcode: ${platform.payment.mpesa.shortcode:174379}
       environment: ${DARAJA_ENVIRONMENT:sandbox}
       # sandbox URLs

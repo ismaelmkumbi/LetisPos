@@ -104,13 +104,15 @@ smartpos:
       admin-email: ${BOOTSTRAP_ADMIN_EMAIL:admin@smartpos.local}
       admin-password: ${BOOTSTRAP_ADMIN_PASSWORD:Admin@12345}
   verification:
+    # All keys come from Platform Settings (admin panel). Empty defaults
+    # mean the service starts even before keys are configured.
     resend:
-      api-key: ${platform.email.resend.api_key}
+      api-key: ${platform.email.resend.api_key:}
       from-address: ${platform.email.from_address:noreply@send.letispos.com}
     twilio:
-      account-sid: ${platform.sms.twilio.account_sid}
-      auth-token: ${platform.sms.twilio.auth_token}
-      phone-number: ${platform.sms.twilio.phone_number}
+      account-sid: ${platform.sms.twilio.account_sid:}
+      auth-token: ${platform.sms.twilio.auth_token:}
+      phone-number: ${platform.sms.twilio.phone_number:}
     app-base-url: ${APP_BASE_URL:http://localhost:5173}
     email-logo-url: ${EMAIL_LOGO_URL:https://letispos.com/email-logo.png}
   internal:
