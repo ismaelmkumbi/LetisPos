@@ -48,7 +48,6 @@ export default function ExpiryTrackingPage() {
         doFetch(0, wId, 30);
       }
     }).catch(() => {});
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Reload when filters change (reset to page 0)
@@ -56,15 +55,12 @@ export default function ExpiryTrackingPage() {
     if (!warehouseId) return;
     setPage(0);
     doFetch(0, warehouseId, withinDays);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [warehouseId, withinDays]);
 
-  // Fetch when page changes (skip page=0 — already fetched by filter effect)
-  useEffect(() => {
-    if (!warehouseId || page === 0) return;
-    doFetch(page, warehouseId, withinDays);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page]);
+  const handlePageChange = (p: number) => {
+    setPage(p);
+    if (warehouseId) doFetch(p, warehouseId, withinDays);
+  };
 
   // Resolve product names — single bulk fetch instead of N individual requests
   useEffect(() => {
@@ -170,7 +166,7 @@ export default function ExpiryTrackingPage() {
         totalPages={totalPages}
         totalElements={totalElements}
         pageSize={PAGE_SIZE}
-        onPageChange={setPage}
+        onPageChange={handlePageChange}
         getRowKey={r => r.id}
         emptyText="No expiring batches found"
         emptyIcon={<IconClock size={32} />}
