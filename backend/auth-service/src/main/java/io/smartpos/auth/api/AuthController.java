@@ -24,7 +24,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Map;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/auth")
@@ -76,9 +75,12 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<Map<String, UUID>> register(@Valid @RequestBody RegisterRequest req) {
-        UUID id = registerUseCase.register(req);
-        return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("userId", id));
+    public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest req, HttpServletRequest httpReq) {
+        User user = registerUseCase.register(req);
+        AuthResponse body = loginUseCase.loginAfterRegistration(user, httpReq.getHeader("User-Agent"), clientIp(httpReq));
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .header(HttpHeaders.SET_COOKIE, refreshCookies.attach(body.refreshToken()).toString())
+                .body(body);
     }
 
     @PostMapping("/password/change")
@@ -130,8 +132,9 @@ public class AuthController {
         try {
             sendPasswordResetUseCase.send(req.email());
         } catch (Exception e) {
-            // Silently ignore — don't reveal whether the email exists
-            log.info("Password reset requested for non-existent or blocked email: {}", req.email());
+            // Don't reveal whether the email exists to the client, but log the real cause
+            String cause = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
+            log.warn("Password reset failed for {}: {}", req.email(), cause);
         }
         return ResponseEntity.ok(Map.of("message", "If an account exists, a reset link has been sent."));
     }
