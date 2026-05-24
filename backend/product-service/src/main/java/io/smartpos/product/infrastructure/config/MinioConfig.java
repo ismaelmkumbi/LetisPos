@@ -3,6 +3,7 @@ package io.smartpos.product.infrastructure.config;
 import io.minio.BucketExistsArgs;
 import io.minio.MakeBucketArgs;
 import io.minio.MinioClient;
+import io.minio.SetBucketPolicyArgs;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -60,9 +61,38 @@ public class MinioConfig {
             } else {
                 log.info("MinIO bucket '{}' already exists", bucket);
             }
+            // Product images are public — set anonymous download policy.
+            setAnonymousDownloadPolicy(client, bucket);
         } catch (Exception e) {
             log.warn("MinIO bucket check failed at {}: {}. " +
                     "Product image uploads will fail until storage is reachable.", endpoint, e.getMessage());
+        }
+    }
+
+    /** Set bucket policy to allow public read (product images are not sensitive). */
+    private void setAnonymousDownloadPolicy(MinioClient client, String bucketName) {
+        try {
+            String policy = """
+                {
+                  "Version": "2012-10-17",
+                  "Statement": [
+                    {
+                      "Effect": "Allow",
+                      "Principal": {"AWS": ["*"]},
+                      "Action": ["s3:GetObject"],
+                      "Resource": ["arn:aws:s3:::%s/*"]
+                    }
+                  ]
+                }
+                """.formatted(bucketName);
+            client.setBucketPolicy(
+                SetBucketPolicyArgs.builder()
+                    .bucket(bucketName)
+                    .config(policy)
+                    .build());
+            log.info("Applied anonymous download policy to bucket '{}'", bucketName);
+        } catch (Exception e) {
+            log.warn("Failed to set anonymous download policy on bucket '{}': {}", bucketName, e.getMessage());
         }
     }
 
