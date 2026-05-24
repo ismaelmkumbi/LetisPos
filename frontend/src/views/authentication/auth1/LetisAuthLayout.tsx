@@ -4,7 +4,6 @@ import {
   IconBrain,
   IconChartBar,
   IconCloudUpload,
-  IconLock,
   IconPackages,
   IconShieldCheck,
   IconSparkles,
@@ -493,27 +492,6 @@ export default function LetisAuthLayout({
               <BrandLogo size={isRegister ? 'sm' : 'lg'} color={isRegister ? 'onDark' : undefined} />
             </Box>
 
-            {/* Status chip (login only) */}
-            {!isRegister && (
-              <Stack
-                direction="row" spacing={0.75} alignItems="center"
-                sx={{
-                  mt: { xs: 3, sm: 4.5, lg: 2.5, xl: 3.5 },
-                  width: 'fit-content',
-                  px: 1.1, py: 0.55,
-                  borderRadius: '999px',
-                  bgcolor: brand.primary[50],
-                  color: brand.primary[700],
-                  animation: anim(70),
-                }}
-              >
-                <IconCloudUpload size={15} stroke={1.9} />
-                <Typography sx={{ fontSize: '0.72rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                  System status: Online
-                </Typography>
-              </Stack>
-            )}
-
             {/* Headline */}
             <Typography
               component="h1"
@@ -656,27 +634,6 @@ export default function LetisAuthLayout({
             },
           }}
         >
-          {/* Security badge */}
-          <Stack
-            direction="row" spacing={0.8} alignItems="center"
-            sx={{
-              position: 'absolute',
-              top: { xs: 12, sm: 24 },
-              right: { xs: 12, sm: 28, xl: 44 },
-              px: 1.2, py: 0.65,
-              borderRadius: '999px',
-              bgcolor: 'rgba(255,255,255,0.78)',
-              border: `1px solid ${brand.neutral[100]}`,
-              boxShadow: '0 12px 28px rgba(15,23,42,0.05)',
-              color: brand.primary[600],
-            }}
-          >
-            <IconLock size={18} stroke={1.9} />
-            <Typography sx={{ fontSize: '0.86rem', fontWeight: 800, color: brand.neutral[600] }}>
-              Encrypted workspace access
-            </Typography>
-          </Stack>
-
           {/* Form card */}
           <Box
             sx={{
