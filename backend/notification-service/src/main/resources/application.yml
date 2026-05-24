@@ -65,11 +65,12 @@ spring:
 smartpos:
   notification:
     # Twilio configuration — used by SMS + WhatsApp channels.
+    # DB values (platform.*) take priority, env vars are the fallback.
     twilio:
-      account-sid: ${TWILIO_ACCOUNT_SID:}
-      auth-token:  ${TWILIO_AUTH_TOKEN:}
-      sms-from:    ${TWILIO_SMS_FROM:}
-      whatsapp-from: ${TWILIO_WHATSAPP_FROM:}        # e.g. "whatsapp:+14155238886"
+      account-sid: ${platform.sms.twilio.account_sid:${TWILIO_ACCOUNT_SID:}}
+      auth-token:  ${platform.sms.twilio.auth_token:${TWILIO_AUTH_TOKEN:}}
+      sms-from:    ${platform.sms.twilio.phone_number:${TWILIO_SMS_FROM:}}
+      whatsapp-from: ${platform.sms.twilio.whatsapp_number:${TWILIO_WHATSAPP_FROM:}}
     retry:
       max-attempts: 3
       backoff-seconds: 60

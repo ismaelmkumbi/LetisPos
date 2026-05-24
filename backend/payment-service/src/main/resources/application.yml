@@ -72,9 +72,9 @@ smartpos:
     bootstrap:
       seed-cash-account: ${SMARTPOS_SEED_CASH_ACCOUNT:true}
     stripe:
-      enabled: ${STRIPE_ENABLED:false}
-      secret-key: ${STRIPE_SECRET_KEY:}
-      webhook-secret: ${STRIPE_WEBHOOK_SECRET:}
+      enabled: ${platform.payment.stripe.enabled:${STRIPE_ENABLED:false}}
+      secret-key: ${platform.payment.stripe.secret_key:${STRIPE_SECRET_KEY:}}
+      webhook-secret: ${platform.payment.stripe.webhook_secret:${STRIPE_WEBHOOK_SECRET:}}
 
 resilience4j:
   circuitbreaker:

@@ -37,22 +37,22 @@ smartpos:
     base-url: ${AUTH_SERVICE_URL:http://localhost:8081}
   billing:
     stripe:
-      enabled: ${STRIPE_ENABLED:true}
-      secret-key: ${STRIPE_SECRET_KEY:}
-      webhook-secret: ${STRIPE_WEBHOOK_SECRET:}
-      price-starter-monthly: ${STRIPE_PRICE_STARTER_MONTHLY:}
+      enabled: ${platform.payment.stripe.enabled:${STRIPE_ENABLED:true}}
+      secret-key: ${platform.payment.stripe.secret_key:${STRIPE_SECRET_KEY:}}
+      webhook-secret: ${platform.payment.stripe.webhook_secret:${STRIPE_WEBHOOK_SECRET:}}
+      price-starter-monthly: ${platform.payment.stripe.price_starter_monthly:${STRIPE_PRICE_STARTER_MONTHLY:}}
       price-starter-annual: ${STRIPE_PRICE_STARTER_ANNUAL:}
-      price-business-monthly: ${STRIPE_PRICE_BUSINESS_MONTHLY:}
+      price-business-monthly: ${platform.payment.stripe.price_business_monthly:${STRIPE_PRICE_BUSINESS_MONTHLY:}}
       price-business-annual: ${STRIPE_PRICE_BUSINESS_ANNUAL:}
-      price-professional-monthly: ${STRIPE_PRICE_PROFESSIONAL_MONTHLY:}
+      price-professional-monthly: ${platform.payment.stripe.price_professional_monthly:${STRIPE_PRICE_PROFESSIONAL_MONTHLY:}}
       price-professional-annual: ${STRIPE_PRICE_PROFESSIONAL_ANNUAL:}
       price-enterprise-monthly: ${STRIPE_PRICE_ENTERPRISE_MONTHLY:}
     daraja:
-      enabled: ${DARAJA_ENABLED:false}
-      consumer-key: ${DARAJA_CONSUMER_KEY:}
-      consumer-secret: ${DARAJA_CONSUMER_SECRET:}
-      passkey: ${DARAJA_PASSKEY:}
-      shortcode: ${DARAJA_SHORTCODE:174379}
+      enabled: ${platform.payment.mpesa.enabled:${DARAJA_ENABLED:false}}
+      consumer-key: ${platform.payment.mpesa.consumer_key:${DARAJA_CONSUMER_KEY:}}
+      consumer-secret: ${platform.payment.mpesa.consumer_secret:${DARAJA_CONSUMER_SECRET:}}
+      passkey: ${platform.payment.mpesa.passkey:${DARAJA_PASSKEY:}}
+      shortcode: ${platform.payment.mpesa.shortcode:${DARAJA_SHORTCODE:174379}}
       environment: ${DARAJA_ENVIRONMENT:sandbox}
       # sandbox URLs
       auth-url: https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials

@@ -62,4 +62,26 @@ public class PlatformSettingsController {
     }
 
     public record UpdateEntry(String key, String value) {}
+
+}
+
+/**
+ * Internal endpoint for other services to read platform settings.
+ * Path /api/internal/** is whitelisted in SecurityConfig (no JWT required).
+ */
+@RestController
+@RequestMapping("/api/internal/platform-settings")
+@RequiredArgsConstructor
+class InternalPlatformSettingsController {
+
+    private final PlatformSettingRepository repo;
+
+    @GetMapping
+    public ResponseEntity<Map<String, String>> listRaw() {
+        Map<String, String> raw = new LinkedHashMap<>();
+        for (PlatformSetting s : repo.findAll()) {
+            raw.put(s.getKey(), s.getValue());
+        }
+        return ResponseEntity.ok(raw);
+    }
 }
