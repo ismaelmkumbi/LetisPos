@@ -48,7 +48,19 @@ export default function ExpiryTrackingPage() {
   useEffect(() => { fetchBatches(page); }, [page, fetchBatches]);
 
   // Reload when filters change (reset to page 0)
-  useEffect(() => { fetchBatches(0); setPage(0); }, [warehouseId, withinDays]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!warehouseId) return;
+    setPage(0);
+    setLoading(true);
+    getExpiringBatches({ warehouseId, withinDays, page: 0, size: PAGE_SIZE })
+      .then(pageResult => {
+        setBatches(pageResult.content);
+        setTotalPages(pageResult.totalPages ?? 1);
+        setTotalElements(pageResult.totalElements ?? 0);
+      })
+      .catch(e => setError(e instanceof Error ? e.message : 'Failed to load'))
+      .finally(() => setLoading(false));
+  }, [warehouseId, withinDays]);
 
   // Resolve product names — single bulk fetch instead of N individual requests
   useEffect(() => {
