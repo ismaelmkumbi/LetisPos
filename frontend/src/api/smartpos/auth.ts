@@ -1,4 +1,4 @@
-import { api, tokenStore, schedulePreemptiveRefresh, resetSessionExpired } from './client';
+import { api, tokenStore, schedulePreemptiveRefresh } from './client';
 
 export interface AuthUserSummary {
   id: string;
@@ -41,7 +41,6 @@ export interface CurrentUser {
 }
 
 export async function login(email: string, password: string): Promise<LoginResponse> {
-  resetSessionExpired();
   const { data } = await api.post<LoginResponse>('/api/v1/auth/login', { email, password });
   tokenStore.set(data.accessToken);
   tokenStore.setTenantId(data.user?.tenantId || null);
@@ -62,7 +61,6 @@ export interface RegisterPayload {
 }
 
 export async function register(payload: RegisterPayload): Promise<{ userId: string }> {
-  resetSessionExpired();
   const { data } = await api.post<LoginResponse>('/api/v1/auth/register', payload);
   tokenStore.set(data.accessToken);
   tokenStore.setTenantId(data.user?.tenantId || null);
