@@ -24,7 +24,6 @@ export default function ExpiryTrackingPage() {
       setWarehouses(ws);
       setWarehouseId(prev => prev || (ws[0]?.id ?? ''));
     }).catch(() => {});
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Fetch batches when filters change
@@ -104,7 +103,7 @@ export default function ExpiryTrackingPage() {
         return <Chip label={r.status} size="small" sx={{ height: 22, fontWeight: 700, fontSize: '0.65rem', bgcolor: expired ? brand.error.light : brand.success.light, color: expired ? brand.error.dark : brand.success.dark, borderRadius: '6px' }} />;
       },
     },
-  ], []);
+  ], [productNames]);
 
   return (
     <Box>
