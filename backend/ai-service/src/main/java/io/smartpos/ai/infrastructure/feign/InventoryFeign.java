@@ -16,8 +16,9 @@ public interface InventoryFeign {
                           BigDecimal onHand, BigDecimal available,
                           int stockAlertThreshold) {}
 
-    record ExpiringItem(UUID id, String productName, LocalDate expiryDate,
-                        BigDecimal quantity) {}
+    record ExpiringItem(UUID id, UUID productId, String batchNumber,
+                        LocalDate expiryDate, BigDecimal onHand,
+                        BigDecimal available, String status) {}
 
     // Real inventory-service endpoints:
 
@@ -32,7 +33,8 @@ public interface InventoryFeign {
         @RequestParam(required = false) UUID warehouseId);
 
     @GetMapping("/api/v1/batches/expiring")
-    List<ExpiringItem> expiringSoon(@RequestParam(defaultValue = "30") int days);
+    org.springframework.data.domain.Page<ExpiringItem> expiringSoon(
+        @RequestParam(defaultValue = "30") int days);
 
     @GetMapping("/api/v1/stock/summary")
     java.util.Map<String, Object> warehouseSummary(

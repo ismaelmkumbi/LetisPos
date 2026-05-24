@@ -184,7 +184,7 @@ public class AssistantToolExecutor {
         var topCustomers = reportFeign.topCustomers(date.toString(), date.toString(), topLimit);
         var lowStockPage = inventoryFeign.lowStockAlerts(null,
             org.springframework.data.domain.Pageable.ofSize(10));
-        var expiring = inventoryFeign.expiringSoon(expiryDays);
+        var expiring = inventoryFeign.expiringSoon(expiryDays).getContent();
 
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("date", date.toString());
@@ -208,7 +208,7 @@ public class AssistantToolExecutor {
                 .map(i -> item(i.productId().toString(), i.available(), "threshold " + i.stockAlertThreshold()))
                 .collect(Collectors.toList())),
             section("Expiry watch", "table", expiring.stream().limit(5)
-                .map(i -> item(i.productName(), i.quantity(), "expires " + i.expiryDate()))
+                .map(i -> item(i.batchNumber(), i.onHand(), "expires " + i.expiryDate()))
                 .collect(Collectors.toList()))
         ));
         return new AssistantDtos.ToolResult("briefing", "Executive Briefing — " + date, data);
@@ -340,11 +340,11 @@ public class AssistantToolExecutor {
 
     private AssistantDtos.ToolResult getExpiringStock(Map<String, Object> args) {
         int days = intArg(args, "daysFromNow", 30, 1, 365);
-        var items = inventoryFeign.expiringSoon(days);
+        var items = inventoryFeign.expiringSoon(days).getContent();
         Map<String, Object> data = new LinkedHashMap<>();
-        data.put("columns", List.of("Product","Expiry Date","Quantity"));
+        data.put("columns", List.of("Batch","Expiry Date","On Hand"));
         data.put("rows", items.stream().map(i -> List.of(
-            i.productName(), i.expiryDate().toString(), i.quantity()))
+            i.batchNumber(), i.expiryDate().toString(), i.onHand()))
             .collect(Collectors.toList()));
         return new AssistantDtos.ToolResult("table",
             "Expiring Within " + days + " Days", data);
@@ -1092,7 +1092,7 @@ public class AssistantToolExecutor {
 
         // Check expiring stock
         try {
-            var expiring = inventoryFeign.expiringSoon(14);
+            var expiring = inventoryFeign.expiringSoon(14).getContent();
             if (!expiring.isEmpty()) {
                 anomalies.add(Map.of("type", "warning", "title", "Expiring stock",
                     "detail", expiring.size() + " products expiring within 14 days", "severity", "MEDIUM"));
@@ -1237,7 +1237,7 @@ public class AssistantToolExecutor {
         var sales = reportFeign.salesSummary(today.toString(), today.toString(), null, null);
         var lowStock = inventoryFeign.lowStockAlerts(null,
             org.springframework.data.domain.Pageable.ofSize(5));
-        var expiring = inventoryFeign.expiringSoon(14);
+        var expiring = inventoryFeign.expiringSoon(14).getContent();
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("date", today.toString());
         data.put("currency", "TZS");
@@ -1255,7 +1255,7 @@ public class AssistantToolExecutor {
                 .map(i -> item(i.productId().toString(), i.available(), "threshold " + i.stockAlertThreshold()))
                 .collect(Collectors.toList())),
             section("Expiry watch", "table", expiring.stream().limit(5)
-                .map(i -> item(i.productName(), i.quantity(), "expires " + i.expiryDate()))
+                .map(i -> item(i.batchNumber(), i.onHand(), "expires " + i.expiryDate()))
                 .collect(Collectors.toList()))
         ));
         return new AssistantDtos.ToolResult("briefing", "Daily Snapshot — " + today, data);
@@ -1879,7 +1879,7 @@ public class AssistantToolExecutor {
             return "Restock the lowest-available items first so strong sales do not turn into stockouts.";
         }
         if (!expiring.isEmpty()) {
-            return "Discount or feature " + expiring.get(0).productName() + " before expiry risk grows.";
+            return "Discount or feature product " + expiring.get(0).batchNumber() + " before expiry risk grows.";
         }
         if (!topProducts.isEmpty()) {
             return "Keep " + topProducts.get(0).productName() + " visible and fully stocked; it is leading revenue.";
