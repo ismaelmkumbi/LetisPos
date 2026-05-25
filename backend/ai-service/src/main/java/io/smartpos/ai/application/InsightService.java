@@ -111,7 +111,7 @@ public class InsightService {
                 .output(result.text())
                 .error(error)
                 .userId(userId)
-                .tenantId(TenantContext.require())
+                .tenantId(TenantContext.get().orElse(null))
                 .durationMs(duration)
                 .build());
 
