@@ -161,7 +161,7 @@ function normalizeDockerStatus(status: string): 'UP' | 'DOWN' {
 }
 
 export const getBackendServices = (server: ServerId) =>
-  agents[server].get('/backend-services').then((r) => {
+  agents[server].get('/services').then((r) => {
     if (!Array.isArray(r.data)) return [];
     return r.data.map((raw: Record<string, unknown>) => {
       const name = String(raw.name || '');
