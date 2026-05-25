@@ -4,7 +4,7 @@
  */
 import { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { Box, Button, Chip, CircularProgress, Stack, Tooltip, Typography } from '@mui/material';
+import { Box, Button, Chip, CircularProgress, Stack, TextField, Tooltip, Typography } from '@mui/material';
 import { IconSparkles, IconPhoto } from '@tabler/icons-react';
 import { brand, brandTokens } from 'src/theme/smartpos/brand';
 import type { BrandProfile, BrandAsset } from 'src/api/smartpos/brand';
@@ -23,9 +23,86 @@ const VARIANT_LABELS: Record<string, string> = {
   thumbnail: 'Thumb',
 };
 
+const escapeXml = (value: string) => value
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;');
+
+const svgDataUri = (svg: string) => `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+
+const initialsFor = (name: string) => {
+  const clean = name.trim();
+  if (!clean) return 'LP';
+  const parts = clean.split(/\s+/).filter(Boolean);
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+};
+
+const industrySymbol = (industry: string, description: string, color: string) => {
+  const context = `${industry} ${description}`.toLowerCase();
+  if (context.includes('pharmacy') || context.includes('health')) {
+    return `<path d="M388 150h36v40h40v36h-40v40h-36v-40h-40v-36h40z" fill="${color}" opacity=".96"/>`;
+  }
+  if (context.includes('restaurant') || context.includes('food')) {
+    return `<path d="M374 154h12v100h-12zm28 0h12v100h-12zm28 0h12v100h-12zm-56 48h68v18h-68z" fill="${color}" opacity=".96"/>`;
+  }
+  if (context.includes('fashion') || context.includes('apparel')) {
+    return `<path d="M352 186l36-30h40l36 30-22 26-16-13v58h-68v-58l-16 13z" fill="${color}" opacity=".96"/>`;
+  }
+  if (context.includes('hardware') || context.includes('automotive')) {
+    return `<path d="M364 246l74-74 22 22-74 74zm3-79l18-18 25 25-18 18z" fill="${color}" opacity=".96"/>`;
+  }
+  if (context.includes('education')) {
+    return `<path d="M346 190l58-28 58 28-58 28zm24 24l34 16 34-16v36l-34 16-34-16z" fill="${color}" opacity=".96"/>`;
+  }
+  return `<rect x="352" y="162" width="92" height="92" rx="18" fill="${color}" opacity=".96"/><path d="M372 204h52M372 226h36" stroke="#fff" stroke-width="10" stroke-linecap="round" opacity=".85"/>`;
+};
+
+const buildLetisStyleLogoSvg = (
+  profile: BrandProfile,
+  description: string,
+  mode: 'full' | 'mono' | 'thermal' | 'favicon',
+) => {
+  const primary = mode === 'thermal' || mode === 'mono' ? '#111827' : profile.primaryColor || brand.primary[600];
+  const secondary = mode === 'thermal' || mode === 'mono' ? '#111827' : profile.secondaryColor || brand.neutral[700];
+  const accent = mode === 'thermal' || mode === 'mono' ? '#111827' : profile.accentColor || brand.primary[300];
+  const surface = mode === 'thermal' ? '#FFFFFF' : '#F8FAFC';
+  const businessName = escapeXml(profile.businessName || 'My Business');
+  const tagline = escapeXml(profile.tagline || profile.industry || 'Powered by Letis POS');
+  const initials = escapeXml(initialsFor(profile.businessName));
+  const symbol = industrySymbol(profile.industry, description, mode === 'thermal' ? '#111827' : accent);
+  const showText = mode === 'full';
+  const showGradient = mode === 'full' || mode === 'favicon';
+
+  return `
+<svg width="640" height="240" viewBox="0 0 640 240" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="tenantLogoGradient" x1="32" y1="28" x2="200" y2="204" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="${showGradient ? primary : secondary}"/>
+      <stop offset="1" stop-color="${showGradient ? brand.primary[600] : secondary}"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="240" rx="34" fill="${mode === 'thermal' ? '#FFFFFF' : surface}"/>
+  <rect x="32" y="28" width="184" height="184" rx="44" fill="${showGradient ? 'url(#tenantLogoGradient)' : primary}"/>
+  <path d="M88 70v92h72l22-22-22-8h-34V70z" fill="#fff" opacity=".97"/>
+  <path d="M160 162l44-44-20-20v42h-24z" fill="#fff" opacity=".58"/>
+  <rect x="158" y="54" width="40" height="30" rx="9" fill="${mode === 'thermal' ? '#111827' : accent}" opacity=".95"/>
+  <text x="124" y="146" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="34" font-weight="900" fill="${mode === 'thermal' ? '#111827' : primary}" opacity=".95">${initials}</text>
+  ${showText ? `
+  <text x="252" y="106" font-family="Inter, Arial, sans-serif" font-size="42" font-weight="850" fill="${secondary}">${businessName}</text>
+  <text x="254" y="146" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="650" fill="${brand.neutral[500]}">${tagline}</text>
+  <path d="M254 172h172" stroke="${primary}" stroke-width="8" stroke-linecap="round"/>
+  ${symbol}
+  ` : ''}
+</svg>`.trim();
+};
+
 export default function BrandLogoUploader({ profile, onProfileChange }: BrandLogoUploaderProps) {
   const [uploading, setUploading] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [generatingStarter, setGeneratingStarter] = useState(false);
+  const [logoDescription, setLogoDescription] = useState('');
   const [analysis, setAnalysis] = useState<{
     quality: string;
     sharpness: number;
@@ -103,6 +180,106 @@ export default function BrandLogoUploader({ profile, onProfileChange }: BrandLog
     }
   };
 
+  const handleGenerateStarterLogo = () => {
+    setError(null);
+    setGeneratingStarter(true);
+    try {
+      const description = logoDescription.trim() || profile.description || profile.industry || profile.brandTone;
+      const fullSvg = buildLetisStyleLogoSvg(profile, description, 'full');
+      const monoSvg = buildLetisStyleLogoSvg(profile, description, 'mono');
+      const thermalSvg = buildLetisStyleLogoSvg(profile, description, 'thermal');
+      const faviconSvg = buildLetisStyleLogoSvg(profile, description, 'favicon');
+      const logoUrl = svgDataUri(fullSvg);
+      const logoSvgUrl = logoUrl;
+      const logoMonochromeUrl = svgDataUri(monoSvg);
+      const logoThermalUrl = svgDataUri(thermalSvg);
+      const faviconUrl = svgDataUri(faviconSvg);
+
+      onProfileChange({
+        logoUrl,
+        logoSvgUrl,
+        logoMonochromeUrl,
+        logoThermalUrl,
+        faviconUrl,
+      });
+
+      const now = new Date().toISOString();
+      setVariants([
+        {
+          id: crypto.randomUUID(),
+          tenantId: profile.tenantId,
+          name: 'Letis-style tenant logo',
+          category: 'logo',
+          format: 'svg',
+          variant: 'original',
+          url: logoUrl,
+          width: 640,
+          height: 240,
+          sizeBytes: fullSvg.length,
+          aiGenerated: true,
+          createdAt: now,
+        },
+        {
+          id: crypto.randomUUID(),
+          tenantId: profile.tenantId,
+          name: 'Monochrome logo',
+          category: 'logo',
+          format: 'svg',
+          variant: 'monochrome',
+          url: logoMonochromeUrl,
+          width: 640,
+          height: 240,
+          sizeBytes: monoSvg.length,
+          aiGenerated: true,
+          createdAt: now,
+        },
+        {
+          id: crypto.randomUUID(),
+          tenantId: profile.tenantId,
+          name: 'Thermal receipt logo',
+          category: 'logo',
+          format: 'svg',
+          variant: 'thermal',
+          url: logoThermalUrl,
+          width: 640,
+          height: 240,
+          sizeBytes: thermalSvg.length,
+          aiGenerated: true,
+          createdAt: now,
+        },
+        {
+          id: crypto.randomUUID(),
+          tenantId: profile.tenantId,
+          name: 'Favicon logo',
+          category: 'logo',
+          format: 'svg',
+          variant: 'favicon',
+          url: faviconUrl,
+          width: 640,
+          height: 240,
+          sizeBytes: faviconSvg.length,
+          aiGenerated: true,
+          createdAt: now,
+        },
+      ]);
+      setAnalysis({
+        quality: 'good',
+        sharpness: 0.9,
+        hasTransparency: false,
+        scalability: 1,
+        suggestions: [
+          'Generated from current brand settings',
+          'Includes monochrome and thermal variants',
+          'Save Brand Identity to use it in documents',
+        ],
+      });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Logo generation failed');
+    } finally {
+      setGeneratingStarter(false);
+    }
+  };
+
   const hasLogo = !!profile.logoUrl;
 
   return (
@@ -173,6 +350,62 @@ export default function BrandLogoUploader({ profile, onProfileChange }: BrandLog
             </Box>
           </Stack>
         )}
+      </Box>
+
+      <Box
+        sx={{
+          mt: 1.5,
+          p: 2,
+          borderRadius: '12px',
+          border: `1px solid ${brand.primary[100]}`,
+          bgcolor: brand.primary[50],
+        }}
+      >
+        <Stack spacing={1.25}>
+          <Box>
+            <Typography sx={{ fontWeight: 800, fontSize: '0.82rem', color: brand.neutral[800] }}>
+              Generate a Letis-style logo
+            </Typography>
+            <Typography variant="caption" sx={{ color: brand.neutral[500], fontWeight: 600 }}>
+              Uses business name, industry, colors, and document-friendly Letis logo structure.
+            </Typography>
+          </Box>
+          <TextField
+            size="small"
+            fullWidth
+            value={logoDescription}
+            onChange={(e) => setLogoDescription(e.target.value)}
+            placeholder="Example: clean pharmacy logo with cross symbol and calm green colors"
+            disabled={generatingStarter}
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                borderRadius: '10px',
+                bgcolor: '#FFFFFF',
+                fontSize: '0.8rem',
+                fontWeight: 600,
+                '& fieldset': { borderColor: brand.primary[100] },
+                '&:hover fieldset': { borderColor: brand.primary[300] },
+                '&.Mui-focused fieldset': { borderColor: brand.primary[500], borderWidth: '2px' },
+              },
+            }}
+          />
+          <Button
+            variant="contained"
+            startIcon={generatingStarter ? <CircularProgress size={14} /> : <IconSparkles size={14} />}
+            onClick={handleGenerateStarterLogo}
+            disabled={generatingStarter}
+            sx={{
+              alignSelf: 'flex-start',
+              textTransform: 'none',
+              fontWeight: 800,
+              borderRadius: '10px',
+              bgcolor: brandTokens.primary,
+              '&:hover': { bgcolor: brand.primary[700] },
+            }}
+          >
+            {generatingStarter ? 'Generating logo...' : hasLogo ? 'Generate new logo' : 'Generate logo now'}
+          </Button>
+        </Stack>
       </Box>
 
       {error && (
