@@ -1,5 +1,6 @@
 package io.smartpos.hub.api;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.smartpos.hub.api.dto.AgentResponse;
 import io.smartpos.hub.application.AgentService;
 import io.smartpos.hub.application.MetricsService;
@@ -7,6 +8,7 @@ import io.smartpos.hub.application.ProxyService;
 import io.smartpos.hub.domain.Agent;
 import io.smartpos.hub.domain.MetricPoint;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -15,16 +17,17 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.time.Instant;
 import java.util.*;
-import java.util.concurrent.*;
 
 @RestController
 @RequestMapping("/api/v1/servers")
 @RequiredArgsConstructor
+@Slf4j
 public class ServerController {
 
     private final AgentService agentService;
     private final MetricsService metricsService;
     private final ProxyService proxyService;
+    private final ObjectMapper objectMapper;
 
     @GetMapping
     public List<AgentResponse> listServers() {
@@ -68,10 +71,14 @@ public class ServerController {
         return metricsService.query(name, from, to);
     }
 
+    // LSA agent port — the agent binary listens on 9101 (9100 is node-exporter)
+    private static final int LSA_PORT = 9101;
+
     @GetMapping("/{name}/services")
     public ResponseEntity<String> listServices(@PathVariable String name) {
         Agent a = agentService.findByHostname(name);
-        return ResponseEntity.ok(proxyService.proxyGet("127.0.0.1", 9100, "/services"));
+        String host = agentHost(a);
+        return ResponseEntity.ok(proxyService.proxyGet(host, LSA_PORT, "/services"));
     }
 
     /**
@@ -103,63 +110,44 @@ public class ServerController {
         return result;
     }
 
-    private final ExecutorService portScanExecutor = Executors.newFixedThreadPool(8);
-
     @GetMapping("/{name}/backend-services")
-    public List<Map<String, Object>> listBackendServices(@PathVariable String name) throws InterruptedException {
-        List<Map<String, Object>> result = new CopyOnWriteArrayList<>();
-        Set<Integer> scanned = ConcurrentHashMap.newKeySet();
-        List<Callable<Void>> tasks = new ArrayList<>();
-
-        // Parallel port checks via Docker container names
-        for (int port : KNOWN_PORTS.keySet().stream().sorted().toList()) {
-            scanned.add(port);
-            String containerName = KNOWN_PORTS.get(port).containerName;
-            tasks.add(() -> {
-                boolean up = checkPort(containerName, port);
+    public List<Map<String, Object>> listBackendServices(@PathVariable String name) {
+        List<Map<String, Object>> result = new ArrayList<>();
+        // Try LSA agent first (returns live Docker container data)
+        try {
+            Agent a = agentService.findByHostname(name);
+            String host = agentHost(a);
+            String raw = proxyService.proxyGet(host, LSA_PORT, "/services");
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> lsaData = objectMapper.readValue(raw, List.class);
+            for (Map<String, Object> svc : lsaData) {
                 Map<String, Object> info = new LinkedHashMap<>();
-                info.put("name", KNOWN_PORTS.get(port).name);
-                info.put("containerName", containerName);
-                info.put("category", KNOWN_PORTS.get(port).category);
-                info.put("port", port);
-                info.put("status", up ? "UP" : "DOWN");
-                info.put("description", KNOWN_PORTS.get(port).description);
-                if (up) {
-                    var res = readProcessStats(port);
-                    info.put("cpuPercent", res.cpu);
-                    info.put("memUsedBytes", res.mem);
-                    info.put("pid", res.pid);
-                    info.put("command", res.command);
-                }
+                String svcName = String.valueOf(svc.getOrDefault("name", ""));
+                info.put("name", svcName);
+                info.put("containerName", svcName); // LSA uses Docker container names
+                info.put("category", String.valueOf(svc.getOrDefault("category", "Platform")));
+                info.put("port", svc.getOrDefault("port", 0));
+                info.put("status", "UP".equals(String.valueOf(svc.get("status")).toUpperCase()) ? "UP" : "DOWN");
+                info.put("description", String.valueOf(svc.getOrDefault("description", "")));
+                info.put("cpuPercent", svc.getOrDefault("cpuPercent", null));
+                info.put("memUsedBytes", svc.getOrDefault("memUsedBytes", null));
+                info.put("pid", svc.getOrDefault("pid", null));
+                info.put("command", svc.getOrDefault("command", null));
                 result.add(info);
-                return null;
-            });
+            }
+            return result;
+        } catch (Exception e) {
+            log.warn("LSA agent unreachable for {}, returning empty list", name, e);
         }
-        // Auto-discovery (localhost — faster, no DNS)
-        for (int port = 8080; port <= 8099; port++) {
-            if (scanned.contains(port)) continue;
-            int p = port;
-            tasks.add(() -> {
-                if (checkPort("127.0.0.1", p)) {
-                    Map<String, Object> info = new LinkedHashMap<>();
-                    info.put("name", "Service :" + p);
-                    info.put("category", "Other");
-                    info.put("port", p);
-                    info.put("status", "UP");
-                    info.put("description", "Auto-discovered on port " + p);
-                    var res = readProcessStats(p);
-                    info.put("cpuPercent", res.cpu);
-                    info.put("memUsedBytes", res.mem);
-                    info.put("pid", res.pid);
-                    info.put("command", res.command);
-                    result.add(info);
-                }
-                return null;
-            });
-        }
-        // All tasks complete within 3s total; timed-out tasks are cancelled
-        portScanExecutor.invokeAll(tasks, 3, TimeUnit.SECONDS);
         return result;
+    }
+
+    private String agentHost(Agent a) {
+        String ip = a.getIpAddress();
+        if (ip == null || ip.startsWith("0:") || ip.startsWith("127.") || ip.equals("::1") || ip.equals("localhost")) {
+            return "10.0.0.1"; // LSA agent on host, not in Docker
+        }
+        return ip;
     }
 
     private boolean checkPort(String host, int port) {

@@ -12,6 +12,8 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class ProxyController {
 
+    private static final int LSA_PORT = 9101;
+
     private final ProxyService proxyService;
     private final AgentService agentService;
 
@@ -27,7 +29,7 @@ public class ProxyController {
     public ResponseEntity<String> restart(@PathVariable String serverName,
                                            @PathVariable String svc) {
         Agent a = agentService.findByHostname(serverName);
-        String result = proxyService.proxyAction(agentHost(a), 9100, svc + "/restart");
+        String result = proxyService.proxyAction(agentHost(a), LSA_PORT, svc + "/restart");
         return ResponseEntity.ok(result);
     }
 
@@ -35,7 +37,7 @@ public class ProxyController {
     public ResponseEntity<String> stop(@PathVariable String serverName,
                                         @PathVariable String svc) {
         Agent a = agentService.findByHostname(serverName);
-        String result = proxyService.proxyAction(agentHost(a), 9100, svc + "/stop");
+        String result = proxyService.proxyAction(agentHost(a), LSA_PORT, svc + "/stop");
         return ResponseEntity.ok(result);
     }
 
@@ -43,7 +45,7 @@ public class ProxyController {
     public ResponseEntity<String> start(@PathVariable String serverName,
                                          @PathVariable String svc) {
         Agent a = agentService.findByHostname(serverName);
-        String result = proxyService.proxyAction(agentHost(a), 9100, svc + "/start");
+        String result = proxyService.proxyAction(agentHost(a), LSA_PORT, svc + "/start");
         return ResponseEntity.ok(result);
     }
 
@@ -55,7 +57,7 @@ public class ProxyController {
                                         @RequestParam(defaultValue = "0") String grep) {
         Agent a = agentService.findByHostname(serverName);
         boolean isGrep = "1".equals(grep);
-        String result = proxyService.proxyLogs(agentHost(a), 9100, svc, tail, filter, isGrep);
+        String result = proxyService.proxyLogs(agentHost(a), LSA_PORT, svc, tail, filter, isGrep);
         return ResponseEntity.ok(result);
     }
 
@@ -64,7 +66,7 @@ public class ProxyController {
                                              @PathVariable String svc) {
         Agent a = agentService.findByHostname(serverName);
         String path = svc.equals("clear-all") ? "/logs/clear-all" : "/logs/clear/" + svc;
-        String result = proxyService.proxyPost(agentHost(a), 9100, path);
+        String result = proxyService.proxyPost(agentHost(a), LSA_PORT, path);
         return ResponseEntity.ok(result);
     }
 }
