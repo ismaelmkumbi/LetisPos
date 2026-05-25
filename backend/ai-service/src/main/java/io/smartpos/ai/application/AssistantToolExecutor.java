@@ -924,38 +924,59 @@ public class AssistantToolExecutor {
     }
 
     private AssistantDtos.ToolResult getStockValuation(Map<String, Object> args) {
-        UUID warehouseId = args.containsKey("warehouseId")
+        UUID warehouseId = args.containsKey("warehouseId") && args.get("warehouseId") != null
             ? UUID.fromString((String) args.get("warehouseId")) : null;
 
         var page = productFeign.search(null, null, null, true,
             org.springframework.data.domain.Pageable.ofSize(200));
         var products = page.getContent();
 
+        // Single batched call instead of N per-product Feign hops with null
+        // warehouseId. The old per-product loop silently caught a 400 on
+        // every iteration, so totals always read as zero even when cost
+        // and stock data were present.
+        Map<UUID, Map<String, Object>> aggregates;
+        try {
+            if (warehouseId != null) {
+                aggregates = new LinkedHashMap<>();
+                for (var p : products) {
+                    try {
+                        aggregates.put(p.id(), inventoryFeign.stockLevel(p.id(), warehouseId));
+                    } catch (Exception ignored) {}
+                }
+            } else {
+                aggregates = inventoryFeign.batchAggregate(
+                    products.stream().map(p -> p.id()).toList());
+            }
+        } catch (Exception e) {
+            aggregates = Map.of();
+        }
+
         BigDecimal totalCost = BigDecimal.ZERO;
         BigDecimal totalSelling = BigDecimal.ZERO;
         BigDecimal totalQty = BigDecimal.ZERO;
         int productsWithStock = 0;
         int productsWithCost = 0;
+        int productsWithCostField = 0;
 
         for (var product : products) {
-            try {
-                var stock = inventoryFeign.stockLevel(product.id(), warehouseId);
-                Object qtyObj = stock.getOrDefault("available",
-                    stock.getOrDefault("quantity", stock.getOrDefault("onHand", BigDecimal.ZERO)));
-                BigDecimal qty = toBigDecimal(qtyObj);
-                if (qty.compareTo(BigDecimal.ZERO) <= 0) continue;
+            BigDecimal cost = product.cost() != null ? product.cost() : BigDecimal.ZERO;
+            BigDecimal price = product.price() != null ? product.price() : BigDecimal.ZERO;
+            if (cost.compareTo(BigDecimal.ZERO) > 0) productsWithCostField++;
 
-                productsWithStock++;
-                BigDecimal cost = product.cost() != null ? product.cost() : BigDecimal.ZERO;
-                BigDecimal price = product.price() != null ? product.price() : BigDecimal.ZERO;
+            Map<String, Object> stock = aggregates.getOrDefault(product.id(), Map.of());
+            Object qtyObj = stock.getOrDefault("available",
+                stock.getOrDefault("quantity", stock.getOrDefault("onHand", BigDecimal.ZERO)));
+            BigDecimal qty = toBigDecimal(qtyObj);
+            if (qty.compareTo(BigDecimal.ZERO) <= 0) continue;
 
-                if (cost.compareTo(BigDecimal.ZERO) > 0) {
-                    productsWithCost++;
-                    totalCost = totalCost.add(cost.multiply(qty));
-                }
-                totalSelling = totalSelling.add(price.multiply(qty));
-                totalQty = totalQty.add(qty);
-            } catch (Exception ignored) {}
+            productsWithStock++;
+            if (cost.compareTo(BigDecimal.ZERO) > 0) {
+                productsWithCost++;
+                totalCost = totalCost.add(cost.multiply(qty));
+            }
+            totalSelling = totalSelling.add(price.multiply(qty));
+            totalQty = totalQty.add(qty);
         }
 
         BigDecimal estimatedMargin = totalSelling.subtract(totalCost);
@@ -970,7 +991,7 @@ public class AssistantToolExecutor {
         data.put("currency", "TZS");
         data.put("items", List.of(
             Map.of("name", "Total cost value (at purchase)", "value", totalCost,
-                "subtitle", productsWithCost + " products with cost data"),
+                "subtitle", productsWithCost + " of " + productsWithCostField + " priced products have stock"),
             Map.of("name", "Total selling value (at retail)", "value", totalSelling,
                 "subtitle", productsWithStock + " products with stock"),
             Map.of("name", "Estimated gross margin", "value", estimatedMargin,
@@ -978,6 +999,19 @@ public class AssistantToolExecutor {
             Map.of("name", "Total quantity on hand", "value", totalQty,
                 "subtitle", "Across " + productsWithStock + " products")
         ));
+        // Surface the real reason when the result is zero so the LLM
+        // can give actionable guidance instead of saying "no products".
+        if (productsWithStock == 0) {
+            if (aggregates.isEmpty()) {
+                data.put("note", "Stock data is unavailable. Verify at least one warehouse exists in Settings → Warehouses.");
+            } else if (productsWithCostField == 0) {
+                data.put("note", "No product has a cost price set. Open Products → Edit and fill in the Cost field to enable valuation.");
+            } else {
+                data.put("note", "No product currently has stock on hand. Receive a purchase or do a stock count to populate inventory.");
+            }
+        } else if (productsWithCost == 0) {
+            data.put("note", "Selling value is calculated, but cost-based metrics are zero because none of the in-stock products have a Cost field set. Update product costs to enable margin reporting.");
+        }
         return new AssistantDtos.ToolResult("metric",
             "Stock Valuation" + (warehouseId != null ? " for warehouse " + warehouseId : ""), data);
     }
