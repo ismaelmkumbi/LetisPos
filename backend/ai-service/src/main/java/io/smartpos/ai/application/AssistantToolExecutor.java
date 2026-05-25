@@ -468,17 +468,45 @@ public class AssistantToolExecutor {
         }
 
         List<List<Object>> rows = new ArrayList<>();
+        List<Map<String, Object>> outOfStock = new ArrayList<>();
+        List<Map<String, Object>> lowStock = new ArrayList<>();
+        BigDecimal lockedRevenue = BigDecimal.ZERO;
         for (var product : products) {
             Map<String, Object> agg = aggregates.getOrDefault(product.id(), Map.of());
             Object available = agg.getOrDefault("available", BigDecimal.ZERO);
+            BigDecimal avail = toBigDecimal(available);
             rows.add(List.of(
                 product.name(),
                 product.sku() != null ? product.sku() : "",
                 product.price(),
-                toBigDecimal(available).stripTrailingZeros().toPlainString()
+                avail.stripTrailingZeros().toPlainString()
             ));
+            if (avail.compareTo(BigDecimal.ZERO) <= 0) {
+                outOfStock.add(Map.of(
+                    "name", product.name(),
+                    "sku", product.sku() != null ? product.sku() : "",
+                    "price", product.price() != null ? product.price() : BigDecimal.ZERO));
+                if (product.price() != null) lockedRevenue = lockedRevenue.add(product.price());
+            } else if (avail.compareTo(BigDecimal.valueOf(5)) <= 0) {
+                lowStock.add(Map.of(
+                    "name", product.name(),
+                    "available", avail,
+                    "price", product.price() != null ? product.price() : BigDecimal.ZERO));
+            }
         }
         data.put("rows", rows);
+        // Proactive risk block — surfaces concrete signal for OWNER/MANAGER
+        // synthesis prompts. Without this the LLM sees rows of numbers and
+        // dumps them; with it, it can lead with "Sony WH-1000XM5 is OUT".
+        if (!outOfStock.isEmpty() || !lowStock.isEmpty()) {
+            Map<String, Object> risk = new LinkedHashMap<>();
+            risk.put("outOfStockCount", outOfStock.size());
+            risk.put("outOfStockItems", outOfStock);
+            risk.put("lowStockCount", lowStock.size());
+            risk.put("lowStockItems", lowStock);
+            risk.put("lockedRevenue", lockedRevenue);
+            data.put("risk", risk);
+        }
         if (aggregates.isEmpty()) {
             data.put("note", "Stock data unavailable — verify at least one warehouse exists in Settings → Warehouses.");
         }

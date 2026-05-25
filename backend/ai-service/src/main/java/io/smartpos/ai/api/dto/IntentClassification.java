@@ -51,7 +51,11 @@ public record IntentClassification(
             TODAY,
             YESTERDAY,
             THIS_WEEK,
+            LAST_WEEK,
             THIS_MONTH,
+            /** Calendar last month — 1st to last day of previous month. */
+            LAST_MONTH,
+            /** Rolling 30-day window ending today. Distinct from LAST_MONTH. */
             LAST_30_DAYS,
             CUSTOM
         }

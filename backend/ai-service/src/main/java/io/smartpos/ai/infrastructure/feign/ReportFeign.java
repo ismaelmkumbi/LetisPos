@@ -17,9 +17,22 @@ import java.util.UUID;
 @FeignClient(name = "report-service", url = "${smartpos.ai.report-service-url:http://localhost:8087}")
 public interface ReportFeign {
 
+    /**
+     * Mirrors report-service SalesSummaryDto. Field names MUST match the
+     * upstream record (`count`, `avgSale`) — Jackson silently drops mismatches
+     * and the primitive long would read 0, which would tell the assistant
+     * "15.7M gross from 0 sales". Convenience aliases on top.
+     */
     record SalesSummary(LocalDate from, LocalDate to,
-                        long salesCount, BigDecimal gross, BigDecimal tax,
-                        BigDecimal discount, BigDecimal net, BigDecimal averageBasket) {}
+                        long count, BigDecimal gross, BigDecimal tax,
+                        BigDecimal discount, BigDecimal net,
+                        BigDecimal paid, BigDecimal due,
+                        BigDecimal avgSale) {
+        /** Legacy alias retained for existing callers. */
+        public long salesCount() { return count; }
+        /** Legacy alias retained for existing callers. */
+        public BigDecimal averageBasket() { return avgSale; }
+    }
 
     @GetMapping("/api/v1/reports/sales/summary")
     SalesSummary salesSummary(@RequestParam(required = false) String dateFrom,

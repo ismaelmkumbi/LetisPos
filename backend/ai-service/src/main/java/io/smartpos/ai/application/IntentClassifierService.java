@@ -156,8 +156,15 @@ public class IntentClassifierService {
         TIME_KEYWORDS.put("this month", ResolvedTime.TimeType.THIS_MONTH);
         TIME_KEYWORDS.put("last 30 days", ResolvedTime.TimeType.LAST_30_DAYS);
         TIME_KEYWORDS.put("siku 30 zilizopita", ResolvedTime.TimeType.LAST_30_DAYS);
-        TIME_KEYWORDS.put("last month", ResolvedTime.TimeType.LAST_30_DAYS);
-        TIME_KEYWORDS.put("mwezi uliopita", ResolvedTime.TimeType.LAST_30_DAYS);
+        TIME_KEYWORDS.put("past 30 days", ResolvedTime.TimeType.LAST_30_DAYS);
+        // Calendar last month — Tanzanian merchants saying "mwezi uliopita"
+        // mean April 1 to April 30, not "the last 30 days".
+        TIME_KEYWORDS.put("last month", ResolvedTime.TimeType.LAST_MONTH);
+        TIME_KEYWORDS.put("previous month", ResolvedTime.TimeType.LAST_MONTH);
+        TIME_KEYWORDS.put("mwezi uliopita", ResolvedTime.TimeType.LAST_MONTH);
+        TIME_KEYWORDS.put("mwezi jana", ResolvedTime.TimeType.LAST_MONTH);
+        TIME_KEYWORDS.put("last week", ResolvedTime.TimeType.LAST_WEEK);
+        TIME_KEYWORDS.put("wiki iliyopita", ResolvedTime.TimeType.LAST_WEEK);
     }
 
     // ── Public API ──
@@ -406,9 +413,20 @@ public class IntentClassifierService {
             case THIS_WEEK -> new ResolvedTime(type,
                 today.with(java.time.DayOfWeek.MONDAY).format(fmt),
                 today.format(fmt));
+            case LAST_WEEK -> {
+                LocalDate lastMonday = today.with(java.time.DayOfWeek.MONDAY).minusWeeks(1);
+                yield new ResolvedTime(type,
+                    lastMonday.format(fmt),
+                    lastMonday.plusDays(6).format(fmt));
+            }
             case THIS_MONTH -> new ResolvedTime(type,
                 today.withDayOfMonth(1).format(fmt),
                 today.format(fmt));
+            case LAST_MONTH -> {
+                LocalDate firstOfLast = today.minusMonths(1).withDayOfMonth(1);
+                LocalDate lastOfLast = firstOfLast.withDayOfMonth(firstOfLast.lengthOfMonth());
+                yield new ResolvedTime(type, firstOfLast.format(fmt), lastOfLast.format(fmt));
+            }
             case LAST_30_DAYS -> new ResolvedTime(type,
                 today.minusDays(30).format(fmt),
                 today.format(fmt));
