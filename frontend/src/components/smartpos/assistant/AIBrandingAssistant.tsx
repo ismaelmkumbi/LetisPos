@@ -34,6 +34,7 @@ interface AIBrandingAssistantProps {
 
 type QuickActionKind =
   | 'chat'
+  | 'logo-generate'
   | 'palette'
   | 'fonts'
   | 'theme'
@@ -61,6 +62,7 @@ interface ChatEntry {
 }
 
 const QUICK_ACTIONS = [
+  { label: 'Generate logo now', kind: 'logo-generate' as const, prompt: 'Generate a Letis-style logo now using my current brand settings.' },
   { label: 'Analyze my logo', kind: 'logo-analysis' as const, prompt: 'Analyze my current logo and tell me how to improve it for print and digital use.' },
   { label: 'Generate color palette', kind: 'palette' as const, prompt: 'Generate a complementary color palette based on my brand name and industry.' },
   { label: 'Suggest fonts', kind: 'fonts' as const, prompt: 'Suggest font pairings that work well for my brand identity and industry.' },
@@ -68,6 +70,85 @@ const QUICK_ACTIONS = [
   { label: 'Improve brand consistency', kind: 'consistency' as const, prompt: 'Review my current brand settings and suggest improvements for consistency across all documents.' },
   { label: 'Thermal print optimization', kind: 'thermal' as const, prompt: 'Help me optimize my brand assets for thermal printer compatibility.' },
 ];
+
+const escapeXml = (value: string) => value
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;');
+
+const svgDataUri = (svg: string) => `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+
+const initialsFor = (name: string) => {
+  const clean = name.trim();
+  if (!clean) return 'LP';
+  const parts = clean.split(/\s+/).filter(Boolean);
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+};
+
+const industrySymbol = (industry: string, description: string, color: string) => {
+  const context = `${industry} ${description}`.toLowerCase();
+  if (context.includes('pharmacy') || context.includes('health')) {
+    return `<path d="M388 150h36v40h40v36h-40v40h-36v-40h-40v-36h40z" fill="${color}" opacity=".96"/>`;
+  }
+  if (context.includes('restaurant') || context.includes('food')) {
+    return `<path d="M374 154h12v100h-12zm28 0h12v100h-12zm28 0h12v100h-12zm-56 48h68v18h-68z" fill="${color}" opacity=".96"/>`;
+  }
+  if (context.includes('fashion') || context.includes('apparel')) {
+    return `<path d="M352 186l36-30h40l36 30-22 26-16-13v58h-68v-58l-16 13z" fill="${color}" opacity=".96"/>`;
+  }
+  if (context.includes('hardware') || context.includes('automotive')) {
+    return `<path d="M364 246l74-74 22 22-74 74zm3-79l18-18 25 25-18 18z" fill="${color}" opacity=".96"/>`;
+  }
+  if (context.includes('education')) {
+    return `<path d="M346 190l58-28 58 28-58 28zm24 24l34 16 34-16v36l-34 16-34-16z" fill="${color}" opacity=".96"/>`;
+  }
+  return `<rect x="352" y="162" width="92" height="92" rx="18" fill="${color}" opacity=".96"/><path d="M372 204h52M372 226h36" stroke="#fff" stroke-width="10" stroke-linecap="round" opacity=".85"/>`;
+};
+
+const buildLetisStyleLogoSvg = (
+  profile: BrandProfile,
+  description: string,
+  mode: 'full' | 'mono' | 'thermal' | 'favicon',
+) => {
+  const primary = mode === 'thermal' || mode === 'mono' ? '#111827' : profile.primaryColor || brand.primary[600];
+  const secondary = mode === 'thermal' || mode === 'mono' ? '#111827' : profile.secondaryColor || brand.neutral[700];
+  const accent = mode === 'thermal' || mode === 'mono' ? '#111827' : profile.accentColor || brand.primary[300];
+  const surface = mode === 'thermal' ? '#FFFFFF' : '#F8FAFC';
+  const businessName = escapeXml(profile.businessName || 'My Business');
+  const tagline = escapeXml(profile.tagline || profile.industry || 'Powered by Letis POS');
+  const initials = escapeXml(initialsFor(profile.businessName));
+  const symbol = industrySymbol(profile.industry, description, mode === 'thermal' ? '#111827' : accent);
+  const showText = mode === 'full';
+  const showGradient = mode === 'full' || mode === 'favicon';
+
+  return `
+<svg width="640" height="240" viewBox="0 0 640 240" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="tenantLogoGradient" x1="32" y1="28" x2="200" y2="204" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="${showGradient ? primary : secondary}"/>
+      <stop offset="1" stop-color="${showGradient ? brand.primary[600] : secondary}"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="240" rx="34" fill="${mode === 'thermal' ? '#FFFFFF' : surface}"/>
+  <rect x="32" y="28" width="184" height="184" rx="44" fill="${showGradient ? 'url(#tenantLogoGradient)' : primary}"/>
+  <path d="M88 70v92h72l22-22-22-8h-34V70z" fill="#fff" opacity=".97"/>
+  <path d="M160 162l44-44-20-20v42h-24z" fill="#fff" opacity=".58"/>
+  <rect x="158" y="54" width="40" height="30" rx="9" fill="${mode === 'thermal' ? '#111827' : accent}" opacity=".95"/>
+  <text x="124" y="146" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="34" font-weight="900" fill="${mode === 'thermal' ? '#111827' : primary}" opacity=".95">${initials}</text>
+  ${showText ? `
+  <text x="252" y="106" font-family="Inter, Arial, sans-serif" font-size="42" font-weight="850" fill="${secondary}">${businessName}</text>
+  <text x="254" y="146" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="650" fill="${brand.neutral[500]}">${tagline}</text>
+  <path d="M254 172h172" stroke="${primary}" stroke-width="8" stroke-linecap="round"/>
+  ${symbol}
+  ` : ''}
+</svg>`.trim();
+};
+
+const isLogoGenerationRequest = (message: string) => (
+  /\b(generate|create|make|build|new)\b/i.test(message) && /\blogo\b/i.test(message)
+);
 
 export default function AIBrandingAssistant({
   profile,
@@ -99,6 +180,11 @@ export default function AIBrandingAssistant({
 
   const handleSend = async (message: string) => {
     if (!message.trim() || loading) return;
+    if (isLogoGenerationRequest(message)) {
+      await handleQuickAction('logo-generate', message);
+      setInput('');
+      return;
+    }
     addEntry({ role: 'user', content: message });
     setInput('');
     setLoading(true);
@@ -160,6 +246,44 @@ export default function AIBrandingAssistant({
     });
   };
 
+  const handleGenerateLogo = (description: string) => {
+    const source = description.trim() || profile.description || profile.industry || profile.brandTone;
+    const fullSvg = buildLetisStyleLogoSvg(profile, source, 'full');
+    const monoSvg = buildLetisStyleLogoSvg(profile, source, 'mono');
+    const thermalSvg = buildLetisStyleLogoSvg(profile, source, 'thermal');
+    const faviconSvg = buildLetisStyleLogoSvg(profile, source, 'favicon');
+    const logoUrl = svgDataUri(fullSvg);
+    const logoMonochromeUrl = svgDataUri(monoSvg);
+    const logoThermalUrl = svgDataUri(thermalSvg);
+    const faviconUrl = svgDataUri(faviconSvg);
+
+    onProfileChange({
+      logoUrl,
+      logoSvgUrl: logoUrl,
+      logoMonochromeUrl,
+      logoThermalUrl,
+      faviconUrl,
+    });
+
+    addEntry({
+      role: 'assistant',
+      content: [
+        'Generated and applied a Letis-style logo.',
+        '',
+        `Business: ${profile.businessName || 'My Business'}`,
+        `Industry: ${profile.industry || 'General retail'}`,
+        `Colors: ${[profile.primaryColor, profile.secondaryColor, profile.accentColor].filter(Boolean).join(', ')}`,
+        '',
+        'Applied to logoUrl, logoSvgUrl, logoMonochromeUrl, logoThermalUrl, and faviconUrl.',
+        'Save Brand Identity to use it in invoices, receipts, quotations, and other documents.',
+      ].join('\n'),
+    });
+    addEntry({
+      role: 'action',
+      content: 'Logo generated and applied to Brand Identity.',
+    });
+  };
+
   const localBrandReview = (kind: QuickActionKind) => {
     if (kind === 'logo-analysis') {
       if (!profile.logoUrl) {
@@ -199,6 +323,11 @@ export default function AIBrandingAssistant({
     addEntry({ role: 'user', content: prompt });
     setLoading(true);
     try {
+      if (kind === 'logo-generate') {
+        handleGenerateLogo(prompt);
+        return;
+      }
+
       if (kind === 'palette') {
         const colors = await aiGeneratePalette();
         addEntry({
