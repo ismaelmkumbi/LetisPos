@@ -145,8 +145,16 @@ public class ServerController {
 
     private String agentHost(Agent a) {
         String ip = a.getIpAddress();
+        // When control-hub runs in Docker, the LSA agent is on the host.
+        // The Docker bridge gateway (172.18.0.1) is the most reliable way
+        // to reach host-bound ports from a container.
         if (ip == null || ip.startsWith("0:") || ip.startsWith("127.") || ip.equals("::1") || ip.equals("localhost")) {
-            return "10.0.0.1"; // LSA agent on host, not in Docker
+            return "172.18.0.1";
+        }
+        // Private IPs (10.x, 192.168.x) are the host's internal IPs —
+        // also reachable via the Docker gateway.
+        if (ip.startsWith("10.") || ip.startsWith("192.168.") || ip.startsWith("172.")) {
+            return "172.18.0.1";
         }
         return ip;
     }
