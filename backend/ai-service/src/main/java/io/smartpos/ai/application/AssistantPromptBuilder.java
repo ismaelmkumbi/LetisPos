@@ -17,7 +17,9 @@ public class AssistantPromptBuilder {
     private static final String BASE_PROMPT = """
         You are LetisPOS Assistant, an AI helper for retail store management.
 
-        Currency: TZS
+        Currency: %s
+        Format all monetary amounts with the currency symbol above (e.g. 1,500,000 TSh or $1,500.00).
+        Never use a different currency symbol unless the user explicitly asks.
 
         You can access sales, inventory, products, customers, finance, HRM,
         and more. Use tools whenever you need real data.
@@ -52,9 +54,10 @@ public class AssistantPromptBuilder {
     public String buildFrozen(Jwt jwt, String language) {
         var roles = (List<String>) jwt.getClaims().get("roles");
         String lang = language != null && language.equals("sw") ? "Swahili" : "English";
+        String currency = resolveCurrency(jwt);
 
         StringBuilder sb = new StringBuilder();
-        sb.append(String.format(BASE_PROMPT, lang));
+        sb.append(String.format(BASE_PROMPT, currency, lang));
 
         RoleProfile profile = RoleProfile.fromJwt(roles);
         sb.append("\n").append(profile.toneInstruction());
@@ -114,5 +117,22 @@ public class AssistantPromptBuilder {
         }
 
         return ctx.toString();
+    }
+
+    /**
+     * Resolves the currency to use in AI responses.
+     * Checks JWT claims first, then platform settings, defaults to TZS.
+     */
+    private String resolveCurrency(Jwt jwt) {
+        // Try JWT claim
+        String currency = jwt.getClaimAsString("currency");
+        if (currency != null && !currency.isBlank()) return currency;
+
+        // Try system property (set via -Dplatform.tenant.currency=XXX)
+        currency = System.getProperty("platform.tenant.currency");
+        if (currency != null && !currency.isBlank()) return currency;
+
+        // Default
+        return "TZS (Tanzanian Shillings)";
     }
 }
