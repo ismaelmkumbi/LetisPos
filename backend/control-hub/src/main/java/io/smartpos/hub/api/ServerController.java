@@ -34,6 +34,21 @@ public class ServerController {
             .toList();
     }
 
+    /** Health-check compatible with the Control Center UI's getServers() contract. */
+    @GetMapping("/{name}/health")
+    public Map<String, Object> health(@PathVariable String name) {
+        try {
+            Agent a = agentService.findByHostname(name);
+            return Map.of(
+                "server", (Object) a.getHostname(),
+                "version", a.getVersion(),
+                "status", "online".equals(a.getStatus()) ? "ok" : "degraded"
+            );
+        } catch (Exception e) {
+            return Map.of("status", "offline");
+        }
+    }
+
     @GetMapping("/{name}")
     public AgentResponse getServer(@PathVariable String name) {
         Agent a = agentService.findByHostname(name);
