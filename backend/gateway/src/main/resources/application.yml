@@ -183,6 +183,13 @@ spring:
           filters:
             - RewritePath=/api/agent/(?<server>[^/]+)/(?<remaining>.*), /api/v1/servers/letispos-$\{server}/$\{remaining}
 
+        # ── Control Hub: agent heartbeat (LSA agents → control-hub) ──
+        # HMAC-authenticated by the control-hub itself; gateway just forwards.
+        - id: agent-heartbeat
+          uri: ${CONTROL_HUB_URI:http://control-hub:8098}
+          predicates:
+            - Path=/api/v1/agents/**
+
   security:
     oauth2:
       resourceserver:

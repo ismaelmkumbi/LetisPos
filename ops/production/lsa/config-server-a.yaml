@@ -6,6 +6,6 @@ listen_addr: "10.0.0.1:9101"
 server_name: "letispos-a"
 metrics_interval: "5s"
 log_max_lines: 1000
-hub_url: "http://10.0.0.2:3001"
+hub_url: "http://localhost:8080"
 hub_secret: "${LSA_HUB_SECRET}"
-compose_dir: "/opt/letispos/production/server-a"
+compose_dir: /opt/letispos/production/server-a

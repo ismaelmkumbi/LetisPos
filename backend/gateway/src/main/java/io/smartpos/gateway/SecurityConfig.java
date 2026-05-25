@@ -57,6 +57,7 @@ public class SecurityConfig {
                                 "/api/v1/auth/verify",
                                 "/api/v1/auth/resend-verification",
                                 "/api/v1/auth/password/**",
+                                "/api/v1/agents/**",
                                 "/api/v1/billing/plans",
                                 "/api/v1/support/demo-requests",
                                 "/api/v1/payments/stripe/webhook",
