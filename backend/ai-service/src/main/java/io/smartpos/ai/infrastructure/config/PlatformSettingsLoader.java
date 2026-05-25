@@ -45,14 +45,14 @@ public class PlatformSettingsLoader implements EnvironmentPostProcessor {
             @SuppressWarnings("unchecked")
             Map<String, String> raw = rest.getForObject(url, Map.class);
             settings = raw;
+            System.out.println("[PlatformSettingsLoader] Fetched " +
+                (settings != null ? settings.size() : 0) + " settings from user-service");
         } catch (Exception e) {
-            log.warn("Could not load platform settings from user-service at {}: {}. " +
-                    "API keys will be empty until user-service is available.", url, e.getMessage());
+            System.out.println("[PlatformSettingsLoader] ERROR: " + e.getMessage());
         }
 
         if (settings == null || settings.isEmpty()) {
-            log.info("No platform settings available — API keys will be empty. " +
-                    "Configure them in Admin → Platform Settings.");
+            System.out.println("[PlatformSettingsLoader] Settings empty/null — skipping injection");
             return;
         }
 
@@ -65,10 +65,10 @@ public class PlatformSettingsLoader implements EnvironmentPostProcessor {
             }
         }
 
+        System.out.println("[PlatformSettingsLoader] Injecting " + loaded + " platform.* properties");
         if (!prefixed.isEmpty()) {
             env.getPropertySources()
                .addFirst(new MapPropertySource("platformSettings", prefixed));
         }
-        log.info("Loaded {} platform settings from user-service (available as platform.*)", loaded);
     }
 }
