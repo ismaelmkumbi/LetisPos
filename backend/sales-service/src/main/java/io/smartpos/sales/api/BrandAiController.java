@@ -72,8 +72,8 @@ public class BrandAiController {
         }
 
         Map<String, Object> aiResp = aiChat(prompt, sysPrompt.toString(), jwt);
-        if (aiResp != null && aiResp.containsKey("text")) {
-            return ResponseEntity.ok(Map.of("message", aiResp.get("text"), "suggestions", Map.of()));
+        if (aiResp != null && aiResp.containsKey("narrative")) {
+            return ResponseEntity.ok(Map.of("message", aiResp.get("narrative"), "suggestions", Map.of()));
         }
         return ResponseEntity.ok(Map.of(
             "message", "I'm sorry, the AI service is currently unavailable. Please try again in a moment.",
@@ -126,8 +126,8 @@ public class BrandAiController {
             profile.getIndustry() != null ? profile.getIndustry() : "Retail");
 
         Map<String, Object> aiResp = aiChat(prompt, "Respond ONLY with a JSON array of objects.", jwt);
-        if (aiResp != null && aiResp.containsKey("text")) {
-            return ResponseEntity.ok(parseJsonArraySafely((String) aiResp.get("text")));
+        if (aiResp != null && aiResp.containsKey("narrative")) {
+            return ResponseEntity.ok(parseJsonArraySafely((String) aiResp.get("narrative")));
         }
         return ResponseEntity.ok(List.of());
     }
@@ -145,8 +145,8 @@ public class BrandAiController {
             profile.getIndustry() != null ? profile.getIndustry() : "Retail");
 
         Map<String, Object> aiResp = aiChat(prompt, "Respond ONLY with a JSON array of hex colors.", jwt);
-        if (aiResp != null && aiResp.containsKey("text")) {
-            return ResponseEntity.ok(Map.of("colors", parseColorArray((String) aiResp.get("text"))));
+        if (aiResp != null && aiResp.containsKey("narrative")) {
+            return ResponseEntity.ok(Map.of("colors", parseColorArray((String) aiResp.get("narrative"))));
         }
         return ResponseEntity.ok(Map.of("colors", List.of("#16A34A", "#1E293B", "#F59E0B", "#FFFFFF", "#0F172A")));
     }
@@ -163,8 +163,8 @@ public class BrandAiController {
             profile.getIndustry() != null ? profile.getIndustry() : "Retail");
 
         Map<String, Object> aiResp = aiChat(prompt, "Respond ONLY with a JSON array of {family, category, preview} objects.", jwt);
-        if (aiResp != null && aiResp.containsKey("text")) {
-            return ResponseEntity.ok(Map.of("fonts", parseJsonArraySafely((String) aiResp.get("text"))));
+        if (aiResp != null && aiResp.containsKey("narrative")) {
+            return ResponseEntity.ok(Map.of("fonts", parseJsonArraySafely((String) aiResp.get("narrative"))));
         }
         return ResponseEntity.ok(Map.of("fonts", defaultFonts()));
     }
@@ -184,8 +184,8 @@ public class BrandAiController {
             profile.getAccentColor() != null ? profile.getAccentColor() : "#F59E0B");
 
         Map<String, Object> aiResp = aiChat(prompt, "Respond ONLY with a JSON object with color fields.", jwt);
-        if (aiResp != null && aiResp.containsKey("text")) {
-            return ResponseEntity.ok(parseJsonSafely((String) aiResp.get("text"), defaultTheme()));
+        if (aiResp != null && aiResp.containsKey("narrative")) {
+            return ResponseEntity.ok(parseJsonSafely((String) aiResp.get("narrative"), defaultTheme()));
         }
         return ResponseEntity.ok(defaultTheme());
     }
