@@ -960,11 +960,15 @@ public class AssistantToolExecutor {
         int productsWithCostField = 0;
 
         for (var product : products) {
-            BigDecimal cost = product.cost() != null ? product.cost() : BigDecimal.ZERO;
+            BigDecimal productCost = product.cost() != null ? product.cost() : BigDecimal.ZERO;
             BigDecimal price = product.price() != null ? product.price() : BigDecimal.ZERO;
-            if (cost.compareTo(BigDecimal.ZERO) > 0) productsWithCostField++;
+            if (productCost.compareTo(BigDecimal.ZERO) > 0) productsWithCostField++;
 
             Map<String, Object> stock = aggregates.getOrDefault(product.id(), Map.of());
+            // Prefer weighted average cost from stock (most accurate), fallback to product cost
+            BigDecimal wac = toBigDecimal(stock.get("weightedAvgCost"));
+            BigDecimal cost = wac.compareTo(BigDecimal.ZERO) > 0 ? wac : productCost;
+
             Object qtyObj = stock.getOrDefault("available",
                 stock.getOrDefault("quantity", stock.getOrDefault("onHand", BigDecimal.ZERO)));
             BigDecimal qty = toBigDecimal(qtyObj);

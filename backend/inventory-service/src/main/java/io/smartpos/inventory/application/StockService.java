@@ -91,6 +91,7 @@ public class StockService {
         List<StockLevel> levels = stockRepo.findByProductsAcrossWarehouses(productIds, tenantId);
 
         Map<UUID, BigDecimal[]> agg = new LinkedHashMap<>();
+        Map<UUID, BigDecimal[]> costAgg = new LinkedHashMap<>(); // [totalCostValue, totalQty]
         Map<UUID, Integer> warehouseCounts = new LinkedHashMap<>();
         for (StockLevel s : levels) {
             // [available, onHand, reserved]
@@ -102,17 +103,32 @@ public class StockService {
             sums[1] = sums[1].add(onHand);
             sums[2] = sums[2].add(reserved);
             warehouseCounts.merge(s.getProductId(), 1, Integer::sum);
+
+            // Weighted average cost: sum(cost * qty) / sum(qty) across warehouses
+            BigDecimal[] cArr = costAgg.computeIfAbsent(s.getProductId(),
+                k -> new BigDecimal[]{BigDecimal.ZERO, BigDecimal.ZERO});
+            BigDecimal wac = s.getWeightedAvgCost() != null ? s.getWeightedAvgCost() : BigDecimal.ZERO;
+            if (onHand.compareTo(BigDecimal.ZERO) > 0 && wac.compareTo(BigDecimal.ZERO) > 0) {
+                cArr[0] = cArr[0].add(wac.multiply(onHand)); // total cost value
+                cArr[1] = cArr[1].add(onHand);               // total quantity for weighting
+            }
         }
 
         Map<UUID, Map<String, Object>> out = new LinkedHashMap<>();
         for (UUID pid : productIds) {
             BigDecimal[] sums = agg.getOrDefault(pid,
                 new BigDecimal[]{BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO});
+            BigDecimal[] cArr = costAgg.getOrDefault(pid,
+                new BigDecimal[]{BigDecimal.ZERO, BigDecimal.ZERO});
+            // Weighted average cost = totalCostValue / totalQty
+            BigDecimal wac = cArr[1].compareTo(BigDecimal.ZERO) > 0
+                ? cArr[0].divide(cArr[1], 4, java.math.RoundingMode.HALF_UP) : BigDecimal.ZERO;
             Map<String, Object> row = new LinkedHashMap<>();
             row.put("available", sums[0]);
             row.put("onHand", sums[1]);
             row.put("reserved", sums[2]);
             row.put("warehouses", warehouseCounts.getOrDefault(pid, 0));
+            row.put("weightedAvgCost", wac);
             out.put(pid, row);
         }
         return out;
