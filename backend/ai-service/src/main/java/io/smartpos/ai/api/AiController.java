@@ -44,3 +44,20 @@ public class AiController {
         try { return UUID.fromString(jwt.getSubject()); } catch (Exception ignored) { return null; }
     }
 }
+
+/**
+ * Internal endpoints for service-to-service calls. No JWT required;
+ * path /api/internal/** is whitelisted in SecurityConfig.
+ */
+@RestController
+@RequestMapping("/api/internal/ai")
+@RequiredArgsConstructor
+class InternalAiController {
+
+    private final InsightService insightService;
+
+    @PostMapping("/chat")
+    public AiDtos.InsightResponse chat(@RequestBody AiDtos.ChatRequest req) {
+        return insightService.chat(req, null);
+    }
+}

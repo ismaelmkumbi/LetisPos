@@ -50,13 +50,13 @@ public class BrandAiController {
         }
 
         Map<String, Object> aiReq = new LinkedHashMap<>();
-        aiReq.put("message", systemPrompt + "\n\nUser: " + prompt);
-        aiReq.put("language", "en");
+        aiReq.put("prompt", prompt);
+        aiReq.put("systemPrompt", systemPrompt.toString());
 
         try {
             @SuppressWarnings("unchecked")
             Map<String, Object> aiResp = rest.postForObject(
-                AI_SERVICE + "/api/v1/ai/assistant/chat", aiReq, Map.class);
+                AI_SERVICE + "/api/internal/ai/chat", aiReq, Map.class);
             String message = aiResp != null ? (String) aiResp.getOrDefault("message", "") : "";
             return ResponseEntity.ok(Map.of("message", message, "suggestions", Map.of()));
         } catch (Exception e) {
@@ -121,10 +121,10 @@ public class BrandAiController {
 
         try {
             Map<String, Object> aiReq = new LinkedHashMap<>();
-            aiReq.put("message", prompt);
+            aiReq.put("prompt", prompt);
             @SuppressWarnings("unchecked")
             Map<String, Object> aiResp = rest.postForObject(
-                AI_SERVICE + "/api/v1/ai/assistant/chat", aiReq, Map.class);
+                AI_SERVICE + "/api/internal/ai/chat", aiReq, Map.class);
             if (aiResp != null && aiResp.containsKey("message")) {
                 return ResponseEntity.ok(parseJsonArraySafely((String) aiResp.get("message")));
             }
@@ -149,10 +149,10 @@ public class BrandAiController {
 
         try {
             Map<String, Object> aiReq = new LinkedHashMap<>();
-            aiReq.put("message", prompt);
+            aiReq.put("prompt", prompt);
             @SuppressWarnings("unchecked")
             Map<String, Object> aiResp = rest.postForObject(
-                AI_SERVICE + "/api/v1/ai/assistant/chat", aiReq, Map.class);
+                AI_SERVICE + "/api/internal/ai/chat", aiReq, Map.class);
             if (aiResp != null && aiResp.containsKey("message")) {
                 List<String> colors = parseColorArray((String) aiResp.get("message"));
                 return ResponseEntity.ok(Map.of("colors", colors));
@@ -177,10 +177,10 @@ public class BrandAiController {
 
         try {
             Map<String, Object> aiReq = new LinkedHashMap<>();
-            aiReq.put("message", prompt);
+            aiReq.put("prompt", prompt);
             @SuppressWarnings("unchecked")
             Map<String, Object> aiResp = rest.postForObject(
-                AI_SERVICE + "/api/v1/ai/assistant/chat", aiReq, Map.class);
+                AI_SERVICE + "/api/internal/ai/chat", aiReq, Map.class);
             if (aiResp != null && aiResp.containsKey("message")) {
                 List<Map<String, Object>> fonts = parseJsonArraySafely((String) aiResp.get("message"));
                 return ResponseEntity.ok(Map.of("fonts", fonts));
@@ -212,10 +212,10 @@ public class BrandAiController {
 
         try {
             Map<String, Object> aiReq = new LinkedHashMap<>();
-            aiReq.put("message", prompt);
+            aiReq.put("prompt", prompt);
             @SuppressWarnings("unchecked")
             Map<String, Object> aiResp = rest.postForObject(
-                AI_SERVICE + "/api/v1/ai/assistant/chat", aiReq, Map.class);
+                AI_SERVICE + "/api/internal/ai/chat", aiReq, Map.class);
             if (aiResp != null && aiResp.containsKey("message")) {
                 return ResponseEntity.ok(parseJsonSafely((String) aiResp.get("message"), defaultTheme()));
             }
