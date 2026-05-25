@@ -37,6 +37,11 @@ public class AssistantToolExecutor {
     private final LogoEnhancementProvider logoEnhanceProvider;
     private final ObjectMapper om = new ObjectMapper();
 
+    @org.springframework.beans.factory.annotation.Value("${smartpos.ai.product-service-url:http://10.0.0.3:8083}")
+    private String productServiceUrl;
+    @org.springframework.beans.factory.annotation.Value("${smartpos.ai.inventory-service-url:http://10.0.0.3:8084}")
+    private String inventoryServiceUrl;
+
     public AssistantToolExecutor(ReportFeign reportFeign, SalesFeign salesFeign,
                                   InventoryFeign inventoryFeign, ProductFeign productFeign,
                                   PaymentFeign paymentFeign, CustomerFeign customerFeign,
@@ -947,26 +952,52 @@ public class AssistantToolExecutor {
         UUID warehouseId = args.containsKey("warehouseId") && args.get("warehouseId") != null
             ? UUID.fromString((String) args.get("warehouseId")) : null;
 
-        var page = productFeign.search(null, null, null, true,
-            org.springframework.data.domain.Pageable.ofSize(200));
-        var products = page.getContent();
+        // Use RestTemplate with explicit JWT forwarding — Feign's RequestInterceptor
+        // doesn't reliably see the SecurityContext in worker threads.
+        org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
+        var auth = org.springframework.security.core.context.SecurityContextHolder
+            .getContext().getAuthentication();
+        if (auth instanceof org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken j) {
+            headers.setBearerAuth(j.getToken().getTokenValue());
+        }
+        org.springframework.web.client.RestTemplate rt = new org.springframework.web.client.RestTemplate();
 
-        // Single batched call instead of N per-product Feign hops with null
-        // warehouseId. The old per-product loop silently caught a 400 on
-        // every iteration, so totals always read as zero even when cost
-        // and stock data were present.
+        List<ProductFeign.ProductDto> products;
+        try {
+            var resp = rt.exchange(
+                productServiceUrl() + "/api/v1/products?status=true&size=200",
+                org.springframework.http.HttpMethod.GET,
+                new org.springframework.http.HttpEntity<>(headers),
+                new org.springframework.core.ParameterizedTypeReference<
+                    org.springframework.data.domain.Page<ProductFeign.ProductDto>>() {});
+            products = resp.getBody() != null ? resp.getBody().getContent() : List.of();
+        } catch (Exception e) {
+            products = List.of();
+        }
+
         Map<UUID, Map<String, Object>> aggregates;
         try {
             if (warehouseId != null) {
                 aggregates = new LinkedHashMap<>();
                 for (var p : products) {
                     try {
-                        aggregates.put(p.id(), inventoryFeign.stockLevel(p.id(), warehouseId));
+                        var lvl = rt.exchange(
+                            inventoryServiceUrl() + "/api/v1/stock?productId=" + p.id()
+                                + "&warehouseId=" + warehouseId,
+                            org.springframework.http.HttpMethod.GET,
+                            new org.springframework.http.HttpEntity<>(headers),
+                            new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {});
+                        if (lvl.getBody() != null) aggregates.put(p.id(), lvl.getBody());
                     } catch (Exception ignored) {}
                 }
             } else {
-                aggregates = inventoryFeign.batchAggregate(
-                    products.stream().map(p -> p.id()).toList());
+                var body = products.stream().map(p -> p.id()).toList();
+                var resp = rt.exchange(
+                    inventoryServiceUrl() + "/api/v1/stock/batch-aggregate",
+                    org.springframework.http.HttpMethod.POST,
+                    new org.springframework.http.HttpEntity<>(body, headers),
+                    new org.springframework.core.ParameterizedTypeReference<Map<UUID, Map<String, Object>>>() {});
+                aggregates = resp.getBody() != null ? resp.getBody() : Map.of();
             }
         } catch (Exception e) {
             aggregates = Map.of();
