@@ -154,7 +154,7 @@ public class ServerController {
 
     private boolean checkPort(String host, int port) {
         try (Socket s = new Socket()) {
-            s.connect(new InetSocketAddress(host, port), 2000);
+            s.connect(new InetSocketAddress(host, port), 500);
             return true;
         } catch (Exception e) { return false; }
     }
