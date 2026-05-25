@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.InputStream;
+import java.text.DecimalFormat;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Base64;
@@ -294,8 +295,12 @@ public class DocumentService {
                     // Map API field names to template field names
                     t.putIfAbsent("name", item.getOrDefault("productName", item.get("name")));
                     t.putIfAbsent("quantity", item.getOrDefault("qty", item.get("quantity")));
-                    t.putIfAbsent("total", item.getOrDefault("lineTotal", item.get("total")));
-                    t.putIfAbsent("unitPrice", item.getOrDefault("unitPrice", item.get("price")));
+                    t.putIfAbsent("total", formatMoney(item.getOrDefault("lineTotal", item.get("total"))));
+                    t.putIfAbsent("unitPrice", formatMoney(item.getOrDefault("unitPrice", item.get("price"))));
+                    // Also format any other monetary fields that may exist
+                    for (String moneyKey : new String[]{"lineTotal", "taxAmount", "discountAmount", "subtotal"}) {
+                        if (item.containsKey(moneyKey)) t.put(moneyKey, formatMoney(item.get(moneyKey)));
+                    }
                     // Resolve UUID product names via product-service (dynamic, always fresh)
                     Object nameObj = t.get("name");
                     Object productIdObj = item.get("productId");
@@ -318,10 +323,10 @@ public class DocumentService {
 
             if (raw.containsKey("grandTotal")) {
                 mapped.put("totals", Map.of(
-                    "subtotal", raw.getOrDefault("subtotal", raw.getOrDefault("total", 0)),
-                    "tax", raw.getOrDefault("taxAmount", raw.getOrDefault("tax", 0)),
-                    "discount", raw.getOrDefault("discountAmount", 0),
-                    "grandTotal", raw.get("grandTotal")
+                    "subtotal", formatMoney(raw.getOrDefault("subtotal", raw.getOrDefault("total", 0))),
+                    "tax", formatMoney(raw.getOrDefault("taxAmount", raw.getOrDefault("tax", 0))),
+                    "discount", formatMoney(raw.getOrDefault("discountAmount", 0)),
+                    "grandTotal", formatMoney(raw.get("grandTotal"))
                 ));
             }
 
@@ -553,4 +558,30 @@ public class DocumentService {
             default -> "11.69"; // A4
         };
     }
+
+    /**
+     * Format a monetary value for template rendering.
+     * Handles Double (from Jackson deserialization), BigDecimal, Number,
+     * and String inputs. Returns a plain numeric string like "15,600,000.00"
+     * — never scientific notation.
+     */
+    private static String formatMoney(Object value) {
+        if (value == null) return "0.00";
+        if (value instanceof String s) {
+            try { return formatMoney(Double.parseDouble(s)); } catch (NumberFormatException e) { return s; }
+        }
+        if (value instanceof Number n) {
+            return NUMBER_FORMAT.get().format(n);
+        }
+        return value.toString();
+    }
+
+    private static final ThreadLocal<DecimalFormat> NUMBER_FORMAT =
+            ThreadLocal.withInitial(() -> {
+                DecimalFormat df = new DecimalFormat("#,##0.00");
+                df.setMaximumFractionDigits(2);
+                df.setMinimumFractionDigits(2);
+                df.setGroupingUsed(true);
+                return df;
+            });
 }
