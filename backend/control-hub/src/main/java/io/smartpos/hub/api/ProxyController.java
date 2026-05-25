@@ -19,8 +19,13 @@ public class ProxyController {
 
     private String agentHost(Agent a) {
         String ip = a.getIpAddress();
+        // When control-hub runs in Docker, the LSA agent is on the host.
+        // Docker bridge gateway (172.18.0.1) reaches host-bound ports reliably.
         if (ip == null || ip.startsWith("0:") || ip.startsWith("127.") || ip.equals("::1") || ip.equals("localhost")) {
-            return "127.0.0.1";
+            return "172.18.0.1";
+        }
+        if (ip.startsWith("10.") || ip.startsWith("192.168.") || ip.startsWith("172.")) {
+            return "172.18.0.1";
         }
         return ip;
     }
