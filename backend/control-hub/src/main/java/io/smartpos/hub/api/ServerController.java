@@ -107,10 +107,12 @@ public class ServerController {
     public List<Map<String, Object>> listBackendServices(@PathVariable String name) {
         List<Map<String, Object>> result = new ArrayList<>();
         Set<Integer> scanned = new LinkedHashSet<>();
-        // Always scan known ports first (even if down, show them)
+        // Check service health via Docker container name (all containers share
+        // server-a-net, so DNS resolves).  Falls back to localhost for bare-metal.
         for (int port : KNOWN_PORTS.keySet().stream().sorted().toList()) {
             scanned.add(port);
-            boolean up = checkPort("127.0.0.1", port);
+            String containerName = KNOWN_PORTS.get(port).containerName;
+            boolean up = checkPort(containerName, port);
             Map<String, Object> info = new LinkedHashMap<>();
             info.put("name", KNOWN_PORTS.get(port).name);
             info.put("containerName", KNOWN_PORTS.get(port).containerName);
@@ -127,7 +129,8 @@ public class ServerController {
             }
             result.add(info);
         }
-        // Also discover any unknown open ports in range
+        // Also discover any unknown open ports in range (scan localhost only
+        // for auto-discovery — known services use Docker DNS above).
         for (int port = 8080; port <= 8099; port++) {
             if (scanned.contains(port)) continue;
             if (checkPort("127.0.0.1", port)) {
