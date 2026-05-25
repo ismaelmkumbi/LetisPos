@@ -25,7 +25,11 @@ public class BrandAiController {
 
     private final BrandProfileService brandService;
     private final RestTemplate rest = new RestTemplate();
-    private static final String AI_CHAT_URL = "http://ai-service:8091/api/v1/ai/chat";
+
+    @org.springframework.beans.factory.annotation.Value("${smartpos.sales.ai-service-url:http://10.0.0.2:8091}")
+    private String aiServiceUrl;
+
+    private String aiChatUrl() { return aiServiceUrl + "/api/v1/ai/chat"; }
 
     /** Call AI service with the user's JWT forwarded. */
     private Map<String, Object> aiChat(String prompt, String systemPrompt, Jwt jwt) {
@@ -39,7 +43,7 @@ public class BrandAiController {
 
         try {
             @SuppressWarnings("unchecked")
-            var resp = rest.exchange(AI_CHAT_URL, HttpMethod.POST,
+            var resp = rest.exchange(aiChatUrl(), HttpMethod.POST,
                 new HttpEntity<>(body, headers), Map.class);
             return resp.getBody();
         } catch (Exception e) {
