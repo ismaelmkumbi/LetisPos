@@ -19,6 +19,9 @@ import { IconSparkles, IconSend, IconX } from '@tabler/icons-react';
 import { brand, brandTokens } from 'src/theme/smartpos/brand';
 import {
   aiBrandChat,
+  aiGeneratePalette,
+  aiGenerateTheme,
+  aiSuggestFonts,
   type AiBrandResponse,
   type BrandProfile,
 } from 'src/api/smartpos/brand';
@@ -29,21 +32,41 @@ interface AIBrandingAssistantProps {
   onClose: () => void;
 }
 
+type QuickActionKind =
+  | 'chat'
+  | 'palette'
+  | 'fonts'
+  | 'theme'
+  | 'logo-analysis'
+  | 'consistency'
+  | 'thermal';
+
+type ThemeSuggestion = {
+  name: string;
+  primaryColor: string;
+  secondaryColor?: string;
+  accentColor: string;
+};
+
+type BrandSuggestions = Omit<NonNullable<AiBrandResponse['suggestions']>, 'themes'> & {
+  themes?: ThemeSuggestion[];
+};
+
 interface ChatEntry {
   id: string;
   role: 'user' | 'assistant' | 'action';
   content: string;
-  suggestions?: AiBrandResponse['suggestions'];
+  suggestions?: BrandSuggestions;
   timestamp: number;
 }
 
 const QUICK_ACTIONS = [
-  { label: 'Analyze my logo', prompt: 'Analyze my current logo and tell me how to improve it for print and digital use.' },
-  { label: 'Generate color palette', prompt: 'Generate a complementary color palette based on my brand name and industry.' },
-  { label: 'Suggest fonts', prompt: 'Suggest font pairings that work well for my brand identity and industry.' },
-  { label: 'Create document theme', prompt: 'Create a complete document theme (invoice, receipt, quote) using my brand colors.' },
-  { label: 'Improve brand consistency', prompt: 'Review my current brand settings and suggest improvements for consistency across all documents.' },
-  { label: 'Thermal print optimization', prompt: 'Help me optimize my brand assets for thermal printer compatibility.' },
+  { label: 'Analyze my logo', kind: 'logo-analysis' as const, prompt: 'Analyze my current logo and tell me how to improve it for print and digital use.' },
+  { label: 'Generate color palette', kind: 'palette' as const, prompt: 'Generate a complementary color palette based on my brand name and industry.' },
+  { label: 'Suggest fonts', kind: 'fonts' as const, prompt: 'Suggest font pairings that work well for my brand identity and industry.' },
+  { label: 'Create document theme', kind: 'theme' as const, prompt: 'Create a complete document theme (invoice, receipt, quote) using my brand colors.' },
+  { label: 'Improve brand consistency', kind: 'consistency' as const, prompt: 'Review my current brand settings and suggest improvements for consistency across all documents.' },
+  { label: 'Thermal print optimization', kind: 'thermal' as const, prompt: 'Help me optimize my brand assets for thermal printer compatibility.' },
 ];
 
 export default function AIBrandingAssistant({
@@ -117,7 +140,140 @@ export default function AIBrandingAssistant({
     });
   };
 
-  const handleQuickAction = (prompt: string) => handleSend(prompt);
+  const handleApplyTheme = (theme: { primaryColor: string; secondaryColor?: string; accentColor: string }) => {
+    onProfileChange({
+      primaryColor: theme.primaryColor,
+      secondaryColor: theme.secondaryColor ?? profile.secondaryColor,
+      accentColor: theme.accentColor,
+    });
+    addEntry({
+      role: 'action',
+      content: `Applied document theme: primary ${theme.primaryColor}, accent ${theme.accentColor}`,
+    });
+  };
+
+  const handleApplyFont = (family: string) => {
+    onProfileChange({ fontFamily: family });
+    addEntry({
+      role: 'action',
+      content: `Applied font: ${family}`,
+    });
+  };
+
+  const localBrandReview = (kind: QuickActionKind) => {
+    if (kind === 'logo-analysis') {
+      if (!profile.logoUrl) {
+        return 'No logo is uploaded yet.\n\nRecommended next step: upload a clear PNG or SVG logo first. After upload, use logo variants for monochrome, favicon, and thermal receipt versions.';
+      }
+      return [
+        'Logo review:',
+        `- Current logo: ${profile.logoUrl}`,
+        '- Use a transparent PNG/SVG for invoices and website surfaces.',
+        '- Keep a single-color version for receipts and stamps.',
+        '- Check that the logo remains readable at 32px favicon size and on 58mm thermal receipts.',
+      ].join('\n');
+    }
+    if (kind === 'thermal') {
+      return [
+        'Thermal print optimization:',
+        '- Use a monochrome logo with strong contrast.',
+        '- Avoid gradients, tiny text, shadows, and thin lines.',
+        '- Keep receipt logo width under 180px equivalent.',
+        '- Prefer business name text if the logo loses detail in black and white.',
+      ].join('\n');
+    }
+    return [
+      'Brand consistency review:',
+      `- Business name: ${profile.businessName || 'not set'}`,
+      `- Industry: ${profile.industry || 'not set'}`,
+      `- Tone: ${profile.brandTone || 'not set'}`,
+      `- Colors: ${[profile.primaryColor, profile.secondaryColor, profile.accentColor].filter(Boolean).join(', ')}`,
+      `- Font: ${profile.fontFamily || 'not set'}`,
+      '',
+      'Recommended next step: apply one palette, one font family, and one document theme, then save the brand identity.',
+    ].join('\n');
+  };
+
+  const handleQuickAction = async (kind: QuickActionKind, prompt: string) => {
+    if (loading) return;
+    addEntry({ role: 'user', content: prompt });
+    setLoading(true);
+    try {
+      if (kind === 'palette') {
+        const colors = await aiGeneratePalette();
+        addEntry({
+          role: 'assistant',
+          content: [
+            'Generated palette:',
+            ...colors.map((color, index) => `- Color ${index + 1}: ${color}`),
+            '',
+            'Select Apply to use these colors in Brand Identity.',
+          ].join('\n'),
+          suggestions: { colors },
+        });
+        return;
+      }
+
+      if (kind === 'fonts') {
+        const fonts = await aiSuggestFonts();
+        addEntry({
+          role: 'assistant',
+          content: [
+            'Generated font pairings:',
+            ...fonts.map((font) => `- ${font.family} (${font.category})`),
+            '',
+            'Select one font chip to apply it.',
+          ].join('\n'),
+          suggestions: {
+            fonts: fonts.map((f) => ({ family: f.family, category: f.category })),
+          },
+        });
+        return;
+      }
+
+      if (kind === 'theme') {
+        const theme = await aiGenerateTheme();
+        addEntry({
+          role: 'assistant',
+          content: [
+            'Generated document theme:',
+            `- Primary: ${theme.primaryColor}`,
+            `- Secondary: ${theme.secondaryColor}`,
+            `- Accent: ${theme.accentColor}`,
+            `- Surface: ${theme.surfaceColor}`,
+            `- Text: ${theme.textColor}`,
+            '',
+            'Select the theme row to apply it.',
+          ].join('\n'),
+          suggestions: {
+            themes: [{
+              name: 'AI Document Theme',
+              primaryColor: theme.primaryColor,
+              secondaryColor: theme.secondaryColor,
+              accentColor: theme.accentColor,
+            }],
+          },
+        });
+        return;
+      }
+
+      if (kind === 'logo-analysis' || kind === 'consistency' || kind === 'thermal') {
+        addEntry({ role: 'assistant', content: localBrandReview(kind) });
+        return;
+      }
+
+      await handleSend(prompt);
+    } catch (e) {
+      addEntry({
+        role: 'assistant',
+        content: e instanceof Error
+          ? `I could not complete that action: ${e.message}`
+          : 'I could not complete that action. Please try again.',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <Card
@@ -245,7 +401,7 @@ export default function AIBrandingAssistant({
                           key={i}
                           label={`${f.family} (${f.category})`}
                           size="small"
-                          onClick={() => onProfileChange({ fontFamily: f.family })}
+                          onClick={() => handleApplyFont(f.family)}
                           sx={{
                             fontWeight: 600,
                             fontSize: '0.7rem',
@@ -279,7 +435,7 @@ export default function AIBrandingAssistant({
                             '&:hover': { borderColor: brand.primary[300], bgcolor: brand.primary[50] },
                           }}
                           onClick={() => {
-                            onProfileChange({ primaryColor: t.primaryColor, accentColor: t.accentColor });
+                            handleApplyTheme(t);
                           }}
                         >
                           <Box
@@ -294,6 +450,17 @@ export default function AIBrandingAssistant({
                           <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, flex: 1 }}>
                             {t.name}
                           </Typography>
+                          {t.secondaryColor && (
+                            <Box
+                              sx={{
+                                width: 24,
+                                height: 24,
+                                borderRadius: '6px',
+                                bgcolor: t.secondaryColor,
+                                border: `1px solid ${brand.neutral[200]}`,
+                              }}
+                            />
+                          )}
                           <Box
                             sx={{
                               width: 24,
@@ -336,7 +503,7 @@ export default function AIBrandingAssistant({
               key={qa.label}
               label={qa.label}
               size="small"
-              onClick={() => handleQuickAction(qa.prompt)}
+              onClick={() => handleQuickAction(qa.kind, qa.prompt)}
               disabled={loading}
               icon={<IconSparkles size={12} />}
               sx={{
