@@ -15,6 +15,7 @@ import java.util.UUID;
 public class BrandProfileService {
 
     private final BrandProfileRepository repository;
+    private final DocumentThemeService documentThemeService;
 
     private static final String DEFAULT_PRIMARY = "#16A34A";
     private static final String DEFAULT_SECONDARY = "#1E293B";
@@ -35,8 +36,30 @@ public class BrandProfileService {
         BrandProfile profile = repository.findByTenantId(tenantId)
                 .orElseGet(() -> createDefault(tenantId));
 
+        String oldPrimary = profile.getPrimaryColor();
+        String oldAccent  = profile.getAccentColor();
+        String oldFont    = profile.getFontFamily();
+
         apply(profile, request);
-        return toDto(repository.save(profile));
+        BrandProfile saved = repository.save(profile);
+
+        // Cascade brand changes to DocumentTheme rows that still inherit
+        // from brand (i.e. weren't customised per-document-type).
+        if (anyChanged(oldPrimary, saved.getPrimaryColor(),
+                       oldAccent,  saved.getAccentColor(),
+                       oldFont,    saved.getFontFamily())) {
+            documentThemeService.cascadeBrandChange(tenantId,
+                oldPrimary, saved.getPrimaryColor(),
+                oldAccent,  saved.getAccentColor(),
+                oldFont,    saved.getFontFamily());
+        }
+        return toDto(saved);
+    }
+
+    private boolean anyChanged(String oP, String nP, String oA, String nA, String oF, String nF) {
+        return !java.util.Objects.equals(oP, nP)
+            || !java.util.Objects.equals(oA, nA)
+            || !java.util.Objects.equals(oF, nF);
     }
 
     @Transactional

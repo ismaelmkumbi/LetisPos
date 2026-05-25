@@ -45,4 +45,38 @@ public class DocumentThemeService {
     public void resetAll(UUID tenantId) {
         repo.deleteAll(repo.findByTenantIdOrderByDocTypeAsc(tenantId));
     }
+
+    /**
+     * Cascade brand colour / font changes to every existing DocumentTheme
+     * row whose values currently match the previous brand values. This
+     * preserves intentional per-document-type overrides — only rows that
+     * were inheriting from brand get updated.
+     */
+    @Transactional
+    public int cascadeBrandChange(UUID tenantId,
+                                  String oldPrimary, String newPrimary,
+                                  String oldAccent,  String newAccent,
+                                  String oldFont,    String newFont) {
+        int updated = 0;
+        var themes = repo.findByTenantIdOrderByDocTypeAsc(tenantId);
+        for (DocumentTheme t : themes) {
+            boolean changed = false;
+            if (sameOrBlank(t.getPrimaryColor(), oldPrimary) && newPrimary != null) {
+                t.setPrimaryColor(newPrimary); changed = true;
+            }
+            if (sameOrBlank(t.getAccentColor(), oldAccent) && newAccent != null) {
+                t.setAccentColor(newAccent); changed = true;
+            }
+            if (sameOrBlank(t.getFontFamily(), oldFont) && newFont != null) {
+                t.setFontFamily(newFont); changed = true;
+            }
+            if (changed) { repo.save(t); updated++; }
+        }
+        return updated;
+    }
+
+    private boolean sameOrBlank(String themeValue, String brandValue) {
+        if (themeValue == null || themeValue.isBlank()) return true; // inheriting
+        return brandValue != null && themeValue.equalsIgnoreCase(brandValue);
+    }
 }

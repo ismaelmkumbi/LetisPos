@@ -318,6 +318,44 @@ public class AssistantToolCatalog {
                     "referenceId", Map.of("type","string","description","Source UUID or sale reference like INV-2026-000001")
                 ),"required",List.of("referenceId")), true, null),
 
+            // ── Brand identity & document theme tools ──────────────────
+            new ToolDef("getBrandProfile", "Get the tenant's current brand identity: business name, tagline, industry, colours, fonts, logo URLs, and social links. Use this before suggesting changes so you can reference the current state.",
+                Map.of("type","object","properties", Map.of()), false, null),
+
+            new ToolDef("generateLogoConcepts", "Generate 3 logo concept descriptions for the tenant's brand. Returns name, description, style for each concept. To turn a concept into an actual image, follow up with generateLogoImage on the concept the user picks.",
+                Map.of("type","object","properties", Map.of()), false, null),
+
+            new ToolDef("generateColorPalette", "Generate a 5-colour brand palette suited to the tenant's industry and brand tone. Returns an array of hex colours.",
+                Map.of("type","object","properties", Map.of()), false, null),
+
+            new ToolDef("suggestBrandFonts", "Suggest 3 font pairings for the tenant's brand. Returns family + category + preview for each.",
+                Map.of("type","object","properties", Map.of()), false, null),
+
+            new ToolDef("generateLogoImage", "Generate an actual logo image (PNG) using the configured image-gen provider (DALL-E 3 by default). Returns either a job id (async) or a direct URL when generation is sync. Stubbed when no provider key is set — call generateLogoConcepts then ask the user to upload a designer-made logo.",
+                Map.of("type","object","properties", Map.of(
+                    "prompt", Map.of("type","string","description","Free-text description of the logo to generate (e.g. 'minimalist apothecary mortar and pestle in deep green, no text')"),
+                    "style", Map.of("type","string","description","Optional style hint: minimalist, vintage, playful, corporate")
+                ),"required",List.of("prompt")), true, null),
+
+            new ToolDef("enhanceLogo", "Run logo-enhancement: background removal + thermal-print optimisation + colour-palette extraction from an uploaded logo. Returns enhanced URLs and a derived palette. Stubbed when no enhancement provider is configured.",
+                Map.of("type","object","properties", Map.of(
+                    "logoUrl", Map.of("type","string","description","Public URL of the logo to enhance")
+                ),"required",List.of("logoUrl")), true, null),
+
+            new ToolDef("generateDocumentTheme", "Generate a complete document theme (primary/secondary/accent/surface/text/border colours) derived from the tenant's brand. Use this when the user asks for a fresh invoice/receipt look.",
+                Map.of("type","object","properties", Map.of(
+                    "docType", Map.of("type","string","description","Optional doc type to scope the theme to (invoice, receipt, quotation, …). Omit for the global default.")
+                ),"required",List.of()), false, null),
+
+            new ToolDef("previewDocument", "Preview an invoice / receipt / quotation rendered with the tenant's current brand profile and a synthetic sample sale — no real sale needed. Use this during setup so the tenant can see exactly what their documents will look like.",
+                Map.of("type","object","properties", Map.of(
+                    "documentType", Map.of("type","string","description","tax-invoice, payment-receipt, quotation, delivery-note, credit-note. Default: tax-invoice"),
+                    "sampleStyle", Map.of("type","string","description","Sample size: 'small' (1 line), 'typical' (3 lines), 'large' (8 lines). Default: typical")
+                ),"required",List.of()), false, null),
+
+            new ToolDef("getSetupProgress", "Get the tenant's platform setup checklist: brand, logo, warehouses, products, document theme, first sale. Each step has a status (done / pending / skipped) and a hint for the next action.",
+                Map.of("type","object","properties", Map.of()), false, null),
+
             new ToolDef("askClarification", "Ask the user a clarifying question instead of guessing. Use this whenever a request is ambiguous (e.g. 'email it to John' — which document? which John?; 'show stock for the new one' — which product?). Provide 2-4 concrete options when you can. Do NOT use this for questions the user has already answered in the conversation.",
                 Map.of("type","object","properties", Map.of(
                     "question", Map.of("type","string","description","The single, specific question to ask"),

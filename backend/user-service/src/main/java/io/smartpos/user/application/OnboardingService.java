@@ -60,6 +60,8 @@ public class OnboardingService {
             case "products" -> state.setProductsCompleted(completed);
             case "staff" -> state.setStaffCompleted(completed);
             case "first_sale" -> state.setFirstSaleCompleted(completed);
+            case "brand" -> state.setBrandCompleted(completed);
+            case "document_theme" -> state.setDocumentThemeCompleted(completed);
             default -> throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Unknown onboarding step: " + req.step());
         }

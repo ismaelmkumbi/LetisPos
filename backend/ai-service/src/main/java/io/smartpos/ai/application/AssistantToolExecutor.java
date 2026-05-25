@@ -3,6 +3,8 @@ package io.smartpos.ai.application;
 import io.smartpos.ai.api.dto.AssistantDtos;
 import io.smartpos.ai.domain.model.AssistantDraft;
 import io.smartpos.ai.domain.repository.AssistantDraftRepository;
+import io.smartpos.ai.application.brand.ImageGenerationProvider;
+import io.smartpos.ai.application.brand.LogoEnhancementProvider;
 import io.smartpos.ai.infrastructure.feign.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Component;
@@ -30,13 +32,19 @@ public class AssistantToolExecutor {
     private final NotificationFeign notificationFeign;
     private final DocumentFeign documentFeign;
     private final AssistantDraftRepository draftRepo;
+    private final BrandFeign brandFeign;
+    private final ImageGenerationProvider imageGenProvider;
+    private final LogoEnhancementProvider logoEnhanceProvider;
     private final ObjectMapper om = new ObjectMapper();
 
     public AssistantToolExecutor(ReportFeign reportFeign, SalesFeign salesFeign,
                                   InventoryFeign inventoryFeign, ProductFeign productFeign,
                                   PaymentFeign paymentFeign, CustomerFeign customerFeign,
                                   AdminFeign adminFeign, NotificationFeign notificationFeign,
-                                  DocumentFeign documentFeign, AssistantDraftRepository draftRepo) {
+                                  DocumentFeign documentFeign, AssistantDraftRepository draftRepo,
+                                  BrandFeign brandFeign,
+                                  ImageGenerationProvider imageGenProvider,
+                                  LogoEnhancementProvider logoEnhanceProvider) {
         this.reportFeign = reportFeign;
         this.salesFeign = salesFeign;
         this.inventoryFeign = inventoryFeign;
@@ -47,6 +55,9 @@ public class AssistantToolExecutor {
         this.notificationFeign = notificationFeign;
         this.documentFeign = documentFeign;
         this.draftRepo = draftRepo;
+        this.brandFeign = brandFeign;
+        this.imageGenProvider = imageGenProvider;
+        this.logoEnhanceProvider = logoEnhanceProvider;
     }
 
     public AssistantDtos.ToolResult execute(String toolName, Map<String, Object> args, UUID userId) {
@@ -101,6 +112,15 @@ public class AssistantToolExecutor {
             case "searchDocuments" -> searchDocuments(args);
             case "teachModule" -> teachModule(args);
             case "askClarification" -> askClarification(args);
+            case "getBrandProfile" -> getBrandProfile(args);
+            case "generateLogoConcepts" -> generateLogoConcepts(args);
+            case "generateColorPalette" -> generateColorPalette(args);
+            case "suggestBrandFonts" -> suggestBrandFonts(args);
+            case "generateLogoImage" -> generateLogoImage(args);
+            case "enhanceLogo" -> enhanceLogo(args);
+            case "generateDocumentTheme" -> generateDocumentTheme(args);
+            case "previewDocument" -> previewDocument(args);
+            case "getSetupProgress" -> getSetupProgress(args);
             // Write tools — needed here for super admin auto-confirm path
             case "createProduct" -> createProduct(args);
             case "updateProductPrice" -> updateProductPrice(args);
@@ -1848,6 +1868,203 @@ public class AssistantToolExecutor {
             data.put("requestedTopic", topic);
         }
         return new AssistantDtos.ToolResult("guide", guide.title(), data);
+    }
+
+    // ── Brand & document-theme tools ─────────────────────────────────────
+
+    private AssistantDtos.ToolResult getBrandProfile(Map<String, Object> args) {
+        try {
+            Map<String, Object> brand = brandFeign.getBrand();
+            Map<String, Object> data = new LinkedHashMap<>(brand);
+            return new AssistantDtos.ToolResult("brand", "Brand profile", data);
+        } catch (Exception e) {
+            throw ToolException.classify("getBrandProfile", e);
+        }
+    }
+
+    private AssistantDtos.ToolResult generateLogoConcepts(Map<String, Object> args) {
+        try {
+            List<Map<String, Object>> concepts = brandFeign.generateLogoVariants();
+            Map<String, Object> data = new LinkedHashMap<>();
+            data.put("concepts", concepts != null ? concepts : List.of());
+            data.put("nextStep", "Pick a concept and call generateLogoImage to produce an actual PNG.");
+            return new AssistantDtos.ToolResult("logo-concepts",
+                "Logo Concepts (" + (concepts != null ? concepts.size() : 0) + ")", data);
+        } catch (Exception e) {
+            throw ToolException.classify("generateLogoConcepts", e);
+        }
+    }
+
+    private AssistantDtos.ToolResult generateColorPalette(Map<String, Object> args) {
+        try {
+            Map<String, Object> resp = brandFeign.generatePalette();
+            Map<String, Object> data = new LinkedHashMap<>();
+            data.put("colors", resp.getOrDefault("colors", List.of()));
+            data.put("nextStep", "Apply the palette via updateBrandProfile (primaryColor, secondaryColor, accentColor).");
+            return new AssistantDtos.ToolResult("palette", "Suggested Palette", data);
+        } catch (Exception e) {
+            throw ToolException.classify("generateColorPalette", e);
+        }
+    }
+
+    private AssistantDtos.ToolResult suggestBrandFonts(Map<String, Object> args) {
+        try {
+            Map<String, Object> resp = brandFeign.suggestFonts();
+            Map<String, Object> data = new LinkedHashMap<>();
+            data.put("fonts", resp.getOrDefault("fonts", List.of()));
+            return new AssistantDtos.ToolResult("fonts", "Font Pairings", data);
+        } catch (Exception e) {
+            throw ToolException.classify("suggestBrandFonts", e);
+        }
+    }
+
+    private AssistantDtos.ToolResult generateLogoImage(Map<String, Object> args) {
+        String prompt = (String) args.get("prompt");
+        if (prompt == null || prompt.isBlank()) {
+            throw new ToolException("INVALID_ARG",
+                "I need a prompt describing the logo.",
+                "Try: 'minimalist apothecary mortar and pestle in deep green'.");
+        }
+        String style = (String) args.get("style");
+        try {
+            var images = imageGenProvider.generate(new ImageGenerationProvider.GenerateRequest(
+                prompt, style, 3, "1024x1024", null));
+            Map<String, Object> data = new LinkedHashMap<>();
+            data.put("provider", imageGenProvider.id());
+            data.put("images", images);
+            data.put("nextStep", imageGenProvider.id().equals("stub")
+                ? "Image generation is stubbed; configure smartpos.brand.image-gen.provider=openai-dalle and OPENAI_API_KEY to produce real images."
+                : "Pick the best image and save it via updateBrandProfile.logoUrl.");
+            return new AssistantDtos.ToolResult("logo-image", "Generated Logos", data);
+        } catch (Exception e) {
+            throw ToolException.classify("generateLogoImage", e);
+        }
+    }
+
+    private AssistantDtos.ToolResult enhanceLogo(Map<String, Object> args) {
+        String logoUrl = (String) args.get("logoUrl");
+        if (logoUrl == null || logoUrl.isBlank()) {
+            throw new ToolException("INVALID_ARG",
+                "I need a logoUrl to enhance.",
+                "Upload a logo first or pass the URL of an existing logo.");
+        }
+        try {
+            var result = logoEnhanceProvider.enhance(logoUrl);
+            Map<String, Object> data = new LinkedHashMap<>();
+            data.put("originalUrl", result.originalUrl());
+            data.put("backgroundRemovedUrl", result.backgroundRemovedUrl());
+            data.put("monochromeUrl", result.monochromeUrl());
+            data.put("thermalOptimizedUrl", result.thermalOptimizedUrl());
+            data.put("palette", result.palette());
+            data.put("diagnostics", result.diagnostics());
+            return new AssistantDtos.ToolResult("logo-enhancement", "Logo Enhancement", data);
+        } catch (Exception e) {
+            throw ToolException.classify("enhanceLogo", e);
+        }
+    }
+
+    private AssistantDtos.ToolResult generateDocumentTheme(Map<String, Object> args) {
+        try {
+            Map<String, Object> theme = brandFeign.generateTheme();
+            Map<String, Object> data = new LinkedHashMap<>(theme);
+            if (args.get("docType") instanceof String d && !d.isBlank()) data.put("docType", d);
+            data.put("nextStep", "Apply via PUT /api/v1/document-themes/" + data.getOrDefault("docType", "<docType>") + ".");
+            return new AssistantDtos.ToolResult("theme", "Document Theme", data);
+        } catch (Exception e) {
+            throw ToolException.classify("generateDocumentTheme", e);
+        }
+    }
+
+    private AssistantDtos.ToolResult previewDocument(Map<String, Object> args) {
+        String docType = (String) args.getOrDefault("documentType", "tax-invoice");
+        String sampleStyle = (String) args.getOrDefault("sampleStyle", "typical");
+        try {
+            Map<String, Object> body = new LinkedHashMap<>();
+            body.put("documentType", docType);
+            body.put("sampleStyle", sampleStyle);
+            Map<String, Object> preview = brandFeign.previewMock(body);
+            Map<String, Object> data = new LinkedHashMap<>(preview);
+            data.put("documentType", docType);
+            return new AssistantDtos.ToolResult("document-preview",
+                "Preview: " + docType, data);
+        } catch (Exception e) {
+            throw ToolException.classify("previewDocument", e);
+        }
+    }
+
+    private AssistantDtos.ToolResult getSetupProgress(Map<String, Object> args) {
+        // Best-effort assembly from existing services. Each check is wrapped
+        // so a single unreachable service degrades to "unknown" rather than
+        // failing the whole tool.
+        Map<String, Object> brand = safe(() -> brandFeign.getBrand());
+        List<Map<String, Object>> warehouses = safeList(() -> inventoryFeign.listWarehouses().stream()
+            .map(w -> Map.of("id", (Object) w.id().toString(), "name", w.name())).toList());
+        long productCount;
+        try {
+            productCount = productFeign.search(null, null, null, null,
+                org.springframework.data.domain.Pageable.ofSize(1)).getTotalElements();
+        } catch (Exception e) { productCount = -1; }
+        long saleCount;
+        try {
+            saleCount = salesFeign.search(null, null, null, null, null, null, 0, 1).totalElements();
+        } catch (Exception e) { saleCount = -1; }
+
+        List<Map<String, Object>> steps = new ArrayList<>();
+        steps.add(step("brand-name",
+            brand != null && nonBlank(brand.get("businessName")),
+            "Business name set", "Set your business name in Settings → Brand Identity."));
+        steps.add(step("brand-logo",
+            brand != null && nonBlank(brand.get("logoUrl")),
+            "Logo uploaded or generated", "Use the assistant: 'generate me a logo for my business'."));
+        steps.add(step("brand-colours",
+            brand != null && nonBlank(brand.get("primaryColor")) && !"#16A34A".equals(brand.get("primaryColor")),
+            "Brand colours customised", "Ask: 'generate a brand palette'."));
+        steps.add(step("warehouses",
+            !warehouses.isEmpty(),
+            warehouses.size() + " warehouse(s) configured",
+            "Add at least one warehouse in Settings → Warehouses."));
+        steps.add(step("products",
+            productCount > 0,
+            productCount > 0 ? productCount + " product(s) in catalogue" : "No products yet",
+            "Add at least one product so the POS has something to sell."));
+        steps.add(step("document-theme",
+            brand != null && nonBlank(brand.get("primaryColor")),
+            "Document theme inherits from brand",
+            "Ask: 'preview my invoice' to confirm the layout."));
+        steps.add(step("first-sale",
+            saleCount > 0,
+            saleCount > 0 ? saleCount + " sale(s) recorded" : "No sales yet",
+            "Ring up a test sale in POS to confirm the end-to-end flow."));
+
+        long done = steps.stream().filter(s -> Boolean.TRUE.equals(s.get("done"))).count();
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("steps", steps);
+        data.put("doneCount", done);
+        data.put("totalCount", steps.size());
+        data.put("percentComplete", Math.round(100.0 * done / steps.size()));
+        return new AssistantDtos.ToolResult("setup-progress",
+            "Setup progress (" + done + "/" + steps.size() + ")", data);
+    }
+
+    private Map<String, Object> step(String id, boolean done, String label, String hint) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("id", id);
+        m.put("done", done);
+        m.put("label", label);
+        m.put("hint", hint);
+        return m;
+    }
+
+    private boolean nonBlank(Object v) {
+        return v != null && !String.valueOf(v).isBlank();
+    }
+
+    private <T> T safe(java.util.concurrent.Callable<T> c) {
+        try { return c.call(); } catch (Exception e) { return null; }
+    }
+
+    private <T> List<T> safeList(java.util.concurrent.Callable<List<T>> c) {
+        try { var r = c.call(); return r != null ? r : List.of(); } catch (Exception e) { return List.of(); }
     }
 
     private AssistantDtos.ToolResult sendEmail(Map<String, Object> args) {

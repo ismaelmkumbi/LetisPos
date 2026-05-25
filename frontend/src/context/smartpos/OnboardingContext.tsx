@@ -23,6 +23,8 @@ const DEFAULT_STATE: OnboardingState = {
   products: false,
   staff: false,
   firstSale: false,
+  brand: false,
+  documentTheme: false,
   percent: 20,
   isComplete: false,
   completedAt: null,

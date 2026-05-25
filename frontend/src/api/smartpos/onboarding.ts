@@ -7,6 +7,8 @@ export interface OnboardingState {
   products: boolean;
   staff: boolean;
   firstSale: boolean;
+  brand: boolean;
+  documentTheme: boolean;
   percent: number;
   isComplete: boolean;
   completedAt: string | null;
@@ -18,7 +20,9 @@ export type OnboardingStep =
   | 'tax'
   | 'products'
   | 'staff'
-  | 'first_sale';
+  | 'first_sale'
+  | 'brand'
+  | 'document_theme';
 
 export async function fetchOnboardingState(): Promise<OnboardingState> {
   const { data } = await api.get<OnboardingState>('/api/v1/users/me/onboarding');

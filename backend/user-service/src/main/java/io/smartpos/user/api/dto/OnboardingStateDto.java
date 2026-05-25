@@ -11,6 +11,8 @@ public record OnboardingStateDto(
         boolean products,
         boolean staff,
         boolean firstSale,
+        boolean brand,
+        boolean documentTheme,
         int percent,
         boolean isComplete,
         Instant completedAt
@@ -23,6 +25,8 @@ public record OnboardingStateDto(
                 s.isProductsCompleted(),
                 s.isStaffCompleted(),
                 s.isFirstSaleCompleted(),
+                s.isBrandCompleted(),
+                s.isDocumentThemeCompleted(),
                 s.completionPercent(),
                 s.isComplete(),
                 s.getCompletedAt()

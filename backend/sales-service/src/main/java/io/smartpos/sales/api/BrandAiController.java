@@ -24,6 +24,7 @@ import java.util.*;
 public class BrandAiController {
 
     private final BrandProfileService brandService;
+    private final io.smartpos.sales.application.BrandAiJobService jobService;
     private final RestTemplate rest = new RestTemplate();
 
     @org.springframework.beans.factory.annotation.Value("${smartpos.sales.ai-service-url:http://10.0.0.2:8091}")
@@ -268,6 +269,24 @@ public class BrandAiController {
             Map.of("family", "DM Sans, system-ui, sans-serif", "category", "sans-serif", "preview", "Geometric and friendly"),
             Map.of("family", "Source Serif 4, Georgia, serif", "category", "serif", "preview", "Traditional and trustworthy")
         );
+    }
+
+    // ── Async job polling ────────────────────────────────────────────────────
+
+    @GetMapping("/jobs/{jobId}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Map<String, Object>> getJob(@PathVariable UUID jobId) {
+        return jobService.getForTenant(jobId)
+            .map(j -> ResponseEntity.ok(jobService.toDto(j)))
+            .orElse(ResponseEntity.notFound().build());
+    }
+
+    @GetMapping("/jobs")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<List<Map<String, Object>>> listJobs(
+            @RequestParam(value = "status", required = false) String status) {
+        return ResponseEntity.ok(jobService.list(status).stream()
+            .map(jobService::toDto).toList());
     }
 
     private static Map<String, Object> defaultTheme() {

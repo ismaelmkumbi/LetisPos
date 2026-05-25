@@ -41,6 +41,14 @@ public class UserOnboardingState {
     @Builder.Default
     private boolean firstSaleCompleted = false;
 
+    @Column(name = "brand_completed", nullable = false)
+    @Builder.Default
+    private boolean brandCompleted = false;
+
+    @Column(name = "document_theme_completed", nullable = false)
+    @Builder.Default
+    private boolean documentThemeCompleted = false;
+
     @Column(name = "completed_at")
     private Instant completedAt;
 

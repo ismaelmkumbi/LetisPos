@@ -15,15 +15,14 @@ import WarehouseSetup from './steps/WarehouseSetup';
 import TaxSetup from './steps/TaxSetup';
 import ProductImportSetup from './steps/ProductImportSetup';
 import FirstSaleGuide from './steps/FirstSaleGuide';
+import BrandSetup from './steps/BrandSetup';
+import DocumentThemeSetup from './steps/DocumentThemeSetup';
 
-const STEPS = ['Warehouse', 'Tax Rules', 'Products', 'First Sale'];
+const STEPS = ['Brand', 'Warehouse', 'Tax Rules', 'Products', 'Invoice Look', 'First Sale'];
 
-const STEP_KEYS: Array<'warehouse' | 'tax' | 'products' | 'first_sale'> = [
-  'warehouse',
-  'tax',
-  'products',
-  'first_sale',
-];
+const STEP_KEYS: Array<
+  'brand' | 'warehouse' | 'tax' | 'products' | 'document_theme' | 'first_sale'
+> = ['brand', 'warehouse', 'tax', 'products', 'document_theme', 'first_sale'];
 
 interface Props {
   open: boolean;
@@ -90,10 +89,12 @@ export default function SetupWizard({ open, onClose }: Props) {
       </Stepper>
 
       <DialogContent sx={{ px: 3, py: 1 }}>
-        {activeStep === 0 && <WarehouseSetup onComplete={handleComplete} />}
-        {activeStep === 1 && <TaxSetup onComplete={handleComplete} />}
-        {activeStep === 2 && <ProductImportSetup onComplete={handleComplete} />}
-        {activeStep === 3 && <FirstSaleGuide onComplete={handleComplete} />}
+        {activeStep === 0 && <BrandSetup onComplete={handleComplete} />}
+        {activeStep === 1 && <WarehouseSetup onComplete={handleComplete} />}
+        {activeStep === 2 && <TaxSetup onComplete={handleComplete} />}
+        {activeStep === 3 && <ProductImportSetup onComplete={handleComplete} />}
+        {activeStep === 4 && <DocumentThemeSetup onComplete={handleComplete} />}
+        {activeStep === 5 && <FirstSaleGuide onComplete={handleComplete} />}
       </DialogContent>
 
       <Box

@@ -32,11 +32,14 @@ class AssistantToolExecutorEmailTest {
         var customerFeign = mock(CustomerFeign.class);
         var adminFeign = mock(AdminFeign.class);
         var draftRepo = mock(AssistantDraftRepository.class);
+        var brandFeign = mock(io.smartpos.ai.infrastructure.feign.BrandFeign.class);
+        var imageGen = mock(io.smartpos.ai.application.brand.ImageGenerationProvider.class);
+        var logoEnh = mock(io.smartpos.ai.application.brand.LogoEnhancementProvider.class);
 
         executor = new AssistantToolExecutor(
             reportFeign, salesFeign, inventoryFeign, productFeign,
             paymentFeign, customerFeign, adminFeign, notificationFeign,
-            documentFeign, draftRepo);
+            documentFeign, draftRepo, brandFeign, imageGen, logoEnh);
     }
 
     @Test

@@ -194,6 +194,45 @@ export async function aiGenerateLogoVariants(): Promise<BrandAsset[]> {
   return data;
 }
 
+/**
+ * Render a sample invoice / receipt / quotation from the tenant's
+ * current brand profile + synthetic line items. No real sale required —
+ * the perfect "see what your documents look like" preview during setup.
+ */
+export interface MockDocumentPreview {
+  documentType: string;
+  documentNumber: string;
+  issueDate: string;
+  dueDate: string;
+  currency: string;
+  brand: {
+    businessName: string;
+    tagline?: string;
+    logoUrl?: string;
+    primaryColor: string;
+    secondaryColor?: string;
+    accentColor?: string;
+    fontFamily?: string;
+    website?: string;
+  };
+  customer: { name: string; email?: string; phone?: string; address?: string };
+  lines: Array<{ name: string; quantity: number; unitPrice: number; total: number }>;
+  totals: { subtotal: number; taxRate: string; taxAmount: number; grandTotal: number };
+  mock: boolean;
+  notice: string;
+}
+
+export async function previewMockDocument(
+  documentType: string = 'tax-invoice',
+  sampleStyle: 'small' | 'typical' | 'large' = 'typical',
+): Promise<MockDocumentPreview> {
+  const { data } = await api.post<MockDocumentPreview>(
+    '/api/v1/brand/document-themes/preview-mock',
+    { documentType, sampleStyle },
+  );
+  return data;
+}
+
 /** Request AI to generate a color palette from the current logo. */
 export async function aiGeneratePalette(): Promise<string[]> {
   const { data } = await api.post<{ colors: string[] }>(
