@@ -52,7 +52,7 @@ export interface ServiceInfo {
 }
 
 export interface BackendService {
-  name: string; category: string; port: number; status: 'UP' | 'DOWN'; description: string;
+  name: string; containerName?: string; category: string; port: number; status: 'UP' | 'DOWN'; description: string;
   cpuPercent?: number; memUsedBytes?: number; pid?: number; command?: string;
 }
 
@@ -161,13 +161,14 @@ function normalizeDockerStatus(status: string): 'UP' | 'DOWN' {
 }
 
 export const getBackendServices = (server: ServerId) =>
-  agents[server].get('/services').then((r) => {
+  agents[server].get('/backend-services').then((r) => {
     if (!Array.isArray(r.data)) return [];
     return r.data.map((raw: Record<string, unknown>) => {
       const name = String(raw.name || '');
       const desc = String(raw.description || '');
       return {
         name,
+        containerName: typeof raw.containerName === 'string' ? raw.containerName : undefined,
         category: String(raw.category || deriveServiceCategory(name, desc)),
         port: Number(raw.port) || extractServicePort(name, desc) || 0,
         status: normalizeDockerStatus(String(raw.status || '')),

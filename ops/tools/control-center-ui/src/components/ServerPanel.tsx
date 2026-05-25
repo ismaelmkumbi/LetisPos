@@ -42,7 +42,7 @@ export default function ServerPanel({ server, metrics: m, backendSvcs, services 
   const upCount = backendSvcs.filter((s) => s.status === 'UP').length;
   const loading = m.length === 0;
 
-  const svcSlug = detailSvc ? detailSvc.name.toLowerCase().replace(/\s+/g, '-') : '';
+  const svcSlug = detailSvc ? (detailSvc.containerName || detailSvc.name.toLowerCase().replace(/\s+/g, '-')) : '';
 
   return (
     <Card elevation={0} sx={{ ...cardSx }}>

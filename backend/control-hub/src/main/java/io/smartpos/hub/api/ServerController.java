@@ -113,6 +113,7 @@ public class ServerController {
             boolean up = checkPort("127.0.0.1", port);
             Map<String, Object> info = new LinkedHashMap<>();
             info.put("name", KNOWN_PORTS.get(port).name);
+            info.put("containerName", KNOWN_PORTS.get(port).containerName);
             info.put("category", KNOWN_PORTS.get(port).category);
             info.put("port", port);
             info.put("status", up ? "UP" : "DOWN");
@@ -209,24 +210,24 @@ public class ServerController {
         static final ProcessStats EMPTY = new ProcessStats(0, 0, 0, "");
     }
 
-    private record ServiceMeta(String name, String category, String description) {}
+    private record ServiceMeta(String name, String containerName, String category, String description) {}
     private static final Map<Integer, ServiceMeta> KNOWN_PORTS = new LinkedHashMap<>();
     static {
-        KNOWN_PORTS.put(8080, new ServiceMeta("Gateway", "Core", "API Gateway / Router"));
-        KNOWN_PORTS.put(8081, new ServiceMeta("Auth Service", "Core", "Authentication & JWT"));
-        KNOWN_PORTS.put(8082, new ServiceMeta("User Service", "Core", "Users, Roles & Permissions"));
-        KNOWN_PORTS.put(8083, new ServiceMeta("Product Service", "Catalog", "Products, Categories, Brands"));
-        KNOWN_PORTS.put(8084, new ServiceMeta("Inventory Service", "Inventory", "Stock, Warehouses, Transfers"));
-        KNOWN_PORTS.put(8085, new ServiceMeta("Sales Service", "Sales", "POS, Sales, Quotations"));
-        KNOWN_PORTS.put(8086, new ServiceMeta("Payment Service", "Finance", "Payments, Accounts, Expenses"));
-        KNOWN_PORTS.put(8087, new ServiceMeta("Report Service", "Insight", "Reports & Analytics"));
-        KNOWN_PORTS.put(8089, new ServiceMeta("Notification Service", "Core", "Email, SMS, Push Notifications"));
-        KNOWN_PORTS.put(8090, new ServiceMeta("HRM Service", "People", "Employees, Attendance, Payroll"));
-        KNOWN_PORTS.put(8091, new ServiceMeta("AI Service", "Intelligence", "AI Insights & Automation"));
-        KNOWN_PORTS.put(8092, new ServiceMeta("Integration Service", "Platform", "Third-party Integrations"));
-        KNOWN_PORTS.put(8093, new ServiceMeta("Document Service", "Documents", "PDF Generation & Templates"));
-        KNOWN_PORTS.put(8094, new ServiceMeta("Billing Service", "Finance", "Plans, Subscriptions & Billing"));
-        KNOWN_PORTS.put(8100, new ServiceMeta("Control Hub", "Platform", "Letis Control Center Hub"));
-        KNOWN_PORTS.put(9100, new ServiceMeta("LSA Agent", "Platform", "Server Monitoring Agent"));
+        KNOWN_PORTS.put(8080, new ServiceMeta("Gateway",              "letispos-gateway",         "Core",        "API Gateway / Router"));
+        KNOWN_PORTS.put(8081, new ServiceMeta("Auth Service",         "letispos-auth",             "Core",        "Authentication & JWT"));
+        KNOWN_PORTS.put(8082, new ServiceMeta("User Service",         "letispos-user",             "Core",        "Users, Roles & Permissions"));
+        KNOWN_PORTS.put(8083, new ServiceMeta("Product Service",      "letispos-product",          "Catalog",     "Products, Categories, Brands"));
+        KNOWN_PORTS.put(8084, new ServiceMeta("Inventory Service",    "letispos-inventory",        "Inventory",   "Stock, Warehouses, Transfers"));
+        KNOWN_PORTS.put(8085, new ServiceMeta("Sales Service",        "letispos-sales",            "Sales",       "POS, Sales, Quotations"));
+        KNOWN_PORTS.put(8086, new ServiceMeta("Payment Service",      "letispos-payment",          "Finance",     "Payments, Accounts, Expenses"));
+        KNOWN_PORTS.put(8087, new ServiceMeta("Report Service",       "letispos-report",           "Insight",     "Reports & Analytics"));
+        KNOWN_PORTS.put(8089, new ServiceMeta("Notification Service", "letispos-notification",     "Core",        "Email, SMS, Push Notifications"));
+        KNOWN_PORTS.put(8090, new ServiceMeta("HRM Service",          "letispos-hrm",              "People",      "Employees, Attendance, Payroll"));
+        KNOWN_PORTS.put(8091, new ServiceMeta("AI Service",           "letispos-ai",               "Intelligence","AI Insights & Automation"));
+        KNOWN_PORTS.put(8092, new ServiceMeta("Integration Service",  "letispos-integration",      "Platform",    "Third-party Integrations"));
+        KNOWN_PORTS.put(8093, new ServiceMeta("Document Service",     "letispos-document",         "Documents",   "PDF Generation & Templates"));
+        KNOWN_PORTS.put(8094, new ServiceMeta("Billing Service",      "letispos-billing",          "Finance",     "Plans, Subscriptions & Billing"));
+        KNOWN_PORTS.put(8098, new ServiceMeta("Control Hub",          "letispos-control-hub",      "Platform",    "Letis Control Center Hub"));
+        KNOWN_PORTS.put(9100, new ServiceMeta("LSA Agent",            "lsa-agent",                 "Platform",    "Server Monitoring Agent"));
     }
 }
