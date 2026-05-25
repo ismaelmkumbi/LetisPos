@@ -7,6 +7,8 @@ import { useEffect, useState, useCallback } from 'react';
 import {
   Alert,
   Box,
+  Button,
+  Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle,
   InputAdornment,
   MenuItem,
   Stack,
@@ -107,8 +109,24 @@ export default function BrandIdentityPage() {
 
   const showInfo = (msg: string) => { setInfo(msg); setTimeout(() => setInfo(null), 3500); };
 
+  // Unsaved changes guard
+  const isDirty = true; // Brand page always has the floating save bar visible
+
+  useEffect(() => {
+    if (!isDirty) return;
+    const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [isDirty]);
+
+  const [resetOpen, setResetOpen] = useState(false);
+
   const handleSave = async () => {
     if (!profile) return;
+    if (!profile.businessName.trim()) {
+      setError('Business name is required.');
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
@@ -148,6 +166,7 @@ export default function BrandIdentityPage() {
   };
 
   const handleReset = async () => {
+    setResetOpen(false);
     setResetting(true);
     try {
       const defaults = await resetBrandProfile();
@@ -503,12 +522,30 @@ export default function BrandIdentityPage() {
           <FloatingSaveBar
             saving={saving}
             onSave={handleSave}
-            onReset={handleReset}
+            onReset={() => setResetOpen(true)}
             resetting={resetting}
             saveLabel="Save Brand Identity"
             lastSavedAt={profile.updatedAt ? new Date(profile.updatedAt).toLocaleString() : undefined}
           />
         </Zoom>
+
+        {/* Reset confirmation dialog */}
+        <Dialog open={resetOpen} onClose={() => setResetOpen(false)} maxWidth="xs" fullWidth>
+          <DialogTitle sx={{ fontWeight: 700 }}>Reset brand identity?</DialogTitle>
+          <DialogContent>
+            <DialogContentText>
+              This will reset all brand settings — logo, colors, fonts, business name — to their defaults. This action cannot be undone.
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions sx={{ px: 3, pb: 2 }}>
+            <Button onClick={() => setResetOpen(false)} sx={{ textTransform: 'none', fontWeight: 600 }}>
+              Cancel
+            </Button>
+            <Button onClick={handleReset} color="error" variant="contained" sx={{ textTransform: 'none', fontWeight: 700 }}>
+              Reset All
+            </Button>
+          </DialogActions>
+        </Dialog>
       </Stack>
     </Box>
   );
