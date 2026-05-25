@@ -965,7 +965,7 @@ public class AssistantToolExecutor {
         List<ProductFeign.ProductDto> products;
         try {
             var resp = rt.exchange(
-                productServiceUrl() + "/api/v1/products?status=true&size=200",
+                productServiceUrl + "/api/v1/products?status=true&size=200",
                 org.springframework.http.HttpMethod.GET,
                 new org.springframework.http.HttpEntity<>(headers),
                 new org.springframework.core.ParameterizedTypeReference<
@@ -982,7 +982,7 @@ public class AssistantToolExecutor {
                 for (var p : products) {
                     try {
                         var lvl = rt.exchange(
-                            inventoryServiceUrl() + "/api/v1/stock?productId=" + p.id()
+                            inventoryServiceUrl + "/api/v1/stock?productId=" + p.id()
                                 + "&warehouseId=" + warehouseId,
                             org.springframework.http.HttpMethod.GET,
                             new org.springframework.http.HttpEntity<>(headers),
@@ -993,7 +993,7 @@ public class AssistantToolExecutor {
             } else {
                 var body = products.stream().map(p -> p.id()).toList();
                 var resp = rt.exchange(
-                    inventoryServiceUrl() + "/api/v1/stock/batch-aggregate",
+                    inventoryServiceUrl + "/api/v1/stock/batch-aggregate",
                     org.springframework.http.HttpMethod.POST,
                     new org.springframework.http.HttpEntity<>(body, headers),
                     new org.springframework.core.ParameterizedTypeReference<Map<UUID, Map<String, Object>>>() {});
