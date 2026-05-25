@@ -106,16 +106,16 @@ public class ServerController {
     private final ExecutorService portScanExecutor = Executors.newFixedThreadPool(8);
 
     @GetMapping("/{name}/backend-services")
-    public List<Map<String, Object>> listBackendServices(@PathVariable String name) {
+    public List<Map<String, Object>> listBackendServices(@PathVariable String name) throws InterruptedException {
         List<Map<String, Object>> result = new CopyOnWriteArrayList<>();
         Set<Integer> scanned = ConcurrentHashMap.newKeySet();
+        List<Callable<Void>> tasks = new ArrayList<>();
 
-        // Parallel port checks — cuts 17×500ms sequential scan to ~500ms
-        List<Future<?>> futures = new ArrayList<>();
+        // Parallel port checks via Docker container names
         for (int port : KNOWN_PORTS.keySet().stream().sorted().toList()) {
             scanned.add(port);
             String containerName = KNOWN_PORTS.get(port).containerName;
-            futures.add(portScanExecutor.submit(() -> {
+            tasks.add(() -> {
                 boolean up = checkPort(containerName, port);
                 Map<String, Object> info = new LinkedHashMap<>();
                 info.put("name", KNOWN_PORTS.get(port).name);
@@ -132,15 +132,15 @@ public class ServerController {
                     info.put("command", res.command);
                 }
                 result.add(info);
-            }));
+                return null;
+            });
         }
-        // Auto-discovery scans localhost (faster — no DNS needed)
+        // Auto-discovery (localhost — faster, no DNS)
         for (int port = 8080; port <= 8099; port++) {
             if (scanned.contains(port)) continue;
             int p = port;
-            futures.add(portScanExecutor.submit(() -> {
+            tasks.add(() -> {
                 if (checkPort("127.0.0.1", p)) {
-                    scanned.add(p);
                     Map<String, Object> info = new LinkedHashMap<>();
                     info.put("name", "Service :" + p);
                     info.put("category", "Other");
@@ -154,12 +154,11 @@ public class ServerController {
                     info.put("command", res.command);
                     result.add(info);
                 }
-            }));
+                return null;
+            });
         }
-        // Wait for all checks to finish (capped at 3s total)
-        for (Future<?> f : futures) {
-            try { f.get(3, TimeUnit.SECONDS); } catch (Exception ignored) {}
-        }
+        // All tasks complete within 3s total; timed-out tasks are cancelled
+        portScanExecutor.invokeAll(tasks, 3, TimeUnit.SECONDS);
         return result;
     }
 
