@@ -113,13 +113,32 @@ public class IntentClassifierService {
     // ── Swahili detection ──
 
     private static final Pattern SWAHILI_PATTERN = Pattern.compile(
-        "\\b(naomba|nina|ni|tengeneza|ongeza|futa|badilisha|rekebisha|" +
-        "nifanyaje|jinsi|maelezo|mafunzo|nisaidie|nifundishe|" +
-        "mauzo|wateja|bidhaa|hisa|ghala|fedha|malipo|gharama|faida|kodi|" +
-        "akaunti|pesa|mapato|matumizi|wafanyakazi|mhudumu|likizo|mshahara|" +
-        "wapangaji|ternant|mpango|usajili|idadi|muda|bei|aina|chapa|kipimo|" +
-        "mteja|kadi|mkopo|risiti|oda|leo|jana|wiki|mwezi|hii|huu|" +
-        "hakuna|kuna|gani|gapi|yupi|upi|za)\\b",
+        "\\b(" +
+        // Greetings and social phrases — short messages are language-tells.
+        "habari|mambo|jambo|salama|karibu|asante|hujambo|sijambo|" +
+        "shikamoo|marahaba|poa|sawa|kwaheri|tutaonana|" +
+        // Common verb subject/object prefixes (most Swahili sentences open with one of these).
+        "naomba|nina|ninataka|unaweza|unataka|unaona|unajua|" +
+        "niambie|niambia|nionyeshe|nipe|nisaidie|nifundishe|nifanyaje|" +
+        "tunaweza|tuna|wameongeza|wameuza|" +
+        // Verbs and helpers
+        "tengeneza|ongeza|futa|badilisha|rekebisha|jinsi|maelezo|mafunzo|" +
+        "onyesha|orodha|hesabu|angalia|tafuta|fungua|fungia|kagua|" +
+        // Domain nouns
+        "mauzo|wateja|bidhaa|hisa|ghala|bohari|stoo|fedha|malipo|gharama|" +
+        "faida|kodi|akaunti|pesa|mapato|matumizi|wafanyakazi|mhudumu|" +
+        "likizo|mshahara|wapangaji|mpango|usajili|idadi|muda|bei|aina|" +
+        "chapa|kipimo|mteja|kadi|mkopo|risiti|oda|thamani|kiasi|" +
+        // Time expressions
+        "leo|jana|kesho|wiki|mwezi|mwaka|sasa|baadaye|" +
+        // Demonstratives, articles and connectors
+        "hii|huu|hiki|hicho|kile|hizi|hizo|zile|wale|" +
+        "hakuna|kuna|gani|gapi|yupi|upi|" +
+        // Particles & prepositions — very common in any sentence
+        "ya|wa|la|za|kwa|na|katika|kuhusu|kwenye|" +
+        // Possessive pronouns (yangu/yako/yake catch "stock yangu")
+        "yangu|yako|yake|yetu|yenu|yao" +
+        ")\\b",
         Pattern.CASE_INSENSITIVE
     );
 
