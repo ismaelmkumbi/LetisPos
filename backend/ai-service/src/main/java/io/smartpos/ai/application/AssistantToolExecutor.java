@@ -99,6 +99,8 @@ public class AssistantToolExecutor {
             case "getNotificationTemplates" -> getNotificationTemplates(args);
             case "generateDocument" -> generateDocument(args);
             case "searchDocuments" -> searchDocuments(args);
+            case "teachModule" -> teachModule(args);
+            case "askClarification" -> askClarification(args);
             // Write tools — needed here for super admin auto-confirm path
             case "createProduct" -> createProduct(args);
             case "updateProductPrice" -> updateProductPrice(args);
@@ -259,14 +261,26 @@ public class AssistantToolExecutor {
             throw new IllegalArgumentException("A productId is required. Search products first when you only have a product name.");
         }
         UUID productId = UUID.fromString(productIdRaw);
-        UUID warehouseId = args.containsKey("warehouseId")
+        UUID warehouseId = args.containsKey("warehouseId") && args.get("warehouseId") != null
             ? UUID.fromString((String) args.get("warehouseId")) : null;
-        var stock = inventoryFeign.stockLevel(productId, warehouseId);
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("columns", List.of("Field","Value"));
-        data.put("rows", stock.entrySet().stream()
-            .map(e -> List.of(e.getKey(), String.valueOf(e.getValue())))
-            .collect(Collectors.toList()));
+        List<List<Object>> rows = new ArrayList<>();
+        if (warehouseId != null) {
+            var stock = inventoryFeign.stockLevel(productId, warehouseId);
+            stock.forEach((k, v) -> rows.add(List.of(k, String.valueOf(v))));
+        } else {
+            List<UUID> warehouseIds = resolveWarehouseIds();
+            if (warehouseIds.isEmpty()) {
+                throw new ToolException("NO_WAREHOUSE",
+                    "No warehouses are configured for this tenant.",
+                    "Ask an admin to create at least one warehouse in Settings → Warehouses, then try again.");
+            }
+            BigDecimal total = aggregateAvailable(productId, warehouseIds);
+            rows.add(List.of("available (all warehouses)", total.stripTrailingZeros().toPlainString()));
+            rows.add(List.of("warehouseCount", String.valueOf(warehouseIds.size())));
+        }
+        data.put("rows", rows);
         return new AssistantDtos.ToolResult("table", "Stock Level", data);
     }
 
@@ -283,19 +297,20 @@ public class AssistantToolExecutor {
                 Map.of("message", "No product matched '" + query + "'. Try a clearer product name, SKU, or barcode."));
         }
 
-        UUID warehouseId = args.containsKey("warehouseId")
+        UUID warehouseId = args.containsKey("warehouseId") && args.get("warehouseId") != null
             ? UUID.fromString((String) args.get("warehouseId")) : null;
+        List<UUID> warehouseIds = warehouseId != null
+            ? List.of(warehouseId) : resolveWarehouseIds();
         Map<String, Object> data = new LinkedHashMap<>();
-        data.put("columns", List.of("Product","SKU","Field","Value"));
+        data.put("columns", List.of("Product","SKU","Available"));
         List<List<Object>> rows = new ArrayList<>();
         for (var product : products) {
-            var stock = inventoryFeign.stockLevel(product.id(), warehouseId);
-            stock.forEach((field, value) -> rows.add(List.of(
+            BigDecimal available = aggregateAvailable(product.id(), warehouseIds);
+            rows.add(List.of(
                 product.name(),
                 product.sku() != null ? product.sku() : "",
-                field,
-                String.valueOf(value)
-            )));
+                available.stripTrailingZeros().toPlainString()
+            ));
         }
         data.put("rows", rows);
         data.put("matchedProducts", products.size());
@@ -413,28 +428,113 @@ public class AssistantToolExecutor {
             org.springframework.data.domain.Pageable.ofSize(limit));
         var products = page.getContent();
         Map<String, Object> data = new LinkedHashMap<>();
-        // Summary metrics
         long totalProducts = page.getTotalElements();
         data.put("totalProducts", totalProducts);
         data.put("displayedProducts", products.size());
         data.put("columns", List.of("Product","SKU","Price","Stock"));
+
+        // Single batched call → inventory-service aggregates across all warehouses
+        Map<UUID, Map<String, Object>> aggregates;
+        try {
+            aggregates = inventoryFeign.batchAggregate(
+                products.stream().map(p -> p.id()).toList());
+        } catch (Exception e) {
+            aggregates = Map.of();
+        }
+
         List<List<Object>> rows = new ArrayList<>();
         for (var product : products) {
-            try {
-                var stock = inventoryFeign.stockLevel(product.id(), null);
-                rows.add(List.of(
-                    product.name(),
-                    product.sku() != null ? product.sku() : "",
-                    product.price(),
-                    String.valueOf(stock.getOrDefault("available", stock.getOrDefault("quantity", "?")))
-                ));
-            } catch (Exception e) {
-                rows.add(List.of(product.name(), product.sku(), product.price(), "?"));
-            }
+            Map<String, Object> agg = aggregates.getOrDefault(product.id(), Map.of());
+            Object available = agg.getOrDefault("available", BigDecimal.ZERO);
+            rows.add(List.of(
+                product.name(),
+                product.sku() != null ? product.sku() : "",
+                product.price(),
+                toBigDecimal(available).stripTrailingZeros().toPlainString()
+            ));
         }
         data.put("rows", rows);
+        if (aggregates.isEmpty()) {
+            data.put("note", "Stock data unavailable — verify at least one warehouse exists in Settings → Warehouses.");
+        }
         return new AssistantDtos.ToolResult("table",
             "Stock Overview (" + totalProducts + " products)", data);
+    }
+
+    /**
+     * Returns the active warehouse IDs for the current tenant, or an empty list
+     * if listing fails. Used by stock tools that previously sent {@code null}
+     * warehouseId and got rejected by the inventory service.
+     */
+    private List<UUID> resolveWarehouseIds() {
+        try {
+            return inventoryFeign.listWarehouses().stream()
+                .filter(InventoryFeign.Warehouse::active)
+                .map(InventoryFeign.Warehouse::id)
+                .toList();
+        } catch (Exception e) {
+            return List.of();
+        }
+    }
+
+    /**
+     * Aggregate stock level for one product across all active warehouses.
+     * Returns a {@code stockLevel}-shaped map (available, onHand, reserved,
+     * warehouses), or an empty map when no warehouses are configured or all
+     * lookups fail. Existing callers that previously passed {@code null}
+     * warehouseId — which the inventory service rejects — should call this
+     * helper instead.
+     */
+    private Map<String, Object> aggregateStockLevel(UUID productId) {
+        List<UUID> wids = resolveWarehouseIds();
+        if (wids.isEmpty()) return Map.of();
+        BigDecimal totalAvailable = BigDecimal.ZERO;
+        BigDecimal totalOnHand = BigDecimal.ZERO;
+        BigDecimal totalReserved = BigDecimal.ZERO;
+        int counted = 0;
+        for (UUID wid : wids) {
+            try {
+                var s = inventoryFeign.stockLevel(productId, wid);
+                if (s == null) continue;
+                totalAvailable = totalAvailable.add(toBigDecimal(
+                    s.getOrDefault("available", s.getOrDefault("quantity", BigDecimal.ZERO))));
+                totalOnHand = totalOnHand.add(toBigDecimal(s.getOrDefault("onHand", BigDecimal.ZERO)));
+                totalReserved = totalReserved.add(toBigDecimal(s.getOrDefault("reserved", BigDecimal.ZERO)));
+                counted++;
+            } catch (Exception ignored) {
+                // skip — partial aggregation is acceptable
+            }
+        }
+        if (counted == 0) return Map.of();
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("available", totalAvailable);
+        out.put("onHand", totalOnHand);
+        out.put("reserved", totalReserved);
+        out.put("warehouses", counted);
+        return out;
+    }
+
+    /**
+     * Sums the {@code available} (fallback {@code quantity}) stock for a
+     * product across every supplied warehouse. Per-warehouse errors are
+     * tolerated so one bad warehouse never zeroes the whole row.
+     */
+    private BigDecimal aggregateAvailable(UUID productId, List<UUID> warehouseIds) {
+        BigDecimal total = BigDecimal.ZERO;
+        boolean any = false;
+        for (UUID wid : warehouseIds) {
+            try {
+                var stock = inventoryFeign.stockLevel(productId, wid);
+                if (stock == null) continue;
+                Object v = stock.getOrDefault("available", stock.get("quantity"));
+                if (v == null) continue;
+                total = total.add(toBigDecimal(v));
+                any = true;
+            } catch (Exception ignored) {
+                // skip this warehouse — partial aggregation is fine
+            }
+        }
+        return any ? total : BigDecimal.ZERO;
     }
 
     private AssistantDtos.ToolResult getStockByWarehouse(Map<String, Object> args) {
@@ -500,7 +600,7 @@ public class AssistantToolExecutor {
         }
         var product = products.get(0);
         Map<String, Object> stock = Map.of();
-        try { stock = inventoryFeign.stockLevel(product.id(), null); } catch (Exception ignored) {}
+        try { stock = aggregateStockLevel(product.id()); } catch (Exception ignored) {}
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("columns", List.of("Field","Value"));
         Map<String, Object> details = new LinkedHashMap<>();
@@ -671,7 +771,7 @@ public class AssistantToolExecutor {
         for (var product : products) {
             String stockStr = "?";
             try {
-                var stock = inventoryFeign.stockLevel(product.id(), null);
+                var stock = aggregateStockLevel(product.id());
                 stockStr = String.valueOf(stock.getOrDefault("available", stock.getOrDefault("quantity", "?")));
             } catch (Exception ignored) {}
             rows.add(List.of(product.name(), product.sku() != null ? product.sku() : "", product.price(), stockStr));
@@ -696,7 +796,7 @@ public class AssistantToolExecutor {
         Map<String, Object> stock = Map.of();
         String stockStatus = "Inventory data unavailable";
         try {
-            stock = inventoryFeign.stockLevel(product.id(), null);
+            stock = aggregateStockLevel(product.id());
             stockStatus = String.valueOf(stock.getOrDefault("available",
                 stock.getOrDefault("quantity", stock.getOrDefault("onHand", "Unknown"))));
         } catch (Exception ignored) {
@@ -741,7 +841,7 @@ public class AssistantToolExecutor {
         for (var product : recent) {
             String stockStr = "?";
             try {
-                var stock = inventoryFeign.stockLevel(product.id(), null);
+                var stock = aggregateStockLevel(product.id());
                 stockStr = String.valueOf(stock.getOrDefault("available",
                     stock.getOrDefault("quantity", "?")));
             } catch (Exception ignored) {}
@@ -915,7 +1015,7 @@ public class AssistantToolExecutor {
         for (var product : products) {
             if (productsWithSales.contains(product.id())) continue;
             try {
-                var stock = inventoryFeign.stockLevel(product.id(), null);
+                var stock = aggregateStockLevel(product.id());
                 Object qtyObj = stock.getOrDefault("available",
                     stock.getOrDefault("quantity", stock.getOrDefault("onHand", BigDecimal.ZERO)));
                 BigDecimal qty = toBigDecimal(qtyObj);
@@ -1663,6 +1763,53 @@ public class AssistantToolExecutor {
         }
         return new AssistantDtos.ToolResult("table",
             "Documents" + (documentType != null ? " (" + documentType + ")" : ""), data);
+    }
+
+    @SuppressWarnings("unchecked")
+    private AssistantDtos.ToolResult askClarification(Map<String, Object> args) {
+        String question = (String) args.get("question");
+        if (question == null || question.isBlank()) {
+            throw new ToolException("INVALID_ARG",
+                "Clarification needs a question.",
+                "Provide a 'question' argument with the specific thing you want the user to answer.");
+        }
+        List<String> options = args.get("options") instanceof List<?> l
+            ? l.stream().map(String::valueOf).toList() : List.of();
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("question", question);
+        data.put("options", options);
+        if (args.get("reason") instanceof String r && !r.isBlank()) data.put("reason", r);
+        return new AssistantDtos.ToolResult("clarification", "Need more info", data);
+    }
+
+    private AssistantDtos.ToolResult teachModule(Map<String, Object> args) {
+        String module = (String) args.get("module");
+        String topic = (String) args.get("topic");
+        if (module == null || module.isBlank()) {
+            throw new ToolException("INVALID_ARG",
+                "Which module should I teach you?",
+                "Available modules: " + String.join(", ", ModuleGuide.listModules()));
+        }
+        ModuleGuide.Guide guide = ModuleGuide.lookup(module);
+        if (guide == null) {
+            throw new ToolException("NOT_FOUND",
+                "I don't have a guide for module '" + module + "'.",
+                "Try one of: " + String.join(", ", ModuleGuide.listModules()));
+        }
+        String lang = (String) args.get("lang");
+        guide = ModuleGuide.localise(guide, lang);
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("module", guide.module());
+        data.put("title", guide.title());
+        data.put("summary", guide.summary());
+        data.put("steps", guide.steps());
+        data.put("rolesAllowed", guide.rolesAllowed());
+        data.put("tips", guide.tips());
+        data.put("relatedTools", guide.relatedTools());
+        if (topic != null && !topic.isBlank()) {
+            data.put("requestedTopic", topic);
+        }
+        return new AssistantDtos.ToolResult("guide", guide.title(), data);
     }
 
     private AssistantDtos.ToolResult sendEmail(Map<String, Object> args) {

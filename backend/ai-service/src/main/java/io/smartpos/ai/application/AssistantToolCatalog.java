@@ -26,11 +26,12 @@ public class AssistantToolCatalog {
     @SuppressWarnings("unchecked")
     public List<ToolDef> scopedTools(Jwt jwt) {
         var roles = (List<String>) jwt.getClaims().get("roles");
-        boolean isSuperAdmin = roles != null && roles.contains("SUPER_ADMIN");
+        RoleProfile profile = RoleProfile.fromJwt(roles);
+        boolean isPlatform = profile.isPlatformLevel();
         var permissions = (List<String>) jwt.getClaims().get("permissions");
         Set<String> permSet = permissions != null ? new HashSet<>(permissions) : Set.of();
         String billingPlan = jwt.getClaimAsString("billingPlan");
-        boolean canWrite = isSuperAdmin
+        boolean canWrite = isPlatform
             || "BUSINESS".equals(billingPlan)
             || "PROFESSIONAL".equals(billingPlan)
             || "ENTERPRISE".equals(billingPlan);
@@ -38,13 +39,25 @@ public class AssistantToolCatalog {
         List<ToolDef> tools = new ArrayList<>();
         tools.addAll(readTools());
         if (canWrite) tools.addAll(writeTools());
-        if (isSuperAdmin) tools.addAll(adminTools());
+        if (isPlatform) tools.addAll(adminTools());
+
+        // Per-role read scope: cashiers don't need finance/anomalies/margins.
+        if (profile == RoleProfile.CASHIER) {
+            tools.removeIf(t -> CASHIER_DENIED_TOOLS.contains(t.name()));
+        }
 
         tools.removeIf(t ->
-            !isSuperAdmin && t.requiredPermission() != null
+            !isPlatform && t.requiredPermission() != null
             && !permSet.contains(t.requiredPermission()));
         return tools;
     }
+
+    private static final Set<String> CASHIER_DENIED_TOOLS = Set.of(
+        "getFinancialSummary", "getExpenseSummary", "getProductMargins",
+        "getStockValuation", "getDeadStock", "getBusinessAnomalies",
+        "getDiscountSummary", "getTaxSummary", "getSalesComparison",
+        "getReorderSuggestions"
+    );
 
     /**
      * Narrow tools using intent classification. When confidence is >= 0.5,
@@ -304,6 +317,21 @@ public class AssistantToolCatalog {
                     "referenceType", Map.of("type","string","description","Source type: sale, purchase, payment, or stock"),
                     "referenceId", Map.of("type","string","description","Source UUID or sale reference like INV-2026-000001")
                 ),"required",List.of("referenceId")), true, null),
+
+            new ToolDef("askClarification", "Ask the user a clarifying question instead of guessing. Use this whenever a request is ambiguous (e.g. 'email it to John' — which document? which John?; 'show stock for the new one' — which product?). Provide 2-4 concrete options when you can. Do NOT use this for questions the user has already answered in the conversation.",
+                Map.of("type","object","properties", Map.of(
+                    "question", Map.of("type","string","description","The single, specific question to ask"),
+                    "options", Map.of("type","array","items", Map.of("type","string"),
+                        "description","2-4 concrete options the user can pick; omit for free-form questions"),
+                    "reason", Map.of("type","string","description","One-line reason this clarification is needed")
+                ),"required",List.of("question")), false, null),
+
+            new ToolDef("teachModule", "Teach the user how to use a Letis POS module step by step. Use this whenever the user asks 'how do I use X', 'how does X work', 'walk me through X', 'guide me on X', 'I'm new — show me X', or any onboarding/teaching question. Modules: pos (point of sale), sales, inventory, products, customers, reports, finance, expenses, payments, documents, notifications, settings, users (roles & users), warehouses. The tool returns a structured guide with steps, role notes, and tips. Pass lang='sw' for Swahili content where available.",
+                Map.of("type","object","properties", Map.of(
+                    "module", Map.of("type","string","description","Module slug: pos, sales, inventory, products, customers, reports, finance, expenses, payments, documents, notifications, settings, users, warehouses"),
+                    "topic", Map.of("type","string","description","Optional specific topic within the module (e.g. 'add a new product', 'refund a sale')"),
+                    "lang", Map.of("type","string","description","Language for the guide: 'en' (default) or 'sw' for Swahili")
+                ),"required",List.of("module")), false, null),
 
             new ToolDef("searchDocuments", "Search for generated documents (invoices, receipts, quotations). Use q to search by document number (e.g. TAX-000001, PAY-000001). To find documents for a specific sale (e.g. INV-2026-000002), first use searchSales to get the sale UUID, then use the sale UUID as the q parameter here.",
                 Map.of("type","object","properties", Map.of(

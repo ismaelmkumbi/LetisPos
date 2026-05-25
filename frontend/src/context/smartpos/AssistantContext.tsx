@@ -1,5 +1,55 @@
 import React, { createContext, useCallback, useContext, useRef, useState, useEffect } from 'react';
-import { streamChat, confirmDraft, rejectDraft, type ToolResult, type DraftResponse } from 'src/api/smartpos/assistant';
+import { streamChat, confirmDraft, rejectDraft, type ToolResult, type DraftResponse, type PageContext } from 'src/api/smartpos/assistant';
+
+/**
+ * Derive a best-effort page context from the current URL so the assistant
+ * understands "this sale" / "this product" / "this customer" without the
+ * user having to repeat the reference. The backend treats it as advisory
+ * — pronoun resolution, not authorisation.
+ *
+ * Patterns recognised (loose, can be extended without coordination):
+ *   /sales/:id            → { page: 'sale-detail',     entityType: 'sale',     entityId }
+ *   /products/:id         → { page: 'product-detail',  entityType: 'product',  entityId }
+ *   /customers/:id        → { page: 'customer-detail', entityType: 'customer', entityId }
+ *   /documents/:id        → { page: 'document-detail', entityType: 'document', entityId }
+ *   /:section             → { page: section + '-list' }
+ */
+function derivePageContext(): PageContext | undefined {
+  if (typeof window === 'undefined') return undefined;
+  const path = window.location.pathname.replace(/\/+$/, '');
+  if (!path) return undefined;
+  const parts = path.split('/').filter(Boolean);
+  if (parts.length === 0) return undefined;
+
+  const uuidRe = /^[0-9a-f-]{8}-[0-9a-f-]{4}-[0-9a-f-]{4}-[0-9a-f-]{4}-[0-9a-f-]{12}$/i;
+  const singular: Record<string, string> = {
+    sales: 'sale',
+    products: 'product',
+    customers: 'customer',
+    documents: 'document',
+    expenses: 'expense',
+    purchases: 'purchase',
+    warehouses: 'warehouse',
+  };
+
+  // Look for /<section>/<id-or-ref> patterns
+  for (let i = 0; i < parts.length - 1; i++) {
+    const section = parts[i];
+    const next = parts[i + 1];
+    if (singular[section] && (uuidRe.test(next) || /^[A-Z]+-?\d/.test(next))) {
+      const entityType = singular[section];
+      return {
+        page: `${entityType}-detail`,
+        entityType,
+        entityId: uuidRe.test(next) ? next : undefined,
+        entityRef: !uuidRe.test(next) ? next : undefined,
+      };
+    }
+  }
+
+  const last = parts[parts.length - 1];
+  return { page: `${last}-list` };
+}
 
 export interface ChatMessage {
   id: string;
@@ -232,7 +282,8 @@ export function AssistantProvider({ children }: { children: React.ReactNode }) {
     try {
       let fullContent = '';
       let assistantTextMovedAfterTool = false;
-      for await (const event of streamChat({ message }, conversationId, controller.signal)) {
+      const pageContext = derivePageContext();
+      for await (const event of streamChat({ message, pageContext }, conversationId, controller.signal)) {
         switch (event.type) {
           case 'token':
             fullContent += event.token;

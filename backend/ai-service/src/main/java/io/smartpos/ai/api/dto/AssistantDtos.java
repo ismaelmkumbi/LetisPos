@@ -11,8 +11,20 @@ public final class AssistantDtos {
 
     public record ChatRequest(
         String message,
-        String language
-    ) {}
+        String language,
+        /**
+         * Optional UI context — the page/entity the user is currently
+         * looking at. The frontend should populate this so the assistant
+         * understands "email this" without guessing. Example:
+         *   { "page": "sale-detail", "entityType": "sale",
+         *     "entityId": "uuid", "entityRef": "INV-2026-000002" }
+         */
+        Map<String, Object> pageContext
+    ) {
+        public ChatRequest(String message, String language) {
+            this(message, language, null);
+        }
+    }
 
     public record DraftResponse(
         UUID draftId,
@@ -35,5 +47,17 @@ public final class AssistantDtos {
         String type,
         String title,
         Map<String, Object> data
+    ) {}
+
+    /**
+     * Structured tool-execution failure. Carries a machine-recognisable code,
+     * the human message, and a remediation hint the LLM can read back to the
+     * user instead of a bare stack-trace string.
+     */
+    public record ToolError(
+        String tool,
+        String code,        // e.g. NO_WAREHOUSE, FORBIDDEN, NOT_FOUND, UPSTREAM, INVALID_ARG
+        String message,     // short, user-safe message
+        String hint         // remediation hint or next-best-action
     ) {}
 }

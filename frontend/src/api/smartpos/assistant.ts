@@ -1,8 +1,18 @@
 import { api, TOKEN_KEY } from './client';
 
+export interface PageContext {
+  page?: string;          // e.g. "sale-detail", "product-list"
+  entityType?: string;    // e.g. "sale", "product", "customer"
+  entityId?: string;      // UUID of the focused entity
+  entityRef?: string;     // human-readable ref (INV-2026-000002, SKU-001)
+  // Free-form extras the caller can attach (selected line ids, filter state, …).
+  [key: string]: string | undefined;
+}
+
 export interface ChatRequest {
   message: string;
   language?: string;
+  pageContext?: PageContext;
 }
 
 export interface ToolResult {
@@ -24,7 +34,8 @@ export type StreamEvent =
   | { type: 'tool_start'; toolName: string }
   | { type: 'tool_result'; result: ToolResult }
   | { type: 'draft'; draft: DraftResponse }
-  | { type: 'error'; message: string; code: string }
+  | { type: 'error'; message: string; code: string; hint?: string }
+  | { type: 'verification'; grounded: boolean; score: number; unverified: string[] }
   | { type: 'done' };
 
 export async function* streamChat(
@@ -79,7 +90,9 @@ export async function* streamChat(
         case 'draft':
           return { type: 'draft', draft: payload as DraftResponse };
         case 'error':
-          return { type: 'error', message: payload.message || 'Unknown error', code: payload.code || 'UNKNOWN' };
+          return { type: 'error', message: payload.message || 'Unknown error', code: payload.code || 'UNKNOWN', hint: payload.hint };
+        case 'verification':
+          return { type: 'verification', grounded: !!payload.grounded, score: Number(payload.score ?? 1), unverified: Array.isArray(payload.unverified) ? payload.unverified : [] };
         case 'done':
           return { type: 'done' };
         default:

@@ -34,13 +34,14 @@ public class KnowledgeBase {
 
     @PostConstruct
     void init() {
-        if (openAiKey == null || openAiKey.isBlank()) {
-            log.warn("OPENAI_API_KEY not set — knowledge base embeddings disabled");
-            return;
+        boolean embeddingsAvailable = openAiKey != null && !openAiKey.isBlank();
+        if (!embeddingsAvailable) {
+            log.warn("OPENAI_API_KEY not set — knowledge base running in lexical (BM25-lite) mode");
         }
         try {
             loadArticles();
-            log.info("Knowledge base loaded: {} chunks", chunks.size());
+            log.info("Knowledge base loaded: {} chunks ({})",
+                chunks.size(), embeddingsAvailable ? "embeddings" : "lexical");
         } catch (Exception e) {
             log.error("Failed to load knowledge base", e);
         }
@@ -84,9 +85,10 @@ public class KnowledgeBase {
             String section = (i > 0 ? "## " : "") + sections[i];
             if (section.trim().length() < 50) continue;
             double[] embedding = embed(section.trim());
-            if (embedding != null) {
-                chunks.add(new Chunk(title, category, section.trim(), embedding));
-            }
+            // Keep the chunk either way — lexical search still works without
+            // embeddings, so the assistant can answer how-to questions in
+            // dev/offline environments.
+            chunks.add(new Chunk(title, category, section.trim(), embedding));
         }
     }
 
@@ -123,29 +125,81 @@ public class KnowledgeBase {
     }
 
     /**
-     * Search knowledge base by semantic similarity.
-     * Returns top 3 matching chunks, or empty list if embeddings unavailable.
+     * Search knowledge base for the top 3 matching chunks.
+     * Uses semantic similarity when embeddings are available, otherwise
+     * falls back to a BM25-lite lexical score so guides still work in
+     * offline / no-API-key environments.
      */
     public List<String> search(String query, String domain) {
-        if (chunks.isEmpty()) return List.of();
-
-        double[] queryVec = embed(query);
-        if (queryVec == null) return List.of();
+        if (chunks.isEmpty() || query == null || query.isBlank()) return List.of();
         String normalizedDomain = domain == null ? "" : domain.toLowerCase(Locale.ROOT);
 
+        double[] queryVec = embed(query);
+        boolean useEmbeddings = queryVec != null
+            && chunks.stream().anyMatch(c -> c.embedding != null);
+
+        if (useEmbeddings) {
+            final double[] qv = queryVec;
+            return chunks.stream()
+                .filter(c -> c.embedding != null)
+                .map(c -> new Scored(c, cosine(qv, c.embedding)
+                    + categoryBonus(c, normalizedDomain)))
+                .filter(x -> x.score > 0.3)
+                .sorted((a, b) -> Double.compare(b.score, a.score))
+                .limit(3)
+                .map(x -> "[" + x.chunk.title + "]\n" + x.chunk.text)
+                .toList();
+        }
+
+        // Lexical fallback (BM25-lite)
+        List<String> terms = tokenize(query);
+        if (terms.isEmpty()) return List.of();
         return chunks.stream()
-            .map(c -> new Object() {
-                final Chunk chunk = c;
-                final double score = cosine(queryVec, c.embedding)
-                    + (normalizedDomain.isBlank() || "general".equals(normalizedDomain)
-                        || normalizedDomain.equals(c.category.toLowerCase(Locale.ROOT)) ? 0.05 : 0.0);
-            })
-            .filter(x -> x.score > 0.3)
+            .map(c -> new Scored(c, lexicalScore(terms, c.text)
+                + categoryBonus(c, normalizedDomain) * 10))
+            .filter(x -> x.score > 0.5)
             .sorted((a, b) -> Double.compare(b.score, a.score))
             .limit(3)
             .map(x -> "[" + x.chunk.title + "]\n" + x.chunk.text)
             .toList();
     }
+
+    private record Scored(Chunk chunk, double score) {}
+
+    private double categoryBonus(Chunk c, String normalizedDomain) {
+        if (normalizedDomain.isBlank() || "general".equals(normalizedDomain)) return 0.05;
+        return normalizedDomain.equals(c.category.toLowerCase(Locale.ROOT)) ? 0.05 : 0.0;
+    }
+
+    private List<String> tokenize(String s) {
+        String lower = s.toLowerCase(Locale.ROOT);
+        return java.util.Arrays.stream(lower.split("[^a-z0-9]+"))
+            .filter(t -> t.length() > 2)
+            .filter(t -> !STOPWORDS.contains(t))
+            .toList();
+    }
+
+    private double lexicalScore(List<String> terms, String text) {
+        String lower = text.toLowerCase(Locale.ROOT);
+        double score = 0;
+        for (String t : terms) {
+            int hits = 0;
+            int idx = 0;
+            while ((idx = lower.indexOf(t, idx)) >= 0) {
+                hits++;
+                idx += t.length();
+            }
+            if (hits > 0) {
+                score += Math.log(1 + hits) + (t.length() >= 5 ? 0.3 : 0);
+            }
+        }
+        return score;
+    }
+
+    private static final java.util.Set<String> STOPWORDS = java.util.Set.of(
+        "the","and","for","with","how","you","are","this","that","what",
+        "can","does","when","where","why","from","into","onto","but","not"
+    );
 
     private double cosine(double[] a, double[] b) {
         double dot = 0, normA = 0, normB = 0;

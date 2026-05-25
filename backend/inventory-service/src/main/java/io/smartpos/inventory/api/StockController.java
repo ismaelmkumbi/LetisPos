@@ -59,6 +59,17 @@ public class StockController {
         return service.batchLevels(warehouseId, productIds);
     }
 
+    /**
+     * Aggregate stock across every warehouse for many products at once.
+     * Used by the AI assistant to answer "show me stock" without N+1 fan-out.
+     * Returns a map productId → {available, onHand, reserved, warehouses}.
+     */
+    @PostMapping("/batch-aggregate")
+    @PreAuthorize("hasAuthority('stock.view') or isAuthenticated()")
+    public Map<UUID, Map<String, Object>> batchAggregate(@RequestBody List<UUID> productIds) {
+        return service.batchAggregate(productIds);
+    }
+
     @GetMapping("/costs")
     @PreAuthorize("hasAuthority('sale.create') or hasAuthority('pos.use')")
     public List<StockCostDto> getCosts(@RequestParam UUID warehouseId,

@@ -38,6 +38,9 @@ public class AssistantService {
     private final ConversationSummarizer summarizer;
     private final IntentClassifierService classifier;
     private final KnowledgeBase knowledgeBase;
+    private final ToolResultCache toolResultCache;
+    private final MassSendGuard massSendGuard;
+    private final TenantMemoryStore tenantMemory;
     private final ObjectMapper om = new ObjectMapper();
 
     public AssistantService(AiRouter aiRouter, AssistantPromptBuilder promptBuilder,
@@ -47,7 +50,10 @@ public class AssistantService {
                             ConversationStore conversationStore,
                             ConversationSummarizer summarizer,
                             IntentClassifierService classifier,
-                            KnowledgeBase knowledgeBase) {
+                            KnowledgeBase knowledgeBase,
+                            ToolResultCache toolResultCache,
+                            MassSendGuard massSendGuard,
+                            TenantMemoryStore tenantMemory) {
         this.aiRouter = aiRouter;
         this.promptBuilder = promptBuilder;
         this.toolCatalog = toolCatalog;
@@ -57,6 +63,9 @@ public class AssistantService {
         this.summarizer = summarizer;
         this.classifier = classifier;
         this.knowledgeBase = knowledgeBase;
+        this.toolResultCache = toolResultCache;
+        this.massSendGuard = massSendGuard;
+        this.tenantMemory = tenantMemory;
     }
 
     public SseEmitter chat(AssistantDtos.ChatRequest request, Jwt jwt,
@@ -64,7 +73,8 @@ public class AssistantService {
         UUID tenantId = TenantContext.require();
         @SuppressWarnings("unchecked")
         var roles = (List<String>) jwt.getClaims().get("roles");
-        boolean isSuperAdmin = roles != null && roles.contains("SUPER_ADMIN");
+        RoleProfile resolvedProfile = RoleProfile.fromJwt(roles);
+        boolean isSuperAdmin = resolvedProfile.isPlatformLevel();
 
         // 1. Classify intent
         IntentClassification intent = classifier.classify(request.message());
@@ -78,12 +88,19 @@ public class AssistantService {
         }
 
         // 2. Determine role profile
-        RoleProfile profile = RoleProfile.fromJwt(roles);
+        RoleProfile profile = resolvedProfile;
         int effectiveMaxRounds = profile.maxToolRounds();
 
         // 3. Determine language (intent can override client preference)
         String effectiveLanguage = intent.language() == IntentClassification.Language.SWAHILI
             ? "sw" : request.language();
+        // Remember language preference so the next conversation starts in
+        // the right tongue without the user having to switch the UI.
+        if ("sw".equalsIgnoreCase(effectiveLanguage)) {
+            tenantMemory.remember(tenantId, "preferred_language", "sw");
+        } else if ("en".equalsIgnoreCase(effectiveLanguage)) {
+            tenantMemory.remember(tenantId, "preferred_language", "en");
+        }
 
         // 4. Handle conversation: create new or load existing
         UUID convId = conversationIdParam != null ? conversationIdParam : UUID.randomUUID();
@@ -111,7 +128,8 @@ public class AssistantService {
 
         // 5. Build frozen system prompt (cacheable) + dynamic context
         String systemPrompt = promptBuilder.buildFrozen(jwt, effectiveLanguage);
-        String dynamicCtx = promptBuilder.buildDynamicContext(jwt, effectiveLanguage, intent, summary);
+        String dynamicCtx = promptBuilder.buildDynamicContext(jwt, effectiveLanguage,
+            intent, summary, request.pageContext(), tenantId);
 
         // Inject dynamic context into the user message so the system prompt
         // stays cacheable across requests from the same tenant/role.
@@ -204,7 +222,9 @@ public class AssistantService {
             return;
         }
 
-        AiProvider provider = aiRouter.active();
+        // Tier-route based on the raw user intent (cheap local classification).
+        IntentClassification routeIntent = classifier.classify(rawUserMessage);
+        AiProvider provider = aiRouter.forIntent(routeIntent);
         long t0 = System.currentTimeMillis();
 
         // Build OpenAI function-calling tool definitions
@@ -253,13 +273,17 @@ public class AssistantService {
             .reduce((first, second) -> second)
             .orElse("");
 
-        // Log invocation
+        // Log invocation (PII-redacted)
+        String redactedInput = PiiRedactor.redact(
+            currentUserMessage.substring(0, Math.min(200, currentUserMessage.length())));
+        String redactedOutput = PiiRedactor.redact(result.text())
+            + (result.toolCalls().isEmpty() ? "" : " [tool calls: " + result.toolCalls().size() + "]");
         invocations.save(AiInvocation.builder()
             .kind("ASSISTANT_CHAT")
             .provider(provider.name()).model(provider.model())
             .promptTokens(result.promptTokens()).completionTokens(result.completionTokens())
-            .inputSummary(currentUserMessage.substring(0, Math.min(200, currentUserMessage.length())))
-            .output(result.text() + (result.toolCalls().isEmpty() ? "" : " [tool calls: " + result.toolCalls().size() + "]"))
+            .inputSummary(redactedInput)
+            .output(redactedOutput)
             .error(error)
             .userId(userId).tenantId(tenantId)
             .durationMs(duration).build());
@@ -267,9 +291,9 @@ public class AssistantService {
         // Text already streamed via completeWithToolsStreaming callback.
         // Process tool calls from native function calling
         List<ToolResult> collectedToolResults = new java.util.ArrayList<>();
-        List<String> toolErrors = new java.util.ArrayList<>();
+        List<AssistantDtos.ToolError> toolErrors = new java.util.ArrayList<>();
         Map<String, ToolResult> toolResultsByCallId = new LinkedHashMap<>();
-        Map<String, String> toolErrorsByCallId = new LinkedHashMap<>();
+        Map<String, AssistantDtos.ToolError> toolErrorsByCallId = new LinkedHashMap<>();
         boolean hasWriteDrafts = false;
         if (!result.toolCalls().isEmpty()) {
             for (var tc : result.toolCalls()) {
@@ -287,24 +311,42 @@ public class AssistantService {
                 }
 
                 if (tool != null && tool.write()) {
+                    // Mass-send / rate-limit guard applies whether or not the
+                    // caller is super-admin — auto-execution path included.
+                    ToolException guardErr = massSendGuard.check(tc.name(), parsedArgs, tenantId, isSuperAdmin);
+                    if (guardErr != null) {
+                        AssistantDtos.ToolError err = new AssistantDtos.ToolError(
+                            tc.name(), guardErr.code(), guardErr.getMessage(), guardErr.hint());
+                        toolErrors.add(err);
+                        toolErrorsByCallId.put(tc.id(), err);
+                        emitter.send(SseEmitter.event().name("error")
+                            .data(Map.of("message", err.message(), "code", err.code(), "hint", err.hint())));
+                        continue;
+                    }
                     if (isSuperAdmin) {
                         try {
                             ToolResult toolResult = toolExecutor.execute(tc.name(), parsedArgs, userId);
+                            // Write actions invalidate the read cache for this tenant
+                            toolResultCache.invalidateTenant(tenantId);
                             collectedToolResults.add(toolResult);
                             toolResultsByCallId.put(tc.id(), toolResult);
                             emitter.send(SseEmitter.event().name("tool_result")
                                 .data(Map.of("type", toolResult.type(), "title", toolResult.title(),
                                              "data", toolResult.data())));
                         } catch (Exception e) {
-                            toolErrors.add(tc.name() + ": " + e.getMessage());
-                            toolErrorsByCallId.put(tc.id(), tc.name() + ": " + e.getMessage());
+                            AssistantDtos.ToolError err = toStructuredError(tc.name(), e);
+                            toolErrors.add(err);
+                            toolErrorsByCallId.put(tc.id(), err);
                             emitter.send(SseEmitter.event().name("error")
-                                .data(Map.of("message", e.getMessage() != null ? e.getMessage() : "Tool error", "code", "TOOL_ERROR")));
+                                .data(Map.of("message", err.message(), "code", err.code(), "hint", err.hint())));
                         }
                     } else {
                         hasWriteDrafts = true;
-                        toolErrorsByCallId.put(tc.id(), "Draft created; waiting for user confirmation.");
-                        String draftSummary = "Execute " + tc.name();
+                        toolErrorsByCallId.put(tc.id(), new AssistantDtos.ToolError(
+                            tc.name(), "DRAFT_PENDING",
+                            "Draft created; waiting for user confirmation.",
+                            "Confirm or reject the draft to continue."));
+                        String draftSummary = DraftSummarizer.summarize(tc.name(), parsedArgs);
                         var draft = toolExecutor.createDraft(tc.name(), parsedArgs,
                             draftSummary, userId, tenantId);
                         emitter.send(SseEmitter.event().name("draft").data(Map.of(
@@ -315,29 +357,37 @@ public class AssistantService {
                     }
                 } else if (tool != null) {
                     try {
-                        ToolResult toolResult = toolExecutor.execute(tc.name(), parsedArgs, userId);
+                        ToolResult cached = toolResultCache.get(tenantId, tc.name(), parsedArgs);
+                        ToolResult toolResult = cached != null
+                            ? cached
+                            : toolExecutor.execute(tc.name(), parsedArgs, userId);
+                        if (cached == null) {
+                            toolResultCache.put(tenantId, tc.name(), parsedArgs, toolResult);
+                        }
                         collectedToolResults.add(toolResult);
                         toolResultsByCallId.put(tc.id(), toolResult);
                         emitter.send(SseEmitter.event().name("tool_result")
                             .data(Map.of("type", toolResult.type(), "title", toolResult.title(),
                                          "data", toolResult.data())));
                     } catch (Exception e) {
-                        toolErrors.add(tc.name() + ": " + e.getMessage());
-                        toolErrorsByCallId.put(tc.id(), tc.name() + ": " + e.getMessage());
+                        AssistantDtos.ToolError err = toStructuredError(tc.name(), e);
+                        toolErrors.add(err);
+                        toolErrorsByCallId.put(tc.id(), err);
                         emitter.send(SseEmitter.event().name("error")
-                            .data(Map.of("message", e.getMessage() != null ? e.getMessage() : "Tool error", "code", "TOOL_ERROR")));
+                            .data(Map.of("message", err.message(), "code", err.code(), "hint", err.hint())));
                     }
                 } else {
                     List<String> available = tools.stream()
                         .map(AssistantToolCatalog.ToolDef::name)
                         .toList();
+                    AssistantDtos.ToolError err = new AssistantDtos.ToolError(
+                        tc.name(), "UNKNOWN_TOOL",
+                        "I don't have access to '" + tc.name() + "'.",
+                        "Try one of: " + String.join(", ", available.subList(0, Math.min(8, available.size()))) + "…");
+                    toolErrors.add(err);
+                    toolErrorsByCallId.put(tc.id(), err);
                     emitter.send(SseEmitter.event().name("error")
-                        .data(Map.of(
-                            "message", "I don't have access to '" + tc.name() + "'. " +
-                                "Available tools: " + String.join(", ", available),
-                            "code", "UNKNOWN_TOOL")));
-                    toolErrors.add("Unknown tool: " + tc.name());
-                    toolErrorsByCallId.put(tc.id(), "Unknown tool: " + tc.name());
+                        .data(Map.of("message", err.message(), "code", err.code(), "hint", err.hint())));
                 }
             }
 
@@ -365,7 +415,7 @@ public class AssistantService {
                 toolMsg.put("role", "tool");
                 toolMsg.put("tool_call_id", tc.id());
                 ToolResult matchedResult = toolResultsByCallId.get(tc.id());
-                String matchedError = toolErrorsByCallId.get(tc.id());
+                AssistantDtos.ToolError matchedError = toolErrorsByCallId.get(tc.id());
                 if (matchedResult != null) {
                     try {
                         toolMsg.put("content", om.writeValueAsString(matchedResult));
@@ -373,7 +423,11 @@ public class AssistantService {
                         toolMsg.put("content", "{}");
                     }
                 } else if (matchedError != null) {
-                    toolMsg.put("content", om.writeValueAsString(Map.of("error", matchedError)));
+                    toolMsg.put("content", om.writeValueAsString(Map.of(
+                        "error", true,
+                        "code", matchedError.code(),
+                        "message", matchedError.message(),
+                        "hint", matchedError.hint())));
                 } else {
                     toolMsg.put("content", "{}");
                 }
@@ -394,6 +448,20 @@ public class AssistantService {
             String synthesis = synthesizeToolAnswer(provider, systemPrompt, currentUserMessage,
                 collectedToolResults, toolErrors);
             if (synthesis != null && !synthesis.isBlank()) {
+                AnswerVerifier.Verdict verdict =
+                    AnswerVerifier.verify(synthesis, collectedToolResults);
+                if (!verdict.grounded()) {
+                    log.warn("Assistant answer drift: {} unverified numbers ({}/{}): {}",
+                        verdict.unverifiedNumbers().size(),
+                        verdict.unverifiedNumbers().size(), verdict.totalNumbers(),
+                        verdict.unverifiedNumbers());
+                    // Emit telemetry; don't block the stream — production-friendly soft fail.
+                    emitter.send(SseEmitter.event().name("verification")
+                        .data(Map.of(
+                            "grounded", false,
+                            "score", verdict.groundingScore(),
+                            "unverified", verdict.unverifiedNumbers())));
+                }
                 emitter.send(SseEmitter.event().name("token")
                     .data(Map.of("token", synthesis)));
                 messages.add(Map.of("role", "assistant", "content", synthesis));
@@ -440,7 +508,7 @@ public class AssistantService {
     }
 
     private String synthesizeToolAnswer(AiProvider provider, String systemPrompt, String userMessage,
-                                        List<ToolResult> toolResults, List<String> toolErrors) {
+                                        List<ToolResult> toolResults, List<AssistantDtos.ToolError> toolErrors) {
         if (toolResults.isEmpty() && toolErrors.isEmpty()) {
             return "";
         }
@@ -456,12 +524,25 @@ public class AssistantService {
                 Tool outputs as JSON:
                 %s
 
-                Write the final answer for the merchant. Requirements:
+                Write the final answer for the merchant. Hard rules:
+                - GROUNDING: every number, name, date, or status you state MUST
+                  appear verbatim in the toolResults JSON above. Do NOT invent
+                  or interpolate. If a figure is missing, say so explicitly.
+                - REFUSAL: if toolResults is empty and toolErrors is empty, or
+                  if rows is an empty array, say "I don't have data for that"
+                  and suggest the closest available query — do NOT guess.
+                - VERIFY: before stating any percentage or comparison, re-check
+                  it can be computed from the JSON. Otherwise omit it.
                 - Do not repeat the chart/table title unless useful.
-                - Use exact figures from the tool outputs.
                 - Mention the period used when dates are present.
                 - Give one practical next action.
-                - If a tool errored, be transparent and suggest the next best step.
+                - If toolErrors is non-empty, do NOT apologise generically. Read the
+                  error's "hint" field and rephrase it as concrete next-step guidance
+                  for the user. Mention the failing module so they know where to act.
+                - For NO_WAREHOUSE: tell the user to set up at least one warehouse in
+                  Settings → Warehouses before stock queries will work.
+                - For FORBIDDEN: explain the action needs a higher role.
+                - For NOT_FOUND: ask for a clearer name/ID.
                 - Keep it under 120 words.
                 """.formatted(userMessage, toolJson);
             return provider.complete(systemPrompt, synthesisPrompt).text();
@@ -472,6 +553,21 @@ public class AssistantService {
             }
             return "";
         }
+    }
+
+    /**
+     * Convert a tool exception into a structured ToolError the LLM can read.
+     * Preserves explicit ToolException codes/hints; otherwise classifies the
+     * raw exception message into a known code.
+     */
+    private AssistantDtos.ToolError toStructuredError(String toolName, Exception e) {
+        if (e instanceof ToolException te) {
+            return new AssistantDtos.ToolError(toolName, te.code(),
+                te.getMessage() != null ? te.getMessage() : "Tool failed", te.hint());
+        }
+        ToolException classified = ToolException.classify(toolName, e);
+        return new AssistantDtos.ToolError(toolName, classified.code(),
+            classified.getMessage(), classified.hint());
     }
 
     /** Convert our ToolDef to OpenAI function-calling format. */

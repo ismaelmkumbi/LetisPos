@@ -11,6 +11,13 @@ import java.util.List;
 @Component
 public class AssistantPromptBuilder {
 
+    private final TenantMemoryStore tenantMemory;
+
+    public AssistantPromptBuilder(TenantMemoryStore tenantMemory) {
+        this.tenantMemory = tenantMemory;
+    }
+
+
     // Frozen system prompt — never interpolate per-request values here.
     // Dynamic context (date, store, role, intent hints) goes into the
     // messages array so the system prompt stays cacheable.
@@ -41,6 +48,39 @@ public class AssistantPromptBuilder {
         or the ability to change billing/subscription.
         """;
 
+    private static final String FEW_SHOT_EXAMPLES = """
+
+        Worked examples (follow these patterns):
+
+        Example 1 — Stock question by product name
+          User: "how many Coca Cola 500ml do we have?"
+          You: call checkStockByProductSearch with query="Coca Cola 500ml".
+          Then answer with the exact available figure and the warehouse count.
+
+        Example 2 — General stock question
+          User: "how much stock is?" / "show me stock"
+          You: call getStockOverview.
+          If the result note says no warehouses are configured, tell the user
+          to create one in Settings → Warehouses before stock can be tracked.
+          Otherwise list the top products and totals.
+
+        Example 3 — Ambiguous request
+          User: "email it to John"
+          You: do NOT guess. Call askClarification with options including
+          (a) which document/sale, (b) which John. Wait for the user's reply.
+
+        Example 4 — How-to / teaching question
+          User: "how do I add a new warehouse?" / "walk me through inventory"
+          You: call teachModule with the relevant module slug
+          (warehouses / inventory / etc.). Render the steps as a numbered list.
+
+        Example 5 — Write action with concrete data
+          User: "raise Coca-Cola price to 2,500"
+          You: first call getProductDetail with query="Coca-Cola" to confirm
+          the exact product and current price, then call updateProductPrice.
+          The draft summary will show: "Coca-Cola 500ml: 2,000 → 2,500 TZS".
+        """;
+
     private static final String SUPER_ADMIN_EXTRA = """
         You have SUPER_ADMIN access. You can query across all tenants
         and perform administrative actions without draft confirmation.
@@ -58,12 +98,13 @@ public class AssistantPromptBuilder {
 
         StringBuilder sb = new StringBuilder();
         sb.append(String.format(BASE_PROMPT, currency, lang));
+        sb.append(FEW_SHOT_EXAMPLES);
 
         RoleProfile profile = RoleProfile.fromJwt(roles);
         sb.append("\n").append(profile.toneInstruction());
         sb.append("\nVerbosity: ").append(profile.verbosity());
 
-        if (roles != null && roles.contains("SUPER_ADMIN")) {
+        if (profile.isPlatformLevel()) {
             sb.append("\n").append(SUPER_ADMIN_EXTRA);
         }
 
@@ -75,10 +116,25 @@ public class AssistantPromptBuilder {
      * and intent hints. This goes into the messages array — never the
      * system prompt — so it doesn't break prompt caching.
      */
-    @SuppressWarnings("unchecked")
     public String buildDynamicContext(Jwt jwt, String language,
                                       IntentClassification intent,
                                       String conversationSummary) {
+        return buildDynamicContext(jwt, language, intent, conversationSummary, null, null);
+    }
+
+    public String buildDynamicContext(Jwt jwt, String language,
+                                      IntentClassification intent,
+                                      String conversationSummary,
+                                      java.util.Map<String, Object> pageContext) {
+        return buildDynamicContext(jwt, language, intent, conversationSummary, pageContext, null);
+    }
+
+    @SuppressWarnings("unchecked")
+    public String buildDynamicContext(Jwt jwt, String language,
+                                      IntentClassification intent,
+                                      String conversationSummary,
+                                      java.util.Map<String, Object> pageContext,
+                                      java.util.UUID tenantId) {
         var roles = (List<String>) jwt.getClaims().get("roles");
         String tenantName = jwt.getClaimAsString("tenantName");
         String billingPlan = jwt.getClaimAsString("billingPlan");
@@ -114,6 +170,25 @@ public class AssistantPromptBuilder {
         // Conversation summary
         if (conversationSummary != null && !conversationSummary.isBlank()) {
             ctx.append("\nPrevious conversation: ").append(conversationSummary);
+        }
+
+        // Per-tenant remembered facts (preferred warehouse, language, etc.)
+        if (tenantId != null && tenantMemory != null) {
+            var facts = tenantMemory.contextSlice(tenantId);
+            if (!facts.isEmpty()) {
+                ctx.append("\nRemembered facts: ");
+                for (var f : facts) {
+                    ctx.append(f.key()).append("=").append(f.value()).append("; ");
+                }
+            }
+        }
+
+        // Page context — the entity the user is currently looking at.
+        // Lets "email this" / "refund this sale" work without ambiguity.
+        if (pageContext != null && !pageContext.isEmpty()) {
+            ctx.append("\nUI context: ");
+            pageContext.forEach((k, v) -> ctx.append(k).append("=").append(v).append("; "));
+            ctx.append("\nTreat 'this'/'it' in the user message as referring to the entity above.");
         }
 
         return ctx.toString();

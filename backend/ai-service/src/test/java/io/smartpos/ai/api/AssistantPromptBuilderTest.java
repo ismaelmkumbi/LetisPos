@@ -2,6 +2,7 @@ package io.smartpos.ai.api;
 
 import io.smartpos.ai.api.dto.AssistantDtos;
 import io.smartpos.ai.application.AssistantPromptBuilder;
+import io.smartpos.ai.application.TenantMemoryStore;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.oauth2.jwt.Jwt;
 
@@ -13,7 +14,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class AssistantPromptBuilderTest {
 
-    private final AssistantPromptBuilder builder = new AssistantPromptBuilder();
+    private final AssistantPromptBuilder builder = new AssistantPromptBuilder(new TenantMemoryStore());
 
     @Test
     void buildsFrozenPromptWithRoleTone() {

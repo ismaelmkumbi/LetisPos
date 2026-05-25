@@ -195,7 +195,10 @@ public class IntentClassifierService {
         }
         if (intent.primaryDomain() == Domain.HELP) {
             allToolNames.stream()
-                .filter(t -> t.toLowerCase().contains("search") || t.toLowerCase().contains("get"))
+                .filter(t -> {
+                    String l = t.toLowerCase();
+                    return l.contains("search") || l.contains("get") || l.equals("teachmodule");
+                })
                 .forEach(narrowed::add);
         }
         return narrowed.isEmpty() ? allToolNames : narrowed;

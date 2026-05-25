@@ -78,6 +78,46 @@ public class StockService {
         return result;
     }
 
+    /**
+     * Aggregate available / on-hand / reserved across every active warehouse
+     * for each product. One Postgres round-trip instead of N×W HTTP calls.
+     * Products with no stock row return zeros so the caller can render
+     * "0" instead of "unknown".
+     */
+    @Transactional(readOnly = true)
+    public Map<UUID, Map<String, Object>> batchAggregate(List<UUID> productIds) {
+        UUID tenantId = TenantContext.get().orElse(null);
+        if (productIds == null || productIds.isEmpty()) return Map.of();
+        List<StockLevel> levels = stockRepo.findByProductsAcrossWarehouses(productIds, tenantId);
+
+        Map<UUID, BigDecimal[]> agg = new LinkedHashMap<>();
+        Map<UUID, Integer> warehouseCounts = new LinkedHashMap<>();
+        for (StockLevel s : levels) {
+            // [available, onHand, reserved]
+            BigDecimal[] sums = agg.computeIfAbsent(s.getProductId(),
+                k -> new BigDecimal[]{BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO});
+            BigDecimal onHand = s.getOnHand() != null ? s.getOnHand() : BigDecimal.ZERO;
+            BigDecimal reserved = s.getReserved() != null ? s.getReserved() : BigDecimal.ZERO;
+            sums[0] = sums[0].add(onHand.subtract(reserved));
+            sums[1] = sums[1].add(onHand);
+            sums[2] = sums[2].add(reserved);
+            warehouseCounts.merge(s.getProductId(), 1, Integer::sum);
+        }
+
+        Map<UUID, Map<String, Object>> out = new LinkedHashMap<>();
+        for (UUID pid : productIds) {
+            BigDecimal[] sums = agg.getOrDefault(pid,
+                new BigDecimal[]{BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO});
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("available", sums[0]);
+            row.put("onHand", sums[1]);
+            row.put("reserved", sums[2]);
+            row.put("warehouses", warehouseCounts.getOrDefault(pid, 0));
+            out.put(pid, row);
+        }
+        return out;
+    }
+
     // ---- Reservations: reserve / commit / release ----
 
     /**

@@ -20,6 +20,12 @@ public interface InventoryFeign {
                         LocalDate expiryDate, BigDecimal onHand,
                         BigDecimal available, String status) {}
 
+    record Warehouse(UUID id, String code, String name, String city, String country,
+                     String phone, String email, String zip, String notes, boolean active) {}
+
+    @GetMapping("/api/v1/warehouses")
+    List<Warehouse> listWarehouses();
+
     // Real inventory-service endpoints:
 
     @GetMapping("/api/v1/stock/alerts")
@@ -35,6 +41,13 @@ public interface InventoryFeign {
     @GetMapping("/api/v1/batches/expiring")
     org.springframework.data.domain.Page<ExpiringItem> expiringSoon(
         @RequestParam(defaultValue = "30") int days);
+
+    /**
+     * Aggregate stock across all warehouses for many products in one call.
+     * Replaces the N×W fan-out the assistant used to do.
+     */
+    @PostMapping("/api/v1/stock/batch-aggregate")
+    Map<UUID, Map<String, Object>> batchAggregate(@RequestBody List<UUID> productIds);
 
     @GetMapping("/api/v1/stock/summary")
     java.util.Map<String, Object> warehouseSummary(

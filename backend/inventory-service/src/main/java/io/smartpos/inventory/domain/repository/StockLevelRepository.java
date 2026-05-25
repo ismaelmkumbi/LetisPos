@@ -95,4 +95,18 @@ public interface StockLevelRepository extends JpaRepository<StockLevel, UUID> {
 
     /** All stock levels for a given tenant. */
     List<StockLevel> findByTenantId(UUID tenantId);
+
+    /**
+     * Batch lookup across ALL warehouses for many products. Used by the
+     * AI assistant's stock-overview query so it doesn't need to fan-out
+     * one HTTP call per product per warehouse.
+     */
+    @Query("""
+           SELECT s FROM StockLevel s
+           WHERE s.productId IN (:productIds)
+             AND s.variantId IS NULL
+             AND s.tenantId = :tenantId
+           """)
+    List<StockLevel> findByProductsAcrossWarehouses(@Param("productIds") List<UUID> productIds,
+                                                    @Param("tenantId") UUID tenantId);
 }
