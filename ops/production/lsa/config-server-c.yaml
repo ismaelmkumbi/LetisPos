@@ -6,6 +6,6 @@ listen_addr: "10.0.0.3:9101"
 server_name: "letispos-c"
 metrics_interval: "5s"
 log_max_lines: 1000
-hub_url: "http://10.0.0.2:3001"
+hub_url: "http://10.0.0.1:8080"
 hub_secret: "${LSA_HUB_SECRET}"
-compose_dir: "/opt/letispos/production/server-c"
+compose_dir: /opt/letispos/production/server-c
