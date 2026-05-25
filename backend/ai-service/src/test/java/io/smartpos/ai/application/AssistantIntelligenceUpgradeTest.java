@@ -139,6 +139,13 @@ class AssistantIntelligenceUpgradeTest {
     }
 
     @Test
+    void classifyMapsReadTimedOutToUpstream() {
+        ToolException te = ToolException.classify("emailDocument",
+            new RuntimeException("Read timed out executing POST http://10.0.0.2:8089/api/v1/notifications"));
+        assertThat(te.code()).isEqualTo("UPSTREAM");
+    }
+
+    @Test
     void toolErrorRecordCarriesAllFields() {
         AssistantDtos.ToolError err = new AssistantDtos.ToolError(
             "checkStock", "NO_WAREHOUSE", "no warehouse set", "create one");

@@ -13,6 +13,8 @@ import org.springframework.web.reactive.function.client.WebClient;
 
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 
 @Component
 public class KnowledgeBase {
@@ -29,6 +31,10 @@ public class KnowledgeBase {
     private String openAiBaseUrl;
 
     private final List<Chunk> chunks = new ArrayList<>();
+    private final Map<String, double[]> embeddingCache = new ConcurrentHashMap<>();
+    private final AtomicLong searches = new AtomicLong();
+    private final AtomicLong hits = new AtomicLong();
+    private final AtomicLong embeddingCalls = new AtomicLong();
 
     record Chunk(String title, String category, String text, double[] embedding) {}
 
@@ -94,7 +100,10 @@ public class KnowledgeBase {
 
     private double[] embed(String text) {
         if (openAiKey == null || openAiKey.isBlank()) return null;
+        String key = Integer.toHexString(Objects.hash(text));
+        if (embeddingCache.containsKey(key)) return embeddingCache.get(key);
         try {
+            embeddingCalls.incrementAndGet();
             Map<String, Object> body = Map.of(
                 "model", "text-embedding-3-small",
                 "input", text
@@ -115,6 +124,7 @@ public class KnowledgeBase {
                 if (emb != null) {
                     double[] vec = new double[emb.size()];
                     for (int i = 0; i < emb.size(); i++) vec[i] = emb.get(i).asDouble();
+                    embeddingCache.put(key, vec);
                     return vec;
                 }
             }
@@ -131,6 +141,7 @@ public class KnowledgeBase {
      * offline / no-API-key environments.
      */
     public List<String> search(String query, String domain) {
+        searches.incrementAndGet();
         if (chunks.isEmpty() || query == null || query.isBlank()) return List.of();
         String normalizedDomain = domain == null ? "" : domain.toLowerCase(Locale.ROOT);
 
@@ -140,7 +151,7 @@ public class KnowledgeBase {
 
         if (useEmbeddings) {
             final double[] qv = queryVec;
-            return chunks.stream()
+            List<String> results = chunks.stream()
                 .filter(c -> c.embedding != null)
                 .map(c -> new Scored(c, cosine(qv, c.embedding)
                     + categoryBonus(c, normalizedDomain)))
@@ -149,12 +160,14 @@ public class KnowledgeBase {
                 .limit(3)
                 .map(x -> "[" + x.chunk.title + "]\n" + x.chunk.text)
                 .toList();
+            if (!results.isEmpty()) hits.incrementAndGet();
+            return results;
         }
 
         // Lexical fallback (BM25-lite)
         List<String> terms = tokenize(query);
         if (terms.isEmpty()) return List.of();
-        return chunks.stream()
+        List<String> results = chunks.stream()
             .map(c -> new Scored(c, lexicalScore(terms, c.text)
                 + categoryBonus(c, normalizedDomain) * 10))
             .filter(x -> x.score > 0.5)
@@ -162,6 +175,20 @@ public class KnowledgeBase {
             .limit(3)
             .map(x -> "[" + x.chunk.title + "]\n" + x.chunk.text)
             .toList();
+        if (!results.isEmpty()) hits.incrementAndGet();
+        return results;
+    }
+
+    public Map<String, Object> stats() {
+        long s = searches.get();
+        return Map.of(
+            "chunks", chunks.size(),
+            "searches", s,
+            "hits", hits.get(),
+            "hitRate", s == 0 ? 0.0 : (double) hits.get() / s,
+            "embeddingCalls", embeddingCalls.get(),
+            "embeddingCacheSize", embeddingCache.size()
+        );
     }
 
     private record Scored(Chunk chunk, double score) {}

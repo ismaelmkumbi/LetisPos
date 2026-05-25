@@ -465,7 +465,7 @@ public class AssistantToolCatalog {
                     "to", Map.of("type","string","description","Recipient email address"),
                     "subject", Map.of("type","string","description","Email subject line"),
                     "message", Map.of("type","string","description","Optional personal message to include")
-                ),"required",List.of("documentId","to")), true, null)
+                ),"required",List.of("documentId","to")), true, "notification.send")
         );
     }
 

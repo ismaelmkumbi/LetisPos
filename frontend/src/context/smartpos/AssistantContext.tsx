@@ -388,7 +388,25 @@ export function AssistantProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const confirmDraftAction = useCallback(async (draftId: string) => {
-    try { await confirmDraft(draftId); setMessages(prev => prev.filter(m => m.id !== draftId)); }
+    try {
+      const response = await confirmDraft(draftId);
+      setMessages(prev => {
+        const next = prev.filter(m => m.id !== draftId);
+        if (!response.result) return next;
+        return next.concat({
+          id: crypto.randomUUID(),
+          role: 'tool',
+          content: response.result.title,
+          timestamp: Date.now(),
+          toolResult: response.result,
+        }, {
+          id: crypto.randomUUID(),
+          role: 'assistant',
+          content: response.message || 'Action completed',
+          timestamp: Date.now(),
+        });
+      });
+    }
     catch (err: unknown) { setError(err instanceof Error ? err.message : 'Failed to confirm action'); }
   }, []);
 

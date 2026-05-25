@@ -1,0 +1,8 @@
+{"id":"sales_today_sw","message":"Nionyeshe mauzo ya leo","expectedDomain":"SALES","expectedTool":"getSalesReport","language":"SWAHILI"}
+{"id":"stockout_risk","message":"Which items are low in stock right now?","expectedDomain":"INVENTORY","expectedTool":"getLowStock","language":"ENGLISH"}
+{"id":"email_invoice","message":"Email invoice INV-2026-000002 to the customer","expectedDomain":"SALES","expectedTool":"emailDocument","language":"ENGLISH"}
+{"id":"monthly_report_not_document","message":"email monthly-report to the owner","expectedDomain":"GENERAL","expectedTool":"askClarification","language":"ENGLISH"}
+{"id":"dead_stock","message":"which products are not moving?","expectedDomain":"INVENTORY","expectedTool":"getDeadStock","language":"ENGLISH"}
+{"id":"customer_profile","message":"what does customer Jane usually buy?","expectedDomain":"CUSTOMERS","expectedTool":"getCustomerProfile","language":"ENGLISH"}
+{"id":"platform_tenants","message":"list tenants with starter plan","expectedDomain":"PLATFORM_ADMIN","expectedTool":"getTenantList","language":"ENGLISH"}
+{"id":"refund_help","message":"How do I process a refund?","expectedDomain":"HELP","expectedTool":"teachModule","language":"ENGLISH"}

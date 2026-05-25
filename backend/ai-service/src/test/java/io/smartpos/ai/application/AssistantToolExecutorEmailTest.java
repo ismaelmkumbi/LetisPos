@@ -18,6 +18,7 @@ class AssistantToolExecutorEmailTest {
     private AssistantToolExecutor executor;
     private NotificationFeign notificationFeign;
     private DocumentFeign documentFeign;
+    private SalesFeign salesFeign;
 
     @BeforeEach
     void setUp() {
@@ -25,7 +26,7 @@ class AssistantToolExecutorEmailTest {
         documentFeign = mock(DocumentFeign.class);
         // Other dependencies mocked but unused in these tests
         var reportFeign = mock(ReportFeign.class);
-        var salesFeign = mock(SalesFeign.class);
+        salesFeign = mock(SalesFeign.class);
         var inventoryFeign = mock(InventoryFeign.class);
         var productFeign = mock(ProductFeign.class);
         var paymentFeign = mock(PaymentFeign.class);
@@ -146,6 +147,55 @@ class AssistantToolExecutorEmailTest {
 
         assertEquals("queued", result.data().get("status"));
         // Should not fail when message is missing
+    }
+
+    @Test
+    void emailDocument_rejectsAmbiguousReportReference() {
+        when(documentFeign.searchByRef(eq("monthly-report"), any(), any(), anyInt(), anyInt()))
+            .thenReturn(Map.of("content", List.of()));
+
+        var args = Map.of(
+            "documentId", (Object) "monthly-report",
+            "to", (Object) "customer@example.com"
+        );
+
+        ToolException ex = assertThrows(ToolException.class,
+            () -> executor.execute("emailDocument", args, UUID.randomUUID()));
+
+        assertEquals("INVALID_ARG", ex.code());
+        assertTrue(ex.getMessage().contains("monthly-report"));
+        verifyNoInteractions(salesFeign);
+    }
+
+    @Test
+    void emailDocument_requiresRecipient() {
+        var args = Map.of("documentId", (Object) UUID.randomUUID().toString());
+
+        ToolException ex = assertThrows(ToolException.class,
+            () -> executor.execute("emailDocument", args, UUID.randomUUID()));
+
+        assertEquals("INVALID_ARG", ex.code());
+        assertTrue(ex.hint().contains("email address"));
+    }
+
+    @Test
+    void emailDocument_timeoutClassifiesAsUpstream() {
+        UUID docId = UUID.randomUUID();
+        when(documentFeign.searchByRef(eq(docId.toString()), any(), any(), anyInt(), anyInt()))
+            .thenReturn(Map.of("content", List.of(Map.of("id", docId.toString()))));
+        when(documentFeign.emailDocument(any(), any()))
+            .thenThrow(new RuntimeException("Read timed out executing POST http://10.0.0.2:8089/api/v1/notifications"));
+
+        var args = Map.of(
+            "documentId", (Object) docId.toString(),
+            "to", (Object) "customer@example.com"
+        );
+
+        ToolException ex = ToolException.classify("emailDocument",
+            assertThrows(RuntimeException.class,
+                () -> executor.execute("emailDocument", args, UUID.randomUUID())));
+
+        assertEquals("UPSTREAM", ex.code());
     }
 
     @Test

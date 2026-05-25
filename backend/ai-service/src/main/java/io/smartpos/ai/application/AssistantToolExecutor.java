@@ -155,20 +155,32 @@ public class AssistantToolExecutor {
 
     public AssistantDtos.ToolResult executeDraft(UUID draftId, UUID userId) {
         AssistantDraft draft = draftRepo.findById(draftId)
-            .orElseThrow(() -> new IllegalArgumentException("Draft not found"));
+            .orElseThrow(() -> new ToolException("NOT_FOUND",
+                "Draft not found.",
+                "The draft may have expired or already been removed. Ask the assistant to prepare it again."));
         if (draft.getStatus() != AssistantDraft.DraftStatus.PENDING) {
-            throw new IllegalStateException("Draft already " + draft.getStatus());
+            throw new ToolException("INVALID_ARG",
+                "Draft already " + draft.getStatus() + ".",
+                "Create a fresh draft before confirming this action again.");
         }
         if (draft.getExpiresAt().isBefore(Instant.now())) {
             draft.setStatus(AssistantDraft.DraftStatus.EXPIRED);
             draftRepo.save(draft);
-            throw new IllegalStateException("Draft expired");
+            throw new ToolException("INVALID_ARG",
+                "Draft expired.",
+                "Ask the assistant to prepare a new draft, then confirm it within 5 minutes.");
         }
         Map<String, Object> args = parseJson(draft.getToolInput());
-        AssistantDtos.ToolResult result = executeWrite(draft.getToolName(), args, userId);
-        draft.setStatus(AssistantDraft.DraftStatus.CONFIRMED);
-        draftRepo.save(draft);
-        return result;
+        try {
+            AssistantDtos.ToolResult result = executeWrite(draft.getToolName(), args, userId);
+            draft.setStatus(AssistantDraft.DraftStatus.CONFIRMED);
+            draftRepo.save(draft);
+            return result;
+        } catch (ToolException e) {
+            throw e;
+        } catch (Exception e) {
+            throw ToolException.classify(draft.getToolName(), e);
+        }
     }
 
     public void rejectDraft(UUID draftId) {
@@ -744,7 +756,8 @@ public class AssistantToolExecutor {
             org.springframework.data.domain.Pageable.ofSize(200));
         var products = page.getContent();
         // Compute margins
-        record MarginInfo(String name, BigDecimal price, BigDecimal cost, BigDecimal margin, double marginPct) {}
+        record MarginInfo(String name, BigDecimal price, BigDecimal cost, BigDecimal margin,
+                          double marginPct, int leakageScore, String leakageRisk) {}
         var margins = products.stream()
             .filter(p -> p.cost() != null && p.cost().compareTo(BigDecimal.ZERO) > 0)
             .map(p -> {
@@ -753,23 +766,31 @@ public class AssistantToolExecutor {
                     ? margin.divide(p.price(), 4, java.math.RoundingMode.HALF_UP)
                         .multiply(BigDecimal.valueOf(100)).doubleValue()
                     : 0;
-                return new MarginInfo(p.name(), p.price(), p.cost(), margin, pct);
+                int leakageScore = BusinessIntelligenceScoring.marginLeakageScore(
+                    p.price(), p.cost(), BigDecimal.ZERO);
+                return new MarginInfo(p.name(), p.price(), p.cost(), margin, pct,
+                    leakageScore, leakageRisk(leakageScore));
             })
             .sorted((a, b) -> Double.compare(b.marginPct, a.marginPct))
             .toList();
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("currency", "TZS");
-        data.put("columns", List.of("Product","Price","Cost","Margin","Margin %"));
+        data.put("columns", List.of("Product","Price","Cost","Margin","Margin %","Leakage Risk"));
         data.put("rows", margins.stream().limit(limit).map(m -> List.of(
-            m.name, m.price, m.cost, m.margin, String.format("%.1f%%", m.marginPct)))
+            m.name, m.price, m.cost, m.margin, String.format("%.1f%%", m.marginPct),
+            m.leakageRisk + " (" + m.leakageScore + ")"))
             .collect(Collectors.toList()));
         if (margins.size() > limit) {
             // Also show worst margins
             var worst = margins.subList(Math.max(0, margins.size() - 5), margins.size());
             data.put("worstMargins", worst.stream().map(m -> List.of(
-                m.name, m.margin, String.format("%.1f%%", m.marginPct)))
+                m.name, m.margin, String.format("%.1f%%", m.marginPct),
+                m.leakageRisk + " (" + m.leakageScore + ")"))
                 .collect(Collectors.toList()));
         }
+        data.put("marginLeakageModel", Map.of(
+            "score", "0-100; higher means margin is thin, negative, or vulnerable to discounting",
+            "note", "Catalog-level score excludes sale-line discounts; anomaly checks include discount leakage."));
         return new AssistantDtos.ToolResult("table",
             "Product Margins — Top " + Math.min(limit, margins.size()), data);
     }
@@ -1159,6 +1180,12 @@ public class AssistantToolExecutor {
         )).collect(Collectors.toList()));
         data.put("totalDead", deadProducts.size());
         data.put("daysWithoutSales", daysWithoutSales);
+        int deadStockRiskScore = Math.min(100, deadProducts.size() * 6);
+        data.put("risk", Map.of(
+            "score", deadStockRiskScore,
+            "level", deadStockRiskScore >= 70 ? "HIGH" : deadStockRiskScore >= 35 ? "MEDIUM" : "LOW",
+            "drivers", List.of("stock with no confirmed sales", "lookbackDays=" + daysWithoutSales)
+        ));
         data.put("recommendation", deadProducts.isEmpty()
             ? "All stocked products have recent sales activity. No dead stock detected."
             : deadProducts.size() + " products have stock but no sales in " + daysWithoutSales
@@ -1171,18 +1198,31 @@ public class AssistantToolExecutor {
         try {
             var suggestions = inventoryFeign.reorderSuggestions();
             Map<String, Object> data = new LinkedHashMap<>();
-            data.put("columns", List.of("Product","Current Stock","Suggested Qty","Min Qty","Urgency","Daily Velocity","Supplier"));
-            data.put("rows", suggestions.stream().map(s -> List.of(
-                s.getOrDefault("productName", "?"),
-                s.getOrDefault("currentStock", 0),
-                s.getOrDefault("suggestedQty", 0),
-                s.getOrDefault("minQty", 0),
-                s.getOrDefault("urgency", "?"),
-                s.getOrDefault("dailyVelocity", 0),
-                s.getOrDefault("supplierId", "N/A")
-            )).collect(Collectors.toList()));
+            int horizonDays = intArg(args, "horizonDays", 14, 1, 60);
+            data.put("columns", List.of("Product","Current Stock","Suggested Qty","Min Qty","Urgency","Daily Velocity","Stockout %","Demand CI","Supplier"));
+            data.put("rows", suggestions.stream().map(s -> {
+                BigDecimal currentStock = toBigDecimal(s.getOrDefault("currentStock", 0));
+                BigDecimal dailyVelocity = toBigDecimal(s.getOrDefault("dailyVelocity", 0));
+                BigDecimal observedQty = dailyVelocity.multiply(BigDecimal.valueOf(30));
+                double stockoutProbability = BusinessIntelligenceScoring.stockoutProbability(
+                    currentStock, observedQty, 30, horizonDays);
+                var band = BusinessIntelligenceScoring.poissonDemandBand(observedQty, 30, horizonDays);
+                return List.of(
+                    s.getOrDefault("productName", "?"),
+                    currentStock,
+                    s.getOrDefault("suggestedQty", 0),
+                    s.getOrDefault("minQty", 0),
+                    s.getOrDefault("urgency", "?"),
+                    dailyVelocity,
+                    String.format("%.0f%%", stockoutProbability * 100),
+                    band.low() + " - " + band.high(),
+                    s.getOrDefault("supplierId", "N/A")
+                );
+            }).collect(Collectors.toList()));
             data.put("totalSuggestions", suggestions.size());
             data.put("currency", "TZS");
+            data.put("forecastHorizonDays", horizonDays);
+            data.put("confidence", "95% demand confidence interval uses a Poisson demand approximation from daily velocity.");
             return new AssistantDtos.ToolResult("table",
                 "Reorder Suggestions (" + suggestions.size() + " items)", data);
         } catch (Exception e) {
@@ -1233,8 +1273,20 @@ public class AssistantToolExecutor {
             if (customerId != null) {
                 var summary = reportFeign.salesSummary(thirtyDaysAgo.toString(), today.toString(),
                     null, customerId);
-                data.put("totalSpend30d", summary.gross());
-                data.put("transactionCount30d", summary.salesCount());
+                BigDecimal spend30d = summary.gross() != null ? summary.gross() : BigDecimal.ZERO;
+                long tx30d = summary.salesCount();
+                BigDecimal avgBasket = summary.averageBasket() != null ? summary.averageBasket() : BigDecimal.ZERO;
+                int ageDays = daysSince(customer.get("createdAt"));
+                boolean active = Boolean.parseBoolean(String.valueOf(customer.getOrDefault("active", true)));
+                int churnRisk = BusinessIntelligenceScoring.churnRisk(tx30d, spend30d, ageDays, active);
+                int vipScore = BusinessIntelligenceScoring.vipScore(tx30d, spend30d, avgBasket, ageDays);
+                data.put("totalSpend30d", spend30d);
+                data.put("transactionCount30d", tx30d);
+                data.put("avgBasket30d", avgBasket);
+                data.put("vipScore", vipScore);
+                data.put("churnRisk", churnRisk);
+                data.put("segment", BusinessIntelligenceScoring.customerSegment(vipScore, churnRisk));
+                data.put("recommendedAction", customerAction(vipScore, churnRisk));
                 data.put("currency", "TZS");
             }
         } catch (Exception e) {
@@ -1294,18 +1346,23 @@ public class AssistantToolExecutor {
         // Check for unusually high discounts
         try {
             var salesPage = salesFeign.search(from, to, null, null, "CONFIRMED", null, 0, 500);
-            long highDiscountSales = salesPage.content().stream()
-                .filter(s -> s.discountTotal() != null
-                    && s.grandTotal() != null
-                    && s.grandTotal().compareTo(BigDecimal.ZERO) > 0
-                    && s.discountTotal().divide(s.grandTotal(), 4, java.math.RoundingMode.HALF_UP)
-                        .compareTo(new BigDecimal("0.20")) > 0)
-                .count();
-            if (highDiscountSales > 3) {
-                anomalies.add(Map.of("type", "warning", "title", "High discounts",
-                    "detail", highDiscountSales + " sales with >20% discount", "severity", "MEDIUM"));
-            }
-        } catch (Exception ignored) {}
+	            long highDiscountSales = salesPage.content().stream()
+	                .filter(s -> s.discountTotal() != null
+	                    && s.grandTotal() != null
+	                    && s.grandTotal().compareTo(BigDecimal.ZERO) > 0
+	                    && s.discountTotal().divide(s.grandTotal(), 4, java.math.RoundingMode.HALF_UP)
+	                        .compareTo(new BigDecimal("0.20")) > 0)
+	                .count();
+                BigDecimal estimatedLeakage = salesPage.content().stream()
+                    .map(this::estimateSaleMarginLeakage)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+	            if (highDiscountSales > 3) {
+	                anomalies.add(Map.of("type", "warning", "title", "High discounts",
+	                    "detail", highDiscountSales + " sales with >20% discount; estimated margin leakage "
+                            + estimatedLeakage + " TZS", "severity", "MEDIUM",
+                        "estimatedLeakage", estimatedLeakage));
+	            }
+	        } catch (Exception ignored) {}
 
         // Check expiring stock
         try {
@@ -1824,11 +1881,23 @@ public class AssistantToolExecutor {
 
     private AssistantDtos.ToolResult generateDocument(Map<String, Object> args) {
         String refId = (String) args.get("referenceId");
+        if (refId == null || refId.isBlank()) {
+            throw new ToolException("INVALID_ARG",
+                "Document generation needs a sale, purchase, payment, or other record reference.",
+                "Search for the record first, then generate the document using its UUID or document reference.");
+        }
         // If referenceId is not a UUID, treat it as a sale reference and resolve it
         if (refId != null && !refId.matches("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")) {
+            if (!looksLikeBusinessReference(refId)) {
+                throw new ToolException("INVALID_ARG",
+                    "'" + refId + "' is not a documentable record reference.",
+                    "For reports such as monthly reports, use report tools. To generate an invoice or receipt, provide a sale/payment UUID or sale reference.");
+            }
             var salePage = salesFeign.search(null, null, null, null, null, refId, 0, 1);
             if (salePage.content().isEmpty()) {
-                throw new IllegalArgumentException("Sale not found: " + refId);
+                throw new ToolException("NOT_FOUND",
+                    "Sale not found: " + refId,
+                    "Search sales first, then generate the document using the exact sale UUID or invoice reference.");
             }
             refId = salePage.content().get(0).id().toString();
         }
@@ -2168,6 +2237,16 @@ public class AssistantToolExecutor {
     private AssistantDtos.ToolResult emailDocument(Map<String, Object> args) {
         String idStr = (String) args.get("documentId");
         String to = (String) args.get("to");
+        if (idStr == null || idStr.isBlank()) {
+            throw new ToolException("INVALID_ARG",
+                "Emailing a document needs a document ID or document reference.",
+                "Search documents first, or generate the invoice/receipt from a sale before emailing it.");
+        }
+        if (to == null || to.isBlank()) {
+            throw new ToolException("INVALID_ARG",
+                "Emailing a document needs a recipient email address.",
+                "Ask the customer for an email address, then try again.");
+        }
         boolean generated = false;
 
         // Step 1: Resolve to a document UUID
@@ -2175,6 +2254,11 @@ public class AssistantToolExecutor {
 
         // Step 2: If no document exists, generate one from the sale
         if (documentId == null) {
+            if (!looksLikeBusinessReference(idStr)) {
+                throw new ToolException("INVALID_ARG",
+                    "'" + idStr + "' is not a document ID or sale reference.",
+                    "Use searchDocuments for invoice/receipt IDs. For reports such as monthly reports, generate the report first instead of emailing it as a sale document.");
+            }
             var salePage = salesFeign.search(null, null, null, null, null, idStr, 0, 1);
             if (!salePage.content().isEmpty()) {
                 UUID saleId = salePage.content().get(0).id();
@@ -2189,7 +2273,9 @@ public class AssistantToolExecutor {
         }
 
         if (documentId == null) {
-            throw new IllegalArgumentException("No document found or sale found for: " + idStr);
+            throw new ToolException("NOT_FOUND",
+                "No document or sale found for: " + idStr,
+                "Search documents or sales first, then email the exact document UUID or sale reference.");
         }
 
         // Step 3: Email the document
@@ -2206,6 +2292,21 @@ public class AssistantToolExecutor {
         result.forEach(data::put);
         return new AssistantDtos.ToolResult("text",
             generated ? "Document Generated & Emailed" : "Document Emailed", data);
+    }
+
+    private boolean looksLikeBusinessReference(String value) {
+        if (value == null || value.isBlank()) return false;
+        String v = value.trim();
+        if (v.matches("[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")) return true;
+        String upper = v.toUpperCase(Locale.ROOT);
+        return upper.matches(".*\\d.*")
+            || upper.startsWith("INV-")
+            || upper.startsWith("TAX-")
+            || upper.startsWith("PAY-")
+            || upper.startsWith("QUO-")
+            || upper.startsWith("SALE-")
+            || upper.startsWith("ORD-")
+            || upper.startsWith("PO-");
     }
 
     /** Finds a document by ID, reference, or sale UUID. Returns null if none found. */
@@ -2317,6 +2418,43 @@ public class AssistantToolExecutor {
             try { return new BigDecimal(s); } catch (Exception ignored) {}
         }
         return BigDecimal.ZERO;
+    }
+
+    private int daysSince(Object createdAt) {
+        if (createdAt == null) return 365;
+        try {
+            Instant instant = createdAt instanceof Instant i
+                ? i : Instant.parse(String.valueOf(createdAt));
+            return (int) Math.max(0, ChronoUnit.DAYS.between(instant, Instant.now()));
+        } catch (Exception ignored) {
+            return 365;
+        }
+    }
+
+    private String customerAction(int vipScore, int churnRisk) {
+        if (vipScore >= 75 && churnRisk < 45) return "Keep this customer close: offer early access, loyalty rewards, or priority service.";
+        if (vipScore >= 55 && churnRisk >= 55) return "High-value customer at risk: follow up personally and offer a targeted retention incentive.";
+        if (churnRisk >= 70) return "Reach out with a win-back offer or ask why they have slowed down.";
+        if (vipScore >= 45) return "Nurture with relevant product recommendations based on recent purchases.";
+        return "Use light-touch reminders or promotions; avoid heavy discounting until purchase intent is clearer.";
+    }
+
+    private String leakageRisk(int score) {
+        if (score >= 70) return "HIGH";
+        if (score >= 35) return "MEDIUM";
+        return "LOW";
+    }
+
+    private BigDecimal estimateSaleMarginLeakage(SalesFeign.SaleSummary sale) {
+        if (sale == null || sale.lines() == null) return BigDecimal.ZERO;
+        BigDecimal leakage = BigDecimal.ZERO;
+        for (var line : sale.lines()) {
+            BigDecimal discount = line.discount() != null ? line.discount() : BigDecimal.ZERO;
+            BigDecimal qty = line.qty() != null ? line.qty() : BigDecimal.ONE;
+            leakage = leakage.add(BusinessIntelligenceScoring.marginLeakage(
+                line.unitPrice(), BigDecimal.ZERO, discount, qty));
+        }
+        return leakage;
     }
 
     private String briefingHeadline(Object sales, Object priorSales, int lowStockCount, int expiringCount) {

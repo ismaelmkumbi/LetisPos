@@ -33,8 +33,8 @@ public class AssistantController {
 
     @PostMapping("/confirm/{draftId}")
     @PreAuthorize("isAuthenticated()")
-    public AssistantDtos.DraftResponse confirm(@PathVariable UUID draftId,
-                                                @AuthenticationPrincipal Jwt jwt) {
+    public AssistantDtos.ConfirmResponse confirm(@PathVariable UUID draftId,
+                                                 @AuthenticationPrincipal Jwt jwt) {
         return assistantService.confirmDraft(draftId, principal(jwt));
     }
 

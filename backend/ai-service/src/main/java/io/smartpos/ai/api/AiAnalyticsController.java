@@ -4,6 +4,7 @@ import io.smartpos.ai.api.dto.AiAnalyticsDtos;
 import io.smartpos.ai.application.CustomerAnalyticsService;
 import io.smartpos.ai.application.ForecastingService;
 import io.smartpos.ai.application.FraudDetectionService;
+import io.smartpos.ai.application.KnowledgeBase;
 import io.smartpos.common.context.TenantContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -13,6 +14,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Slf4j
@@ -24,6 +26,7 @@ public class AiAnalyticsController {
     private final ForecastingService forecastingService;
     private final CustomerAnalyticsService customerAnalyticsService;
     private final FraudDetectionService fraudDetectionService;
+    private final KnowledgeBase knowledgeBase;
 
     /**
      * Demand forecasting: top 10 products by projected demand using
@@ -57,5 +60,11 @@ public class AiAnalyticsController {
     public List<AiAnalyticsDtos.FlaggedTransaction> fraudDetection(@AuthenticationPrincipal Jwt jwt) {
         log.debug("GET /api/v1/ai/fraud-detection called by user={}", jwt != null ? jwt.getSubject() : "anonymous");
         return fraudDetectionService.detectFraud(TenantContext.get().orElse(null));
+    }
+
+    @GetMapping("/knowledge/stats")
+    @PreAuthorize("hasAuthority('ai.insight')")
+    public Map<String, Object> knowledgeStats() {
+        return knowledgeBase.stats();
     }
 }

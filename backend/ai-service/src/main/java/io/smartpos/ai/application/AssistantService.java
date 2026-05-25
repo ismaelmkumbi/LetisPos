@@ -2,7 +2,7 @@ package io.smartpos.ai.application;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.smartpos.ai.api.dto.AssistantDtos;
-import io.smartpos.ai.api.dto.AssistantDtos.DraftResponse;
+import io.smartpos.ai.api.dto.AssistantDtos.ConfirmResponse;
 import io.smartpos.ai.api.dto.AssistantDtos.ToolResult;
 import io.smartpos.ai.api.dto.IntentClassification;
 import io.smartpos.ai.application.provider.AiProvider;
@@ -12,17 +12,23 @@ import io.smartpos.ai.domain.repository.AiInvocationRepository;
 import io.smartpos.common.context.TenantContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
 import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.Executor;
+import java.util.concurrent.RejectedExecutionException;
 
 @Service
 public class AssistantService {
@@ -41,7 +47,14 @@ public class AssistantService {
     private final ToolResultCache toolResultCache;
     private final MassSendGuard massSendGuard;
     private final TenantMemoryStore tenantMemory;
+    private final Executor assistantTaskExecutor;
     private final ObjectMapper om = new ObjectMapper();
+
+    @Value("${smartpos.ai.default-timezone:Africa/Dar_es_Salaam}")
+    private String defaultTimezone;
+
+    @Value("${smartpos.ai.proactive-briefing-enabled:true}")
+    private boolean proactiveBriefingEnabled;
 
     public AssistantService(AiRouter aiRouter, AssistantPromptBuilder promptBuilder,
                             AssistantToolCatalog toolCatalog,
@@ -53,7 +66,8 @@ public class AssistantService {
                             KnowledgeBase knowledgeBase,
                             ToolResultCache toolResultCache,
                             MassSendGuard massSendGuard,
-                            TenantMemoryStore tenantMemory) {
+                            TenantMemoryStore tenantMemory,
+                            @Qualifier("assistantTaskExecutor") Executor assistantTaskExecutor) {
         this.aiRouter = aiRouter;
         this.promptBuilder = promptBuilder;
         this.toolCatalog = toolCatalog;
@@ -66,6 +80,7 @@ public class AssistantService {
         this.toolResultCache = toolResultCache;
         this.massSendGuard = massSendGuard;
         this.tenantMemory = tenantMemory;
+        this.assistantTaskExecutor = assistantTaskExecutor;
     }
 
     public SseEmitter chat(AssistantDtos.ChatRequest request, Jwt jwt,
@@ -158,13 +173,17 @@ public class AssistantService {
         }
 
         // Proactive alert for owner/manager on new conversation
-        if (conversationIdParam == null
+        ZoneId tenantZone = resolveZone(jwt);
+        LocalDate tenantToday = ZonedDateTime.now(tenantZone).toLocalDate();
+        LocalDate briefingDate = tenantToday.minusDays(1);
+
+        if (proactiveBriefingEnabled && conversationIdParam == null
             && (profile == RoleProfile.OWNER || profile == RoleProfile.MANAGER)) {
             try {
                 var briefing = toolExecutor.execute("getExecutiveBriefing",
-                    Map.of("date", LocalDate.now().minusDays(1).toString()), userId);
-                String alert = "Good morning. Here's your briefing for " +
-                    LocalDate.now().minusDays(1).toString() + ":\n\n" +
+                    Map.of("date", briefingDate.toString()), userId);
+                String alert = greetingFor(ZonedDateTime.now(tenantZone)) + ". Here's your briefing for " +
+                    briefingDate + ":\n\n" +
                     briefing.title() + "\n" +
                     briefing.data().get("headline") + "\n\n" +
                     briefing.data().get("recommendedAction");
@@ -180,7 +199,7 @@ public class AssistantService {
             }
         }
 
-        new Thread(() -> {
+        Runnable assistantTask = () -> {
             try {
                 // Propagate security context to background thread for Feign calls
                 org.springframework.security.core.context.SecurityContextHolder.setContext(securityCtx);
@@ -203,9 +222,39 @@ public class AssistantService {
                 TenantContext.clear();
                 org.springframework.security.core.context.SecurityContextHolder.clearContext();
             }
-        }).start();
+        };
+
+        try {
+            assistantTaskExecutor.execute(assistantTask);
+        } catch (RejectedExecutionException e) {
+            try {
+                emitter.send(SseEmitter.event().name("error").data(Map.of(
+                    "message", "Assistant is busy. Please try again in a moment.",
+                    "code", "BUSY")));
+                emitter.complete();
+            } catch (IOException ignored) {}
+        }
 
         return emitter;
+    }
+
+    private ZoneId resolveZone(Jwt jwt) {
+        for (String claim : List.of("timezone", "timeZone", "zoneId", "tenantTimezone")) {
+            String value = jwt.getClaimAsString(claim);
+            if (value != null && !value.isBlank()) {
+                try { return ZoneId.of(value); } catch (Exception ignored) {}
+            }
+        }
+        try { return ZoneId.of(defaultTimezone); } catch (Exception ignored) {
+            return ZoneId.of("UTC");
+        }
+    }
+
+    private String greetingFor(ZonedDateTime now) {
+        int hour = now.getHour();
+        if (hour < 12) return "Good morning";
+        if (hour < 18) return "Good afternoon";
+        return "Good evening";
     }
 
     private void processConversation(SseEmitter emitter, String systemPrompt,
@@ -594,9 +643,9 @@ public class AssistantService {
         return Map.of("type", "function", "function", fn);
     }
 
-    public DraftResponse confirmDraft(UUID draftId, UUID userId) {
+    public ConfirmResponse confirmDraft(UUID draftId, UUID userId) {
         ToolResult result = toolExecutor.executeDraft(draftId, userId);
-        return new DraftResponse(draftId, "completed", "Action completed", Map.of());
+        return new ConfirmResponse(draftId, "completed", "Action completed", result);
     }
 
     public void rejectDraft(UUID draftId) {

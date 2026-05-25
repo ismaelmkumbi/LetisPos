@@ -33,6 +33,13 @@ public final class AssistantDtos {
         Map<String, Object> toolInput
     ) {}
 
+    public record ConfirmResponse(
+        UUID draftId,
+        String status,
+        String message,
+        ToolResult result
+    ) {}
+
     public sealed interface StreamEvent {
         record MetaEvent(UUID conversationId) implements StreamEvent {}
         record TokenEvent(String token) implements StreamEvent {}

@@ -51,7 +51,8 @@ public class ToolException extends RuntimeException {
                 "The request was rejected as invalid.",
                 "Double-check the required fields (dates, IDs, amounts) and try again.");
         }
-        if (lower.contains("503") || lower.contains("502") || lower.contains("connection") || lower.contains("timeout")) {
+        if (lower.contains("503") || lower.contains("502") || lower.contains("connection")
+            || lower.contains("timeout") || lower.contains("timed out")) {
             return new ToolException("UPSTREAM",
                 "A backend service is temporarily unreachable.",
                 "Try again in a moment. If it keeps failing, an admin should check service health.");

@@ -28,6 +28,13 @@ export interface DraftResponse {
   toolInput: Record<string, unknown>;
 }
 
+export interface ConfirmResponse {
+  draftId: string;
+  status: string;
+  message: string;
+  result?: ToolResult;
+}
+
 export type StreamEvent =
   | { type: 'meta'; conversationId: string }
   | { type: 'token'; token: string }
@@ -148,8 +155,9 @@ export async function* streamChat(
   }
 }
 
-export async function confirmDraft(draftId: string): Promise<void> {
-  await api.post(`/api/v1/ai/assistant/confirm/${draftId}`);
+export async function confirmDraft(draftId: string): Promise<ConfirmResponse> {
+  const { data } = await api.post<ConfirmResponse>(`/api/v1/ai/assistant/confirm/${draftId}`);
+  return data;
 }
 
 export async function rejectDraft(draftId: string): Promise<void> {

@@ -69,6 +69,8 @@ smartpos:
   internal:
     shared-secret: ${SMARTPOS_INTERNAL_SHARED_SECRET:dev-internal-token-change-me}
   ai:
+    default-timezone: ${TENANT_DEFAULT_TIMEZONE:Africa/Dar_es_Salaam}
+    proactive-briefing-enabled: ${AI_PROACTIVE_BRIEFING_ENABLED:true}
     sales-service-url: ${SALES_SERVICE_URL:http://localhost:8085}
     inventory-service-url: ${INVENTORY_SERVICE_URL:http://localhost:8084}
     product-service-url: ${PRODUCT_SERVICE_URL:http://localhost:8083}
@@ -107,5 +109,4 @@ logging:
     io.smartpos: INFO
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{traceId:-}] %logger{36} - %msg%n"
-
 
