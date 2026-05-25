@@ -2,6 +2,7 @@ package io.smartpos.sales.api;
 
 import io.smartpos.sales.application.BrandProfileService;
 import io.smartpos.sales.api.dto.BrandProfileDto;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.*;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -115,8 +116,8 @@ public class BrandAiController {
             "Generate 3 logo variant concepts for a business called '%s' in the %s industry. " +
             "For each variant, suggest: name, description, style, and a simple SVG-like shape description. " +
             "Respond with a JSON array: [{\"name\":\"...\",\"description\":\"...\",\"style\":\"...\",\"shapeDescription\":\"...\"}]",
-            profile.businessName() != null ? profile.businessName() : "My Business",
-            profile.industry() != null ? profile.industry() : "Retail");
+            profile.getBusinessName() != null ? profile.getBusinessName() : "My Business",
+            profile.getIndustry() != null ? profile.getIndustry() : "Retail");
 
         try {
             Map<String, Object> aiReq = new LinkedHashMap<>();
@@ -143,8 +144,8 @@ public class BrandAiController {
             "Generate a 5-color brand palette for '%s' (%s industry). " +
             "Include primary, secondary, accent, background, and text colors. " +
             "Respond ONLY with a JSON array of hex color strings: [\"#xxx\",\"#xxx\",...]",
-            profile.businessName() != null ? profile.businessName() : "My Business",
-            profile.industry() != null ? profile.industry() : "Retail");
+            profile.getBusinessName() != null ? profile.getBusinessName() : "My Business",
+            profile.getIndustry() != null ? profile.getIndustry() : "Retail");
 
         try {
             Map<String, Object> aiReq = new LinkedHashMap<>();
@@ -171,8 +172,8 @@ public class BrandAiController {
         String prompt = String.format(
             "Suggest 3 font pairings for '%s' (%s industry). " +
             "Respond with a JSON array: [{\"family\":\"...\",\"category\":\"sans-serif|serif|monospace\",\"preview\":\"one-line description\"}]",
-            profile.businessName() != null ? profile.businessName() : "My Business",
-            profile.industry() != null ? profile.industry() : "Retail");
+            profile.getBusinessName() != null ? profile.getBusinessName() : "My Business",
+            profile.getIndustry() != null ? profile.getIndustry() : "Retail");
 
         try {
             Map<String, Object> aiReq = new LinkedHashMap<>();
@@ -204,10 +205,10 @@ public class BrandAiController {
             "Create a document theme for '%s' (%s). Colors: primary=%s, accent=%s. " +
             "Suggest surface, text, and border colors that complement. " +
             "Respond ONLY with JSON: {\"primaryColor\":\"#xxx\",\"accentColor\":\"#xxx\",\"surfaceColor\":\"#xxx\",\"textColor\":\"#xxx\",\"borderColor\":\"#xxx\"}",
-            profile.businessName() != null ? profile.businessName() : "My Business",
-            profile.industry() != null ? profile.industry() : "Retail",
-            profile.primaryColor() != null ? profile.primaryColor() : "#16A34A",
-            profile.accentColor() != null ? profile.accentColor() : "#F59E0B");
+            profile.getBusinessName() != null ? profile.getBusinessName() : "My Business",
+            profile.getIndustry() != null ? profile.getIndustry() : "Retail",
+            profile.getPrimaryColor() != null ? profile.getPrimaryColor() : "#16A34A",
+            profile.getAccentColor() != null ? profile.getAccentColor() : "#F59E0B");
 
         try {
             Map<String, Object> aiReq = new LinkedHashMap<>();
@@ -235,7 +236,7 @@ public class BrandAiController {
     private static Map<String, Object> parseJsonSafely(String text, Map<String, Object> fallback) {
         try {
             String json = extractJson(text);
-            return new RestTemplate().getObjectMapper().readValue(json, Map.class);
+            return new ObjectMapper().readValue(json, Map.class);
         } catch (Exception e) {
             return fallback;
         }
@@ -245,7 +246,7 @@ public class BrandAiController {
     private static List<Map<String, Object>> parseJsonArraySafely(String text) {
         try {
             String json = extractJson(text);
-            return new RestTemplate().getObjectMapper().readValue(json, List.class);
+            return new ObjectMapper().readValue(json, List.class);
         } catch (Exception e) {
             return List.of();
         }
@@ -254,7 +255,7 @@ public class BrandAiController {
     private static List<String> parseColorArray(String text) {
         try {
             String json = extractJson(text);
-            var list = new RestTemplate().getObjectMapper().readValue(json, List.class);
+            var list = new ObjectMapper().readValue(json, List.class);
             return (List<String>) list.stream().filter(c -> c instanceof String s && s.startsWith("#")).toList();
         } catch (Exception e) {
             return List.of("#16A34A", "#1E293B", "#F59E0B", "#FFFFFF", "#0F172A");
