@@ -12,6 +12,10 @@ spring:
   application:
     name: ai-service
 
+  mvc:
+    async:
+      request-timeout: 120000
+
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/ai_db}
     username: ${DB_USER:ai_user}
