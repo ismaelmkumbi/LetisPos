@@ -176,7 +176,7 @@ public class AssistantService {
                 try {
                     emitter.send(SseEmitter.event()
                         .name("error")
-                        .data(Map.of("message", e.getMessage(), "code", "INTERNAL")));
+                        .data(Map.of("message", e.getMessage() != null ? e.getMessage() : "Internal error", "code", "INTERNAL")));
                     emitter.complete();
                 } catch (IOException ignored) {
                     // client disconnected
@@ -299,7 +299,7 @@ public class AssistantService {
                             toolErrors.add(tc.name() + ": " + e.getMessage());
                             toolErrorsByCallId.put(tc.id(), tc.name() + ": " + e.getMessage());
                             emitter.send(SseEmitter.event().name("error")
-                                .data(Map.of("message", e.getMessage(), "code", "TOOL_ERROR")));
+                                .data(Map.of("message", e.getMessage() != null ? e.getMessage() : "Tool error", "code", "TOOL_ERROR")));
                         }
                     } else {
                         hasWriteDrafts = true;
@@ -325,7 +325,7 @@ public class AssistantService {
                         toolErrors.add(tc.name() + ": " + e.getMessage());
                         toolErrorsByCallId.put(tc.id(), tc.name() + ": " + e.getMessage());
                         emitter.send(SseEmitter.event().name("error")
-                            .data(Map.of("message", e.getMessage(), "code", "TOOL_ERROR")));
+                            .data(Map.of("message", e.getMessage() != null ? e.getMessage() : "Tool error", "code", "TOOL_ERROR")));
                     }
                 } else {
                     List<String> available = tools.stream()
