@@ -65,41 +65,61 @@ public class BrandProfileService {
     @Transactional
     public BrandProfileDto reset() {
         UUID tenantId = TenantContext.require();
-        repository.findByTenantId(tenantId).ifPresent(repository::delete);
-        BrandProfile fresh = createDefault(tenantId);
-        return toDto(fresh);
+        BrandProfile profile = repository.findByTenantId(tenantId)
+                .orElseGet(() -> createDefault(tenantId));
+
+        String oldPrimary = profile.getPrimaryColor();
+        String oldAccent  = profile.getAccentColor();
+        String oldFont    = profile.getFontFamily();
+
+        applyDefaults(profile);
+        BrandProfile saved = repository.save(profile);
+
+        if (anyChanged(oldPrimary, saved.getPrimaryColor(),
+                       oldAccent,  saved.getAccentColor(),
+                       oldFont,    saved.getFontFamily())) {
+            documentThemeService.cascadeBrandChange(tenantId,
+                oldPrimary, saved.getPrimaryColor(),
+                oldAccent,  saved.getAccentColor(),
+                oldFont,    saved.getFontFamily());
+        }
+        return toDto(saved);
     }
 
     private BrandProfile createDefault(UUID tenantId) {
         BrandProfile p = BrandProfile.builder()
                 .id(UUID.randomUUID())
                 .tenantId(tenantId)
-                .businessName("")
-                .tagline("")
-                .description("")
-                .industry("Retail")
-                .brandTone("Professional")
-                .primaryColor(DEFAULT_PRIMARY)
-                .secondaryColor(DEFAULT_SECONDARY)
-                .accentColor(DEFAULT_ACCENT)
-                .fontFamily(DEFAULT_FONT)
-                .typographyScale("default")
-                .logoUrl("")
-                .logoSvgUrl("")
-                .logoMonochromeUrl("")
-                .logoThermalUrl("")
-                .faviconUrl("")
-                .watermarkUrl("")
-                .stampUrl("")
-                .signatureUrl("")
-                .qrCodeUrl("")
-                .website("")
-                .facebook("")
-                .instagram("")
-                .twitter("")
-                .linkedin("")
                 .build();
+        applyDefaults(p);
         return repository.save(p);
+    }
+
+    private void applyDefaults(BrandProfile p) {
+        p.setBusinessName("");
+        p.setTagline("");
+        p.setDescription("");
+        p.setIndustry("Retail");
+        p.setBrandTone("Professional");
+        p.setPrimaryColor(DEFAULT_PRIMARY);
+        p.setSecondaryColor(DEFAULT_SECONDARY);
+        p.setAccentColor(DEFAULT_ACCENT);
+        p.setFontFamily(DEFAULT_FONT);
+        p.setTypographyScale("default");
+        p.setLogoUrl("");
+        p.setLogoSvgUrl("");
+        p.setLogoMonochromeUrl("");
+        p.setLogoThermalUrl("");
+        p.setFaviconUrl("");
+        p.setWatermarkUrl("");
+        p.setStampUrl("");
+        p.setSignatureUrl("");
+        p.setQrCodeUrl("");
+        p.setWebsite("");
+        p.setFacebook("");
+        p.setInstagram("");
+        p.setTwitter("");
+        p.setLinkedin("");
     }
 
     private void apply(BrandProfile p, BrandProfileDto.UpdateRequest r) {
