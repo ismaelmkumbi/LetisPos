@@ -38,6 +38,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(r -> r
                         .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.POST,
+                                "/api/v1/ai/capture-sessions",
                                 "/api/v1/ai/capture-sessions/*/photos",
                                 "/api/v1/ai/capture-sessions/*/complete"
                         ).permitAll()

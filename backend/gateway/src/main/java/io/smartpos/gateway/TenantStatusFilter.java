@@ -92,7 +92,7 @@ public class TenantStatusFilter implements GlobalFilter, Ordered {
             return true;
         }
         // AI capture sessions are session-token authenticated, not JWT
-        if (path.startsWith("/api/v1/ai/capture-sessions/")) {
+        if (path.equals("/api/v1/ai/capture-sessions") || path.startsWith("/api/v1/ai/capture-sessions/")) {
             return true;
         }
         return PUBLIC_PREFIXES.stream().anyMatch(path::startsWith);
