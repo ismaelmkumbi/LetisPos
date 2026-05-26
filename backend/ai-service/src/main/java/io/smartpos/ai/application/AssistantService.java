@@ -117,6 +117,14 @@ public class AssistantService {
             tenantMemory.remember(tenantId, "preferred_language", "en");
         }
 
+        // Remember user context to personalise future interactions
+        if (intent.onboarding()) {
+            tenantMemory.remember(tenantId, "experience_level", "new");
+        }
+        if (isIdentityQuestion(request.message())) {
+            tenantMemory.remember(tenantId, "user_asked_identity", "true");
+        }
+
         // 4. Handle conversation: create new or load existing
         UUID convId = conversationIdParam != null ? conversationIdParam : UUID.randomUUID();
         List<Map<String, Object>> history = conversationStore.loadMessages(tenantId, convId);
@@ -248,6 +256,13 @@ public class AssistantService {
         try { return ZoneId.of(defaultTimezone); } catch (Exception ignored) {
             return ZoneId.of("UTC");
         }
+    }
+
+    private boolean isIdentityQuestion(String message) {
+        if (message == null) return false;
+        String lower = message.toLowerCase();
+        return lower.matches(".*\\b(who are you|what are you|what (ai|model|llm)|who (made|built|created) you|who (is|are) your|what (is|are) your)\\b.*")
+            || lower.matches(".*\\b(you are (who|what|which)|your name|je (wewe )?(ni )?(nani|nini)|umetengenezwa|umetengenezwaje|unaendeshwa|ni akili gani)\\b.*");
     }
 
     private String greetingFor(ZonedDateTime now) {
@@ -566,13 +581,14 @@ public class AssistantService {
                 "toolResults", toolResults,
                 "toolErrors", toolErrors
             ));
+            String contradictionNote = detectDataContradiction(toolResults);
             String synthesisPrompt = """
                 User question:
                 %s
 
                 Tool outputs as JSON:
                 %s
-
+                %s
                 Write the final answer for the merchant. Hard rules:
                 - GROUNDING: every number, name, date, or status you state MUST
                   appear verbatim in the toolResults JSON above. Do NOT invent
@@ -608,7 +624,7 @@ public class AssistantService {
                 - For FORBIDDEN: explain the action needs a higher role.
                 - For NOT_FOUND: ask for a clearer name/ID.
                 - Keep it under 120 words.
-                """.formatted(userMessage, toolJson);
+                """.formatted(userMessage, toolJson, contradictionNote);
             return provider.complete(systemPrompt, synthesisPrompt).text();
         } catch (Exception e) {
             log.warn("Assistant synthesis failed", e);
@@ -617,6 +633,60 @@ public class AssistantService {
             }
             return "";
         }
+    }
+
+    /**
+     * Scans tool results for contradictory data patterns (e.g. count=0 but
+     * grossRevenue>0) and returns a hard injection note for the synthesis
+     * prompt. When a contradiction is detected, it FORCES the LLM to call
+     * out the inconsistency explicitly rather than parroting both figures.
+     */
+    private String detectDataContradiction(List<ToolResult> toolResults) {
+        if (toolResults == null || toolResults.isEmpty()) return "";
+
+        for (ToolResult tr : toolResults) {
+            Map<String, Object> data = tr.data();
+            if (data == null) continue;
+
+            // Check for zero-count + non-zero-revenue pattern
+            double revenue = extractFirstNumeric(data,
+                "grossRevenue", "totalAmount", "revenue", "gross", "totalRevenue", "totalSales");
+            double count = extractFirstNumeric(data,
+                "count", "totalCount", "rowCount", "transactionCount", "totalTransactions", "orders");
+
+            if (count == 0 && revenue > 0) {
+                return """
+                    ⚠️ DATA INCONSISTENCY — READ THIS BEFORE ANSWERING:
+                    The tool results contain a contradiction: the count/transaction
+                    count is ZERO but the revenue/monetary total is NON-ZERO
+                    (%.0f). This is likely caused by:
+                    1. The date range spans a period with data but the status filter
+                       (e.g. "confirmed" only) excludes those records.
+                    2. Sales exist in draft or pending status that contribute to
+                       the total but are not counted.
+                    3. A data synchronization or aggregation issue.
+
+                    YOUR ANSWER MUST:
+                    - Call out the inconsistency explicitly: "Your data shows
+                      %.0f in revenue but zero recorded transactions — this
+                      suggests..."
+                    - Suggest the user verify the date range and status filter.
+                    - Recommend they check with an admin if it persists.
+                    - DO NOT present the zero count and the amount as if they are
+                      both normal — they are NOT.
+                    """.formatted(revenue, revenue);
+            }
+        }
+        return "";
+    }
+
+    /** Returns the first non-zero numeric value from a map given a list of candidate keys. */
+    private double extractFirstNumeric(Map<String, Object> data, String... keys) {
+        for (String key : keys) {
+            Object val = data.get(key);
+            if (val instanceof Number n && n.doubleValue() != 0) return n.doubleValue();
+        }
+        return 0;
     }
 
     /**

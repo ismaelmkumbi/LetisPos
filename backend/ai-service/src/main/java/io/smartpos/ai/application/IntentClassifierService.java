@@ -190,7 +190,9 @@ public class IntentClassifierService {
         boolean isWrite = isWriteAction(lower);
         List<String> keywords = extractKeywords(lower);
 
-        return new IntentClassification(primary, secondaries, lang, time, isWrite, keywords, confidence);
+        boolean onboarding = isOnboarding(lower, primary);
+        boolean frustrated = isFrustrated(lower);
+        return new IntentClassification(primary, secondaries, lang, time, isWrite, keywords, confidence, onboarding, frustrated);
     }
 
     /**
@@ -446,6 +448,53 @@ public class IntentClassifierService {
         if (lower.matches(".*\\b(stock worth|inventory value|dead stock|not moving|slow moving)\\b.*")) return false;
         if (lower.matches(".*\\b(anything wrong|anomalies|business health|what looks off)\\b.*")) return false;
         return WRITE_KEYWORDS.stream().anyMatch(lower::contains);
+    }
+
+    /**
+     * Detects when a user signals they're new to the system and needs
+     * a structured orientation rather than a one-off answer.
+     */
+    private boolean isOnboarding(String lower, Domain primary) {
+        // Strong signals: "I don't know anything", "how do I start", "roadmap"
+        boolean strongSignal = lower.matches(".*\\b(sijui chochote|sijui kabisa|sijui lolote|sijui kitu)\\b.*")
+            || lower.matches(".*\\b(i don'?t know anything|i know nothing|i'?m new|first time|brand new)\\b.*")
+            || lower.matches(".*\\b(naanzaje|nianza wapi|naanza wapi|kwanza kabisa|mwongozo|road ?map|roadmap)\\b.*")
+            || lower.matches(".*\\b(how do i start|where do i start|how do i begin|where do i begin|getting started)\\b.*")
+            || lower.matches(".*\\b(give me a (roadmap|tour|overview|walkthrough)|walk me through the (system|app|platform))\\b.*");
+
+        // Moderate signals: general orientation questions (only if HELP or GENERAL domain)
+        boolean moderateSignal = primary == Domain.HELP || primary == Domain.GENERAL;
+        boolean orientationQuestion = lower.matches(".*\\b(what can you do|what do you do|how (do|can) (you|i) (use|work))\\b.*")
+            || lower.matches(".*\\b(unaweza (kufanya |kunisaidia )?nini|unafanyaje kazi|kazi zako|uwezo wako)\\b.*")
+            || lower.matches(".*\\b(ni nini|ni nani|unaweza kufanya|unaweza kunisaidia)\\b.*");
+
+        return strongSignal || (moderateSignal && orientationQuestion);
+    }
+
+    /**
+     * Detects user frustration signals — insults, complaints, or expressions
+     * of confusion directed at the assistant or system.
+     */
+    private boolean isFrustrated(String lower) {
+        // Swahili frustration / insults
+        boolean swahiliFrustration = lower.contains("unazingua") || lower.contains("hueleweki")
+            || lower.contains("fala") || lower.contains("mbwa") || lower.contains("pumbavu")
+            || lower.contains("upumbavu") || lower.contains("wewe") && lower.contains("nini")
+            || lower.matches(".*\\b(hapana|si sahihi|si kweli|uwongo|unadanganya|unachokesha|unachosha)\\b.*")
+            || lower.matches(".*\\b(unakasirisha|unanishow|sio sawa|haifai|mbaya|haiko sawa|haijakaa sawa)\\b.*");
+
+        // English frustration / complaints
+        boolean englishFrustration = lower.contains("you are not making sense")
+            || lower.contains("you're not making sense") || lower.contains("don't understand")
+            || lower.contains("useless") || lower.contains("stupid") || lower.contains("terrible")
+            || lower.matches(".*\\b(you are (wrong|bad|broken|confusing)|you're (wrong|bad|broken|confusing))\\b.*")
+            || lower.matches(".*\\b(this is (wrong|bad|useless|rubbish)|not (correct|right|working|helpful))\\b.*");
+
+        // Confusion signals (softer — only if strong enough)
+        boolean confused = lower.matches(".*\\b(i'?m (confused|lost|not following)|what (are|do) you mean)\\b.*")
+            || lower.matches(".*\\b(sielewi|sikuelewi|nimechanganyikiwa|umekosea|umekosea|sikupata)\\b.*");
+
+        return swahiliFrustration || englishFrustration || confused;
     }
 
     private boolean isLatestProductQuery(String lower) {

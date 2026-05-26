@@ -5,12 +5,21 @@ import { useChatTheme } from './useChatTheme';
 import { TextBlock, StreamingBlock, ToolLoadingBlock, ChartBlock, MetricBlock, TableBlock, ToolTextBlock, ExecutiveBriefingBlock, DraftBlock, ErrorBlock } from './ChatBlocks';
 import { useEffect, useRef, useState } from 'react';
 
-function SuggestedPrompts({ onSend }: { onSend: (msg: string) => void }) {
+function SuggestedPrompts({ onSend, variant = 'operational' }: { onSend: (msg: string) => void; variant?: 'onboarding' | 'operational' }) {
   const c = useChatTheme();
   const hour = new Date().getHours();
-  const prompts = hour < 12
+  const managerPrompts = hour < 12
     ? ['Today\'s briefing', 'Overnight sales', 'Low stock items', 'Recent orders']
     : ['Today\'s performance', 'Pending orders', 'Top products', 'Executive briefing'];
+
+  const onboardingPrompts = [
+    'Nianze wapi kutumia mfumo?',
+    'Jinsi ya kuweka bidhaa',
+    'How do I make a sale?',
+    'Onyesha mwongozo wa hisa',
+  ];
+
+  const prompts = variant === 'onboarding' ? onboardingPrompts : managerPrompts;
 
   return (
     <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.8, px: 2, pb: 1.5 }}>
@@ -68,7 +77,7 @@ export default function ChatMessages() {
         <Typography sx={{ fontSize: '0.84rem', color: c.textSecondary, textAlign: 'center', mb: 3, lineHeight: 1.6 }}>
           Ask me about sales, inventory, customers,<br />or anything about your store.
         </Typography>
-        <SuggestedPrompts onSend={send} />
+        <SuggestedPrompts onSend={send} variant="onboarding" />
       </Box>
     );
   }
@@ -82,7 +91,7 @@ export default function ChatMessages() {
 
   return (
     <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative' }}>
-      <SuggestedPrompts onSend={send} />
+      <SuggestedPrompts onSend={send} variant="operational" />
       <Box
         ref={scrollRef}
         sx={{

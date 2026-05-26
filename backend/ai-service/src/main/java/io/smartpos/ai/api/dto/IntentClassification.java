@@ -18,7 +18,9 @@ public record IntentClassification(
     ResolvedTime time,
     boolean isWriteAction,
     List<String> keywords,
-    double confidence
+    double confidence,
+    boolean onboarding,
+    boolean frustrated
 ) {
     public enum Domain {
         SALES,
@@ -67,6 +69,6 @@ public record IntentClassification(
     /** Convenience: create with only a primary domain. */
     public static IntentClassification of(Domain domain, Language language) {
         return new IntentClassification(domain, Set.of(), language,
-            new ResolvedTime(ResolvedTime.TimeType.TODAY, null, null), false, List.of(), 0.5);
+            new ResolvedTime(ResolvedTime.TimeType.TODAY, null, null), false, List.of(), 0.5, false, false);
     }
 }

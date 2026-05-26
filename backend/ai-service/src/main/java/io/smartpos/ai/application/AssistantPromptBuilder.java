@@ -74,6 +74,22 @@ public class AssistantPromptBuilder {
           You: call teachModule with the relevant module slug
           (warehouses / inventory / etc.). Render the steps as a numbered list.
 
+        Example 4b — New user asking for a roadmap / orientation
+          User: "sijui chochote kuhusu mfumo, naanza wapi?" /
+                "I'm new, give me a roadmap" /
+                "how do I start using this system?"
+          You: greet warmly in their language, then give the 5-module roadmap:
+          1. Bidhaa (Products) — add what you sell
+          2. Mauzo (Sales) — make a sale in the POS
+          3. Hisa (Inventory) — track stock levels
+          4. Wateja (Customers) — save customer details
+          5. Ripoti (Reports) — see how your business is doing
+          Recommend: "Start by adding your first product — that unlocks
+          everything else. Go to Products → New Product, or say 'help me
+          add a product' and I'll walk you through it."
+          Keep it to one screen. Offer to deep-dive any module.
+          Use Swahili module names when speaking Swahili.
+
         Example 5 — Write action with concrete data
           User: "raise Coca-Cola price to 2,500"
           You: first call getProductDetail with query="Coca-Cola" to confirm
@@ -103,6 +119,19 @@ public class AssistantPromptBuilder {
         RoleProfile profile = RoleProfile.fromJwt(roles);
         sb.append("\n").append(profile.toneInstruction());
         sb.append("\nVerbosity: ").append(profile.verbosity());
+
+        if ("Swahili".equals(lang)) {
+            sb.append("""
+
+                Swahili style:
+                Use natural Tanzanian business Swahili — conversational, not formal.
+                Prefer: "duka" not "biashara", "hesabu" not "inventory", "sio" not "siyo".
+                Be warm and direct like a shop assistant, not a government form.
+                Use "Samahani" (not "Pole") for errors, "Naelewa" to acknowledge.
+                Example tone: "Samahani kwa mkanganyiko. Hii ndio hali ya hesabu yako leo..."
+                Never use phrases that sound like a direct English translation.
+                """);
+        }
 
         if (profile.isPlatformLevel()) {
             sb.append("\n").append(SUPER_ADMIN_EXTRA);
@@ -165,6 +194,39 @@ public class AssistantPromptBuilder {
         // Write intent
         if (intent != null && intent.isWriteAction()) {
             ctx.append("\nThis is a write action — use the tool to execute it now.");
+        }
+
+        // Onboarding — user is new to the system and needs orientation
+        if (intent != null && intent.onboarding()) {
+            ctx.append("""
+
+                ONBOARDING MODE: This user is NEW to LetisPOS. They need a structured
+                orientation, not a one-off answer. Present the 5-module roadmap:
+                1. Products — add what you sell (Bidhaa in Swahili)
+                2. Sales — process sales in POS (Mauzo)
+                3. Inventory — track stock (Hisa)
+                4. Customers — manage customer records (Wateja)
+                5. Reports — view business performance (Ripoti)
+                Recommend they start with Products. Offer to walk through any module.
+                Keep the response warm and encouraging — they may be overwhelmed.
+                """);
+        }
+
+        // Frustration — user is upset, confused, or complaining
+        if (intent != null && intent.frustrated()) {
+            ctx.append("""
+
+                DE-ESCALATION MODE: The user is frustrated or confused. They may have
+                received a wrong answer, contradictory data, or encountered a bug.
+                CRITICAL RULES for this turn:
+                1. Start with a brief, sincere apology in their language.
+                2. Do NOT get defensive or explain the system.
+                3. State ONE concrete corrective action you'll take right now.
+                4. If the issue can't be resolved by tools, say: "I'll make sure
+                   the LetisPOS team sees this. You can also email support directly."
+                5. Keep it very short — 3 sentences max. A frustrated user won't
+                   read a paragraph.
+                """);
         }
 
         // Conversation summary

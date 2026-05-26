@@ -2196,9 +2196,11 @@ public class AssistantToolExecutor {
     }
 
     private AssistantDtos.ToolResult sendEmail(Map<String, Object> args) {
+        String recipient = (String) args.get("recipient");
+        validateRecipientEmail(recipient);
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("channel", "EMAIL");
-        body.put("recipient", args.get("recipient"));
+        body.put("recipient", recipient);
         body.put("subject", args.get("subject"));
         if (args.containsKey("templateCode")) {
             body.put("templateCode", args.get("templateCode"));
@@ -2211,7 +2213,7 @@ public class AssistantToolExecutor {
         Map<String, Object> result = notificationFeign.send(body);
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("status", "sent");
-        data.put("recipient", args.get("recipient"));
+        data.put("recipient", recipient);
         data.put("deliveryId", result.getOrDefault("id", ""));
         return new AssistantDtos.ToolResult("text", "Email Sent", data);
     }
@@ -2247,6 +2249,7 @@ public class AssistantToolExecutor {
                 "Emailing a document needs a recipient email address.",
                 "Ask the customer for an email address, then try again.");
         }
+        validateRecipientEmail(to);
         boolean generated = false;
 
         // Step 1: Resolve to a document UUID
@@ -2292,6 +2295,40 @@ public class AssistantToolExecutor {
         result.forEach(data::put);
         return new AssistantDtos.ToolResult("text",
             generated ? "Document Generated & Emailed" : "Document Emailed", data);
+    }
+
+    /**
+     * Rejects placeholder, example, or obviously invalid email addresses before
+     * they reach the notification service. Catches defaults like
+     * email@example.com that the LLM may hallucinate when the user didn't
+     * provide a real address.
+     */
+    private void validateRecipientEmail(String email) {
+        if (email == null || email.isBlank()) {
+            throw new ToolException("INVALID_ARG",
+                "A recipient email address is required.",
+                "Ask the user for their email address before sending.");
+        }
+        String lower = email.toLowerCase(Locale.ROOT).trim();
+        if (lower.contains("@example") || lower.contains("@example.com")
+            || lower.equals("email@email.com")
+            || lower.equals("test@test.com")
+            || lower.equals("user@domain.com")
+            || lower.equals("user@email.com")
+            || lower.equals("test@email.com")
+            || lower.equals("admin@admin.com")
+            || lower.equals("no-reply@example.com")
+            || lower.endsWith("@example.org")
+            || lower.endsWith("@example.net")) {
+            throw new ToolException("INVALID_ARG",
+                "'" + email + "' is not a real email address.",
+                "Ask the user for their actual email address, then try again.");
+        }
+        if (!lower.contains("@") || !lower.contains(".")) {
+            throw new ToolException("INVALID_ARG",
+                "'" + email + "' doesn't look like a valid email address.",
+                "Ask the user to confirm the correct email address.");
+        }
     }
 
     private boolean looksLikeBusinessReference(String value) {
