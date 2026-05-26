@@ -117,8 +117,34 @@ export default function BrandIdentityPage() {
 
   const profileSignature = (p: BrandProfile | null) => {
     if (!p) return '';
-    const { updatedAt: _updatedAt, createdAt: _createdAt, ...stable } = p;
-    return JSON.stringify(stable);
+    return JSON.stringify({
+      id: p.id,
+      tenantId: p.tenantId,
+      businessName: p.businessName,
+      tagline: p.tagline,
+      description: p.description,
+      industry: p.industry,
+      brandTone: p.brandTone,
+      primaryColor: p.primaryColor,
+      secondaryColor: p.secondaryColor,
+      accentColor: p.accentColor,
+      fontFamily: p.fontFamily,
+      typographyScale: p.typographyScale,
+      logoUrl: p.logoUrl,
+      logoSvgUrl: p.logoSvgUrl,
+      logoMonochromeUrl: p.logoMonochromeUrl,
+      logoThermalUrl: p.logoThermalUrl,
+      faviconUrl: p.faviconUrl,
+      watermarkUrl: p.watermarkUrl,
+      stampUrl: p.stampUrl,
+      signatureUrl: p.signatureUrl,
+      qrCodeUrl: p.qrCodeUrl,
+      website: p.website,
+      facebook: p.facebook,
+      instagram: p.instagram,
+      twitter: p.twitter,
+      linkedin: p.linkedin,
+    });
   };
 
   const isDirty = profileSignature(profile) !== profileSignature(lastSavedProfile);
