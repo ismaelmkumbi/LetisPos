@@ -51,6 +51,15 @@ public interface AiProvider {
             String systemPrompt,
             List<Map<String, Object>> messages,
             List<Map<String, Object>> tools) {
+        return completeWithTools(systemPrompt, messages, tools, false);
+    }
+
+    /** Multi-turn variant with force-tool flag — when true, the LLM MUST call a tool. */
+    default ToolCallResult completeWithTools(
+            String systemPrompt,
+            List<Map<String, Object>> messages,
+            List<Map<String, Object>> tools,
+            boolean forceTools) {
         throw new UnsupportedOperationException(
                 "Provider " + name() + " does not support multi-turn tool calling");
     }
@@ -85,7 +94,17 @@ public interface AiProvider {
             List<Map<String, Object>> messages,
             List<Map<String, Object>> tools,
             TokenCallback onToken) {
-        ToolCallResult result = completeWithTools(systemPrompt, messages, tools);
+        return completeWithToolsStreaming(systemPrompt, messages, tools, false, onToken);
+    }
+
+    /** Streaming variant with forceTools flag. */
+    default ToolCallResult completeWithToolsStreaming(
+            String systemPrompt,
+            List<Map<String, Object>> messages,
+            List<Map<String, Object>> tools,
+            boolean forceTools,
+            TokenCallback onToken) {
+        ToolCallResult result = completeWithTools(systemPrompt, messages, tools, forceTools);
         if (result.text() != null && !result.text().isBlank()) {
             onToken.onToken(result.text());
         }

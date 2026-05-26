@@ -296,11 +296,16 @@ public class AssistantService {
             .map(this::toOpenAiTool)
             .toList();
 
+        // Force tool use for data domains — prevents the LLM from answering
+        // from memory when real business data is available.
+        boolean forceTools = !openAiTools.isEmpty() && isDataDomain(routeIntent);
+
         AiProvider.ToolCallResult result;
         String error = null;
         try {
             result = provider.completeWithToolsStreaming(systemPrompt, messages,
                 openAiTools.isEmpty() ? null : openAiTools,
+                forceTools,
                 token -> {
                     try {
                         emitter.send(SseEmitter.event().name("token")
@@ -734,6 +739,15 @@ public class AssistantService {
 
     public void rejectDraft(UUID draftId) {
         toolExecutor.rejectDraft(draftId);
+    }
+
+    /** Data domains where the LLM MUST use tools to answer accurately. */
+    private static boolean isDataDomain(IntentClassification intent) {
+        if (intent == null) return false;
+        return switch (intent.primaryDomain()) {
+            case SALES, INVENTORY, PRODUCTS, CUSTOMERS, FINANCE, HRM -> true;
+            case HELP, PLATFORM_ADMIN, GENERAL -> false;
+        };
     }
 
     /** Check whether ALL tool results show zero count/amount. */

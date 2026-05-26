@@ -84,6 +84,14 @@ public class OpenAiProvider implements AiProvider {
     public ToolCallResult completeWithTools(String systemPrompt,
                                              List<Map<String, Object>> messages,
                                              List<Map<String, Object>> tools) {
+        return completeWithTools(systemPrompt, messages, tools, false);
+    }
+
+    @Override
+    public ToolCallResult completeWithTools(String systemPrompt,
+                                             List<Map<String, Object>> messages,
+                                             List<Map<String, Object>> tools,
+                                             boolean forceTools) {
         if (props.openai().apiKey() == null || props.openai().apiKey().isBlank()) {
             throw new IllegalStateException("OPENAI_API_KEY not configured");
         }
@@ -97,7 +105,7 @@ public class OpenAiProvider implements AiProvider {
         body.put("messages", fullMessages);
         if (tools != null && !tools.isEmpty()) {
             body.put("tools", tools);
-            body.put("tool_choice", "auto");
+            body.put("tool_choice", forceTools ? "required" : "auto");
         }
         return executeToolCall(body);
     }
