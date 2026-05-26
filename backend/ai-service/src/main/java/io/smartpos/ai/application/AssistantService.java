@@ -741,9 +741,9 @@ public class AssistantService {
         if (results == null || results.isEmpty()) return true;
         boolean foundNonZero = false;
         for (var r : results) {
-            Object body = r.body();
-            if (body instanceof Map<?, ?> m) {
-                for (Object v : m.values()) {
+            Map<String, Object> data = r.data();
+            if (data != null) {
+                for (Object v : data.values()) {
                     if (v instanceof Number n && n.doubleValue() > 0) { foundNonZero = true; break; }
                 }
             }
@@ -758,11 +758,11 @@ public class AssistantService {
      */
     private static String buildGroundedFallback(
             List<AssistantDtos.ToolResult> results,
-            List<String> toolErrors,
+            List<AssistantDtos.ToolError> toolErrors,
             String userMessage) {
         if (toolErrors != null && !toolErrors.isEmpty()) {
             return "Samahani, sikuweza kupata data sahihi kwa sasa. "
-                    + toolErrors.get(0);
+                    + toolErrors.get(0).message();
         }
         StringBuilder sb = new StringBuilder();
         sb.append("Kulingana na rekodi zilizopo:\n\n");
@@ -771,8 +771,9 @@ public class AssistantService {
             return sb.toString();
         }
         for (var r : results) {
-            if (r.body() instanceof Map<?, ?> m) {
-                for (var entry : m.entrySet()) {
+            Map<String, Object> data = r.data();
+            if (data != null) {
+                for (var entry : data.entrySet()) {
                     sb.append("- **").append(entry.getKey()).append("**: ")
                             .append(entry.getValue()).append("\n");
                 }
