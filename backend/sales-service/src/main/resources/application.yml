@@ -81,6 +81,12 @@ smartpos:
   sales:
     default-currency: ${SMARTPOS_DEFAULT_CURRENCY:TZS}
     reservation-ttl-minutes: 10
+  minio:
+    endpoint: ${MINIO_ENDPOINT:http://localhost:9000}
+    access-key: ${MINIO_ACCESS_KEY:smartpos}
+    secret-key: ${MINIO_SECRET_KEY:smartpos-secret}
+    bucket: ${MINIO_BUCKET:smartpos-product-images}
+    public-endpoint: ${MINIO_PUBLIC_ENDPOINT:#{null}}
 
 resilience4j:
   circuitbreaker:

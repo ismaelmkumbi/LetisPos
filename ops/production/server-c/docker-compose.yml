@@ -223,6 +223,11 @@ services:
       INVENTORY_URI: http://inventory-service:8084
       USER_URI: http://user-service:8082
       AUTH_JWKS_URI: http://10.0.0.1:8081/.well-known/jwks.json
+      MINIO_ENDPOINT: http://10.0.0.1:9000
+      MINIO_ACCESS_KEY: smartpos
+      MINIO_SECRET_KEY: smartpos-secret
+      MINIO_BUCKET: smartpos-product-images
+      MINIO_PUBLIC_ENDPOINT: https://letispos.com/files
       JAVA_TOOL_OPTIONS: "-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:+UseZGC -XX:ZCollectionInterval=10 -XX:SoftMaxHeapSize=512M -XX:ZUncommitDelay=300 -XX:+ExitOnOutOfMemoryError -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/tmp"
     ports:
       - "0.0.0.0:8085:8085"
