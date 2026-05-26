@@ -2,6 +2,7 @@
 # ==========================================
 # Triggered on push to main. Builds images via Jib → GHCR, then
 # rolling deploys to 3 servers over private network (10.0.0.0/24).
+# Only builds and deploys services that actually changed.
 #
 # Secrets required:
 #   VPS_SSH_PASSWORD — root password for all 3 servers
@@ -43,11 +44,17 @@ jobs:
       backend: ${{ steps.filter.outputs.backend }}
       frontend: ${{ steps.filter.outputs.frontend }}
       ops: ${{ steps.filter.outputs.ops }}
-      services: ${{ steps.services.outputs.list }}
+      # JSON array for dynamic build matrix (e.g. '["ai-service","gateway"]')
+      services: ${{ steps.services.outputs.json }}
+      # Space-separated per-server lists for selective docker pull
+      services_a: ${{ steps.services.outputs.a }}
+      services_b: ${{ steps.services.outputs.b }}
+      services_c: ${{ steps.services.outputs.c }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
       - uses: dorny/paths-filter@v3
         id: filter
         with:
@@ -62,21 +69,72 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const { execSync } = require('child_process');
-            const base = `${{ github.event_name == 'workflow_dispatch' && 'HEAD~1' || github.event.before }}`;
-            try {
-              const diff = execSync(`git diff --name-only ${base}..HEAD`, { encoding: 'utf8' });
-              if (!diff.trim()) return JSON.stringify([]);
-              const dirs = new Set();
-              for (const line of diff.split('\n')) {
-                const m = line.match(/^backend\/([^\/]+)\//);
-                if (m && m[1] !== 'libs') dirs.add(m[1]);
-                if (line.startsWith('backend/pom.xml') || line.startsWith('backend/libs/')) return 'all';
-              }
-              return JSON.stringify([...dirs]);
-            } catch { return 'all'; }
+            const ALL = [
+              'gateway', 'auth-service', 'user-service', 'product-service',
+              'inventory-service', 'sales-service', 'payment-service',
+              'report-service', 'notification-service', 'hrm-service',
+              'ai-service', 'integration-service', 'document-service',
+              'commerce-service', 'audit-service', 'billing-service',
+              'crm-service', 'control-hub'
+            ];
 
-  # ── Build backend services ──────────────────────────────────
+            const SERVER_A = new Set(['gateway', 'auth-service', 'user-service', 'control-hub']);
+            const SERVER_B = new Set([
+              'report-service', 'ai-service', 'document-service', 'audit-service',
+              'billing-service', 'crm-service', 'integration-service',
+              'hrm-service', 'notification-service'
+            ]);
+            const SERVER_C = new Set([
+              'product-service', 'inventory-service', 'sales-service', 'payment-service'
+            ]);
+
+            // On manual dispatch or if pom.xml / libs changed, rebuild everything
+            const isDispatch = '${{ github.event_name }}' === 'workflow_dispatch';
+            let changed;
+
+            if (isDispatch) {
+              changed = ALL;
+            } else {
+              const { execSync } = require('child_process');
+              const base = '${{ github.event.before }}';
+              try {
+                const diff = execSync(`git diff --name-only ${base}..HEAD`, { encoding: 'utf8' });
+                if (!diff.trim()) {
+                  changed = [];
+                } else {
+                  const dirs = new Set();
+                  for (const line of diff.split('\n')) {
+                    const m = line.match(/^backend\/([^\/]+)\//);
+                    if (m && m[1] !== 'libs') dirs.add(m[1]);
+                    // Root pom or shared libs changed → everything
+                    if (line.startsWith('backend/pom.xml') || line.startsWith('backend/libs/')) {
+                      dirs.clear();
+                      ALL.forEach(d => dirs.add(d));
+                      break;
+                    }
+                  }
+                  changed = [...dirs];
+                }
+              } catch {
+                changed = ALL;
+              }
+            }
+
+            const a = changed.filter(s => SERVER_A.has(s));
+            const b = changed.filter(s => SERVER_B.has(s));
+            const c = changed.filter(s => SERVER_C.has(s));
+
+            core.setOutput('json', JSON.stringify(changed));
+            core.setOutput('a', a.join(' '));
+            core.setOutput('b', b.join(' '));
+            core.setOutput('c', c.join(' '));
+
+            core.info(`Changed services: ${changed.join(', ') || '(none)'}`);
+            core.info(`  Server A: ${a.join(', ') || '(none)'}`);
+            core.info(`  Server B: ${b.join(', ') || '(none)'}`);
+            core.info(`  Server C: ${c.join(', ') || '(none)'}`);
+
+  # ── Build backend services (only changed) ───────────────────
   build-backend:
     name: Build — ${{ matrix.service }}
     needs: changes
@@ -88,25 +146,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        service:
-          - gateway
-          - auth-service
-          - user-service
-          - product-service
-          - inventory-service
-          - sales-service
-          - payment-service
-          - report-service
-          - notification-service
-          - hrm-service
-          - ai-service
-          - integration-service
-          - document-service
-          - commerce-service
-          - audit-service
-          - billing-service
-          - crm-service
-          - control-hub
+        service: ${{ fromJson(needs.changes.outputs.services) }}
     steps:
       - uses: actions/checkout@v4
 
@@ -218,12 +258,20 @@ jobs:
           script: |
             set -e
             cd /opt/letispos/production/server-c
-            IMAGE_TAG=${{ github.event.inputs.tag || github.sha }} \
-              docker compose -f docker-compose.yml pull --ignore-pull-failures product-service inventory-service sales-service payment-service 2>&1 || true
-            docker compose -f docker-compose.yml up -d --remove-orphans
+            TAG=${{ github.event.inputs.tag || github.sha }}
+
+            SVC="${{ needs.changes.outputs.services_c }}"
+            if [ -n "$SVC" ]; then
+              echo "Pulling changed services: $SVC"
+              IMAGE_TAG=${TAG} docker compose -f docker-compose.yml pull $SVC 2>&1 || true
+            else
+              echo "No Server C services changed — skipping pull"
+            fi
+
+            IMAGE_TAG=${TAG} docker compose -f docker-compose.yml up -d --remove-orphans
             echo "✓ Server C deployed"
 
-  # ── Deploy to Server B (monitoring + standby) ───────────────
+  # ── Deploy to Server B (monitoring + app standby) ───────────
   deploy-b:
     name: Deploy → Server B (monitoring)
     needs: [build-backend, build-frontend, build-control-center, changes, deploy-c]
@@ -245,8 +293,21 @@ jobs:
             set -e
             cd /opt/letispos/production/server-b
             TAG=${{ github.event.inputs.tag || github.sha }}
-            IMAGE_TAG=${TAG} docker compose -f docker-compose.yml pull --ignore-pull-failures 2>&1 || true
-            IMAGE_TAG=${TAG} docker compose -f docker-compose.yml up -d --remove-orphans
+
+            SVC="${{ needs.changes.outputs.services_b }}"
+            if [ -n "$SVC" ]; then
+              echo "Pulling changed services: $SVC"
+              IMAGE_TAG=${TAG} docker compose -f docker-compose.yml -f app-services.yml pull $SVC 2>&1 || true
+            else
+              echo "No Server B services changed — skipping pull"
+            fi
+
+            # Always pull control-center if it was built
+            if [ "${{ needs.build-control-center.result }}" = "success" ]; then
+              IMAGE_TAG=${TAG} docker compose -f docker-compose.yml pull control-center 2>&1 || true
+            fi
+
+            IMAGE_TAG=${TAG} docker compose -f docker-compose.yml -f app-services.yml up -d --remove-orphans
             echo "✓ Server B deployed"
 
   # ── Deploy to Server A (app tier) ──────────────────────────
@@ -271,7 +332,20 @@ jobs:
             set -e
             cd /opt/letispos/production/server-a
             TAG=${{ github.event.inputs.tag || github.sha }}
-            IMAGE_TAG=${TAG} docker compose -f docker-compose.yml pull --ignore-pull-failures 2>&1 || true
+
+            SVC="${{ needs.changes.outputs.services_a }}"
+            if [ -n "$SVC" ]; then
+              echo "Pulling changed services: $SVC"
+              IMAGE_TAG=${TAG} docker compose -f docker-compose.yml pull $SVC 2>&1 || true
+            else
+              echo "No Server A backend services changed — skipping pull"
+            fi
+
+            # Always pull frontend if it was built
+            if [ "${{ needs.build-frontend.result }}" = "success" ]; then
+              IMAGE_TAG=${TAG} docker compose -f docker-compose.yml pull frontend 2>&1 || true
+            fi
+
             IMAGE_TAG=${TAG} docker compose -f docker-compose.yml up -d --remove-orphans
 
             # Wait for health checks
