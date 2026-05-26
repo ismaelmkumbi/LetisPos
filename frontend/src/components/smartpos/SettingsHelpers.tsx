@@ -172,6 +172,7 @@ export function CardSkeletonGroup({ heights = [160, 200, 180], count = 3 }: {
 export interface FloatingSaveBarProps {
   saving: boolean;
   onSave: () => void;
+  dirty?: boolean;
   saveLabel?: string;
   onReset?: () => void;
   resetting?: boolean;
@@ -180,7 +181,7 @@ export interface FloatingSaveBarProps {
 }
 
 export const FloatingSaveBar = forwardRef<HTMLDivElement, FloatingSaveBarProps>(function FloatingSaveBar({
-  saving, onSave, saveLabel = 'Save Changes',
+  saving, onSave, dirty = true, saveLabel = 'Save Changes',
   onReset, resetting, resetLabel = 'Reset to defaults',
   lastSavedAt,
 }, ref) {
@@ -198,9 +199,9 @@ export const FloatingSaveBar = forwardRef<HTMLDivElement, FloatingSaveBarProps>(
       p: 0.75,
     }}>
       <Stack direction="row" spacing={1.5} alignItems="center" sx={{ pl: 0.75 }}>
-        <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: brand.warning.main, flexShrink: 0 }} />
+        <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: dirty ? brand.warning.main : brand.success.main, flexShrink: 0 }} />
         <Typography sx={{ color: brand.neutral[600], fontSize: 12, fontWeight: 600, mr: 0.5 }}>
-          Unsaved changes
+          {dirty ? 'Unsaved changes' : 'All changes saved'}
         </Typography>
         {lastSavedAt && (
           <Typography variant="caption" sx={{ color: brand.neutral[400], mr: 0.5 }}>
@@ -234,7 +235,7 @@ export const FloatingSaveBar = forwardRef<HTMLDivElement, FloatingSaveBarProps>(
         <Box
           component="button"
           onClick={onSave}
-          disabled={saving}
+          disabled={saving || !dirty}
           sx={{
             border: 'none',
             background: brandGradients.cta,
@@ -257,7 +258,7 @@ export const FloatingSaveBar = forwardRef<HTMLDivElement, FloatingSaveBarProps>(
             '&:disabled': { opacity: 0.6, cursor: 'not-allowed', transform: 'none' },
           }}
         >
-          {saving ? 'Saving…' : saveLabel}
+          {saving ? 'Saving…' : dirty ? saveLabel : 'Saved'}
         </Box>
       </Stack>
     </Box>

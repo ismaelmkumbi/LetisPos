@@ -92,12 +92,18 @@ export default function BrandIdentityPage() {
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [assistantOpen, setAssistantOpen] = useState(false);
+  const [lastSavedProfile, setLastSavedProfile] = useState<BrandProfile | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     getBrandProfile()
-      .then((p) => { if (!cancelled) setProfile(p); })
+      .then((p) => {
+        if (!cancelled) {
+          setProfile(p);
+          setLastSavedProfile(p);
+        }
+      })
       .catch((e) => { if (!cancelled) setError(e instanceof Error ? e.message : 'Failed to load brand profile'); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
@@ -109,8 +115,13 @@ export default function BrandIdentityPage() {
 
   const showInfo = (msg: string) => { setInfo(msg); setTimeout(() => setInfo(null), 3500); };
 
-  // Unsaved changes guard
-  const isDirty = true; // Brand page always has the floating save bar visible
+  const profileSignature = (p: BrandProfile | null) => {
+    if (!p) return '';
+    const { updatedAt: _updatedAt, createdAt: _createdAt, ...stable } = p;
+    return JSON.stringify(stable);
+  };
+
+  const isDirty = profileSignature(profile) !== profileSignature(lastSavedProfile);
 
   useEffect(() => {
     if (!isDirty) return;
@@ -123,10 +134,6 @@ export default function BrandIdentityPage() {
 
   const handleSave = async () => {
     if (!profile) return;
-    if (!profile.businessName.trim()) {
-      setError('Business name is required.');
-      return;
-    }
     setSaving(true);
     setError(null);
     try {
@@ -157,6 +164,7 @@ export default function BrandIdentityPage() {
         linkedin: profile.linkedin,
       });
       setProfile(updated);
+      setLastSavedProfile(updated);
       showInfo('Brand identity saved.');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Save failed');
@@ -171,6 +179,7 @@ export default function BrandIdentityPage() {
     try {
       const defaults = await resetBrandProfile();
       setProfile(defaults);
+      setLastSavedProfile(defaults);
       showInfo('Brand reset to defaults.');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Reset failed');
@@ -524,6 +533,7 @@ export default function BrandIdentityPage() {
             onSave={handleSave}
             onReset={() => setResetOpen(true)}
             resetting={resetting}
+            dirty={isDirty}
             saveLabel="Save Brand Identity"
             lastSavedAt={profile.updatedAt ? new Date(profile.updatedAt).toLocaleString() : undefined}
           />

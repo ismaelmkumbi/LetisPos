@@ -48,11 +48,22 @@ export default function BrandLivePreview({ profile }: BrandLivePreviewProps) {
         <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between">
           <Stack direction="row" spacing={1.5} alignItems="center">
             {profile.logoUrl && (
-              <Box
-                component="img"
-                src={profile.logoUrl}
-                sx={{ height: 32, maxWidth: 80, objectFit: 'contain', filter: 'brightness(10)' }}
-              />
+              <Box sx={{
+                width: 72,
+                height: 36,
+                borderRadius: '8px',
+                bgcolor: 'rgba(255,255,255,0.92)',
+                display: 'grid',
+                placeItems: 'center',
+                p: 0.4,
+                flexShrink: 0,
+              }}>
+                <Box
+                  component="img"
+                  src={profile.logoUrl}
+                  sx={{ maxHeight: 30, maxWidth: 64, objectFit: 'contain' }}
+                />
+              </Box>
             )}
             <Box>
               <Typography sx={{ fontWeight: 800, fontSize: '0.95rem', lineHeight: 1.2 }}>
