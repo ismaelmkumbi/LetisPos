@@ -519,12 +519,26 @@ public class AssistantService {
                         verdict.unverifiedNumbers().size(),
                         verdict.unverifiedNumbers().size(), verdict.totalNumbers(),
                         verdict.unverifiedNumbers());
-                    // Emit telemetry; don't block the stream — production-friendly soft fail.
                     emitter.send(SseEmitter.event().name("verification")
                         .data(Map.of(
                             "grounded", false,
                             "score", verdict.groundingScore(),
                             "unverified", verdict.unverifiedNumbers())));
+
+                    // Block hallucinated answers when grounding is poor.
+                    // If more than half the numbers are unverified, or the tool
+                    // results show zero/count while the answer claims non-zero,
+                    // rebuild a grounded response from the actual tool data.
+                    double score = verdict.groundingScore();
+                    boolean toolShowsZero = haystackShowsZero(collectedToolResults);
+                    if (score < 0.5 || toolShowsZero) {
+                        String corrected = buildGroundedFallback(
+                                collectedToolResults, toolErrors, currentUserMessage);
+                        emitter.send(SseEmitter.event().name("token")
+                                .data(Map.of("token", corrected)));
+                        messages.add(Map.of("role", "assistant", "content", corrected));
+                        return;
+                    }
                 }
                 emitter.send(SseEmitter.event().name("token")
                     .data(Map.of("token", synthesis)));
@@ -720,6 +734,52 @@ public class AssistantService {
 
     public void rejectDraft(UUID draftId) {
         toolExecutor.rejectDraft(draftId);
+    }
+
+    /** Check whether ALL tool results show zero count/amount. */
+    private static boolean haystackShowsZero(List<AssistantDtos.ToolResult> results) {
+        if (results == null || results.isEmpty()) return true;
+        boolean foundNonZero = false;
+        for (var r : results) {
+            Object body = r.body();
+            if (body instanceof Map<?, ?> m) {
+                for (Object v : m.values()) {
+                    if (v instanceof Number n && n.doubleValue() > 0) { foundNonZero = true; break; }
+                }
+            }
+            if (foundNonZero) break;
+        }
+        return !foundNonZero;
+    }
+
+    /**
+     * Build a grounded fallback answer from the actual tool results when the LLM
+     * hallucinates numbers that don't appear in the data. Never invents figures.
+     */
+    private static String buildGroundedFallback(
+            List<AssistantDtos.ToolResult> results,
+            List<String> toolErrors,
+            String userMessage) {
+        if (toolErrors != null && !toolErrors.isEmpty()) {
+            return "Samahani, sikuweza kupata data sahihi kwa sasa. "
+                    + toolErrors.get(0);
+        }
+        StringBuilder sb = new StringBuilder();
+        sb.append("Kulingana na rekodi zilizopo:\n\n");
+        if (results == null || results.isEmpty()) {
+            sb.append("Hakuna data iliyopatikana kwa kipindi ulichochagua.");
+            return sb.toString();
+        }
+        for (var r : results) {
+            if (r.body() instanceof Map<?, ?> m) {
+                for (var entry : m.entrySet()) {
+                    sb.append("- **").append(entry.getKey()).append("**: ")
+                            .append(entry.getValue()).append("\n");
+                }
+            }
+        }
+        sb.append("\n_⁠(Hesabu zote zimetolewa moja kwa moja kutoka kwenye rekodi.)_⁠");
+        return sb.toString();
     }
 
 }
