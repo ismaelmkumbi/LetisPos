@@ -53,9 +53,9 @@ services:
     deploy:
       resources:
         limits:
-          memory: 768M
+          memory: 1024M
         reservations:
-          memory: 256M
+          memory: 384M
     environment:
       AUTH_JWKS_URI: http://10.0.0.1:8081/.well-known/jwks.json
       AUTH_SERVICE_URL: http://10.0.0.1:8081
@@ -89,15 +89,16 @@ services:
       SPRING_DATA_REDIS_HOST: 10.0.0.3
       SPRING_KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094
       JAVA_TOOL_OPTIONS: -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0
-        -XX:+UseZGC -XX:ZCollectionInterval=10 -XX:+ExitOnOutOfMemoryError
+        -XX:+UseZGC -XX:ZCollectionInterval=10 -XX:SoftMaxHeapSize=512M -XX:ZUncommitDelay=300
+        -XX:+ExitOnOutOfMemoryError -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/tmp
     healthcheck:
       interval: 15s
-      retries: 10
-      start_period: 180s
+      retries: 15
+      start_period: 120s
       test:
       - CMD-SHELL
       - wget -qO- http://localhost:8091/actuator/health || exit 1
-      timeout: 5s
+      timeout: 10s
     image: ghcr.io/ismaelmkumbi/ai-service:latest
     logging:
       driver: json-file

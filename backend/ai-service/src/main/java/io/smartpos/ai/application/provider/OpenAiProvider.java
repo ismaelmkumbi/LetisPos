@@ -112,50 +112,60 @@ public class OpenAiProvider implements AiProvider {
 
     @SuppressWarnings("unchecked")
     private ToolCallResult executeToolCall(Map<String, Object> body) {
-        Map<String, Object> resp = http.post()
-                .uri(url())
-                .header("Authorization", "Bearer " + props.openai().apiKey())
-                .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(body)
-                .retrieve()
-                .bodyToMono(Map.class)
-                .timeout(Duration.ofSeconds(60))
-                .block();
+        try {
+            Map<String, Object> resp = http.post()
+                    .uri(url())
+                    .header("Authorization", "Bearer " + props.openai().apiKey())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .bodyValue(body)
+                    .retrieve()
+                    .onStatus(s -> s.is4xxClientError() || s.is5xxServerError(),
+                        clientResponse -> clientResponse.bodyToMono(String.class)
+                            .map(msg -> new RuntimeException("OpenAI API error: " + msg)))
+                    .bodyToMono(Map.class)
+                    .timeout(Duration.ofSeconds(60))
+                    .block();
 
-        if (resp == null) throw new IllegalStateException("Empty response from OpenAI");
+            if (resp == null) throw new IllegalStateException("Empty response from OpenAI");
 
-        List<Map<String, Object>> choices =
-            (List<Map<String, Object>>) resp.get("choices");
-        String text = "";
-        List<ToolCall> toolCalls = List.of();
+            List<Map<String, Object>> choices =
+                (List<Map<String, Object>>) resp.get("choices");
+            String text = "";
+            List<ToolCall> toolCalls = List.of();
 
-        if (choices != null && !choices.isEmpty()) {
-            Map<String, Object> message =
-                (Map<String, Object>) choices.get(0).get("message");
-            if (message != null) {
-                Object content = message.get("content");
-                if (content != null) text = String.valueOf(content);
+            if (choices != null && !choices.isEmpty()) {
+                Map<String, Object> message =
+                    (Map<String, Object>) choices.get(0).get("message");
+                if (message != null) {
+                    Object content = message.get("content");
+                    if (content != null) text = String.valueOf(content);
 
-                List<Map<String, Object>> rawCalls =
-                    (List<Map<String, Object>>) message.get("tool_calls");
-                if (rawCalls != null) {
-                    toolCalls = new ArrayList<>();
-                    for (var rc : rawCalls) {
-                        Map<String, Object> fn =
-                            (Map<String, Object>) rc.get("function");
-                        toolCalls.add(new ToolCall(
-                            String.valueOf(rc.get("id")),
-                            fn != null ? String.valueOf(fn.get("name")) : "",
-                            fn != null ? String.valueOf(fn.get("arguments")) : "{}"));
+                    List<Map<String, Object>> rawCalls =
+                        (List<Map<String, Object>>) message.get("tool_calls");
+                    if (rawCalls != null) {
+                        toolCalls = new ArrayList<>();
+                        for (var rc : rawCalls) {
+                            Map<String, Object> fn =
+                                (Map<String, Object>) rc.get("function");
+                            toolCalls.add(new ToolCall(
+                                String.valueOf(rc.get("id")),
+                                fn != null ? String.valueOf(fn.get("name")) : "",
+                                fn != null ? String.valueOf(fn.get("arguments")) : "{}"));
+                        }
                     }
                 }
             }
-        }
 
-        Map<String, Object> usage = (Map<String, Object>) resp.get("usage");
-        Integer pTok = usage == null ? null : asInt(usage.get("prompt_tokens"));
-        Integer cTok = usage == null ? null : asInt(usage.get("completion_tokens"));
-        return new ToolCallResult(text, toolCalls, pTok, cTok);
+            Map<String, Object> usage = (Map<String, Object>) resp.get("usage");
+            Integer pTok = usage == null ? null : asInt(usage.get("prompt_tokens"));
+            Integer cTok = usage == null ? null : asInt(usage.get("completion_tokens"));
+            return new ToolCallResult(text, toolCalls, pTok, cTok);
+        } catch (Exception e) {
+            log.warn("OpenAI tool call failed, returning graceful error: {}", e.getMessage());
+            return new ToolCallResult(
+                "Samahani, huduma ya AI haipatikani kwa sasa. Tafadhali jaribu tena baada ya dakika moja.",
+                List.of(), null, null);
+        }
     }
 
     private Result call(String systemPrompt, String userPrompt, boolean jsonMode) {
@@ -176,31 +186,39 @@ public class OpenAiProvider implements AiProvider {
     }
 
     private Result execute(Map<String, Object> body) {
-        @SuppressWarnings("unchecked")
-        Map<String, Object> resp = http.post()
-                .uri(url())
-                .header("Authorization", "Bearer " + props.openai().apiKey())
-                .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(body)
-                .retrieve()
-                .bodyToMono(Map.class)
-                .timeout(Duration.ofSeconds(60))
-                .block();
-
-        if (resp == null) throw new IllegalStateException("Empty response from OpenAI");
-        @SuppressWarnings("unchecked")
-        List<Map<String, Object>> choices = (List<Map<String, Object>>) resp.get("choices");
-        String text = "";
-        if (choices != null && !choices.isEmpty()) {
+        try {
             @SuppressWarnings("unchecked")
-            Map<String, Object> message = (Map<String, Object>) choices.get(0).get("message");
-            if (message != null) text = String.valueOf(message.get("content"));
+            Map<String, Object> resp = http.post()
+                    .uri(url())
+                    .header("Authorization", "Bearer " + props.openai().apiKey())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .bodyValue(body)
+                    .retrieve()
+                    .onStatus(s -> s.is4xxClientError() || s.is5xxServerError(),
+                        clientResponse -> clientResponse.bodyToMono(String.class)
+                            .map(msg -> new RuntimeException("OpenAI API error: " + msg)))
+                    .bodyToMono(Map.class)
+                    .timeout(Duration.ofSeconds(60))
+                    .block();
+
+            if (resp == null) throw new IllegalStateException("Empty response from OpenAI");
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> choices = (List<Map<String, Object>>) resp.get("choices");
+            String text = "";
+            if (choices != null && !choices.isEmpty()) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> message = (Map<String, Object>) choices.get(0).get("message");
+                if (message != null) text = String.valueOf(message.get("content"));
+            }
+            @SuppressWarnings("unchecked")
+            Map<String, Object> usage = (Map<String, Object>) resp.get("usage");
+            Integer pTok = usage == null ? null : asInt(usage.get("prompt_tokens"));
+            Integer cTok = usage == null ? null : asInt(usage.get("completion_tokens"));
+            return new Result(text, pTok, cTok);
+        } catch (Exception e) {
+            log.warn("OpenAI API call failed, returning graceful error: {}", e.getMessage());
+            return new Result("Samahani, huduma ya AI haipatikani kwa sasa. Tafadhali jaribu tena baada ya dakika moja.", null, null);
         }
-        @SuppressWarnings("unchecked")
-        Map<String, Object> usage = (Map<String, Object>) resp.get("usage");
-        Integer pTok = usage == null ? null : asInt(usage.get("prompt_tokens"));
-        Integer cTok = usage == null ? null : asInt(usage.get("completion_tokens"));
-        return new Result(text, pTok, cTok);
     }
 
     private static Integer asInt(Object v) {
