@@ -125,8 +125,10 @@ export default function QrOverlay({ onPhotosReceived, onUseWebcam, onClose }: Qr
         }
         setStatus('downloading');
         const dataUrls = await downloadFullPhotos(resp.photos, sessionId);
-        if (active && !cancelled.current) {
-          setStatus('complete');
+        // Don't gate on active — setStatus('downloading') above triggers a
+        // re-render that kills the old effect's active flag. Only check that
+        // the component hasn't unmounted.
+        if (!cancelled.current) {
           onPhotosReceived(dataUrls);
         }
         return;
