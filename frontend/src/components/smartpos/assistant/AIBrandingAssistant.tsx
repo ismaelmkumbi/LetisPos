@@ -22,11 +22,12 @@ import {
   aiGeneratePalette,
   aiGenerateTheme,
   aiSuggestFonts,
+  uploadBrandAsset,
   type AiBrandResponse,
   type BrandProfile,
 } from 'src/api/smartpos/brand';
 import {
-  generateAllLogoVariants,
+  generateLogoVariantSvgs,
 } from 'src/utils/smartpos/logoGenerator';
 
 interface AIBrandingAssistantProps {
@@ -63,6 +64,9 @@ interface ChatEntry {
   suggestions?: BrandSuggestions;
   timestamp: number;
 }
+
+const svgFile = (svg: string, name: string) =>
+  new File([svg], name, { type: 'image/svg+xml' });
 
 const QUICK_ACTIONS = [
   { label: 'Generate logo now', kind: 'logo-generate' as const, prompt: 'Generate a Letis-style logo now using my current brand settings.' },
@@ -174,16 +178,43 @@ export default function AIBrandingAssistant({
     });
   };
 
-  const handleGenerateLogo = (description: string) => {
+  const handleGenerateLogo = async (description: string) => {
     const source = description.trim() || profile.description || profile.industry || profile.brandTone;
-    const variants = generateAllLogoVariants(profile, source);
+    const svgs = generateLogoVariantSvgs(profile, source);
+    const slug = (profile.businessName || 'letis-brand')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '')
+      .slice(0, 40) || 'letis-brand';
+    const [fullAsset, monoAsset, thermalAsset, faviconAsset] = await Promise.all([
+      uploadBrandAsset({
+        file: svgFile(svgs.full, `${slug}-logo.svg`),
+        category: 'logo',
+        name: 'Letis-style tenant logo',
+      }),
+      uploadBrandAsset({
+        file: svgFile(svgs.mono, `${slug}-logo-mono.svg`),
+        category: 'logo',
+        name: 'Monochrome logo',
+      }),
+      uploadBrandAsset({
+        file: svgFile(svgs.thermal, `${slug}-logo-thermal.svg`),
+        category: 'logo',
+        name: 'Thermal receipt logo',
+      }),
+      uploadBrandAsset({
+        file: svgFile(svgs.favicon, `${slug}-favicon.svg`),
+        category: 'favicon',
+        name: 'Favicon logo',
+      }),
+    ]);
 
     onProfileChange({
-      logoUrl: variants.logoUrl,
-      logoSvgUrl: variants.logoSvgUrl,
-      logoMonochromeUrl: variants.logoMonochromeUrl,
-      logoThermalUrl: variants.logoThermalUrl,
-      faviconUrl: variants.faviconUrl,
+      logoUrl: fullAsset.url,
+      logoSvgUrl: fullAsset.url,
+      logoMonochromeUrl: monoAsset.url,
+      logoThermalUrl: thermalAsset.url,
+      faviconUrl: faviconAsset.url,
     });
 
     addEntry({
@@ -245,7 +276,7 @@ export default function AIBrandingAssistant({
     setLoading(true);
     try {
       if (kind === 'logo-generate') {
-        handleGenerateLogo(prompt);
+        await handleGenerateLogo(prompt);
         return;
       }
 

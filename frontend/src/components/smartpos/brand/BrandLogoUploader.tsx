@@ -11,7 +11,7 @@ import type { BrandProfile, BrandAsset } from 'src/api/smartpos/brand';
 import { uploadBrandAsset, aiAnalyzeLogo, aiGenerateLogoVariants } from 'src/api/smartpos/brand';
 import {
   buildLetisStyleLogoSvg,
-  generateAllLogoVariants,
+  generateLogoVariantSvgs,
   svgDataUri,
   type LogoMode,
 } from 'src/utils/smartpos/logoGenerator';
@@ -28,6 +28,9 @@ const VARIANT_LABELS: Record<string, string> = {
   favicon: 'Favicon',
   thumbnail: 'Thumb',
 };
+
+const svgFile = (svg: string, name: string) =>
+  new File([svg], name, { type: 'image/svg+xml' });
 
 export default function BrandLogoUploader({ profile, onProfileChange }: BrandLogoUploaderProps) {
   const [uploading, setUploading] = useState(false);
@@ -111,40 +114,73 @@ export default function BrandLogoUploader({ profile, onProfileChange }: BrandLog
     }
   };
 
-  const handleGenerateStarterLogo = () => {
+  const handleGenerateStarterLogo = async () => {
     setError(null);
     setGeneratingStarter(true);
     try {
       const description = logoDescription.trim() || profile.description || profile.industry || profile.brandTone;
-      const variants = generateAllLogoVariants(profile, description);
+      const svgs = generateLogoVariantSvgs(profile, description);
+      const slug = (profile.businessName || 'letis-brand')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '')
+        .slice(0, 40) || 'letis-brand';
+      const [fullAsset, monoAsset, thermalAsset, faviconAsset] = await Promise.all([
+        uploadBrandAsset({
+          file: svgFile(svgs.full, `${slug}-logo.svg`),
+          category: 'logo',
+          name: 'Letis-style tenant logo',
+        }),
+        uploadBrandAsset({
+          file: svgFile(svgs.mono, `${slug}-logo-mono.svg`),
+          category: 'logo',
+          name: 'Monochrome logo',
+        }),
+        uploadBrandAsset({
+          file: svgFile(svgs.thermal, `${slug}-logo-thermal.svg`),
+          category: 'logo',
+          name: 'Thermal receipt logo',
+        }),
+        uploadBrandAsset({
+          file: svgFile(svgs.favicon, `${slug}-favicon.svg`),
+          category: 'favicon',
+          name: 'Favicon logo',
+        }),
+      ]);
 
-      onProfileChange(variants);
+      onProfileChange({
+        logoUrl: fullAsset.url,
+        logoSvgUrl: fullAsset.url,
+        logoMonochromeUrl: monoAsset.url,
+        logoThermalUrl: thermalAsset.url,
+        faviconUrl: faviconAsset.url,
+      });
 
       const now = new Date().toISOString();
-      const modes: { mode: LogoMode; name: string; variant: BrandAsset['variant'] }[] = [
-        { mode: 'full', name: 'Letis-style tenant logo', variant: 'original' },
-        { mode: 'mono', name: 'Monochrome logo', variant: 'monochrome' },
-        { mode: 'thermal', name: 'Thermal receipt logo', variant: 'thermal' },
-        { mode: 'favicon', name: 'Favicon logo', variant: 'favicon' },
+      const modes: { mode: LogoMode; asset: BrandAsset; variant: BrandAsset['variant'] }[] = [
+        { mode: 'full', asset: fullAsset, variant: 'original' },
+        { mode: 'mono', asset: monoAsset, variant: 'monochrome' },
+        { mode: 'thermal', asset: thermalAsset, variant: 'thermal' },
+        { mode: 'favicon', asset: faviconAsset, variant: 'favicon' },
       ];
       setVariants(
-        modes.map(({ mode, name, variant: v }) => {
+        modes.map(({ mode, asset, variant: v }) => {
           const svg = buildLetisStyleLogoSvg(profile, description, mode);
-          const url = svgDataUri(svg);
           const isFavicon = mode === 'favicon';
           return {
-            id: crypto.randomUUID(),
+            ...asset,
+            id: asset.id || crypto.randomUUID(),
             tenantId: profile.tenantId,
-            name,
-            category: 'logo' as const,
+            name: asset.name,
+            category: asset.category,
             format: 'svg' as const,
             variant: v,
-            url: v === 'original' ? variants.logoUrl : url,
+            url: asset.url || svgDataUri(svg),
             width: isFavicon ? 128 : 640,
             height: isFavicon ? 128 : 240,
             sizeBytes: svg.length,
             aiGenerated: true,
-            createdAt: now,
+            createdAt: asset.createdAt || now,
           };
         }),
       );
@@ -160,7 +196,7 @@ export default function BrandLogoUploader({ profile, onProfileChange }: BrandLog
         ],
       });
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Logo generation failed');
+      setError(e instanceof Error ? e.message : 'Logo generation upload failed');
     } finally {
       setGeneratingStarter(false);
     }

@@ -13,7 +13,7 @@ export const escapeXml = (value: string) =>
     .replace(/"/g, '&quot;');
 
 export const svgDataUri = (svg: string) =>
-  `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+  `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
 
 export const initialsFor = (name: string) => {
   const clean = name.trim();
@@ -30,21 +30,21 @@ export const industrySymbol = (
 ) => {
   const context = `${industry} ${description}`.toLowerCase();
   if (context.includes('pharmacy') || context.includes('health')) {
-    return `<path d="M388 150h36v40h40v36h-40v40h-36v-40h-40v-36h40z" fill="${color}" opacity=".96"/>`;
+    return `<path d="M500 150h28v30h30v28h-30v30h-28v-30h-30v-28h30z" fill="${color}" opacity=".96"/>`;
   }
   if (context.includes('restaurant') || context.includes('food')) {
-    return `<path d="M374 154h12v100h-12zm28 0h12v100h-12zm28 0h12v100h-12zm-56 48h68v18h-68z" fill="${color}" opacity=".96"/>`;
+    return `<path d="M480 148h10v86h-10zm26 0h10v86h-10zm26 0h10v86h-10zm-52 42h62v16h-62z" fill="${color}" opacity=".96"/>`;
   }
   if (context.includes('fashion') || context.includes('apparel')) {
-    return `<path d="M352 186l36-30h40l36 30-22 26-16-13v58h-68v-58l-16 13z" fill="${color}" opacity=".96"/>`;
+    return `<path d="M466 178l34-28h38l34 28-20 24-16-12v48h-68v-48l-16 12z" fill="${color}" opacity=".96"/>`;
   }
   if (context.includes('hardware') || context.includes('automotive')) {
-    return `<path d="M364 246l74-74 22 22-74 74zm3-79l18-18 25 25-18 18z" fill="${color}" opacity=".96"/>`;
+    return `<path d="M470 214l64-64 20 20-64 64zm3-68l16-16 23 23-16 16z" fill="${color}" opacity=".96"/>`;
   }
   if (context.includes('education')) {
-    return `<path d="M346 190l58-28 58 28-58 28zm24 24l34 16 34-16v36l-34 16-34-16z" fill="${color}" opacity=".96"/>`;
+    return `<path d="M462 176l58-28 58 28-58 28zm24 22l34 16 34-16v34l-34 16-34-16z" fill="${color}" opacity=".96"/>`;
   }
-  return `<rect x="352" y="162" width="92" height="92" rx="18" fill="${color}" opacity=".96"/><path d="M372 204h52M372 226h36" stroke="#fff" stroke-width="10" stroke-linecap="round" opacity=".85"/>`;
+  return `<rect x="468" y="150" width="88" height="88" rx="18" fill="${color}" opacity=".96"/><path d="M488 190h48M488 212h34" stroke="#fff" stroke-width="9" stroke-linecap="round" opacity=".85"/>`;
 };
 
 export type LogoMode = 'full' | 'mono' | 'thermal' | 'favicon';
@@ -114,20 +114,36 @@ export interface LogoVariants {
   faviconUrl: string;
 }
 
+export interface LogoVariantSvgs {
+  full: string;
+  mono: string;
+  thermal: string;
+  favicon: string;
+}
+
+export function generateLogoVariantSvgs(
+  profile: BrandProfile,
+  description: string,
+): LogoVariantSvgs {
+  return {
+    full: buildLetisStyleLogoSvg(profile, description, 'full'),
+    mono: buildLetisStyleLogoSvg(profile, description, 'mono'),
+    thermal: buildLetisStyleLogoSvg(profile, description, 'thermal'),
+    favicon: buildLetisStyleLogoSvg(profile, description, 'favicon'),
+  };
+}
+
 export function generateAllLogoVariants(
   profile: BrandProfile,
   description: string,
 ): LogoVariants {
-  const fullSvg = buildLetisStyleLogoSvg(profile, description, 'full');
-  const monoSvg = buildLetisStyleLogoSvg(profile, description, 'mono');
-  const thermalSvg = buildLetisStyleLogoSvg(profile, description, 'thermal');
-  const faviconSvg = buildLetisStyleLogoSvg(profile, description, 'favicon');
+  const { full, mono, thermal, favicon } = generateLogoVariantSvgs(profile, description);
 
   return {
-    logoUrl: svgDataUri(fullSvg),
-    logoSvgUrl: svgDataUri(fullSvg),
-    logoMonochromeUrl: svgDataUri(monoSvg),
-    logoThermalUrl: svgDataUri(thermalSvg),
-    faviconUrl: svgDataUri(faviconSvg),
+    logoUrl: svgDataUri(full),
+    logoSvgUrl: svgDataUri(full),
+    logoMonochromeUrl: svgDataUri(mono),
+    logoThermalUrl: svgDataUri(thermal),
+    faviconUrl: svgDataUri(favicon),
   };
 }
