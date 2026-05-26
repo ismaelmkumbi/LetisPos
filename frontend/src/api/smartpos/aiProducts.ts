@@ -173,6 +173,7 @@ export async function aiImportFromImages(
   const { data } = await api.post<ProductImportMapResponse>(
     '/api/v1/ai/products/import-from-images',
     body,
+    { timeout: 120_000 },
   );
   return data;
 }

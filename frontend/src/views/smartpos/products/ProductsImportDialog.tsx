@@ -820,6 +820,10 @@ export default function ProductsImportDialog({
               >
                 <QrOverlay
                   onPhotosReceived={(dataUrls) => {
+                    if (dataUrls.length === 0) {
+                      setError('No photos were received from the phone. Please try again.');
+                      return;
+                    }
                     setImageDataUrls(dataUrls);
                     setImagePreviews(dataUrls);
                     setInputMode('photos');

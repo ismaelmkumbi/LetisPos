@@ -22,9 +22,9 @@ export default function QrOverlay({ onPhotosReceived, onUseWebcam, onClose }: Qr
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [qrUrl, setQrUrl] = useState<string | null>(null);
-  const [status, setStatus] = useState<'creating' | 'waiting' | 'receiving' | 'complete' | 'error'>(
-    'creating',
-  );
+  const [status, setStatus] = useState<
+    'creating' | 'waiting' | 'receiving' | 'downloading' | 'complete' | 'error'
+  >('creating');
   const [photoCount, setPhotoCount] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const pollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -90,7 +90,7 @@ export default function QrOverlay({ onPhotosReceived, onUseWebcam, onClose }: Qr
         try {
           const res = await api.get<Blob>(
             `/api/v1/ai/capture-sessions/${sid}/photos/${p.index}/full`,
-            { responseType: 'blob' },
+            { responseType: 'blob', timeout: 15_000 },
           );
           return await blobToDataUrl(res.data);
         } catch {
@@ -103,7 +103,7 @@ export default function QrOverlay({ onPhotosReceived, onUseWebcam, onClose }: Qr
   // Poll for photos
   useEffect(() => {
     // Only poll while waiting or receiving; stop once complete/error
-    if (!sessionId || status === 'complete' || status === 'error' || status === 'creating') return;
+    if (!sessionId || status === 'complete' || status === 'downloading' || status === 'error' || status === 'creating') return;
 
     let active = true;
 
@@ -119,9 +119,14 @@ export default function QrOverlay({ onPhotosReceived, onUseWebcam, onClose }: Qr
       setPhotoCount(resp.photoCount);
 
       if (resp.complete) {
-        setStatus('complete');
+        if (resp.photos.length === 0) {
+          setError('Session marked complete but no photos were received. Try again or re-scan the QR code.');
+          return;
+        }
+        setStatus('downloading');
         const dataUrls = await downloadFullPhotos(resp.photos, sessionId);
         if (active && !cancelled.current) {
+          setStatus('complete');
           onPhotosReceived(dataUrls);
         }
         return;
@@ -149,8 +154,13 @@ export default function QrOverlay({ onPhotosReceived, onUseWebcam, onClose }: Qr
     setPhotoCount(resp.photoCount);
     if (resp.photoCount > 0) setStatus('receiving');
     if (resp.complete) {
-      setStatus('complete');
+      if (resp.photos.length === 0) {
+        setError('Session marked complete but no photos were received. Try again or re-scan the QR code.');
+        return;
+      }
+      setStatus('downloading');
       const dataUrls = await downloadFullPhotos(resp.photos, sessionId);
+      setStatus('complete');
       onPhotosReceived(dataUrls);
     }
   }, [sessionId, fetchPhotos, downloadFullPhotos, onPhotosReceived]);
@@ -162,9 +172,11 @@ export default function QrOverlay({ onPhotosReceived, onUseWebcam, onClose }: Qr
         ? 'Waiting for phone…'
         : status === 'receiving'
           ? `Receiving photos (${photoCount})…`
-          : status === 'complete'
-            ? 'All photos received'
-            : 'Error';
+          : status === 'downloading'
+            ? 'Preparing photos…'
+            : status === 'complete'
+              ? 'All photos received'
+              : 'Error';
 
   return (
     <Box sx={{ py: 3, px: 2 }}>
@@ -218,7 +230,7 @@ export default function QrOverlay({ onPhotosReceived, onUseWebcam, onClose }: Qr
 
         {/* Status */}
         <Stack direction="row" spacing={1} alignItems="center">
-          {status === 'creating' ? (
+          {status === 'creating' || status === 'downloading' ? (
             <CircularProgress size={18} />
           ) : status === 'complete' ? (
             <IconChecks size={20} color="#4caf50" />
@@ -285,7 +297,7 @@ export default function QrOverlay({ onPhotosReceived, onUseWebcam, onClose }: Qr
             size="small"
             startIcon={<IconRefresh size={14} />}
             onClick={handleManualRefresh}
-            disabled={status === 'creating' || status === 'complete'}
+            disabled={status === 'creating'}
             sx={{ textTransform: 'none', borderRadius: '8px' }}
           >
             Check for photos
