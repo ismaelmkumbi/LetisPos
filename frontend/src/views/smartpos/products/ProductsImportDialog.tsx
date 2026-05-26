@@ -161,8 +161,6 @@ export default function ProductsImportDialog({
   // step 2-3 — AI mapping + review
   const [drafts, setDrafts] = useState<DraftRow[]>([]);
   const [warnings, setWarnings] = useState<string[]>([]);
-  const [aiProvider, setAiProvider] = useState<string>('');
-  const [aiModel, setAiModel] = useState<string>('');
 
   // step 4 — bulk save result
   const [result, setResult] = useState<BulkCreateProductsResponse | null>(null);
@@ -220,8 +218,6 @@ export default function ProductsImportDialog({
     setImageDataUrls([]);
     setDrafts([]);
     setWarnings([]);
-    setAiProvider('');
-    setAiModel('');
     setResult(null);
   };
 
@@ -503,8 +499,6 @@ export default function ProductsImportDialog({
       }
       setDrafts(mapped.map(toDraft));
       setWarnings(resp.warnings ?? []);
-      setAiProvider(resp.provider);
-      setAiModel(resp.model);
       setStep(2);
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } }; message?: string };
@@ -564,8 +558,6 @@ export default function ProductsImportDialog({
             ];
       setDrafts(mapped.map(toDraft));
       setWarnings(resp.warnings ?? []);
-      setAiProvider(resp.provider);
-      setAiModel(resp.model);
       setStep(2);
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } }; message?: string };
@@ -1194,47 +1186,6 @@ export default function ProductsImportDialog({
         {/* ── Step 3 · review ─────────────────────────────────── */}
         {step === 2 && (
           <Stack spacing={2}>
-            <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
-              <Chip
-                size="small"
-                icon={<IconSparkles size={12} />}
-                label={`Mapped by ${aiProvider}/${aiModel}`}
-                sx={{
-                  height: 22,
-                  fontSize: '0.6875rem',
-                  fontWeight: 600,
-                  bgcolor: brand.primary[50],
-                  color: brand.primary[700],
-                }}
-              />
-              <Chip
-                size="small"
-                label={`${drafts.filter((d) => d.include).length} of ${drafts.length} selected`}
-                sx={{ height: 22, fontSize: '0.6875rem', fontWeight: 600 }}
-              />
-              <Chip
-                size="small"
-                label={`${drafts.filter((d) => d.confidence >= 0.7).length} high-confidence`}
-                sx={{
-                  height: 22,
-                  fontSize: '0.6875rem',
-                  fontWeight: 600,
-                  bgcolor: brand.success.light,
-                  color: brand.success.dark,
-                }}
-              />
-              <Chip
-                size="small"
-                label={`${drafts.filter((d) => d.confidence < 0.7 && d.confidence >= 0.4).length} need review`}
-                sx={{
-                  height: 22,
-                  fontSize: '0.6875rem',
-                  fontWeight: 600,
-                  bgcolor: '#fff4e0',
-                  color: '#a36400',
-                }}
-              />
-            </Stack>
 
             {/* Batch actions */}
             <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
