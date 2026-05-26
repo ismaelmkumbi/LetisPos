@@ -296,16 +296,11 @@ public class AssistantService {
             .map(this::toOpenAiTool)
             .toList();
 
-        // Force tool use for data domains — prevents the LLM from answering
-        // from memory when real business data is available.
-        boolean forceTools = !openAiTools.isEmpty() && isDataDomain(routeIntent);
-
         AiProvider.ToolCallResult result;
         String error = null;
         try {
             result = provider.completeWithToolsStreaming(systemPrompt, messages,
                 openAiTools.isEmpty() ? null : openAiTools,
-                forceTools,
                 token -> {
                     try {
                         emitter.send(SseEmitter.event().name("token")
@@ -550,6 +545,23 @@ public class AssistantService {
                 messages.add(Map.of("role", "assistant", "content", synthesis));
             }
         } else {
+            // LLM answered without calling any tools. If the user asked a data
+            // question and tools are available, inject a strong re-prompt that
+            // forces the LLM to use them instead of answering from memory.
+            boolean shouldRetryWithTools = !openAiTools.isEmpty()
+                && isDataDomain(routeIntent)
+                && !isDeclineOrError(result.text())
+                && !hasAlreadyRetried(messages);
+            if (shouldRetryWithTools && round + 1 < maxRounds) {
+                log.info("LLM skipped tools for data query — injecting tool-use instruction");
+                messages.add(Map.of("role", "user", "content",
+                    "You MUST use the available tools to answer the original question. "
+                    + "Do NOT answer from your own knowledge. Call the most relevant tool now."));
+                processConversation(emitter, systemPrompt, messages, tools,
+                    userId, tenantId, conversationId, round + 1,
+                    isSuperAdmin, maxRounds, profile, enrichedUserMessage, rawUserMessage);
+                return;
+            }
             messages.add(Map.of("role", "assistant",
                 "content", result.text() != null ? result.text() : ""));
         }
@@ -739,6 +751,25 @@ public class AssistantService {
 
     public void rejectDraft(UUID draftId) {
         toolExecutor.rejectDraft(draftId);
+    }
+
+    /** True when the LLM text is a decline/error, not a data hallucination. */
+    private static boolean isDeclineOrError(String text) {
+        if (text == null || text.isBlank()) return true;
+        String lower = text.toLowerCase();
+        return lower.contains("samahani") || lower.contains("sorry")
+            || lower.contains("i don't have") || lower.contains("sina njia")
+            || lower.contains("i cannot") || lower.contains("siwezi")
+            || lower.contains("try again") || lower.contains("jaribu tena");
+    }
+
+    /** Detect whether we already injected a tool-use instruction to avoid loops. */
+    private static boolean hasAlreadyRetried(List<Map<String, Object>> messages) {
+        for (int i = messages.size() - 1; i >= 0; i--) {
+            String content = String.valueOf(messages.get(i).getOrDefault("content", ""));
+            if (content.contains("MUST use the available tools")) return true;
+        }
+        return false;
     }
 
     /** Data domains where the LLM MUST use tools to answer accurately. */
