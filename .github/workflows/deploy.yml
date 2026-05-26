@@ -79,11 +79,11 @@ jobs:
             ];
 
             const SERVER_A = new Set(['gateway', 'auth-service', 'user-service', 'control-hub']);
-            const SERVER_B = new Set([
-              'report-service', 'ai-service', 'document-service', 'audit-service',
-              'billing-service', 'crm-service', 'integration-service',
-              'hrm-service', 'notification-service'
-            ]);
+            // Server B's docker-compose.yml only has infra containers (prometheus,
+            // alertmanager, node-exporter, control-center, postgres-replica, backup).
+            // Backend app services (ai-service, report-service, etc.) live in
+            // app-services.yml and are managed manually — not via this workflow.
+            const SERVER_B = new Set([]);
             const SERVER_C = new Set([
               'product-service', 'inventory-service', 'sales-service', 'payment-service'
             ]);
@@ -276,7 +276,7 @@ jobs:
     name: Deploy → Server B (monitoring)
     needs: [build-backend, build-frontend, build-control-center, changes, deploy-c]
     if: always() && !cancelled() &&
-        (needs.build-control-center.result == 'success' || needs.build-control-center.result == 'skipped' || github.event_name == 'workflow_dispatch')
+        (needs.build-backend.result == 'success' || needs.build-frontend.result == 'success' || needs.build-control-center.result == 'success' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -294,10 +294,14 @@ jobs:
             cd /opt/letispos/production/server-b
             TAG=${{ github.event.inputs.tag || github.sha }}
 
+            # Only manage infra services via docker-compose.yml (prometheus, alertmanager,
+            # node-exporter, control-center, postgres-replica, backup). Backend app services
+            # (ai-service, report-service, etc.) live in app-services.yml and are managed
+            # outside this workflow — they were set up as standalone containers.
             SVC="${{ needs.changes.outputs.services_b }}"
             if [ -n "$SVC" ]; then
               echo "Pulling changed services: $SVC"
-              IMAGE_TAG=${TAG} docker compose -f docker-compose.yml -f app-services.yml pull $SVC 2>&1 || true
+              IMAGE_TAG=${TAG} docker compose -f docker-compose.yml pull $SVC 2>&1 || true
             else
               echo "No Server B services changed — skipping pull"
             fi
@@ -307,7 +311,7 @@ jobs:
               IMAGE_TAG=${TAG} docker compose -f docker-compose.yml pull control-center 2>&1 || true
             fi
 
-            IMAGE_TAG=${TAG} docker compose -f docker-compose.yml -f app-services.yml up -d --remove-orphans
+            IMAGE_TAG=${TAG} docker compose -f docker-compose.yml up -d --remove-orphans
             echo "✓ Server B deployed"
 
   # ── Deploy to Server A (app tier) ──────────────────────────
