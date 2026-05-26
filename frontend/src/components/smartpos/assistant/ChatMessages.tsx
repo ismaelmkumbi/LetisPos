@@ -4,6 +4,20 @@ import { useAssistant } from 'src/context/smartpos/AssistantContext';
 import { useChatTheme } from './useChatTheme';
 import { TextBlock, StreamingBlock, ToolLoadingBlock, ChartBlock, MetricBlock, TableBlock, ToolTextBlock, ExecutiveBriefingBlock, DraftBlock, ErrorBlock } from './ChatBlocks';
 import { useEffect, useRef, useState } from 'react';
+import type { ToolResult } from 'src/api/smartpos/assistant';
+
+function hasChartData(result: ToolResult) {
+  const data = result.data as Record<string, unknown>;
+  const items = data.items;
+  const labels = data.labels;
+  const values = data.values;
+  return (Array.isArray(items) && items.length > 0)
+    || (Array.isArray(labels) && labels.length > 0 && Array.isArray(values) && values.length > 0);
+}
+
+function isChartResult(result: ToolResult) {
+  return ['time_series', 'ranking', 'comparison', 'proportion'].includes(result.type) && hasChartData(result);
+}
 
 function SuggestedPrompts({ onSend, variant = 'operational' }: { onSend: (msg: string) => void; variant?: 'onboarding' | 'operational' }) {
   const c = useChatTheme();
@@ -124,7 +138,8 @@ export default function ChatMessages() {
             if (r.type === 'metric') return <MetricBlock key={msg.id} result={r} />;
             if (r.type === 'table') return <TableBlock key={msg.id} result={r} />;
             if (r.type === 'text') return <ToolTextBlock key={msg.id} result={r} />;
-            return <ChartBlock key={msg.id} result={r} />;
+            if (isChartResult(r)) return <ChartBlock key={msg.id} result={r} />;
+            return null;
           }
           if (msg.role === 'tool' && msg.streaming) {
             const runningStep = doneTools + 1;
