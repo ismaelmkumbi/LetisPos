@@ -1,6 +1,6 @@
 import { Box, Container, Typography, Button, Stack } from '@mui/material';
 import { Link } from 'react-router';
-import { IconArrowLeft, IconBuildingStore, IconHome2, IconLifebuoy } from '@tabler/icons-react';
+import { IconArrowLeft, IconBuildingStore, IconHome2 } from '@tabler/icons-react';
 
 const Error = () => (
   <Box
