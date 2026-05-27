@@ -216,18 +216,29 @@ public class AssistantToolExecutor {
         int topLimit = intArg(args, "topLimit", 5, 1, 10);
         int expiryDays = intArg(args, "expiryDays", 14, 1, 90);
 
-        var day = reportFeign.salesSummary(date.toString(), date.toString(), null, null);
-        var prior = reportFeign.salesSummary(previousDay.toString(), previousDay.toString(), null, null);
-        var lastWeek = reportFeign.salesSummary(weekComparisonDate.toString(), weekComparisonDate.toString(), null, null);
-        var topProducts = reportFeign.topProducts(date.toString(), date.toString(), null, topLimit);
-        var topCustomers = reportFeign.topCustomers(date.toString(), date.toString(), topLimit);
-        var lowStockPage = inventoryFeign.lowStockAlerts(null,
-            org.springframework.data.domain.Pageable.ofSize(10));
-        var expiring = inventoryFeign.expiringSoon(expiryDays).getContent();
+        List<String> dataWarnings = new ArrayList<>();
+        var day = salesSummaryWithFallback(date, dataWarnings);
+        var prior = salesSummaryWithFallback(previousDay, dataWarnings);
+        var lastWeek = salesSummaryWithFallback(weekComparisonDate, dataWarnings);
+        var topProducts = topProductsWithFallback(date, topLimit, dataWarnings);
+        var topCustomers = safeList(() -> reportFeign.topCustomers(date.toString(), date.toString(), topLimit));
+        if (topCustomers.isEmpty()) dataWarnings.add("Top customers unavailable from report-service.");
+        var lowStockPage = safe(() -> inventoryFeign.lowStockAlerts(null,
+            org.springframework.data.domain.Pageable.ofSize(10)));
+        if (lowStockPage == null) {
+            lowStockPage = org.springframework.data.domain.Page.empty(
+                org.springframework.data.domain.Pageable.ofSize(10));
+            dataWarnings.add("Low-stock alerts unavailable from inventory-service.");
+        }
+        var expiringPage = safe(() -> inventoryFeign.expiringSoon(expiryDays));
+        var expiring = expiringPage != null ? expiringPage.getContent() : List.<InventoryFeign.ExpiringItem>of();
+        if (expiringPage == null) dataWarnings.add("Expiry watch unavailable from inventory-service.");
 
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("date", date.toString());
         data.put("currency", "TZS");
+        data.put("dataQuality", dataWarnings.isEmpty() ? "complete" : "partial");
+        data.put("warnings", dataWarnings);
         data.put("headline", briefingHeadline(day.gross(), prior.gross(), lowStockPage.getContent().size(), expiring.size()));
         data.put("recommendedAction", recommendedAction(topProducts, lowStockPage.getContent(), expiring));
         data.put("metrics", List.of(
@@ -251,6 +262,73 @@ public class AssistantToolExecutor {
                 .collect(Collectors.toList()))
         ));
         return new AssistantDtos.ToolResult("briefing", "Executive Briefing — " + date, data);
+    }
+
+    private ReportFeign.SalesSummary salesSummaryWithFallback(LocalDate date, List<String> warnings) {
+        var reportSummary = safe(() -> reportFeign.salesSummary(date.toString(), date.toString(), null, null));
+        if (reportSummary != null) return nonNullSummary(reportSummary);
+
+        warnings.add("Sales summary for " + date + " unavailable from report-service; using sales-service fallback.");
+        var page = safe(() -> salesFeign.search(date, date, null, null, null, null, 0, 1000));
+        if (page == null || page.content() == null) return zeroSummary(date);
+
+        BigDecimal gross = BigDecimal.ZERO;
+        BigDecimal tax = BigDecimal.ZERO;
+        BigDecimal discount = BigDecimal.ZERO;
+        BigDecimal paid = BigDecimal.ZERO;
+        BigDecimal due = BigDecimal.ZERO;
+        for (var sale : page.content()) {
+            gross = gross.add(nz(sale.grandTotal()));
+            tax = tax.add(nz(sale.taxTotal()));
+            discount = discount.add(nz(sale.discountTotal()));
+            paid = paid.add(nz(sale.paidTotal()));
+            due = due.add(nz(sale.grandTotal()).subtract(nz(sale.paidTotal())).max(BigDecimal.ZERO));
+        }
+        long count = page.totalElements() > 0 ? page.totalElements() : page.content().size();
+        BigDecimal avg = count == 0 ? BigDecimal.ZERO
+            : gross.divide(BigDecimal.valueOf(count), 4, java.math.RoundingMode.HALF_UP);
+        return new ReportFeign.SalesSummary(date, date, count, gross, tax, discount, gross, paid, due, avg);
+    }
+
+    private List<ReportFeign.TopProduct> topProductsWithFallback(LocalDate date, int limit, List<String> warnings) {
+        var reportProducts = safeList(() -> reportFeign.topProducts(date.toString(), date.toString(), null, limit));
+        if (!reportProducts.isEmpty()) return reportProducts;
+
+        warnings.add("Top products unavailable from report-service; using sales-service fallback.");
+        var page = safe(() -> salesFeign.search(date, date, null, null, null, null, 0, 1000));
+        if (page == null || page.content() == null) return List.of();
+
+        record ProductTotals(UUID productId, String productName, BigDecimal qty, BigDecimal net) {}
+        Map<UUID, ProductTotals> totals = new LinkedHashMap<>();
+        for (var sale : page.content()) {
+            if (sale.lines() == null) continue;
+            for (var line : sale.lines()) {
+                UUID productId = line.productId() != null ? line.productId() : UUID.nameUUIDFromBytes(
+                    String.valueOf(line.productName()).getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                ProductTotals current = totals.getOrDefault(productId,
+                    new ProductTotals(productId, line.productName() != null ? line.productName() : "Unknown product",
+                        BigDecimal.ZERO, BigDecimal.ZERO));
+                totals.put(productId, new ProductTotals(productId, current.productName(),
+                    current.qty().add(nz(line.qty())),
+                    current.net().add(nz(line.lineTotal()))));
+            }
+        }
+        return totals.values().stream()
+            .sorted((a, b) -> b.net().compareTo(a.net()))
+            .limit(limit)
+            .map(p -> new ReportFeign.TopProduct(p.productId(), p.productName(), p.qty(), p.net()))
+            .collect(Collectors.toList());
+    }
+
+    private ReportFeign.SalesSummary nonNullSummary(ReportFeign.SalesSummary s) {
+        return new ReportFeign.SalesSummary(s.from(), s.to(), s.count(),
+            nz(s.gross()), nz(s.tax()), nz(s.discount()), nz(s.net()),
+            nz(s.paid()), nz(s.due()), nz(s.avgSale()));
+    }
+
+    private ReportFeign.SalesSummary zeroSummary(LocalDate date) {
+        return new ReportFeign.SalesSummary(date, date, 0, BigDecimal.ZERO, BigDecimal.ZERO,
+            BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO);
     }
 
     private AssistantDtos.ToolResult getSalesReport(Map<String, Object> args) {
@@ -2455,6 +2533,10 @@ public class AssistantToolExecutor {
             try { return new BigDecimal(s); } catch (Exception ignored) {}
         }
         return BigDecimal.ZERO;
+    }
+
+    private BigDecimal nz(BigDecimal value) {
+        return value != null ? value : BigDecimal.ZERO;
     }
 
     private int daysSince(Object createdAt) {
