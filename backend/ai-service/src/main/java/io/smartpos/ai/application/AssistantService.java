@@ -183,6 +183,34 @@ public class AssistantService {
             } catch (IOException ignored) {}
         }
 
+        if (intent.onboarding()) {
+            final String onboardingLanguage = effectiveLanguage;
+            final String onboardingSummary = summary;
+            final String onboardingMessage = request.message();
+            Runnable onboardingTask = () -> {
+                try {
+                    String answer = buildOnboardingAnswer(onboardingLanguage);
+                    emitter.send(SseEmitter.event().name("token")
+                        .data(Map.of("token", answer)));
+                    conversationStore.save(tenantId, convId, List.of(
+                        new ConversationStore.Message("user", onboardingMessage, null, null, null),
+                        new ConversationStore.Message("assistant", answer, null, null, null)
+                    ), onboardingSummary);
+                    emitter.send(SseEmitter.event().name("done").data("{}"));
+                    emitter.complete();
+                } catch (Exception e) {
+                    log.error("Assistant onboarding response error", e);
+                    try {
+                        emitter.send(SseEmitter.event().name("error")
+                            .data(Map.of("message", "Unable to prepare onboarding guide", "code", "INTERNAL")));
+                        emitter.complete();
+                    } catch (IOException ignored) {}
+                }
+            };
+            assistantTaskExecutor.execute(onboardingTask);
+            return emitter;
+        }
+
         // Proactive alert for owner/manager on new conversation
         ZoneId tenantZone = resolveZone(jwt);
         LocalDate tenantToday = ZonedDateTime.now(tenantZone).toLocalDate();
@@ -612,6 +640,37 @@ public class AssistantService {
             new ConversationStore.Message("system", existingSummary, null, null, null),
             new ConversationStore.Message("system", newSummary, null, null, null)
         ));
+    }
+
+    private String buildOnboardingAnswer(String language) {
+        if ("sw".equalsIgnoreCase(language)) {
+            return """
+                Karibu Letis POS. Anza kwa mpangilio huu:
+
+                1. Utambulisho wa Biashara — weka jina la biashara, logo, anwani na sarafu.
+                2. Ghala/Stoo — tengeneza ghala au duka kuu ambako stock itawekwa.
+                3. Kodi — weka VAT na chagua kama bei zinajumuisha kodi au la.
+                4. Bidhaa — ongeza au import bidhaa, bei, cost, barcode na opening stock.
+                5. POS/Mauzo ya Kwanza — fanya sale ya majaribio, toa risiti na hakiki malipo.
+                6. Ripoti — baada ya kuuza, angalia mauzo, stock na faida.
+
+                Hatua nzuri ya kuanza: fungua Setup Wizard kama ipo. Vinginevyo anza Settings → Brand Identity, kisha Warehouses, halafu Products → Add Product.
+
+                Sema “nisaidie kuweka ghala” au “nisaidie kuongeza bidhaa” nikuelekeze hatua kwa hatua.
+                """.strip();
+        }
+        return """
+            Welcome to Letis POS. Start in this order:
+
+            1. Brand/Store Profile — set business name, logo, address, and currency.
+            2. Warehouse/Stock — create the main shop or warehouse where stock is held.
+            3. Tax Rules — set VAT and tax-inclusive or exclusive pricing.
+            4. Products — add or import products, prices, costs, barcodes, and opening stock.
+            5. First POS Sale — run a test sale, print a receipt, and confirm payment.
+            6. Reports — after selling, check sales, stock, and profit.
+
+            Best first step: open Setup Wizard if available. Otherwise start at Settings → Brand Identity, then Warehouses, then Products → Add Product.
+            """.strip();
     }
 
     private String synthesizeToolAnswer(AiProvider provider, String systemPrompt, String userMessage,
