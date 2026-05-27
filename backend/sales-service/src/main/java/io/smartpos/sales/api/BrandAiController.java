@@ -164,15 +164,22 @@ public class BrandAiController {
                 new HttpEntity<>(request, headers), Map.class);
             Map<String, Object> response = resp.getBody();
             if (response != null) return ResponseEntity.ok(response);
-        } catch (Exception ignored) {
-            // Return a normal response so the frontend can fall back to SVG without showing a 500.
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(Map.of(
+                "provider", "unavailable",
+                "model", "",
+                "images", List.of(),
+                "message", "AI logo image generation failed before an image was returned.",
+                "hint", e.getMessage() != null ? e.getMessage() : "Check ai-service deployment and OpenAI image-generation configuration."
+            ));
         }
 
         return ResponseEntity.ok(Map.of(
             "provider", "unavailable",
             "model", "",
             "images", List.of(),
-            "message", "AI image generation is not available yet. Using document-ready SVG fallback."
+            "message", "AI logo image generation returned an empty response.",
+            "hint", "Check ai-service deployment and OpenAI image-generation configuration."
         ));
     }
 

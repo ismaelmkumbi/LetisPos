@@ -261,8 +261,17 @@ export default function AIBrandingAssistant({
         });
         return;
       }
-    } catch {
-      // Fall back to deterministic SVG generation when the AI image provider is unavailable.
+      addEntry({
+        role: 'assistant',
+        content: generated.message || 'AI logo generation did not return an image. Check OpenAI image configuration.',
+      });
+      return;
+    } catch (e) {
+      addEntry({
+        role: 'assistant',
+        content: e instanceof Error ? e.message : 'AI logo generation failed. Check OpenAI image configuration.',
+      });
+      return;
     }
 
     const [fullAsset, monoAsset, thermalAsset, faviconAsset] = await Promise.all([

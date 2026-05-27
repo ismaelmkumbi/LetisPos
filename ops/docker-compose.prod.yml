@@ -258,6 +258,7 @@ services:
       DB_PASSWORD: ${SALES_DB_PASSWORD:?SALES_DB_PASSWORD is required}
       REDIS_HOST: redis
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SMARTPOS_SALES_AI_SERVICE_URL: http://ai-service:8091
       SERVER_PORT: "8085"
     depends_on:
       postgres:
@@ -361,6 +362,7 @@ services:
       DB_USERNAME: ${AI_DB_USER:-ai_user}
       DB_PASSWORD: ${AI_DB_PASSWORD:?AI_DB_PASSWORD is required}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_IMAGE_MODEL: ${OPENAI_IMAGE_MODEL:-gpt-image-1}
       SMARTPOS_BRAND_IMAGE_GEN_PROVIDER: ${SMARTPOS_BRAND_IMAGE_GEN_PROVIDER:-openai-dalle}
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       SERVER_PORT: "8091"

@@ -96,6 +96,13 @@ smartpos:
       api-key:  ${platform.ai.deepseek.api_key:}
       model:    ${platform.ai.deepseek.model:deepseek-chat}
       base-url: ${DEEPSEEK_BASE_URL:https://api.deepseek.com/v1}
+  brand:
+    image-gen:
+      provider: ${SMARTPOS_BRAND_IMAGE_GEN_PROVIDER:stub}
+      openai:
+        api-key: ${OPENAI_API_KEY:}
+        base-url: ${OPENAI_BASE_URL:https://api.openai.com/v1}
+        model: ${OPENAI_IMAGE_MODEL:gpt-image-1}
 
 management:
   endpoints:
@@ -109,4 +116,3 @@ logging:
     io.smartpos: INFO
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{traceId:-}] %logger{36} - %msg%n"
-
