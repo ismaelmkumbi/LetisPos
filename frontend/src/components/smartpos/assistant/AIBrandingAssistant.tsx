@@ -69,7 +69,7 @@ const svgFile = (svg: string, name: string) =>
   new File([svg], name, { type: 'image/svg+xml' });
 
 const QUICK_ACTIONS = [
-  { label: 'Generate logo now', kind: 'logo-generate' as const, prompt: 'Generate a Letis-style logo now using my current brand settings.' },
+  { label: 'Generate logo now', kind: 'logo-generate' as const, prompt: 'Generate a document-ready tenant logo now using my current brand settings.' },
   { label: 'Analyze my logo', kind: 'logo-analysis' as const, prompt: 'Analyze my current logo and tell me how to improve it for print and digital use.' },
   { label: 'Generate color palette', kind: 'palette' as const, prompt: 'Generate a complementary color palette based on my brand name and industry.' },
   { label: 'Suggest fonts', kind: 'fonts' as const, prompt: 'Suggest font pairings that work well for my brand identity and industry.' },
@@ -190,7 +190,7 @@ export default function AIBrandingAssistant({
       uploadBrandAsset({
         file: svgFile(svgs.full, `${slug}-logo.svg`),
         category: 'logo',
-        name: 'Letis-style tenant logo',
+        name: 'Document-ready tenant logo',
       }),
       uploadBrandAsset({
         file: svgFile(svgs.mono, `${slug}-logo-mono.svg`),
@@ -220,12 +220,13 @@ export default function AIBrandingAssistant({
     addEntry({
       role: 'assistant',
       content: [
-        'Generated and applied a Letis-style logo.',
+        'Generated and applied a document-ready tenant logo.',
         '',
         `Business: ${profile.businessName || 'My Business'}`,
         `Industry: ${profile.industry || 'General retail'}`,
         `Colors: ${[profile.primaryColor, profile.secondaryColor, profile.accentColor].filter(Boolean).join(', ')}`,
         '',
+        'The mark uses tenant initials and an industry symbol instead of the Letis L.',
         'Applied to logoUrl, logoSvgUrl, logoMonochromeUrl, logoThermalUrl, and faviconUrl.',
         'Save Brand Identity to use it in invoices, receipts, quotations, and other documents.',
       ].join('\n'),

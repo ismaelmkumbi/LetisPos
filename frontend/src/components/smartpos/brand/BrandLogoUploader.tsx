@@ -129,7 +129,7 @@ export default function BrandLogoUploader({ profile, onProfileChange }: BrandLog
         uploadBrandAsset({
           file: svgFile(svgs.full, `${slug}-logo.svg`),
           category: 'logo',
-          name: 'Letis-style tenant logo',
+          name: 'Document-ready tenant logo',
         }),
         uploadBrandAsset({
           file: svgFile(svgs.mono, `${slug}-logo-mono.svg`),
@@ -175,7 +175,7 @@ export default function BrandLogoUploader({ profile, onProfileChange }: BrandLog
             category: asset.category,
             format: 'svg' as const,
             variant: v,
-            url: asset.url || svgDataUri(svg),
+            url: svgDataUri(svg),
             width: isFavicon ? 128 : 640,
             height: isFavicon ? 128 : 240,
             sizeBytes: svg.length,
@@ -191,6 +191,7 @@ export default function BrandLogoUploader({ profile, onProfileChange }: BrandLog
         scalability: 1,
         suggestions: [
           'Generated from current brand settings',
+          'Uses a tenant-specific mark instead of the Letis L',
           'Includes monochrome and thermal variants',
           'Save Brand Identity to use it in documents',
         ],
@@ -286,10 +287,10 @@ export default function BrandLogoUploader({ profile, onProfileChange }: BrandLog
         <Stack spacing={1.25}>
           <Box>
             <Typography sx={{ fontWeight: 800, fontSize: '0.82rem', color: brand.neutral[800] }}>
-              Generate a Letis-style logo
+              Generate a document-ready logo
             </Typography>
             <Typography variant="caption" sx={{ color: brand.neutral[500], fontWeight: 600 }}>
-              Uses business name, industry, colors, and document-friendly Letis logo structure.
+              Uses business name, industry, and colors to create a tenant-specific logo for documents.
             </Typography>
           </Box>
           <TextField

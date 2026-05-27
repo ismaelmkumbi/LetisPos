@@ -1,6 +1,6 @@
 /**
  * Shared logo generation utilities — used by BrandLogoUploader and AIBrandingAssistant.
- * Generates Letis-style SVGs from tenant brand profile data.
+ * Generates document-ready tenant SVGs from brand profile data.
  */
 import { brand } from 'src/theme/smartpos/brand';
 import type { BrandProfile } from 'src/api/smartpos/brand';
@@ -48,6 +48,31 @@ export const industrySymbol = (
   return `<rect x="468" y="150" width="88" height="88" rx="18" fill="${color}" opacity=".96"/><path d="M488 190h48M488 212h34" stroke="#fff" stroke-width="9" stroke-linecap="round" opacity=".85"/>`;
 };
 
+const markGlyph = (
+  industry: string,
+  description: string,
+  stroke: string,
+  fill: string,
+) => {
+  const context = `${industry} ${description}`.toLowerCase();
+  if (context.includes('pharmacy') || context.includes('health')) {
+    return `<path d="M120 76v34M103 93h34" stroke="${stroke}" stroke-width="13" stroke-linecap="round" opacity=".34"/><circle cx="120" cy="93" r="44" stroke="${fill}" stroke-width="10" opacity=".42"/>`;
+  }
+  if (context.includes('restaurant') || context.includes('food')) {
+    return `<path d="M101 54v81M121 54v81M141 54v81M96 92h50" stroke="${stroke}" stroke-width="10" stroke-linecap="round" opacity=".32"/><path d="M166 54c16 30 16 58 0 84" stroke="${fill}" stroke-width="11" stroke-linecap="round" opacity=".58"/>`;
+  }
+  if (context.includes('fashion') || context.includes('apparel')) {
+    return `<path d="M74 92l34-31h24l34 31-20 23-14-11v50H108v-50l-14 11z" fill="${stroke}" opacity=".28"/><path d="M108 61c4 10 20 10 24 0" stroke="${fill}" stroke-width="8" stroke-linecap="round" opacity=".55"/>`;
+  }
+  if (context.includes('hardware') || context.includes('automotive')) {
+    return `<path d="M76 142l64-64 20 20-64 64z" fill="${stroke}" opacity=".30"/><path d="M73 75l18-18 28 28-18 18z" fill="${fill}" opacity=".72"/><path d="M139 78l14-14 23 23-14 14z" fill="${fill}" opacity=".48"/>`;
+  }
+  if (context.includes('education')) {
+    return `<path d="M63 88l57-28 57 28-57 28z" fill="${stroke}" opacity=".30"/><path d="M90 112v30l30 15 30-15v-30" stroke="${fill}" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" opacity=".62"/>`;
+  }
+  return `<path d="M72 68h96v74H72z" fill="${stroke}" opacity=".28"/><path d="M88 94h64M88 118h42" stroke="${fill}" stroke-width="10" stroke-linecap="round" opacity=".7"/><path d="M72 68l48 39 48-39" stroke="${fill}" stroke-width="10" stroke-linejoin="round" opacity=".55"/>`;
+};
+
 export type LogoMode = 'full' | 'mono' | 'thermal' | 'favicon';
 
 export function buildLetisStyleLogoSvg(
@@ -61,9 +86,15 @@ export function buildLetisStyleLogoSvg(
   const accent = isMono ? '#111827' : profile.accentColor || brand.primary[300];
   const surface = mode === 'thermal' ? '#FFFFFF' : '#F8FAFC';
   const businessName = escapeXml(profile.businessName || 'My Business');
-  const tagline = escapeXml(profile.tagline || profile.industry || 'Powered by Letis POS');
+  const tagline = escapeXml(profile.tagline || profile.industry || 'Quality service');
   const initials = escapeXml(initialsFor(profile.businessName));
   const symbol = industrySymbol(profile.industry, description, isMono ? '#111827' : accent);
+  const glyph = markGlyph(
+    profile.industry,
+    description,
+    isMono ? '#D1D5DB' : '#FFFFFF',
+    isMono ? '#9CA3AF' : accent,
+  );
   const showText = mode === 'full';
   const showGradient = mode === 'full' || mode === 'favicon';
 
@@ -77,10 +108,11 @@ export function buildLetisStyleLogoSvg(
     </linearGradient>
   </defs>
   <rect x="8" y="8" width="112" height="112" rx="28" fill="url(#tenantLogoGradient)"/>
-  <path d="M45 31v55h42l14-14-14-5H67V31z" fill="#fff" opacity=".97"/>
-  <path d="M86 86l28-28-13-13v27H86z" fill="#fff" opacity=".58"/>
-  <rect x="84" y="22" width="26" height="20" rx="7" fill="${accent}" opacity=".95"/>
-  <text x="64" y="78" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="900" fill="#fff" opacity=".96">${initials}</text>
+  <circle cx="64" cy="64" r="35" fill="#FFFFFF" opacity=".14"/>
+  <path d="M35 82c13 16 45 18 62-5" stroke="#fff" stroke-width="9" stroke-linecap="round" opacity=".82"/>
+  <path d="M40 45c16-17 50-17 66 0" stroke="${accent}" stroke-width="10" stroke-linecap="round" opacity=".9"/>
+  <text x="64" y="75" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="32" font-weight="900" fill="#fff" opacity=".98">${initials}</text>
+  <circle cx="96" cy="32" r="12" fill="${accent}" opacity=".95"/>
 </svg>`.trim();
   }
 
@@ -94,10 +126,11 @@ export function buildLetisStyleLogoSvg(
   </defs>
   <rect width="640" height="240" rx="34" fill="${mode === 'thermal' ? '#FFFFFF' : surface}"/>
   <rect x="32" y="28" width="184" height="184" rx="44" fill="${showGradient ? 'url(#tenantLogoGradient)' : primary}"/>
-  <path d="M88 70v92h72l22-22-22-8h-34V70z" fill="#fff" opacity=".97"/>
-  <path d="M160 162l44-44-20-20v42h-24z" fill="#fff" opacity=".58"/>
-  <rect x="158" y="54" width="40" height="30" rx="9" fill="${isMono ? '#111827' : accent}" opacity=".95"/>
-  <text x="124" y="146" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="34" font-weight="900" fill="${isMono ? '#111827' : primary}" opacity=".95">${initials}</text>
+  <circle cx="124" cy="120" r="72" fill="${isMono ? '#F3F4F6' : '#FFFFFF'}" opacity="${isMono ? '.86' : '.14'}"/>
+  <path d="M62 166c29 28 91 30 125-8" stroke="#fff" stroke-width="15" stroke-linecap="round" opacity=".78"/>
+  <path d="M70 73c30-30 78-34 113-5" stroke="${isMono ? '#111827' : accent}" stroke-width="16" stroke-linecap="round" opacity=".88"/>
+  ${glyph}
+  <text x="124" y="132" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="44" font-weight="900" fill="#fff" opacity=".98">${initials}</text>
   ${showText ? `
   <text x="252" y="106" font-family="Inter, Arial, sans-serif" font-size="42" font-weight="850" fill="${secondary}">${businessName}</text>
   <text x="254" y="146" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="650" fill="${brand.neutral[500]}">${tagline}</text>
