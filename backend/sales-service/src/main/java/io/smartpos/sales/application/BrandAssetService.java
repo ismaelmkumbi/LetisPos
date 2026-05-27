@@ -54,6 +54,7 @@ public class BrandAssetService {
             .category(category != null ? category : "logo")
             .format(ext)
             .variant("original")
+            .storageKey(key)
             .url(url)
             .sizeBytes(file.getSize())
             .build();

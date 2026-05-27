@@ -34,6 +34,9 @@ public class BrandAsset {
     @Builder.Default
     private String variant = "original"; // original, monochrome, thermal, favicon, thumbnail
 
+    @Column(name = "storage_key", nullable = false, length = 500)
+    private String storageKey;
+
     @Column(nullable = false, columnDefinition = "TEXT")
     private String url;
 
