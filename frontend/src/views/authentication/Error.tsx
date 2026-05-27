@@ -1,7 +1,6 @@
-import { Box, Container, Typography, Button, Stack, Chip } from '@mui/material';
+import { Box, Container, Typography, Button, Stack } from '@mui/material';
 import { Link } from 'react-router';
-import { IconArrowLeft, IconDashboard, IconHome, IconHeadset } from '@tabler/icons-react';
-import Logo from 'src/layouts/full/shared/logo/Logo';
+import { IconArrowLeft, IconBuildingStore, IconHome2, IconLifebuoy } from '@tabler/icons-react';
 
 const Error = () => (
   <Box
@@ -12,141 +11,80 @@ const Error = () => (
       alignItems: 'center',
       justifyContent: 'center',
       position: 'relative',
-      overflow: 'hidden',
-      bgcolor: '#fafbfc',
+      bgcolor: '#F8FAFC',
+      // Subtle noise texture — matches dashboard PageWrapper
       '&::before': {
         content: '""',
         position: 'absolute',
         inset: 0,
-        background: 'radial-gradient(circle at 20% 80%, #d2f1df 0%, transparent 50%), radial-gradient(circle at 80% 20%, #d3d7fa 0%, transparent 50%), radial-gradient(circle at 50% 50%, #bad8f4 0%, transparent 60%)',
-        backgroundSize: '200% 200%',
-        animation: 'gradient 15s ease infinite',
-        opacity: 0.4,
-      },
-      '@keyframes gradient': {
-        '0%': { backgroundPosition: '0% 0%' },
-        '50%': { backgroundPosition: '100% 100%' },
-        '100%': { backgroundPosition: '0% 0%' },
-      },
-      '@keyframes float': {
-        '0%, 100%': { transform: 'translateY(0px) rotate(0deg)' },
-        '25%': { transform: 'translateY(-10px) rotate(1deg)' },
-        '75%': { transform: 'translateY(10px) rotate(-1deg)' },
-      },
-      '@keyframes pulse': {
-        '0%, 100%': { opacity: 0.15 },
-        '50%': { opacity: 0.3 },
+        backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.03'/%3E%3C/svg%3E")`,
+        opacity: 0.03,
+        pointerEvents: 'none',
       },
     }}
   >
-    {/* Logo */}
-    <Box sx={{ position: 'absolute', top: 32, left: 40 }}>
-      <Logo />
-    </Box>
-
-    <Container maxWidth="md" sx={{ position: 'relative', zIndex: 1, textAlign: 'center' }}>
-      {/* Animated 404 number */}
-      <Box sx={{ position: 'relative', mb: 2 }}>
-        {/* Shadow/blur behind the number */}
-        <Typography
-          variant="h1"
-          sx={{
-            fontSize: { xs: '8rem', md: '12rem' },
-            fontWeight: 900,
-            lineHeight: 1,
-            position: 'absolute',
-            inset: 0,
-            color: 'primary.main',
-            filter: 'blur(40px)',
-            opacity: 0.2,
-            animation: 'pulse 3s ease-in-out infinite',
-            userSelect: 'none',
-          }}
-        >
-          404
-        </Typography>
-        {/* Main number with gradient text */}
-        <Typography
-          variant="h1"
-          sx={{
-            fontSize: { xs: '8rem', md: '12rem' },
-            fontWeight: 900,
-            lineHeight: 1,
-            position: 'relative',
-            background: 'linear-gradient(135deg, #6366f1 0%, #0ea5e9 40%, #10b981 100%)',
-            backgroundClip: 'text',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            animation: 'float 6s ease-in-out infinite',
-            userSelect: 'none',
-            mb: 1,
-          }}
-        >
-          404
-        </Typography>
-      </Box>
-
-      {/* Status chip */}
-      <Chip
-        label="Page not found"
-        size="small"
+    <Container maxWidth="sm" sx={{ textAlign: 'center', position: 'relative', zIndex: 1 }}>
+      {/* 404 Number — solid, corporate, matches brand */}
+      <Typography
+        variant="h1"
         sx={{
-          mb: 2,
-          fontWeight: 700,
-          fontSize: '0.7rem',
-          letterSpacing: '0.1em',
-          textTransform: 'uppercase',
-          bgcolor: 'error.light',
-          color: 'error.dark',
-          borderRadius: '20px',
-          px: 1,
+          fontSize: { xs: '7rem', md: '10rem' },
+          fontWeight: 800,
+          lineHeight: 1,
+          color: '#16A34A',
+          letterSpacing: '-0.03em',
+          userSelect: 'none',
+          mb: 0.5,
         }}
-      />
+      >
+        404
+      </Typography>
 
       {/* Heading */}
       <Typography
         variant="h3"
-        fontWeight={800}
+        fontWeight={700}
+        color="#0F172A"
         mb={1.5}
-        sx={{ fontSize: { xs: '1.5rem', md: '2rem' } }}
+        sx={{ fontSize: { xs: '1.35rem', md: '1.75rem' }, letterSpacing: '-0.02em' }}
       >
-        Oops, this page doesn&apos;t exist
+        Page not found
       </Typography>
 
       {/* Subtitle */}
       <Typography
         variant="body1"
-        color="text.secondary"
-        sx={{ maxWidth: 480, mx: 'auto', mb: 5, fontSize: '0.95rem', lineHeight: 1.7 }}
+        color="#64748B"
+        sx={{ maxWidth: 420, mx: 'auto', mb: 4, fontSize: '0.925rem', lineHeight: 1.65 }}
       >
-        The page you&apos;re looking for may have been moved, renamed, or is temporarily unavailable.
-        Let&apos;s get you back on track.
+        The page you&apos;re looking for doesn&apos;t exist or has been moved.
       </Typography>
 
-      {/* Action buttons */}
+      {/* Action buttons — dashboard style: solid green gradient primary, outlined secondary */}
       <Stack
         direction={{ xs: 'column', sm: 'row' }}
         spacing={1.5}
         justifyContent="center"
-        mb={5}
+        mb={4}
       >
         <Button
           variant="contained"
           component={Link}
           to="/smartpos/dashboard"
           size="large"
-          startIcon={<IconDashboard size={18} />}
+          disableElevation
+          startIcon={<IconBuildingStore size={18} />}
           sx={{
             textTransform: 'none',
-            fontWeight: 700,
+            fontWeight: 600,
             fontSize: '0.875rem',
-            borderRadius: '10px',
-            px: 3,
+            letterSpacing: '0.01em',
+            borderRadius: '8px',
+            px: 2.5,
             py: 1.25,
-            background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
-            boxShadow: '0 4px 14px rgba(99, 102, 241, 0.35)',
+            background: 'linear-gradient(135deg, #16A34A 0%, #15803D 100%)',
             '&:hover': {
-              boxShadow: '0 6px 20px rgba(99, 102, 241, 0.5)',
+              background: 'linear-gradient(135deg, #15803D 0%, #166534 100%)',
             },
           }}
         >
@@ -157,54 +95,36 @@ const Error = () => (
           component={Link}
           to="/"
           size="large"
-          startIcon={<IconHome size={18} />}
+          startIcon={<IconHome2 size={18} />}
           sx={{
             textTransform: 'none',
             fontWeight: 600,
             fontSize: '0.875rem',
-            borderRadius: '10px',
-            px: 3,
+            borderRadius: '8px',
+            px: 2.5,
             py: 1.25,
-            borderColor: 'divider',
-            color: 'text.secondary',
-            '&:hover': { borderColor: 'primary.main', color: 'primary.main' },
+            borderColor: '#E2E8F0',
+            color: '#334155',
+            '&:hover': { borderColor: '#16A34A', color: '#16A34A', bgcolor: '#ECFDF5' },
           }}
         >
           Back to Home
         </Button>
-        <Button
-          variant="text"
-          component={Link}
-          to="/smartpos/support"
-          size="large"
-          startIcon={<IconHeadset size={18} />}
-          sx={{
-            textTransform: 'none',
-            fontWeight: 600,
-            fontSize: '0.875rem',
-            borderRadius: '10px',
-            px: 3,
-            py: 1.25,
-            color: 'text.secondary',
-            '&:hover': { bgcolor: 'action.hover' },
-          }}
-        >
-          Contact Support
-        </Button>
       </Stack>
 
-      {/* Back arrow */}
+      {/* Subtle support link */}
       <Button
         component={Link}
         to=".."
         size="small"
-        startIcon={<IconArrowLeft size={16} />}
+        startIcon={<IconArrowLeft size={14} />}
         sx={{
           textTransform: 'none',
           fontWeight: 500,
           fontSize: '0.8rem',
-          color: 'text.disabled',
-          '&:hover': { color: 'text.secondary' },
+          color: '#94A3B8',
+          borderRadius: '8px',
+          '&:hover': { color: '#64748B', bgcolor: '#F1F5F9' },
         }}
       >
         Go back
