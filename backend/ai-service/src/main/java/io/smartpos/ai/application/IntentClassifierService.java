@@ -47,7 +47,7 @@ public class IntentClassifierService {
         Domain.INVENTORY, List.of(
             "stock", "inventory", "warehouse", "reorder", "expir",
             "batch", "transfer", "adjust", "count", "damage",
-            "hisa", "ghala", "idadi", "muda",
+            "stoo", "stocki", "bohari", "ghala", "idadi", "muda",
             "low stock", "out of stock", "running low",
             "restock", "stock movement", "stock worth", "inventory value",
             "dead stock", "not moving", "slow moving", "stock valuation",
@@ -125,7 +125,7 @@ public class IntentClassifierService {
         "tengeneza|ongeza|futa|badilisha|rekebisha|jinsi|maelezo|mafunzo|" +
         "onyesha|orodha|hesabu|angalia|tafuta|fungua|fungia|kagua|" +
         // Domain nouns
-        "mauzo|wateja|bidhaa|hisa|ghala|bohari|stoo|fedha|malipo|gharama|" +
+        "mauzo|wateja|bidhaa|ghala|bohari|stoo|stocki|fedha|malipo|gharama|" +
         "faida|kodi|akaunti|pesa|mapato|matumizi|wafanyakazi|mhudumu|" +
         "likizo|mshahara|wapangaji|mpango|usajili|idadi|muda|bei|aina|" +
         "chapa|kipimo|mteja|kadi|mkopo|risiti|oda|thamani|kiasi|" +

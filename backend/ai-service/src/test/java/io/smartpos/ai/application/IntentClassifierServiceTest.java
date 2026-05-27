@@ -29,7 +29,7 @@ class IntentClassifierServiceTest {
         "mauzo ya leo                                     | SALES",
         "check stock levels for rice                      | INVENTORY",
         "which items are low in stock?                    | INVENTORY",
-        "hisa zangu zikoje?                               | INVENTORY",
+        "stoo yangu ikoje?                                | INVENTORY",
         "search products called sugar                     | PRODUCTS",
         "tell the last product added in my stock          | PRODUCTS",
         "bidhaa gani zinauzwa sana?                       | PRODUCTS",
@@ -72,7 +72,7 @@ class IntentClassifierServiceTest {
         "show me inventory                                | ENGLISH",
         "naomba kuona mauzo ya leo                        | SWAHILI",
         "ni tenant gani amejisajili leo?                  | SWAHILI",
-        "hisa zangu zikoje                                | SWAHILI",
+        "stoo yangu ikoje                                 | SWAHILI",
         "nifanyaje kurejesha bidhaa                       | SWAHILI",
         "show me mauzo ya leo                             | MIXED",
     })

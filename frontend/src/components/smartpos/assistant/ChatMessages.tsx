@@ -30,7 +30,7 @@ function SuggestedPrompts({ onSend, variant = 'operational' }: { onSend: (msg: s
     'Nianze wapi kutumia mfumo?',
     'Jinsi ya kuweka bidhaa',
     'How do I make a sale?',
-    'Onyesha mwongozo wa hisa',
+    'Onyesha mwongozo wa stoo',
   ];
 
   const prompts = variant === 'onboarding' ? onboardingPrompts : managerPrompts;

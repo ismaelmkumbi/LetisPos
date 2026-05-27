@@ -29,7 +29,7 @@ class SwahiliDetectionTest {
         "ninataka kuona bidhaa zangu",
         "hesabu ya mauzo wiki hii",
         "kuna stock kiasi gani?",
-        "thamani ya hisa yangu ni nini?",
+        "thamani ya stoo yangu ni nini?",
         "kwaheri",
         "nifundishe jinsi ya kufanya refund"
     })
