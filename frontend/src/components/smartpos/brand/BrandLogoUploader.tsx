@@ -8,7 +8,7 @@ import { Box, Button, Chip, CircularProgress, Stack, TextField, Tooltip, Typogra
 import { IconSparkles, IconPhoto } from '@tabler/icons-react';
 import { brand, brandTokens } from 'src/theme/smartpos/brand';
 import type { BrandProfile, BrandAsset } from 'src/api/smartpos/brand';
-import { uploadBrandAsset, aiAnalyzeLogo, aiGenerateLogoVariants } from 'src/api/smartpos/brand';
+import { uploadBrandAsset, aiAnalyzeLogo, aiGenerateLogoImage, aiGenerateLogoVariants } from 'src/api/smartpos/brand';
 import {
   buildLetisStyleLogoSvg,
   generateLogoVariantSvgs,
@@ -31,6 +31,15 @@ const VARIANT_LABELS: Record<string, string> = {
 
 const svgFile = (svg: string, name: string) =>
   new File([svg], name, { type: 'image/svg+xml' });
+
+const imageFileFromUrl = async (url: string, name: string) => {
+  const response = await fetch(url);
+  if (!response.ok) throw new Error('Generated image could not be downloaded');
+  const blob = await response.blob();
+  const type = blob.type || 'image/png';
+  const extension = type.includes('webp') ? 'webp' : type.includes('jpeg') ? 'jpg' : 'png';
+  return new File([blob], `${name}.${extension}`, { type });
+};
 
 export default function BrandLogoUploader({ profile, onProfileChange }: BrandLogoUploaderProps) {
   const [uploading, setUploading] = useState(false);
@@ -119,12 +128,106 @@ export default function BrandLogoUploader({ profile, onProfileChange }: BrandLog
     setGeneratingStarter(true);
     try {
       const description = logoDescription.trim() || profile.description || profile.industry || profile.brandTone;
-      const svgs = generateLogoVariantSvgs(profile, description);
       const slug = (profile.businessName || 'letis-brand')
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/^-|-$/g, '')
         .slice(0, 40) || 'letis-brand';
+      const svgs = generateLogoVariantSvgs(profile, description);
+
+      try {
+        const generated = await aiGenerateLogoImage({
+          businessName: profile.businessName,
+          industry: profile.industry,
+          description: profile.description,
+          userPrompt: description,
+          style: profile.brandTone,
+          primaryColor: profile.primaryColor,
+          secondaryColor: profile.secondaryColor,
+          accentColor: profile.accentColor,
+          count: 3,
+          size: '1024x1024',
+          tenantSlug: slug,
+        });
+        const image = generated.images.find((item) => item.url && !item.url.startsWith('letisbrand://'));
+        if (generated.provider !== 'stub' && image) {
+          const aiLogoFile = await imageFileFromUrl(image.url, `${slug}-ai-logo`);
+          const [fullAsset, monoAsset, thermalAsset, faviconAsset] = await Promise.all([
+            uploadBrandAsset({
+              file: aiLogoFile,
+              category: 'logo',
+              name: `AI generated logo (${generated.model || generated.provider})`,
+            }),
+            uploadBrandAsset({
+              file: svgFile(svgs.mono, `${slug}-logo-mono.svg`),
+              category: 'logo',
+              name: 'Monochrome logo',
+            }),
+            uploadBrandAsset({
+              file: svgFile(svgs.thermal, `${slug}-logo-thermal.svg`),
+              category: 'logo',
+              name: 'Thermal receipt logo',
+            }),
+            uploadBrandAsset({
+              file: svgFile(svgs.favicon, `${slug}-favicon.svg`),
+              category: 'favicon',
+              name: 'Favicon logo',
+            }),
+          ]);
+
+          onProfileChange({
+            logoUrl: fullAsset.url,
+            logoMonochromeUrl: monoAsset.url,
+            logoThermalUrl: thermalAsset.url,
+            faviconUrl: faviconAsset.url,
+          });
+
+          const now = new Date().toISOString();
+          const supportingVariants: { mode: LogoMode; asset: BrandAsset; variant: BrandAsset['variant'] }[] = [
+            { mode: 'mono', asset: monoAsset, variant: 'monochrome' },
+            { mode: 'thermal', asset: thermalAsset, variant: 'thermal' },
+            { mode: 'favicon', asset: faviconAsset, variant: 'favicon' },
+          ];
+          setVariants([
+            { ...fullAsset, variant: 'original', aiGenerated: true },
+            ...supportingVariants.map(({ mode, asset, variant: v }) => {
+              const svg = buildLetisStyleLogoSvg(profile, description, mode);
+              const isFavicon = mode === 'favicon';
+              return {
+                ...asset,
+                id: asset.id || crypto.randomUUID(),
+                tenantId: profile.tenantId,
+                name: asset.name,
+                category: asset.category,
+                format: 'svg' as const,
+                variant: v,
+                url: svgDataUri(svg),
+                width: isFavicon ? 128 : 640,
+                height: isFavicon ? 128 : 240,
+                sizeBytes: svg.length,
+                aiGenerated: true,
+                createdAt: asset.createdAt || now,
+              };
+            }),
+          ]);
+          setAnalysis({
+            quality: 'excellent',
+            sharpness: 0.95,
+            hasTransparency: false,
+            scalability: 0.9,
+            suggestions: [
+              `Generated with ${generated.model || generated.provider}`,
+              'Uploaded into Brand Assets so documents can use it',
+              'Includes monochrome, thermal, and favicon support variants',
+              'Save Brand Identity to use it in invoices, receipts, and quotations',
+            ],
+          });
+          return;
+        }
+      } catch {
+        // Fall through to the local SVG generator when the image provider or download is unavailable.
+      }
+
       const [fullAsset, monoAsset, thermalAsset, faviconAsset] = await Promise.all([
         uploadBrandAsset({
           file: svgFile(svgs.full, `${slug}-logo.svg`),
@@ -190,7 +293,7 @@ export default function BrandLogoUploader({ profile, onProfileChange }: BrandLog
         hasTransparency: false,
         scalability: 1,
         suggestions: [
-          'Generated from current brand settings',
+          'Generated from current brand settings because AI image generation is unavailable',
           'Uses a tenant-specific mark instead of the Letis L',
           'Includes monochrome and thermal variants',
           'Save Brand Identity to use it in documents',

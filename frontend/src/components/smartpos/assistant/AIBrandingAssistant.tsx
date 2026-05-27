@@ -19,6 +19,7 @@ import { IconSparkles, IconSend, IconX } from '@tabler/icons-react';
 import { brand, brandTokens } from 'src/theme/smartpos/brand';
 import {
   aiBrandChat,
+  aiGenerateLogoImage,
   aiGeneratePalette,
   aiGenerateTheme,
   aiSuggestFonts,
@@ -67,6 +68,15 @@ interface ChatEntry {
 
 const svgFile = (svg: string, name: string) =>
   new File([svg], name, { type: 'image/svg+xml' });
+
+const imageFileFromUrl = async (url: string, name: string) => {
+  const response = await fetch(url);
+  if (!response.ok) throw new Error('Generated image could not be downloaded');
+  const blob = await response.blob();
+  const type = blob.type || 'image/png';
+  const extension = type.includes('webp') ? 'webp' : type.includes('jpeg') ? 'jpg' : 'png';
+  return new File([blob], `${name}.${extension}`, { type });
+};
 
 const QUICK_ACTIONS = [
   { label: 'Generate logo now', kind: 'logo-generate' as const, prompt: 'Generate a document-ready tenant logo now using my current brand settings.' },
@@ -186,6 +196,76 @@ export default function AIBrandingAssistant({
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-|-$/g, '')
       .slice(0, 40) || 'letis-brand';
+    try {
+      const generated = await aiGenerateLogoImage({
+        businessName: profile.businessName,
+        industry: profile.industry,
+        description: profile.description,
+        userPrompt: source,
+        style: profile.brandTone,
+        primaryColor: profile.primaryColor,
+        secondaryColor: profile.secondaryColor,
+        accentColor: profile.accentColor,
+        count: 3,
+        size: '1024x1024',
+        tenantSlug: slug,
+      });
+      const image = generated.images.find((item) => item.url && !item.url.startsWith('letisbrand://'));
+      if (generated.provider !== 'stub' && image) {
+        const aiLogoFile = await imageFileFromUrl(image.url, `${slug}-ai-logo`);
+        const [fullAsset, monoAsset, thermalAsset, faviconAsset] = await Promise.all([
+          uploadBrandAsset({
+            file: aiLogoFile,
+            category: 'logo',
+            name: `AI generated logo (${generated.model || generated.provider})`,
+          }),
+          uploadBrandAsset({
+            file: svgFile(svgs.mono, `${slug}-logo-mono.svg`),
+            category: 'logo',
+            name: 'Monochrome logo',
+          }),
+          uploadBrandAsset({
+            file: svgFile(svgs.thermal, `${slug}-logo-thermal.svg`),
+            category: 'logo',
+            name: 'Thermal receipt logo',
+          }),
+          uploadBrandAsset({
+            file: svgFile(svgs.favicon, `${slug}-favicon.svg`),
+            category: 'favicon',
+            name: 'Favicon logo',
+          }),
+        ]);
+
+        onProfileChange({
+          logoUrl: fullAsset.url,
+          logoMonochromeUrl: monoAsset.url,
+          logoThermalUrl: thermalAsset.url,
+          faviconUrl: faviconAsset.url,
+        });
+
+        addEntry({
+          role: 'assistant',
+          content: [
+            'Generated and applied an AI logo image.',
+            '',
+            `Model/provider: ${generated.model || generated.provider}`,
+            `Business: ${profile.businessName || 'My Business'}`,
+            `Industry: ${profile.industry || 'General retail'}`,
+            '',
+            'I also generated monochrome, thermal, and favicon support assets for documents and receipts.',
+            'Save Brand Identity to use it in invoices, receipts, quotations, and other documents.',
+          ].join('\n'),
+        });
+        addEntry({
+          role: 'action',
+          content: 'AI logo generated and applied to Brand Identity.',
+        });
+        return;
+      }
+    } catch {
+      // Fall back to deterministic SVG generation when the AI image provider is unavailable.
+    }
+
     const [fullAsset, monoAsset, thermalAsset, faviconAsset] = await Promise.all([
       uploadBrandAsset({
         file: svgFile(svgs.full, `${slug}-logo.svg`),
@@ -221,6 +301,8 @@ export default function AIBrandingAssistant({
       role: 'assistant',
       content: [
         'Generated and applied a document-ready tenant logo.',
+        '',
+        'AI image generation is not configured yet, so I used the document-safe SVG generator.',
         '',
         `Business: ${profile.businessName || 'My Business'}`,
         `Industry: ${profile.industry || 'General retail'}`,

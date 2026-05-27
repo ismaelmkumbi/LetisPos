@@ -94,6 +94,35 @@ export interface AiBrandResponse {
   generatedAssets?: BrandAsset[];
 }
 
+export interface AiLogoImageRequest {
+  businessName?: string;
+  industry?: string;
+  description?: string;
+  userPrompt?: string;
+  style?: string;
+  primaryColor?: string;
+  secondaryColor?: string;
+  accentColor?: string;
+  count?: number;
+  size?: string;
+  tenantSlug?: string;
+}
+
+export interface AiGeneratedLogoImage {
+  url: string;
+  prompt: string;
+  provider: string;
+  model: string;
+  bytes: number;
+}
+
+export interface AiLogoImageResponse {
+  provider: string;
+  model?: string;
+  images: AiGeneratedLogoImage[];
+  message: string;
+}
+
 export interface AiAnalyzeLogoResponse {
   quality: 'excellent' | 'good' | 'fair' | 'poor';
   sharpness: number;
@@ -190,6 +219,18 @@ export async function aiAnalyzeLogo(
 export async function aiGenerateLogoVariants(): Promise<BrandAsset[]> {
   const { data } = await api.post<BrandAsset[]>(
     '/api/v1/brand/ai/generate-variants',
+  );
+  return data;
+}
+
+/** Request the AI service to generate real logo images with the configured image provider. */
+export async function aiGenerateLogoImage(
+  request: AiLogoImageRequest,
+): Promise<AiLogoImageResponse> {
+  const { data } = await api.post<AiLogoImageResponse>(
+    '/api/v1/ai/brand/logo-image',
+    request,
+    { timeout: 90_000 },
   );
   return data;
 }
