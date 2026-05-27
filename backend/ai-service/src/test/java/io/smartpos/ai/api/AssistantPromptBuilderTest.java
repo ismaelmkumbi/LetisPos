@@ -1,6 +1,7 @@
 package io.smartpos.ai.api;
 
 import io.smartpos.ai.api.dto.AssistantDtos;
+import io.smartpos.ai.api.dto.IntentClassification;
 import io.smartpos.ai.application.AssistantPromptBuilder;
 import io.smartpos.ai.application.TenantMemoryStore;
 import org.junit.jupiter.api.Test;
@@ -9,6 +10,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -94,5 +96,36 @@ class AssistantPromptBuilderTest {
             "Hello", "en");
         assertEquals("Hello", req.message());
         assertEquals("en", req.language());
+    }
+
+    @Test
+    void onboardingContextIncludesPracticalSetupPath() {
+        Jwt jwt = Jwt.withTokenValue("test-token")
+            .header("alg", "RS256")
+            .claim("sub", "user-123")
+            .claim("tenantName", "Duka Moja")
+            .claim("billingPlan", "STARTER")
+            .claim("roles", List.of("TENANT_ADMIN"))
+            .issuedAt(Instant.now())
+            .expiresAt(Instant.now().plusSeconds(3600))
+            .build();
+        IntentClassification intent = new IntentClassification(
+            IntentClassification.Domain.HELP,
+            Set.of(),
+            IntentClassification.Language.SWAHILI,
+            null,
+            false,
+            List.of("naanza wapi"),
+            0.95,
+            true,
+            false);
+
+        String ctx = builder.buildDynamicContext(jwt, "sw", intent, null);
+
+        assertTrue(ctx.contains("Brand/Store Profile"));
+        assertTrue(ctx.contains("Warehouse"));
+        assertTrue(ctx.contains("Tax Rules"));
+        assertTrue(ctx.contains("POS First Sale"));
+        assertTrue(ctx.contains("Utambulisho wa Biashara"));
     }
 }

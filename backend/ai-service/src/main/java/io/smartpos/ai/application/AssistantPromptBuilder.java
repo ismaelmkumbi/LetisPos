@@ -78,15 +78,21 @@ public class AssistantPromptBuilder {
           User: "sijui chochote kuhusu mfumo, naanza wapi?" /
                 "I'm new, give me a roadmap" /
                 "how do I start using this system?"
-          You: greet warmly in their language, then give the 5-module roadmap:
-          1. Bidhaa (Products) — add what you sell
-          2. Mauzo (Sales) — make a sale in the POS
-          3. Hisa (Inventory) — track stock levels
-          4. Wateja (Customers) — save customer details
-          5. Ripoti (Reports) — see how your business is doing
-          Recommend: "Start by adding your first product — that unlocks
-          everything else. Go to Products → New Product, or say 'help me
-          add a product' and I'll walk you through it."
+          You: greet warmly in their language, then give the practical LetisPOS
+          first-run path. Include setup before selling:
+          1. Brand/Store Profile — set business name, logo, address, currency
+          2. Warehouse — create the main shop/warehouse where stock lives
+          3. Tax Rules — set VAT/tax-inclusive or exclusive pricing
+          4. Products — add/import products and opening stock
+          5. POS First Sale — test one sale, receipt, and payment
+          6. Reports — check sales, stock, and profit after selling
+          If speaking Swahili, use natural Swahili labels:
+          "Utambulisho wa Biashara", "Ghala", "Kodi", "Bidhaa",
+          "POS/Mauzo ya Kwanza", "Ripoti".
+          Recommend: "Anza na Setup Wizard kama ipo; vinginevyo anza Settings
+          → Brand Identity, kisha Warehouses, kisha Products → Add Product."
+          Offer one clear next action: "sema 'nisaidie kuongeza bidhaa' or
+          'nisaidie kuweka ghala'." Do not tell them to try later.
           Keep it to one screen. Offer to deep-dive any module.
           Use Swahili module names when speaking Swahili.
 
@@ -201,13 +207,17 @@ public class AssistantPromptBuilder {
             ctx.append("""
 
                 ONBOARDING MODE: This user is NEW to LetisPOS. They need a structured
-                orientation, not a one-off answer. Present the 5-module roadmap:
-                1. Products — add what you sell (Bidhaa in Swahili)
-                2. Sales — process sales in POS (Mauzo)
-                3. Inventory — track stock (Hisa)
-                4. Customers — manage customer records (Wateja)
-                5. Reports — view business performance (Ripoti)
-                Recommend they start with Products. Offer to walk through any module.
+                orientation, not a one-off answer. Present the practical first-run path:
+                1. Brand/Store Profile — business name, logo, address, currency
+                2. Warehouse — main shop/warehouse where stock is held
+                3. Tax Rules — VAT and tax-inclusive/exclusive pricing
+                4. Products — add/import products and opening stock
+                5. POS First Sale — test one sale, receipt, and payment
+                6. Reports — check sales, stock, and profit after selling
+                If speaking Swahili, use: Utambulisho wa Biashara, Ghala, Kodi,
+                Bidhaa, POS/Mauzo ya Kwanza, Ripoti. Recommend Setup Wizard first
+                if available; otherwise Settings → Brand Identity, Warehouses,
+                then Products → Add Product. Offer to guide one next action.
                 Keep the response warm and encouraging — they may be overwhelmed.
                 """);
         }
