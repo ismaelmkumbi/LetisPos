@@ -79,7 +79,6 @@ const imageFileFromUrl = async (url: string, name: string) => {
 };
 
 const QUICK_ACTIONS = [
-  { label: 'Generate logo now', kind: 'logo-generate' as const, prompt: 'Generate a document-ready tenant logo now using my current brand settings.' },
   { label: 'Analyze my logo', kind: 'logo-analysis' as const, prompt: 'Analyze my current logo and tell me how to improve it for print and digital use.' },
   { label: 'Generate color palette', kind: 'palette' as const, prompt: 'Generate a complementary color palette based on my brand name and industry.' },
   { label: 'Suggest fonts', kind: 'fonts' as const, prompt: 'Suggest font pairings that work well for my brand identity and industry.' },
@@ -101,7 +100,7 @@ export default function AIBrandingAssistant({
     {
       id: 'welcome',
       role: 'assistant',
-      content: `Hi! I'm your AI Branding Assistant. I can help you create a professional brand identity for ${profile.businessName || 'your business'}. What would you like to work on?`,
+      content: `Hi! I'm your Brand Advisor. Use Generate AI logo for the actual logo output; I can help refine colors, fonts, document theme, print readiness, and consistency for ${profile.businessName || 'your business'}.`,
       timestamp: Date.now(),
     },
   ]);
@@ -466,7 +465,7 @@ export default function AIBrandingAssistant({
       >
         <IconSparkles size={20} />
         <Typography sx={{ fontWeight: 800, fontSize: '0.9rem', flex: 1 }}>
-          AI Branding Assistant
+          Brand Advisor
         </Typography>
         <IconButton onClick={onClose} size="small" sx={{ color: 'rgba(255,255,255,0.8)' }}>
           <IconX size={16} />

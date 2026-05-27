@@ -390,10 +390,10 @@ export default function BrandLogoUploader({ profile, onProfileChange }: BrandLog
         <Stack spacing={1.25}>
           <Box>
             <Typography sx={{ fontWeight: 800, fontSize: '0.82rem', color: brand.neutral[800] }}>
-              Generate a document-ready logo
+              Generate and apply logo
             </Typography>
             <Typography variant="caption" sx={{ color: brand.neutral[500], fontWeight: 600 }}>
-              Uses business name, industry, and colors to create a tenant-specific logo for documents.
+              Creates the logo asset used in receipts, invoices, quotations, and other documents.
             </Typography>
           </Box>
           <TextField
@@ -429,7 +429,7 @@ export default function BrandLogoUploader({ profile, onProfileChange }: BrandLog
               '&:hover': { bgcolor: brand.primary[700] },
             }}
           >
-            {generatingStarter ? 'Generating logo...' : hasLogo ? 'Generate new logo' : 'Generate logo now'}
+            {generatingStarter ? 'Generating logo...' : hasLogo ? 'Generate new AI logo' : 'Generate AI logo'}
           </Button>
         </Stack>
       </Box>

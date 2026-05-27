@@ -228,7 +228,7 @@ export async function aiGenerateLogoImage(
   request: AiLogoImageRequest,
 ): Promise<AiLogoImageResponse> {
   const { data } = await api.post<AiLogoImageResponse>(
-    '/api/v1/ai/brand/logo-image',
+    '/api/v1/brand/ai/logo-image',
     request,
     { timeout: 90_000 },
   );

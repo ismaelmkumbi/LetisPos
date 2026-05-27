@@ -32,6 +32,8 @@ public class BrandAiController {
 
     private String aiChatUrl() { return aiServiceUrl + "/api/v1/ai/chat"; }
 
+    private String aiLogoImageUrl() { return aiServiceUrl + "/api/v1/ai/brand/logo-image"; }
+
     /** Call AI service with the user's JWT forwarded. */
     private Map<String, Object> aiChat(String prompt, String systemPrompt, Jwt jwt) {
         Map<String, Object> body = new LinkedHashMap<>();
@@ -135,6 +137,43 @@ public class BrandAiController {
             return ResponseEntity.ok(parseJsonArraySafely((String) aiResp.get("narrative")));
         }
         return ResponseEntity.ok(List.of());
+    }
+
+    @PostMapping("/logo-image")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Map<String, Object>> generateLogoImage(@RequestBody Map<String, Object> body,
+                                                                 @AuthenticationPrincipal Jwt jwt) {
+        BrandProfileDto profile = brandService.get();
+        Map<String, Object> request = new LinkedHashMap<>(body != null ? body : Map.of());
+        request.putIfAbsent("businessName", profile.getBusinessName());
+        request.putIfAbsent("industry", profile.getIndustry());
+        request.putIfAbsent("description", profile.getDescription());
+        request.putIfAbsent("primaryColor", profile.getPrimaryColor());
+        request.putIfAbsent("secondaryColor", profile.getSecondaryColor());
+        request.putIfAbsent("accentColor", profile.getAccentColor());
+        request.putIfAbsent("count", 3);
+        request.putIfAbsent("size", "1024x1024");
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        if (jwt != null) headers.setBearerAuth(jwt.getTokenValue());
+
+        try {
+            @SuppressWarnings("unchecked")
+            var resp = rest.exchange(aiLogoImageUrl(), HttpMethod.POST,
+                new HttpEntity<>(request, headers), Map.class);
+            Map<String, Object> response = resp.getBody();
+            if (response != null) return ResponseEntity.ok(response);
+        } catch (Exception ignored) {
+            // Return a normal response so the frontend can fall back to SVG without showing a 500.
+        }
+
+        return ResponseEntity.ok(Map.of(
+            "provider", "unavailable",
+            "model", "",
+            "images", List.of(),
+            "message", "AI image generation is not available yet. Using document-ready SVG fallback."
+        ));
     }
 
     // ── Generate Palette ─────────────────────────────────────────────────────

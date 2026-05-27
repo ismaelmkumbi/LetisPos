@@ -246,7 +246,7 @@ export default function BrandIdentityPage() {
         badge={{ label: 'Global', tone: 'primary' }}
         actions={[
           {
-            label: assistantOpen ? 'Close Assistant' : 'AI Branding Assistant',
+            label: assistantOpen ? 'Close Advisor' : 'Brand Advisor',
             icon: <IconPalette size={18} />,
             onClick: () => setAssistantOpen((v) => !v),
             variant: 'accent',
