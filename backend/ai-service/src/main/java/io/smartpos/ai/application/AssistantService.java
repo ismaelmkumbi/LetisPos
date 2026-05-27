@@ -19,13 +19,16 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.Executor;
 import java.util.concurrent.RejectedExecutionException;
@@ -214,7 +217,7 @@ public class AssistantService {
                 TenantContext.set(tenantId);
                 processConversation(emitter, systemPrompt, cleanHistory, tools,
                     userId, tenantId, convId, 0, isSuperAdmin, effectiveMaxRounds, profile,
-                    enrichedUserMessage, request.message());
+                    enrichedUserMessage, request.message(), new LinkedHashMap<>());
                 emitter.complete();
             } catch (Exception e) {
                 log.error("Assistant chat error", e);
@@ -280,7 +283,8 @@ public class AssistantService {
                                       boolean isSuperAdmin, int maxRounds,
                                       RoleProfile profile,
                                       String enrichedUserMessage,
-                                      String rawUserMessage) throws IOException {
+                                      String rawUserMessage,
+                                      Map<String, ToolResult> emittedReadToolResults) throws IOException {
         if (round >= maxRounds) {
             emitter.send(SseEmitter.event().name("done").data("{}"));
             return;
@@ -421,13 +425,19 @@ public class AssistantService {
                     }
                 } else if (tool != null) {
                     try {
+                        String readCallKey = toolCallKey(tc.name(), parsedArgs);
+                        ToolResult duplicateResult = emittedReadToolResults.get(readCallKey);
+                        if (duplicateResult != null) {
+                            collectedToolResults.add(duplicateResult);
+                            toolResultsByCallId.put(tc.id(), duplicateResult);
+                            continue;
+                        }
                         ToolResult cached = toolResultCache.get(tenantId, tc.name(), parsedArgs);
                         ToolResult toolResult = cached != null
                             ? cached
                             : toolExecutor.execute(tc.name(), parsedArgs, userId);
-                        if (cached == null) {
-                            toolResultCache.put(tenantId, tc.name(), parsedArgs, toolResult);
-                        }
+                        if (cached == null) toolResultCache.put(tenantId, tc.name(), parsedArgs, toolResult);
+                        emittedReadToolResults.put(readCallKey, toolResult);
                         collectedToolResults.add(toolResult);
                         toolResultsByCallId.put(tc.id(), toolResult);
                         emitter.send(SseEmitter.event().name("tool_result")
@@ -504,7 +514,8 @@ public class AssistantService {
             if (!hasWriteDrafts && round + 1 < maxRounds) {
                 processConversation(emitter, systemPrompt, messages, tools,
                     userId, tenantId, conversationId, round + 1,
-                    isSuperAdmin, maxRounds, profile, enrichedUserMessage, rawUserMessage);
+                    isSuperAdmin, maxRounds, profile, enrichedUserMessage, rawUserMessage,
+                    emittedReadToolResults);
                 return; // the recursive call handles saving and done
             }
 
@@ -559,7 +570,8 @@ public class AssistantService {
                     + "Do NOT answer from your own knowledge. Call the most relevant tool now."));
                 processConversation(emitter, systemPrompt, messages, tools,
                     userId, tenantId, conversationId, round + 1,
-                    isSuperAdmin, maxRounds, profile, enrichedUserMessage, rawUserMessage);
+                    isSuperAdmin, maxRounds, profile, enrichedUserMessage, rawUserMessage,
+                    emittedReadToolResults);
                 return;
             }
             messages.add(Map.of("role", "assistant",
@@ -607,6 +619,8 @@ public class AssistantService {
         if (toolResults.isEmpty() && toolErrors.isEmpty()) {
             return "";
         }
+        String deterministic = deterministicToolAnswer(toolResults, toolErrors, userMessage);
+        if (deterministic != null) return deterministic;
         try {
             String toolJson = om.writeValueAsString(Map.of(
                 "toolResults", toolResults,
@@ -664,6 +678,57 @@ public class AssistantService {
             }
             return "";
         }
+    }
+
+    private String deterministicToolAnswer(List<ToolResult> toolResults,
+                                           List<AssistantDtos.ToolError> toolErrors,
+                                           String userMessage) {
+        if (toolErrors != null && !toolErrors.isEmpty()) return null;
+        if (toolResults == null || toolResults.size() != 1) return null;
+        ToolResult result = toolResults.get(0);
+        if (!"metric".equals(result.type()) || result.title() == null
+            || !result.title().startsWith("Sales ")) return null;
+
+        Map<String, Object> data = result.data();
+        if (data == null || !data.containsKey("total") || !data.containsKey("count")) return null;
+        boolean sw = isProbablySwahili(userMessage);
+        String from = String.valueOf(data.getOrDefault("from", ""));
+        String to = String.valueOf(data.getOrDefault("to", from));
+        String total = formatMoney(data.get("total"), String.valueOf(data.getOrDefault("currency", "TZS")));
+        String count = String.valueOf(data.getOrDefault("count", "0"));
+
+        if (sw) {
+            return "Mauzo ya kipindi " + from + " hadi " + to + ": " + total
+                + " kutoka mauzo " + count + ".";
+        }
+        return "Sales for " + from + " to " + to + ": " + total
+            + " from " + count + " sales.";
+    }
+
+    private String toolCallKey(String name, Map<String, Object> args) {
+        try {
+            return name + ":" + om.writeValueAsString(args != null ? new TreeMap<>(args) : Map.of());
+        } catch (Exception e) {
+            return name + ":" + String.valueOf(args);
+        }
+    }
+
+    private static boolean isProbablySwahili(String text) {
+        if (text == null) return false;
+        String lower = text.toLowerCase(Locale.ROOT);
+        return lower.matches(".*\\b(mauzo|naomba|nataka|nijue|kujua|kipindi|mwezi|leo|jana|tafadhali)\\b.*");
+    }
+
+    private static String formatMoney(Object value, String currency) {
+        BigDecimal amount;
+        if (value instanceof BigDecimal bd) amount = bd;
+        else if (value instanceof Number n) amount = BigDecimal.valueOf(n.doubleValue());
+        else {
+            try { amount = new BigDecimal(String.valueOf(value)); }
+            catch (Exception e) { amount = BigDecimal.ZERO; }
+        }
+        java.text.DecimalFormat format = new java.text.DecimalFormat("#,##0.##");
+        return (currency == null || currency.isBlank() ? "TZS" : currency) + " " + format.format(amount);
     }
 
     /**
