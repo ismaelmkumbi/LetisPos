@@ -429,7 +429,7 @@ export default function BrandLogoUploader({ profile, onProfileChange }: BrandLog
       {variants.length > 0 && (
         <Stack direction="row" spacing={1} sx={{ mt: 1.5 }}>
           {variants.map((v) => (
-            <Tooltip key={v.id} title={`${VARIANT_LABELS[v.variant] ?? v.variant} (${(v.format ?? '?').toUpperCase()})`} arrow>
+            <Tooltip key={v.id} title={`${VARIANT_LABELS[v.variant ?? ''] ?? (v.variant ?? 'var')} (${(v.format ?? '?').toUpperCase()})`} arrow>
               <Box
                 component="img"
                 src={v.url}
