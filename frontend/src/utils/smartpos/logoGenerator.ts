@@ -15,7 +15,8 @@ export const escapeXml = (value: string) =>
 export const svgDataUri = (svg: string) =>
   `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
 
-export const initialsFor = (name: string) => {
+export const initialsFor = (name: string | undefined | null) => {
+  if (!name) return 'LP';
   const clean = name.trim();
   if (!clean) return 'LP';
   const parts = clean.split(/\s+/).filter(Boolean);

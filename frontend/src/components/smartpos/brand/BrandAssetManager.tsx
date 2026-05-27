@@ -282,7 +282,7 @@ export default function BrandAssetManager() {
                 </Stack>
                 <Stack direction="row" spacing={0.5}>
                   <Chip
-                    label={asset.format.toUpperCase()}
+                    label={(asset.format ?? '?').toUpperCase()}
                     size="small"
                     sx={{ fontSize: '0.6rem', fontWeight: 600, bgcolor: brand.neutral[100] }}
                   />

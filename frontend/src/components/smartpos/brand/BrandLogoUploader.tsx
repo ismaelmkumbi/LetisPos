@@ -350,7 +350,7 @@ export default function BrandLogoUploader({ profile, onProfileChange }: BrandLog
           <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
             <IconSparkles size={16} color={brand.info.main} />
             <Typography sx={{ fontWeight: 700, fontSize: '0.8rem', color: brand.info.dark }}>
-              AI Analysis — {analysis.quality.toUpperCase()} quality
+              AI Analysis — {(analysis.quality ?? 'standard').toUpperCase()} quality
             </Typography>
           </Stack>
           <Stack spacing={0.5}>
@@ -429,7 +429,7 @@ export default function BrandLogoUploader({ profile, onProfileChange }: BrandLog
       {variants.length > 0 && (
         <Stack direction="row" spacing={1} sx={{ mt: 1.5 }}>
           {variants.map((v) => (
-            <Tooltip key={v.id} title={`${VARIANT_LABELS[v.variant] ?? v.variant} (${v.format.toUpperCase()})`} arrow>
+            <Tooltip key={v.id} title={`${VARIANT_LABELS[v.variant] ?? v.variant} (${(v.format ?? '?').toUpperCase()})`} arrow>
               <Box
                 component="img"
                 src={v.url}
