@@ -263,15 +263,15 @@ export default function AIBrandingAssistant({
       }
       addEntry({
         role: 'assistant',
-        content: generated.message || 'AI logo generation did not return an image. Check OpenAI image configuration.',
+        content: (generated.message || 'AI logo generation returned no image.') + ' Using auto-generated SVG instead.',
       });
-      return;
+      // Fall through to SVG generator below — no return
     } catch (e) {
       addEntry({
         role: 'assistant',
-        content: e instanceof Error ? e.message : 'AI logo generation failed. Check OpenAI image configuration.',
+        content: 'AI logo generation unavailable. Using auto-generated SVG instead.',
       });
-      return;
+      // Fall through to SVG generator below — no return
     }
 
     const [fullAsset, monoAsset, thermalAsset, faviconAsset] = await Promise.all([

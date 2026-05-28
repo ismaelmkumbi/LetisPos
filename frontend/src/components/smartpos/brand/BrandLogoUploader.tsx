@@ -224,11 +224,11 @@ export default function BrandLogoUploader({ profile, onProfileChange }: BrandLog
           });
           return;
         }
-        setError(generated.message || 'AI logo generation did not return an image. Check OpenAI image configuration.');
-        return;
+        setError(generated.message || 'AI logo generation did not return an image. Falling back to generated SVG.');
+        // Fall through to SVG generator below — no return
       } catch (e) {
-        setError(e instanceof Error ? e.message : 'AI logo generation failed. Check OpenAI image configuration.');
-        return;
+        setError('AI logo generation unavailable. Using auto-generated SVG instead.');
+        // Fall through to SVG generator below — no return
       }
 
       const [fullAsset, monoAsset, thermalAsset, faviconAsset] = await Promise.all([
