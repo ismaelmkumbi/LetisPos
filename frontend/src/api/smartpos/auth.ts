@@ -56,16 +56,32 @@ export interface RegisterPayload {
   tenantName?: string;
   tenantSlug?: string;
   billingPlan?: string;
-  channel?: 'EMAIL' | 'PHONE';
+  channel?: 'EMAIL' | 'PHONE' | 'WHATSAPP';
   phoneNumber?: string;
 }
 
-export async function register(payload: RegisterPayload): Promise<{ userId: string }> {
-  const { data } = await api.post<LoginResponse>('/api/v1/auth/register', payload);
-  tokenStore.set(data.accessToken);
-  tokenStore.setTenantId(data.user?.tenantId || null);
-  schedulePreemptiveRefresh(data.accessToken);
-  return { userId: data.user.id };
+export interface RegisterResponse {
+  userId: string;
+  channel: string;
+  contact: string;
+  message?: string;
+  /** Present for EMAIL channel — login tokens returned immediately */
+  accessToken?: string;
+  refreshToken?: string;
+}
+
+export async function register(payload: RegisterPayload): Promise<RegisterResponse> {
+  const { data } = await api.post<LoginResponse | RegisterResponse>('/api/v1/auth/register', payload);
+  // EMAIL channel returns LoginResponse (with tokens for immediate login)
+  const loginResp = data as LoginResponse;
+  if (loginResp.accessToken) {
+    tokenStore.set(loginResp.accessToken);
+    tokenStore.setTenantId(loginResp.user?.tenantId || null);
+    schedulePreemptiveRefresh(loginResp.accessToken);
+    return { userId: loginResp.user.id, channel: 'EMAIL', contact: loginResp.user.email ?? '' };
+  }
+  // PHONE / WHATSAPP channel returns { userId, channel, contact }
+  return data as RegisterResponse;
 }
 
 export async function verifyAccount(token: string): Promise<{ status: string; contact: string }> {

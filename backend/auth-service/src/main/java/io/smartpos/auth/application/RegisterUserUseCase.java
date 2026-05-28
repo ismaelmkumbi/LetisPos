@@ -51,23 +51,44 @@ public class RegisterUserUseCase {
                     "Invalid channel. Must be EMAIL or PHONE.");
         }
 
+        // EMAIL channel has stricter duplicate checks
         if (channel == VerificationChannel.EMAIL) {
             if (req.email() == null || req.email().isBlank()) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email is required for EMAIL channel.");
             }
             userRepository.findByEmailIgnoreCase(req.email()).ifPresent(existing -> {
                 if (existing.getStatus() == UserStatus.PENDING) {
-                    // Stale unverified signup — delete it and allow re-registration
                     userRepository.delete(existing);
                     log.info("Removed stale PENDING user for email={} to allow re-registration", req.email());
                 } else {
                     throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already registered");
                 }
             });
-        } else {
+        }
+
+        // PHONE / WHATSAPP — both need a phone number
+        if (channel == VerificationChannel.PHONE || channel == VerificationChannel.WHATSAPP) {
             if (req.phoneNumber() == null || req.phoneNumber().isBlank()) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Phone number is required for PHONE channel.");
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "Phone number is required for " + channel + " channel.");
             }
+        }
+
+        // Reject EMAIL-only users missing email
+        if (channel == VerificationChannel.EMAIL && (req.email() == null || req.email().isBlank())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email is required for EMAIL channel.");
+        }
+
+        // Prevent duplicate phone signups
+        if (channel == VerificationChannel.PHONE || channel == VerificationChannel.WHATSAPP) {
+            userRepository.findByPhoneNumber(req.phoneNumber()).ifPresent(existing -> {
+                if (existing.getStatus() == UserStatus.PENDING) {
+                    userRepository.delete(existing);
+                    log.info("Removed stale PENDING user for phone={}", req.phoneNumber());
+                } else {
+                    throw new ResponseStatusException(HttpStatus.CONFLICT, "Phone number already registered");
+                }
+            });
         }
 
         // Resolve tenant: explicit tenantId, auto-create from tenantName, or leave null
@@ -98,13 +119,22 @@ public class RegisterUserUseCase {
             }
         }
 
-        // Create user as ACTIVE — signup is login, no verification step
+        // Derive username from email or phone number
+        String username = channel == VerificationChannel.EMAIL
+                ? req.email().toLowerCase()
+                : req.phoneNumber();
+
+        // Create user — set status based on channel:
+        // PHONE/WHATSAPP: PENDING until OTP verified; EMAIL: ACTIVE immediately
+        boolean requiresVerification = channel == VerificationChannel.PHONE
+                                    || channel == VerificationChannel.WHATSAPP;
         User user = User.builder()
                 .email(channel == VerificationChannel.EMAIL ? req.email().toLowerCase() : null)
-                .phoneNumber(channel == VerificationChannel.PHONE ? req.phoneNumber() : null)
-                .username(channel == VerificationChannel.EMAIL ? req.email().toLowerCase() : req.phoneNumber())
+                .phoneNumber(channel == VerificationChannel.PHONE || channel == VerificationChannel.WHATSAPP
+                        ? req.phoneNumber() : null)
+                .username(username)
                 .passwordHash(passwordEncoder.encode(req.password()))
-                .status(UserStatus.ACTIVE)
+                .status(requiresVerification ? UserStatus.PENDING : UserStatus.ACTIVE)
                 .tenantId(tenantId)
                 .build();
         try {

@@ -38,7 +38,7 @@ const fieldSx = {
 const VerificationSentForm: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const state = location.state as { userId?: string; channel?: 'EMAIL' | 'PHONE'; contact?: string } | null;
+  const state = location.state as { userId?: string; channel?: 'EMAIL' | 'PHONE' | 'WHATSAPP'; contact?: string } | null;
 
   const userId = state?.userId;
   const channel = state?.channel ?? 'EMAIL';
@@ -88,12 +88,14 @@ const VerificationSentForm: React.FC = () => {
     }
   }, [userId, navigate]);
 
-  // Auto-submit when 6 digits entered (phone only)
+  const isOtpChannel = channel === 'PHONE' || channel === 'WHATSAPP';
+
+  // Auto-submit when 6 digits entered (phone / WhatsApp)
   useEffect(() => {
-    if (channel === 'PHONE' && code.length === 6 && !verifying && !verified) {
+    if (isOtpChannel && code.length === 6 && !verifying && !verified) {
       handleVerify(code);
     }
-  }, [code, channel, verifying, verified, handleVerify]);
+  }, [code, isOtpChannel, verifying, verified, handleVerify]);
 
   if (!userId) {
     return (
@@ -115,7 +117,7 @@ const VerificationSentForm: React.FC = () => {
         </Alert>
       )}
 
-      {channel === 'EMAIL' ? (
+      {!isOtpChannel ? (
         <Stack spacing={3} alignItems="center" textAlign="center">
           <Box
             sx={{

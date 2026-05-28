@@ -119,6 +119,8 @@ const AuthRegister: React.FC<Props> = ({ title, subtitle, subtext }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [channel, setChannel] = useState<'EMAIL' | 'WHATSAPP'>('EMAIL');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -129,29 +131,37 @@ const AuthRegister: React.FC<Props> = ({ title, subtitle, subtext }) => {
     }
   };
 
+  const isWhatsApp = channel === 'WHATSAPP';
   const strength = getStrength(password);
   const isFormReady =
     tenantName.trim().length > 1 &&
-    email.trim().length > 0 && email.includes('@') &&
-    password.length >= 8;
+    password.length >= 8 &&
+    (isWhatsApp
+      ? phoneNumber.trim().length >= 10
+      : email.trim().length > 0 && email.includes('@'));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setSubmitting(true);
     try {
-      const { userId } = await register({
-        email: email.trim().toLowerCase(),
+      const resp = await register({
+        email: isWhatsApp ? undefined : email.trim().toLowerCase(),
         password,
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         tenantName: tenantName.trim(),
         tenantSlug: tenantSlug.trim() || undefined,
         billingPlan: 'STARTER',
-        channel: 'EMAIL',
+        channel,
+        phoneNumber: isWhatsApp ? phoneNumber.trim() : undefined,
       });
       navigate('/auth/verify-sent', {
-        state: { userId, channel: 'EMAIL' as const, contact: email.trim().toLowerCase() },
+        state: {
+          userId: resp.userId,
+          channel: resp.channel as 'EMAIL' | 'WHATSAPP',
+          contact: resp.contact,
+        },
       });
       seedDefaultUnits().catch(() => {});
       seedDefaultCOA().catch(() => {});
@@ -287,29 +297,73 @@ const AuthRegister: React.FC<Props> = ({ title, subtitle, subtext }) => {
           />
         </Box>
 
-        {/* Row 4: Email | Password */}
-        <Box>
-          <Typography component="label" htmlFor="email" sx={labelSx}>
-            Email address
-          </Typography>
-          <TextField
-            id="email" name="email"
-            type="email"
-            autoComplete="email"
-            placeholder="you@company.com"
-            fullWidth required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            sx={fieldSx}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start" sx={{ color: brand.neutral[400] }}>
-                  <IconMail size={17} stroke={1.6} />
-                </InputAdornment>
-              ),
-            }}
-          />
+        {/* Row 4: Channel selector (full width) */}
+        <Box sx={{ gridColumn: { sm: '1 / -1' } }}>
+          <Typography sx={labelSx}>Verification method</Typography>
+          <Stack direction="row" spacing={0} sx={{ borderRadius: '10px', overflow: 'hidden', border: `1px solid ${brand.neutral[200]}`, width: 'fit-content' }}>
+            {(['EMAIL', 'WHATSAPP'] as const).map((ch) => (
+              <Box
+                key={ch}
+                onClick={() => setChannel(ch)}
+                sx={{
+                  px: 2, py: 0.9, cursor: 'pointer', fontWeight: 600, fontSize: '0.78rem',
+                  transition: 'all 0.15s ease',
+                  bgcolor: channel === ch ? brand.primary[500] : '#fff',
+                  color: channel === ch ? '#fff' : brand.neutral[600],
+                  borderRight: ch === 'EMAIL' ? `1px solid ${brand.neutral[200]}` : 'none',
+                  '&:hover': { bgcolor: channel === ch ? brand.primary[600] : brand.primary[50] },
+                }}
+              >
+                {ch === 'WHATSAPP' ? '📱 WhatsApp' : '📧 Email'}
+              </Box>
+            ))}
+          </Stack>
         </Box>
+
+        {/* Row 5: Email or Phone | Password */}
+        {isWhatsApp ? (
+          <Box>
+            <Typography component="label" htmlFor="phone" sx={labelSx}>
+              WhatsApp number
+            </Typography>
+            <TextField
+              id="phone" name="phone"
+              type="tel"
+              autoComplete="tel"
+              placeholder="+255 712 345 678"
+              fullWidth required
+              value={phoneNumber}
+              onChange={(e) => setPhoneNumber(e.target.value)}
+              sx={fieldSx}
+            />
+            <Typography sx={{ fontSize: '0.62rem', color: brand.neutral[400], mt: 0.3 }}>
+              A 6-digit verification code will be sent to this number
+            </Typography>
+          </Box>
+        ) : (
+          <Box>
+            <Typography component="label" htmlFor="email" sx={labelSx}>
+              Email address
+            </Typography>
+            <TextField
+              id="email" name="email"
+              type="email"
+              autoComplete="email"
+              placeholder="you@company.com"
+              fullWidth required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              sx={fieldSx}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start" sx={{ color: brand.neutral[400] }}>
+                    <IconMail size={17} stroke={1.6} />
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </Box>
+        )}
         <Box>
           <Typography component="label" htmlFor="password" sx={labelSx}>
             Password

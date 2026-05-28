@@ -78,7 +78,10 @@ public class SendVerificationUseCase {
         if (channel == VerificationChannel.EMAIL) {
             sendEmail(user.getEmail(), rawToken);
         } else {
-            sendSms(user.getPhoneNumber(), otp);
+            // PHONE and WHATSAPP both send a short OTP via the SmsSender interface.
+            // The actual transport (SMS or WhatsApp) is determined by the active
+            // VerificationSmsSender bean (TwilioSmsSender or WhatsAppOtpSender).
+            sendOtp(user.getPhoneNumber(), otp, channel);
         }
 
         log.info("Sent {} verification to user={}", channel, user.getId());
@@ -102,9 +105,10 @@ public class SendVerificationUseCase {
         emailSender.sendVerificationEmail(to, "Verify your Letis POS account", html);
     }
 
-    private void sendSms(String to, String otp) {
+    private void sendOtp(String to, String otp, VerificationChannel channel) {
+        String brand = channel == VerificationChannel.WHATSAPP ? "LetisPOS" : "SmartPOS";
         smsSender.sendVerificationSms(to,
-                "Your SmartPOS verification code is: " + otp + ". It expires in 10 minutes.");
+                brand + " verification code: " + otp + ". Expires in 10 minutes.");
     }
 
     private String generateToken(int byteLength) {

@@ -75,8 +75,26 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest req, HttpServletRequest httpReq) {
+    public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest req, HttpServletRequest httpReq) {
         User user = registerUseCase.register(req);
+
+        // Phone-based channels need OTP verification before login.
+        // Return the userId + channel so the frontend can show the OTP input screen.
+        if (user.getStatus() == UserStatus.PENDING) {
+            String channelStr = req.channel() != null ? req.channel().toUpperCase() : "EMAIL";
+            VerificationChannel channel = VerificationChannel.valueOf(channelStr);
+            String otp = sendVerificationUseCase.send(user, channel);
+            // In dev we log the OTP so the user can test without a real phone.
+            log.info("[DEV] {} OTP for user {}: {}", channel, user.getId(), otp);
+            return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
+                    "userId", user.getId().toString(),
+                    "channel", channel.name(),
+                    "contact", channel == VerificationChannel.EMAIL
+                            ? user.getEmail() : user.getPhoneNumber(),
+                    "message", "Verification code sent via " + channel.name().toLowerCase()
+            ));
+        }
+
         AuthResponse body = loginUseCase.loginAfterRegistration(user, httpReq.getHeader("User-Agent"), clientIp(httpReq));
         return ResponseEntity.status(HttpStatus.CREATED)
                 .header(HttpHeaders.SET_COOKIE, refreshCookies.attach(body.refreshToken()).toString())
@@ -122,7 +140,15 @@ public class AuthController {
         }
         // PENDING — proceed with resend
 
-        VerificationChannel channel = user.getEmail() != null ? VerificationChannel.EMAIL : VerificationChannel.PHONE;
+        VerificationChannel channel;
+        if (user.getEmail() != null) {
+            channel = VerificationChannel.EMAIL;
+        } else {
+            // Phone-based users: prefer WHATSAPP if the sender is configured,
+            // fall back to SMS (PHONE).  The WhatsAppOtpSender bean only exists
+            // when smartpos.verification.whatsapp.access-token is set.
+            channel = VerificationChannel.WHATSAPP;
+        }
         sendVerificationUseCase.send(user, channel);
         return ResponseEntity.ok(Map.of("message", "Verification sent"));
     }
