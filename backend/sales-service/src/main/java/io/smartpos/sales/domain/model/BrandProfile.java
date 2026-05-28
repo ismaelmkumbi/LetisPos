@@ -3,6 +3,8 @@ package io.smartpos.sales.domain.model;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.DynamicInsert;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -95,6 +97,7 @@ public class BrandProfile {
     @Builder.Default
     private String inheritanceMode = "full_override";
 
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "locked_fields", columnDefinition = "JSONB")
     private String lockedFields;
 
