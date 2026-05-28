@@ -21,7 +21,7 @@ export default function ApprovalWorkflow() {
   const action = useCallback(async (endpoint: string) => {
     setLoading(endpoint);
     try { await api.post(`/api/v1/brand/profile/${endpoint}`); await refresh(); }
-    catch {} finally { setLoading(null); }
+    catch { /* API unavailable — user can retry */ } finally { setLoading(null); }
   }, [refresh]);
 
   return (

@@ -19,7 +19,7 @@ export default function CampaignManager() {
       await api.post('/api/v1/brand/campaigns', { name, startDate, endDate });
       setOpen(false);
       setName(''); setStartDate(''); setEndDate('');
-    } catch {} finally { setSaving(false); }
+    } catch { /* API unavailable — user can retry */ } finally { setSaving(false); }
   }, [name, startDate, endDate]);
 
   return (
