@@ -49,6 +49,19 @@ public class BrandProfileDto {
     private String twitter;
     private String linkedin;
 
+    // Inheritance (V24)
+    private UUID parentBrandId;
+    private String inheritanceMode;
+    private String lockedFields;
+
+    // Custom domain (V25)
+    private String customDomain;
+    private boolean customDomainVerified;
+    private String customDomainVerificationToken;
+
+    // Approval (V28)
+    private String status;
+
     private Instant createdAt;
     private Instant updatedAt;
 

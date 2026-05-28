@@ -241,6 +241,154 @@ public class BrandAiController {
         return ResponseEntity.ok(defaultTheme());
     }
 
+    // ── Complete Brand Kit ────────────────────────────────────────────────────
+
+    @PostMapping("/complete-kit")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Map<String, Object>> generateCompleteKit(
+            @RequestBody Map<String, Object> body,
+            @AuthenticationPrincipal Jwt jwt) {
+        BrandProfileDto profile = brandService.get();
+        String businessName = (String) body.getOrDefault("businessName",
+            profile.getBusinessName() != null ? profile.getBusinessName() : "My Business");
+        String industry = (String) body.getOrDefault("industry",
+            profile.getIndustry() != null ? profile.getIndustry() : "Retail");
+        String style = (String) body.getOrDefault("style", "modern");
+
+        String systemPrompt = """
+            You are a world-class brand designer. Generate a COMPLETE brand identity kit as JSON.
+            Include: a 5-color palette (hex), 2 font pairings (heading + body with Google Fonts families),
+            a compelling tagline, brand tone (one word), and 3 suggested document template styles.
+            Respond ONLY with a JSON object. Format:
+            {
+              "palette": {"primary":"#...", "secondary":"#...", "accent":"#...", "neutral":"#...", "highlight":"#..."},
+              "fonts": {"heading":"...", "body":"..."},
+              "tagline": "...",
+              "brandTone": "...",
+              "templateStyles": ["...", "...", "...""]
+            }""";
+
+        String prompt = String.format(
+            "Business: %s | Industry: %s | Style: %s", businessName, industry, style);
+
+        Map<String, Object> aiResp = aiChat(prompt, systemPrompt, jwt);
+        if (aiResp != null && aiResp.containsKey("narrative")) {
+            Map<String, Object> kit = parseJsonSafely(
+                (String) aiResp.get("narrative"), defaultCompleteKit());
+            // Apply generated kit to brand profile
+            applyKit(profile, kit);
+            kit.put("applied", true);
+            return ResponseEntity.ok(kit);
+        }
+        Map<String, Object> fallback = defaultCompleteKit();
+        applyKit(profile, fallback);
+        fallback.put("applied", true);
+        return ResponseEntity.ok(fallback);
+    }
+
+    // ── Brand Health Score (Algorithmic) ───────────────────────────────────────
+
+    @GetMapping("/health-score")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Map<String, Object>> getHealthScore() {
+        BrandProfileDto profile = brandService.get();
+
+        int completeness = calcCompleteness(profile);
+        int consistency = calcConsistency(profile);
+        int assetQuality = calcAssetQuality(profile);
+        int total = completeness + consistency + assetQuality;
+
+        String grade = total >= 90 ? "A" : total >= 75 ? "B" : total >= 60 ? "C" : total >= 40 ? "D" : "F";
+
+        List<String> suggestions = new ArrayList<>();
+        if (isEmpty(profile.getBusinessName())) suggestions.add("Add your business name");
+        if (isEmpty(profile.getLogoUrl())) suggestions.add("Upload a logo for professional documents");
+        if (isEmpty(profile.getTagline())) suggestions.add("Add a tagline to strengthen brand recall");
+        if (isEmpty(profile.getLogoThermalUrl())) suggestions.add("Generate a thermal-optimized logo variant");
+        if (isEmpty(profile.getFaviconUrl())) suggestions.add("Add a favicon for browser tab branding");
+        if (isEmpty(profile.getWebsite())) suggestions.add("Add your website URL");
+        if (isEmpty(profile.getFacebook()) && isEmpty(profile.getInstagram()))
+            suggestions.add("Connect at least one social media account");
+
+        return ResponseEntity.ok(Map.of(
+            "score", total,
+            "grade", grade,
+            "completeness", completeness,
+            "consistency", consistency,
+            "assetQuality", assetQuality,
+            "suggestions", suggestions
+        ));
+    }
+
+    // ── Generate Copy ──────────────────────────────────────────────────────────
+
+    @PostMapping("/generate-copy")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Map<String, Object>> generateCopy(
+            @RequestBody Map<String, Object> body,
+            @AuthenticationPrincipal Jwt jwt) {
+        BrandProfileDto profile = brandService.get();
+        String type = (String) body.getOrDefault("type", "tagline");
+        String businessName = (String) body.getOrDefault("businessName",
+            profile.getBusinessName() != null ? profile.getBusinessName() : "My Business");
+        String industry = (String) body.getOrDefault("industry",
+            profile.getIndustry() != null ? profile.getIndustry() : "Retail");
+
+        String systemPrompt = switch (type) {
+            case "footer" -> "Generate 3 receipt/invoice footer messages. Keep each under 80 chars. Respond ONLY with a JSON array of strings.";
+            case "email-subject" -> "Generate 3 email subject lines. Keep each under 60 chars. Respond ONLY with a JSON array of strings.";
+            case "receipt-message" -> "Generate 3 short receipt thank-you messages. Keep each under 100 chars. Respond ONLY with a JSON array of strings.";
+            default -> "Generate 3 business taglines. Keep each under 80 chars. Respond ONLY with a JSON array of strings.";
+        };
+
+        String prompt = String.format("Business: %s | Industry: %s | Tone: %s",
+            businessName, industry,
+            profile.getBrandTone() != null ? profile.getBrandTone() : "Professional");
+
+        Map<String, Object> aiResp = aiChat(prompt, systemPrompt, jwt);
+        if (aiResp != null && aiResp.containsKey("narrative")) {
+            try {
+                var items = parseColorArray((String) aiResp.get("narrative"));
+                return ResponseEntity.ok(Map.of("copies", items, "type", type));
+            } catch (Exception e) {
+                // fall through
+            }
+        }
+        return ResponseEntity.ok(Map.of("copies", defaultCopies(type), "type", type));
+    }
+
+    // ── Consistency Check ──────────────────────────────────────────────────────
+
+    @PostMapping("/consistency-check")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Map<String, Object>> consistencyCheck(@AuthenticationPrincipal Jwt jwt) {
+        BrandProfileDto profile = brandService.get();
+
+        String systemPrompt = """
+            You are a brand consistency auditor. Review the brand profile and identify issues:
+            color harmony, font pairing quality, contrast concerns, logo quality notes, tagline effectiveness.
+            Respond ONLY with a JSON object:
+            {"issues": [{"severity":"high|medium|low","category":"colors|fonts|logo|copy","title":"...","suggestion":"..."}]}""";
+
+        String prompt = String.format(
+            "Business: %s | Industry: %s | Primary: %s | Secondary: %s | Accent: %s | Font: %s | Tagline: %s",
+            profile.getBusinessName() != null ? profile.getBusinessName() : "N/A",
+            profile.getIndustry() != null ? profile.getIndustry() : "Retail",
+            profile.getPrimaryColor() != null ? profile.getPrimaryColor() : "#16A34A",
+            profile.getSecondaryColor() != null ? profile.getSecondaryColor() : "#1E293B",
+            profile.getAccentColor() != null ? profile.getAccentColor() : "#F59E0B",
+            profile.getFontFamily() != null ? profile.getFontFamily() : "Inter",
+            profile.getTagline() != null ? profile.getTagline() : "N/A");
+
+        Map<String, Object> aiResp = aiChat(prompt, systemPrompt, jwt);
+        if (aiResp != null && aiResp.containsKey("narrative")) {
+            return ResponseEntity.ok(parseJsonSafely(
+                (String) aiResp.get("narrative"),
+                Map.of("issues", List.of())));
+        }
+        return ResponseEntity.ok(Map.of("issues", List.of()));
+    }
+
     // ── Helpers ──────────────────────────────────────────────────────────────
 
     private static void appendIf(Map<String, Object> ctx, StringBuilder sb, String key, String prefix) {
@@ -344,5 +492,108 @@ public class BrandAiController {
         m.put("textColor", "#0F172A");
         m.put("borderColor", "#E2E8F0");
         return m;
+    }
+
+    // ── New helpers for Phase 3 ──────────────────────────────────────────────
+
+    private static Map<String, Object> defaultCompleteKit() {
+        Map<String, Object> kit = new LinkedHashMap<>();
+        kit.put("palette", Map.of(
+            "primary", "#16A34A", "secondary", "#1E293B", "accent", "#F59E0B",
+            "neutral", "#F8FAFC", "highlight", "#22C55E"));
+        kit.put("fonts", Map.of("heading", "Inter, system-ui, sans-serif", "body", "Inter, system-ui, sans-serif"));
+        kit.put("tagline", "Quality you can trust");
+        kit.put("brandTone", "Professional");
+        kit.put("templateStyles", List.of("Clean Modern", "Minimal Professional", "Bold Branded"));
+        return kit;
+    }
+
+    @SuppressWarnings("unchecked")
+    private void applyKit(BrandProfileDto profile, Map<String, Object> kit) {
+        try {
+            Map<String, Object> palette = (Map<String, Object>) kit.get("palette");
+            Map<String, Object> fonts = (Map<String, Object>) kit.get("fonts");
+            String tagline = (String) kit.get("tagline");
+            String tone = (String) kit.get("brandTone");
+
+            BrandProfileDto.UpdateRequest req = new BrandProfileDto.UpdateRequest();
+            if (palette != null) {
+                req.setPrimaryColor((String) palette.get("primary"));
+                req.setSecondaryColor((String) palette.get("secondary"));
+                req.setAccentColor((String) palette.get("accent"));
+            }
+            if (fonts != null) {
+                req.setFontFamily((String) fonts.get("heading"));
+            }
+            if (tagline != null) req.setTagline(tagline);
+            if (tone != null) req.setBrandTone(tone);
+
+            brandService.update(req);
+        } catch (Exception e) {
+            // Silently skip apply errors — the kit is still returned for preview
+        }
+    }
+
+    private int calcCompleteness(BrandProfileDto p) {
+        int score = 0;
+        if (notBlank(p.getBusinessName())) score += 8;
+        if (notBlank(p.getLogoUrl())) score += 8;
+        if (notBlank(p.getPrimaryColor())) score += 6;
+        if (notBlank(p.getTagline())) score += 5;
+        if (notBlank(p.getFontFamily())) score += 5;
+        if (notBlank(p.getWebsite())) score += 4;
+        if (notBlank(p.getFacebook()) || notBlank(p.getInstagram())) score += 4;
+        return Math.min(score, 40);
+    }
+
+    private int calcConsistency(BrandProfileDto p) {
+        int score = 15;
+        if (p.getPrimaryColor() != null && p.getAccentColor() != null
+            && p.getPrimaryColor().equals(p.getAccentColor())) score -= 5;
+        if (p.getLogoUrl() != null && p.getLogoThermalUrl() == null) score -= 5;
+        if (p.getLogoUrl() != null && p.getFaviconUrl() == null) score -= 5;
+        return Math.max(score, 0);
+    }
+
+    private int calcAssetQuality(BrandProfileDto p) {
+        int score = 0;
+        if (notBlank(p.getLogoUrl())) {
+            score += 8;
+            if (p.getLogoUrl().contains(".svg")) score += 4;
+        }
+        if (notBlank(p.getLogoThermalUrl())) score += 6;
+        if (notBlank(p.getFaviconUrl())) score += 6;
+        if (notBlank(p.getWatermarkUrl())) score += 3;
+        if (notBlank(p.getQrCodeUrl())) score += 3;
+        return Math.min(score, 30);
+    }
+
+    private static List<String> defaultCopies(String type) {
+        return switch (type) {
+            case "footer" -> List.of(
+                "Thank you for your business — we appreciate you!",
+                "Questions? Contact us — we're here to help.",
+                "Thank you for choosing us. See you again soon!");
+            case "email-subject" -> List.of(
+                "Your invoice is ready",
+                "Thank you for your purchase",
+                "Here's your receipt");
+            case "receipt-message" -> List.of(
+                "Thank you for shopping with us!",
+                "We appreciate your business!",
+                "See you again soon!");
+            default -> List.of(
+                "Quality you can trust",
+                "Service beyond expectations",
+                "Your satisfaction, our priority");
+        };
+    }
+
+    private static boolean notBlank(String s) {
+        return s != null && !s.isBlank();
+    }
+
+    private static boolean isEmpty(String s) {
+        return s == null || s.isBlank();
     }
 }

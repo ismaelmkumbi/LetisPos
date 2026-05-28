@@ -15,7 +15,8 @@ public record AiProperties(
         @DefaultValue("stub") String provider,
         Anthropic anthropic,
         OpenAi openai,
-        DeepSeek deepseek
+        DeepSeek deepseek,
+        Kimi kimi
 ) {
     public record Anthropic(
             String apiKey,
@@ -37,4 +38,12 @@ public record AiProperties(
             String apiKey,
             @DefaultValue("deepseek-chat") String model,
             @DefaultValue("https://api.deepseek.com/v1") String baseUrl) {}
+
+    /**
+     * Kimi (Moonshot AI) uses an OpenAI-compatible Chat Completions API.
+     */
+    public record Kimi(
+            String apiKey,
+            @DefaultValue("moonshot-v1-8k") String model,
+            @DefaultValue("https://api.moonshot.cn/v1") String baseUrl) {}
 }

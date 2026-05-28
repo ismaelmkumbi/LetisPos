@@ -2,9 +2,10 @@
  * BrandColorPicker — premium color input with swatch preview, hex validation,
  * and MUI-compatible color picker fallback.
  */
-import { useState, useCallback } from 'react';
-import { Box, Stack, TextField, Tooltip, Typography } from '@mui/material';
+import { useState, useCallback, useMemo } from 'react';
+import { Box, Chip, Stack, TextField, Tooltip, Typography } from '@mui/material';
 import { brand } from 'src/theme/smartpos/brand';
+import { checkContrast, gradeText, gradeColor } from 'src/branding/utils/contrastChecker';
 
 interface BrandColorPickerProps {
   label: string;
@@ -36,6 +37,11 @@ export default function BrandColorPicker({
 }: BrandColorPickerProps) {
   const [input, setInput] = useState(value);
   const valid = HEX_RE.test(input);
+
+  const wcag = useMemo(() => {
+    if (!valid) return null;
+    return checkContrast(input, '#FFFFFF');
+  }, [input, valid]);
 
   const handleBlur = useCallback(() => {
     if (HEX_RE.test(input)) {
@@ -117,6 +123,24 @@ export default function BrandColorPicker({
         <Typography variant="caption" sx={{ color: brand.neutral[400], mt: 0.25, display: 'block', ml: 6.5 }}>
           {hint}
         </Typography>
+      )}
+      {wcag && (
+        <Stack direction="row" spacing={0.75} alignItems="center" sx={{ mt: 0.5, ml: 6.5 }}>
+          <Chip
+            label={`${gradeText(wcag)}`}
+            size="small"
+            sx={{
+              fontSize: '0.62rem', fontWeight: 800, height: 20,
+              bgcolor: gradeColor(wcag) === 'success' ? brand.success.light
+                : gradeColor(wcag) === 'warning' ? brand.warning.light : brand.error.light,
+              color: gradeColor(wcag) === 'success' ? brand.success.dark
+                : gradeColor(wcag) === 'warning' ? brand.warning.dark : brand.error.dark,
+            }}
+          />
+          <Typography variant="caption" sx={{ fontSize: '0.58rem', color: brand.neutral[400], fontWeight: 600 }}>
+            vs white — ratio {wcag.ratio.toFixed(1)}:1
+          </Typography>
+        </Stack>
       )}
     </Box>
   );

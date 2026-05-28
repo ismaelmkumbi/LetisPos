@@ -87,6 +87,33 @@ public class BrandProfile {
     private String twitter;
     private String linkedin;
 
+    // Inheritance (V24)
+    @Column(name = "parent_brand_id")
+    private UUID parentBrandId;
+
+    @Column(name = "inheritance_mode", length = 20)
+    @Builder.Default
+    private String inheritanceMode = "full_override";
+
+    @Column(name = "locked_fields", columnDefinition = "JSONB")
+    private String lockedFields;
+
+    // Custom domain (V25)
+    @Column(name = "custom_domain")
+    private String customDomain;
+
+    @Column(name = "custom_domain_verified")
+    @Builder.Default
+    private boolean customDomainVerified = false;
+
+    @Column(name = "custom_domain_verification_token", length = 64)
+    private String customDomainVerificationToken;
+
+    // Approval workflow (V28)
+    @Column(name = "status", length = 20)
+    @Builder.Default
+    private String status = "published";
+
     @Column(name = "created_at")
     private Instant createdAt;
 

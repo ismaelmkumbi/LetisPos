@@ -43,6 +43,19 @@ export interface BrandProfile {
   twitter: string;
   linkedin: string;
 
+  // Inheritance
+  parentBrandId: UUID | null;
+  inheritanceMode: 'full_override' | 'inherit_with_overrides' | 'locked';
+  lockedFields: string | null;
+
+  // Custom domain
+  customDomain: string;
+  customDomainVerified: boolean;
+  customDomainVerificationToken: string;
+
+  // Approval
+  status: 'draft' | 'pending_review' | 'published' | 'archived';
+
   createdAt: string;
   updatedAt: string;
 }
@@ -309,5 +322,68 @@ export async function aiGenerateTheme(): Promise<{
     textColor: string;
     borderColor: string;
   }>('/api/v1/brand/ai/generate-theme');
+  return data;
+}
+
+// ── Phase 3: AI Brand Kit & Health ──────────────────────────────────────────
+
+export interface BrandKit {
+  palette: { primary: string; secondary: string; accent: string; neutral: string; highlight: string };
+  fonts: { heading: string; body: string };
+  tagline: string;
+  brandTone: string;
+  templateStyles: string[];
+  applied?: boolean;
+}
+
+export interface HealthScore {
+  score: number;
+  grade: string;
+  completeness: number;
+  consistency: number;
+  assetQuality: number;
+  suggestions: string[];
+}
+
+export interface ConsistencyIssue {
+  severity: 'high' | 'medium' | 'low';
+  category: 'colors' | 'fonts' | 'logo' | 'copy';
+  title: string;
+  suggestion: string;
+}
+
+export interface ConsistencyCheck {
+  issues: ConsistencyIssue[];
+}
+
+/** Generate a complete AI brand kit (palette, fonts, tagline, tone) */
+export async function aiGenerateCompleteKit(request: {
+  businessName?: string;
+  industry?: string;
+  style?: string;
+}): Promise<BrandKit> {
+  const { data } = await api.post<BrandKit>('/api/v1/brand/ai/complete-kit', request);
+  return data;
+}
+
+/** Get algorithmic brand health score (no LLM cost) */
+export async function aiGetHealthScore(): Promise<HealthScore> {
+  const { data } = await api.get<HealthScore>('/api/v1/brand/ai/health-score');
+  return data;
+}
+
+/** Generate AI copy (taglines, footer messages, email subjects, receipt messages) */
+export async function aiGenerateCopy(request: {
+  businessName?: string;
+  industry?: string;
+  type: 'tagline' | 'footer' | 'email-subject' | 'receipt-message';
+}): Promise<{ copies: string[]; type: string }> {
+  const { data } = await api.post<{ copies: string[]; type: string }>('/api/v1/brand/ai/generate-copy', request);
+  return data;
+}
+
+/** Run AI consistency check on current brand profile */
+export async function aiConsistencyCheck(): Promise<ConsistencyCheck> {
+  const { data } = await api.post<ConsistencyCheck>('/api/v1/brand/ai/consistency-check');
   return data;
 }

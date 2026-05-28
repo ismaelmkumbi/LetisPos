@@ -33,37 +33,108 @@ public class TemplateCompiler {
         }
     }
 
+    /**
+     * Compile with explicit brand context — replaces hardcoded theme colours
+     * with tenant brand values injected as Handlebars variables.
+     */
+    public String compileWithBrand(String bodyHtml, String primaryColor, String accentColor, String fontFamily) {
+        if (bodyHtml == null || bodyHtml.isBlank()) return "";
+        String trimmed = bodyHtml.trim();
+        if (!trimmed.startsWith("{")) return bodyHtml;
+        try {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> config = mapper.readValue(trimmed, Map.class);
+            return compileBlocksWithBrand(config, primaryColor, accentColor, fontFamily);
+        } catch (Exception e) {
+            return bodyHtml;
+        }
+    }
+
+    /**
+     * Compile with a full token map — preferred over compileWithBrand for callers
+     * that have access to {@link io.smartpos.sales.application.DesignTokenService}.
+     * Token keys use dot notation (e.g. "color.primary") and are resolved
+     * into the CSS template as {{company.primaryColor}}, etc.
+     */
+    public String compileWithTokens(String bodyHtml, Map<String, String> tokens) {
+        if (bodyHtml == null || bodyHtml.isBlank()) return "";
+        String trimmed = bodyHtml.trim();
+        if (!trimmed.startsWith("{")) return bodyHtml;
+        try {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> config = mapper.readValue(trimmed, Map.class);
+            String primary = tokens.getOrDefault("color.primary", "#2563eb");
+            String accent = tokens.getOrDefault("color.accent", "#F59E0B");
+            String font = tokens.getOrDefault("font.body", "'Helvetica Neue',Arial,sans-serif");
+            return compileBlocksWithBrand(config, primary, accent, font);
+        } catch (Exception e) {
+            return bodyHtml;
+        }
+    }
+
+    private static final String BRAND_CSS_TEMPLATE =
+        "<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"UTF-8\"><style>"
+        + "@page{size:A4;margin:15mm}*{box-sizing:border-box;margin:0;padding:0}"
+        + "body{font-family:{{company.fontFamily}};font-size:12px;color:#1a1a1a}"
+        + ".header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:30px;border-bottom:3px solid {{company.primaryColor}};padding-bottom:16px}"
+        + ".logo{font-size:24px;font-weight:700;color:{{company.primaryColor}}}"
+        + ".brand-logo{display:block;max-width:180px;object-fit:contain}"
+        + ".company-info{text-align:right;font-size:11px;color:#555;line-height:1.5}"
+        + ".doc-title{font-size:22px;font-weight:700;color:{{company.primaryColor}};margin-bottom:4px}"
+        + ".doc-meta{display:flex;justify-content:space-between;margin-bottom:24px}"
+        + ".meta-box{flex:1}"
+        + ".meta-label{font-size:10px;text-transform:uppercase;color:#888;letter-spacing:1px;margin-bottom:2px}"
+        + ".meta-value{font-size:13px;font-weight:500}"
+        + "table{width:100%;border-collapse:collapse;margin-bottom:24px}"
+        + "thead th{background:{{company.primaryColorLight}};padding:10px 12px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;color:#555;border-bottom:2px solid {{company.primaryColorBorder}}}"
+        + "tbody td{padding:10px 12px;border-bottom:1px solid #e2e8f0;font-size:12px}"
+        + ".text-right{text-align:right}"
+        + ".totals{margin-left:auto;width:280px}"
+        + ".total-row{display:flex;justify-content:space-between;padding:6px 0;font-size:12px}"
+        + ".total-row.grand{border-top:2px solid {{company.primaryColor}};font-size:16px;font-weight:700;color:{{company.primaryColor}};padding-top:10px;margin-top:4px}"
+        + ".footer{margin-top:40px;border-top:1px solid #e2e8f0;padding-top:16px;font-size:10px;color:#888;line-height:1.6}"
+        + ".terms{margin-top:20px}"
+        + ".terms h4{font-size:11px;margin-bottom:6px}"
+        + ".terms p{font-size:10px;color:#666}"
+        + ".signature{display:flex;justify-content:space-between;margin-top:50px}"
+        + ".sig-block{text-align:center}"
+        + ".sig-line{border-bottom:1px solid #1a1a1a;width:200px;margin-bottom:6px}"
+        + ".sig-label{font-size:11px;color:#555}"
+        + "</style></head><body>";
+
+    // Legacy fallback — hardcoded blue for callers that haven't migrated yet
+    private static final String LEGACY_CSS_TEMPLATE =
+        BRAND_CSS_TEMPLATE
+            .replace("{{company.primaryColor}}", "#2563eb")
+            .replace("{{company.primaryColorLight}}", "#f1f5f9")
+            .replace("{{company.primaryColorBorder}}", "#e2e8f0")
+            .replace("{{company.fontFamily}}", "'Helvetica Neue',Arial,sans-serif");
+
     @SuppressWarnings("unchecked")
     private String compileBlocks(Map<String, Object> config) {
-        StringBuilder html = new StringBuilder();
-        html.append("<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"UTF-8\"><style>");
-        html.append("@page{size:A4;margin:15mm}*{box-sizing:border-box;margin:0;padding:0}");
-        html.append("body{font-family:'Helvetica Neue',Arial,sans-serif;font-size:12px;color:#1a1a1a}");
-        html.append(".header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:30px;border-bottom:3px solid #2563eb;padding-bottom:16px}");
-        html.append(".logo{font-size:24px;font-weight:700;color:#2563eb}");
-        html.append(".brand-logo{display:block;max-width:180px;object-fit:contain}");
-        html.append(".company-info{text-align:right;font-size:11px;color:#555;line-height:1.5}");
-        html.append(".doc-title{font-size:22px;font-weight:700;color:#2563eb;margin-bottom:4px}");
-        html.append(".doc-meta{display:flex;justify-content:space-between;margin-bottom:24px}");
-        html.append(".meta-box{flex:1}");
-        html.append(".meta-label{font-size:10px;text-transform:uppercase;color:#888;letter-spacing:1px;margin-bottom:2px}");
-        html.append(".meta-value{font-size:13px;font-weight:500}");
-        html.append("table{width:100%;border-collapse:collapse;margin-bottom:24px}");
-        html.append("thead th{background:#f1f5f9;padding:10px 12px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;color:#555;border-bottom:2px solid #e2e8f0}");
-        html.append("tbody td{padding:10px 12px;border-bottom:1px solid #e2e8f0;font-size:12px}");
-        html.append(".text-right{text-align:right}");
-        html.append(".totals{margin-left:auto;width:280px}");
-        html.append(".total-row{display:flex;justify-content:space-between;padding:6px 0;font-size:12px}");
-        html.append(".total-row.grand{border-top:2px solid #2563eb;font-size:16px;font-weight:700;color:#2563eb;padding-top:10px;margin-top:4px}");
-        html.append(".footer{margin-top:40px;border-top:1px solid #e2e8f0;padding-top:16px;font-size:10px;color:#888;line-height:1.6}");
-        html.append(".terms{margin-top:20px}");
-        html.append(".terms h4{font-size:11px;margin-bottom:6px}");
-        html.append(".terms p{font-size:10px;color:#666}");
-        html.append(".signature{display:flex;justify-content:space-between;margin-top:50px}");
-        html.append(".sig-block{text-align:center}");
-        html.append(".sig-line{border-bottom:1px solid #1a1a1a;width:200px;margin-bottom:6px}");
-        html.append(".sig-label{font-size:11px;color:#555}");
-        html.append("</style></head><body>");
+        // Use brand-aware CSS template — rendering pipeline fills {{company.*}} via Handlebars
+        StringBuilder html = new StringBuilder(BRAND_CSS_TEMPLATE);
+
+        List<String> blocks = (List<String>) config.getOrDefault("blocks", List.of());
+        for (String block : blocks) {
+            Map<String, Object> bc = (Map<String, Object>) config.getOrDefault(block, Map.of());
+            html.append(compileBlock(block, bc));
+        }
+
+        html.append("</body></html>");
+        return html.toString();
+    }
+
+    @SuppressWarnings("unchecked")
+    private String compileBlocksWithBrand(Map<String, Object> config,
+                                          String primaryColor, String accentColor, String fontFamily) {
+        String css = BRAND_CSS_TEMPLATE
+            .replace("{{company.primaryColor}}", primaryColor != null ? primaryColor : "#2563eb")
+            .replace("{{company.primaryColorLight}}", primaryColor != null ? primaryColor + "15" : "#f1f5f9")
+            .replace("{{company.primaryColorBorder}}", primaryColor != null ? primaryColor + "30" : "#e2e8f0")
+            .replace("{{company.fontFamily}}", fontFamily != null ? fontFamily : "'Helvetica Neue',Arial,sans-serif");
+
+        StringBuilder html = new StringBuilder(css);
 
         List<String> blocks = (List<String>) config.getOrDefault("blocks", List.of());
         for (String block : blocks) {

@@ -24,7 +24,6 @@ import {
   IconWorld,
   IconPhoto,
   IconBuildingStore,
-  IconEye,
 } from '@tabler/icons-react';
 import PageHeader from 'src/components/smartpos/PageHeader';
 import {
@@ -45,8 +44,15 @@ import {
 } from 'src/api/smartpos/brand';
 import BrandColorPicker from 'src/components/smartpos/brand/BrandColorPicker';
 import BrandLogoUploader from 'src/components/smartpos/brand/BrandLogoUploader';
-import BrandLivePreview from 'src/components/smartpos/brand/BrandLivePreview';
 import AIBrandingAssistant from 'src/components/smartpos/assistant/AIBrandingAssistant';
+import BrandPreviewPanel from 'src/branding/components/BrandPreviewPanel';
+import PresetMarketplace from 'src/branding/components/PresetMarketplace';
+import ApprovalWorkflow from 'src/branding/components/ApprovalWorkflow';
+import BrandHealthCard from 'src/branding/components/BrandHealthCard';
+import OnboardingWizard from 'src/branding/components/OnboardingWizard';
+import CustomDomainSettings from 'src/branding/components/CustomDomainSettings';
+import CampaignManager from 'src/branding/components/CampaignManager';
+import BrandTimeline from 'src/branding/components/BrandTimeline';
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -333,17 +339,9 @@ export default function BrandIdentityPage() {
             </Stack>
           </Box>
 
-          {/* Live Preview */}
+          {/* Live Preview — multi-surface */}
           <Box sx={{ flex: 1 }}>
-            <Box sx={{ mb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
-              <IconEye size={18} color={brand.neutral[500]} />
-              <Typography sx={{ fontWeight: 700, fontSize: '0.78rem', color: brand.neutral[500], textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                Live Preview
-              </Typography>
-            </Box>
-            <Box sx={{ maxWidth: 360, mx: 'auto' }}>
-              <BrandLivePreview profile={profile} />
-            </Box>
+            <BrandPreviewPanel />
           </Box>
         </Stack>
 
@@ -549,6 +547,41 @@ export default function BrandIdentityPage() {
                 placeholder="https://linkedin.com/company/..."
               />
             </Stack>
+          </Box>
+        </Stack>
+
+        {/* AI Onboarding + Health */}
+        <Stack direction={{ xs: 'column', md: 'row' }} spacing={2.5}>
+          <Box sx={{ ...cardSx, p: 2.5, flex: 1 }}>
+            <OnboardingWizard />
+          </Box>
+          <Box sx={{ flex: 1 }}>
+            <BrandHealthCard />
+          </Box>
+        </Stack>
+
+        {/* Approval + Timeline */}
+        <Stack direction={{ xs: 'column', md: 'row' }} spacing={2.5}>
+          <Box sx={{ flex: 1 }}>
+            <ApprovalWorkflow />
+          </Box>
+          <Box sx={{ ...cardSx, p: 2.5, flex: 1 }}>
+            <BrandTimeline />
+          </Box>
+        </Stack>
+
+        {/* Preset Marketplace */}
+        <Box sx={{ ...cardSx, p: 2.5 }}>
+          <PresetMarketplace />
+        </Box>
+
+        {/* Custom Domain + Campaigns */}
+        <Stack direction={{ xs: 'column', md: 'row' }} spacing={2.5}>
+          <Box sx={{ ...cardSx, p: 2.5, flex: 1 }}>
+            <CustomDomainSettings />
+          </Box>
+          <Box sx={{ flex: 1 }}>
+            <CampaignManager />
           </Box>
         </Stack>
 

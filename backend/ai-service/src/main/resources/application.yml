@@ -80,7 +80,7 @@ smartpos:
     notification-service-url: ${NOTIFICATION_SERVICE_URL:http://localhost:8089}
     document-service-url: ${DOCUMENT_SERVICE_URL:http://localhost:8093}
     report-service-url: ${REPORT_SERVICE_URL:http://report-service:8087}
-    # Active provider — one of: anthropic | openai | deepseek | stub
+    # Active provider — one of: anthropic | openai | deepseek | kimi | stub
     # All keys come exclusively from Platform Settings (admin panel).
     # No env-var fallback — the admin panel is the single source of truth.
     provider: ${platform.ai.provider:stub}
@@ -96,6 +96,10 @@ smartpos:
       api-key:  ${platform.ai.deepseek.api_key:}
       model:    ${platform.ai.deepseek.model:deepseek-chat}
       base-url: ${DEEPSEEK_BASE_URL:https://api.deepseek.com/v1}
+    kimi:
+      api-key:  ${platform.ai.kimi.api_key:}
+      model:    ${platform.ai.kimi.model:moonshot-v1-8k}
+      base-url: ${KIMI_BASE_URL:https://api.moonshot.cn/v1}
   brand:
     image-gen:
       provider: ${SMARTPOS_BRAND_IMAGE_GEN_PROVIDER:stub}
