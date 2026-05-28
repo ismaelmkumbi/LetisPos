@@ -102,10 +102,10 @@ smartpos:
       base-url: ${KIMI_BASE_URL:https://api.moonshot.cn/v1}
   brand:
     image-gen:
-      provider: ${SMARTPOS_BRAND_IMAGE_GEN_PROVIDER:stub}
+      provider: ${SMARTPOS_BRAND_IMAGE_GEN_PROVIDER:openai-dalle}
       openai:
-        api-key: ${OPENAI_API_KEY:}
-        base-url: ${OPENAI_BASE_URL:https://api.openai.com/v1}
+        api-key: ${platform.ai.openai.api_key:${OPENAI_API_KEY:}}
+        base-url: ${platform.ai.openai.base_url:${OPENAI_BASE_URL:https://api.openai.com/v1}}
         model: ${OPENAI_IMAGE_MODEL:gpt-image-1}
 
 management:
