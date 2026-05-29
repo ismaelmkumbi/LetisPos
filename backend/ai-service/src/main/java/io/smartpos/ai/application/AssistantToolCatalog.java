@@ -465,7 +465,21 @@ public class AssistantToolCatalog {
                     "to", Map.of("type","string","description","Recipient email address"),
                     "subject", Map.of("type","string","description","Email subject line"),
                     "message", Map.of("type","string","description","Optional personal message to include")
-                ),"required",List.of("documentId","to")), true, "notification.send")
+                ),"required",List.of("documentId","to")), true, "notification.send"),
+
+            new ToolDef("notifyCustomer", "Send a notification to a customer through ALL available channels automatically (email + SMS + WhatsApp). Tries every channel independently — you do NOT need to ask which channel the customer prefers. The system will deliver through whichever channel succeeds. Use this when a user says 'send me', 'email me', 'notify the customer', or 'tuma risiti' without specifying a channel.",
+                Map.of("type","object","properties", Map.of(
+                    "customerId", Map.of("type","string","description","Customer ID (UUID) — find via searchCustomers first if unknown"),
+                    "subject", Map.of("type","string","description","Message subject (used for email; SMS/WhatsApp get the body only)"),
+                    "message", Map.of("type","string","description","The message to send. Required.")
+                ),"required",List.of("customerId","message")), true, "notification.send"),
+
+            new ToolDef("sendWhatsApp", "Send a WhatsApp message. Use this when the merchant explicitly asks to send via WhatsApp.",
+                Map.of("type","object","properties", Map.of(
+                    "recipient", Map.of("type","string","description","Phone number to WhatsApp (with country code, e.g. +255...)"),
+                    "body", Map.of("type","string","description","WhatsApp message text"),
+                    "templateCode", Map.of("type","string","description","Template code for pre-designed messages")
+                ),"required",List.of("recipient","body")), true, "notification.send")
         );
     }
 

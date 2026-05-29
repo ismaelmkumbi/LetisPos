@@ -2,6 +2,7 @@ package io.smartpos.notification.application;
 
 import io.smartpos.common.context.TenantContext;
 import io.smartpos.notification.api.dto.DeliveryDto;
+import io.smartpos.notification.api.dto.MultiSendRequest;
 import io.smartpos.notification.api.dto.SendRequest;
 import io.smartpos.notification.application.channel.ChannelDispatcher;
 import io.smartpos.notification.domain.model.Channel;
@@ -116,6 +117,29 @@ public class NotificationService {
 
         dispatch(delivery);
         return DeliveryDto.from(delivery);
+    }
+
+    /**
+     * Fire-and-forget multi-channel dispatch. Tries each channel independently;
+     * a failure on one channel does not block the others.
+     */
+    @Transactional
+    public List<DeliveryDto> sendMulti(MultiSendRequest req) {
+        List<DeliveryDto> results = new ArrayList<>();
+        for (SendRequest item : req.items()) {
+            try {
+                results.add(send(item));
+            } catch (Exception e) {
+                log.warn("Multi-send failed for channel={} recipient={}: {}",
+                    item.channel(), item.recipient(), e.getMessage());
+                // Synthesize a failed result so the caller sees per-channel status
+                results.add(new DeliveryDto(null, item.channel(), item.templateCode(),
+                    item.recipient(), item.subject(), DeliveryStatus.FAILED,
+                    e.getMessage(), null, 0, item.relatedAggregate(),
+                    item.relatedAggregateId(), null, null, null));
+            }
+        }
+        return results;
     }
 
     /** Re-attempt a single delivery on demand (admin action from the deliveries view). */

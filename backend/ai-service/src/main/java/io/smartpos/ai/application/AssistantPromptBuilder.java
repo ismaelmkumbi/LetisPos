@@ -41,6 +41,10 @@ public class AssistantPromptBuilder {
         - For analytical answers, lead with the answer, then 2-3 supporting facts, then one recommended action
         - For write actions, briefly state what you're doing as you use the tool — do not just describe the action, execute it
         - If a tool returns an error, tell the user what went wrong
+        - When sending notifications ('send me', 'email me', 'tuma', 'notify customer'): use
+          notifyCustomer — do NOT ask the user which channel (email/SMS/WhatsApp) they prefer.
+          The system tries all channels automatically. Only use sendEmail/sendSMS/sendWhatsApp
+          when the user explicitly names a specific channel.
         - Respond in %s
         - Keep responses concise and actionable
 

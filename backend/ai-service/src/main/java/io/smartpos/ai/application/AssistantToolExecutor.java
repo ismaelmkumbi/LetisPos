@@ -136,7 +136,9 @@ public class AssistantToolExecutor {
             case "createExpense" -> createExpense(args, userId);
             case "sendEmail" -> sendEmail(args);
             case "sendSMS" -> sendSMS(args);
+            case "sendWhatsApp" -> sendWhatsApp(args);
             case "emailDocument" -> emailDocument(args);
+            case "notifyCustomer" -> notifyCustomer(args);
             default -> throw new IllegalArgumentException("Unknown tool: " + toolName);
         };
     }
@@ -202,7 +204,9 @@ public class AssistantToolExecutor {
             case "generateDocument" -> generateDocument(args);
             case "sendEmail" -> sendEmail(args);
             case "sendSMS" -> sendSMS(args);
+            case "sendWhatsApp" -> sendWhatsApp(args);
             case "emailDocument" -> emailDocument(args);
+            case "notifyCustomer" -> notifyCustomer(args);
             default -> throw new IllegalArgumentException("Unknown write tool: " + toolName);
         };
     }
@@ -2312,6 +2316,131 @@ public class AssistantToolExecutor {
         data.put("recipient", args.get("recipient"));
         data.put("deliveryId", result.getOrDefault("id", ""));
         return new AssistantDtos.ToolResult("text", "SMS Sent", data);
+    }
+
+    private AssistantDtos.ToolResult sendWhatsApp(Map<String, Object> args) {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("channel", "WHATSAPP");
+        body.put("recipient", args.get("recipient"));
+        if (args.containsKey("templateCode")) {
+            body.put("templateCode", args.get("templateCode"));
+        }
+        if (args.containsKey("body")) {
+            body.put("body", args.get("body"));
+        }
+        Map<String, Object> result = notificationFeign.send(body);
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("status", "sent");
+        data.put("recipient", args.get("recipient"));
+        data.put("channel", "whatsapp");
+        data.put("deliveryId", result.getOrDefault("id", ""));
+        return new AssistantDtos.ToolResult("text", "WhatsApp Sent", data);
+    }
+
+    /**
+     * Notify a customer through ALL available channels automatically.
+     * Looks up the customer's email, phone, and sends via every channel
+     * that has contact data. The caller does NOT choose a channel —
+     * whatever works, delivers.
+     */
+    private AssistantDtos.ToolResult notifyCustomer(Map<String, Object> args) {
+        String customerId = (String) args.get("customerId");
+        String message = (String) args.get("message");
+        String subject = (String) args.getOrDefault("subject", "Message from LetisPOS");
+
+        if (customerId == null || customerId.isBlank()) {
+            throw new ToolException("INVALID_ARG",
+                "notifyCustomer needs a customer ID.",
+                "Search customers first, then notify the correct one.");
+        }
+        if (message == null || message.isBlank()) {
+            throw new ToolException("INVALID_ARG",
+                "notifyCustomer needs a message to send.",
+                "Tell me what message to send the customer.");
+        }
+
+        // Look up customer contact info
+        Map<String, Object> customer;
+        try {
+            customer = customerFeign.getCustomer(UUID.fromString(customerId));
+        } catch (Exception e) {
+            throw new ToolException("NOT_FOUND",
+                "Customer " + customerId + " not found.",
+                "Search customers to find the right one, then try again.");
+        }
+
+        String email = (String) customer.get("email");
+        String phone = (String) customer.get("phone");
+        String whatsapp = (String) customer.get("whatsappNumber");
+
+        // Build multi-channel dispatch request — try every channel with contact data
+        List<Map<String, Object>> items = new ArrayList<>();
+        if (email != null && !email.isBlank()) {
+            Map<String, Object> emailItem = new LinkedHashMap<>();
+            emailItem.put("channel", "EMAIL");
+            emailItem.put("recipient", email);
+            emailItem.put("subject", subject);
+            emailItem.put("body", message);
+            items.add(emailItem);
+        }
+        if (phone != null && !phone.isBlank()) {
+            Map<String, Object> smsItem = new LinkedHashMap<>();
+            smsItem.put("channel", "SMS");
+            smsItem.put("recipient", phone);
+            smsItem.put("body", message);
+            items.add(smsItem);
+        }
+        if (whatsapp != null && !whatsapp.isBlank()) {
+            Map<String, Object> waItem = new LinkedHashMap<>();
+            waItem.put("channel", "WHATSAPP");
+            waItem.put("recipient", whatsapp);
+            waItem.put("body", message);
+            items.add(waItem);
+        }
+
+        if (items.isEmpty()) {
+            throw new ToolException("INVALID_ARG",
+                "Customer has no email, phone, or WhatsApp on file.",
+                "Update the customer profile with at least one contact method, or use sendEmail/sendSMS with an explicit address.");
+        }
+
+        // Dispatch to all channels — each succeeds or fails independently
+        Map<String, Object> multiBody = Map.of("items", items);
+        List<Map<String, Object>> results = notificationFeign.sendMulti(multiBody);
+
+        // Build a summary of what happened
+        StringBuilder summary = new StringBuilder();
+        int sent = 0;
+        int failed = 0;
+        for (Map<String, Object> r : results) {
+            String channel = String.valueOf(r.getOrDefault("channel", "unknown"));
+            String status = String.valueOf(r.getOrDefault("status", "FAILED"));
+            if ("SENT".equals(status)) {
+                sent++;
+                summary.append(channel).append(": sent | ");
+            } else {
+                failed++;
+                String err = String.valueOf(r.getOrDefault("errorMessage", "unknown"));
+                summary.append(channel).append(": failed (").append(err).append(") | ");
+            }
+        }
+
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("customerId", customerId);
+        data.put("customerName", customer.getOrDefault("name", customerId));
+        data.put("sent", sent);
+        data.put("failed", failed);
+        data.put("results", summary.toString().replaceAll(" \\| $", ""));
+
+        String title;
+        if (sent > 0 && failed == 0) {
+            title = "Notification Sent";
+        } else if (sent > 0) {
+            title = "Notification Sent (" + sent + " of " + (sent + failed) + " channels)";
+        } else {
+            title = "Notification Failed";
+        }
+        return new AssistantDtos.ToolResult("text", title, data);
     }
 
     private AssistantDtos.ToolResult emailDocument(Map<String, Object> args) {

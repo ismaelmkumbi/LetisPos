@@ -1,6 +1,7 @@
 package io.smartpos.notification.api;
 
 import io.smartpos.notification.api.dto.DeliveryDto;
+import io.smartpos.notification.api.dto.MultiSendRequest;
 import io.smartpos.notification.api.dto.SendRequest;
 import io.smartpos.notification.application.NotificationService;
 import io.smartpos.notification.domain.model.Channel;
@@ -14,6 +15,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -40,6 +42,12 @@ public class NotificationController {
     @PreAuthorize("hasAuthority('notification.send')")
     public ResponseEntity<DeliveryDto> send(@Valid @RequestBody SendRequest req) {
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(service.send(req));
+    }
+
+    @PostMapping("/multi")
+    @PreAuthorize("hasAuthority('notification.send')")
+    public ResponseEntity<List<DeliveryDto>> sendMulti(@Valid @RequestBody MultiSendRequest req) {
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(service.sendMulti(req));
     }
 
     @PostMapping("/{id}/retry")
