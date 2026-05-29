@@ -3,12 +3,14 @@ package io.smartpos.auth.infrastructure.whatsapp;
 import io.smartpos.auth.application.VerificationSmsSender;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ResponseStatusException;
 
 @Slf4j
 @Component
+@ConditionalOnProperty("smartpos.verification.whatsapp.access-token")
 @RequiredArgsConstructor
 public class WhatsAppOtpSender implements VerificationSmsSender {
 
