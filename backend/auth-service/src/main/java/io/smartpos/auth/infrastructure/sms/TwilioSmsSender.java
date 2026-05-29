@@ -5,12 +5,14 @@ import com.twilio.type.PhoneNumber;
 import io.smartpos.auth.application.VerificationSmsSender;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Primary;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ResponseStatusException;
 
 @Slf4j
 @Component
+@Primary
 @RequiredArgsConstructor
 public class TwilioSmsSender implements VerificationSmsSender {
 
