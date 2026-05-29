@@ -49,38 +49,36 @@ export async function login(email: string, password: string): Promise<LoginRespo
 }
 
 export interface RegisterPayload {
-  email?: string;
+  email: string;
   password: string;
   firstName?: string;
   lastName?: string;
   tenantName?: string;
   tenantSlug?: string;
   billingPlan?: string;
-  channel?: 'EMAIL' | 'PHONE' | 'WHATSAPP';
   phoneNumber?: string;
 }
 
 export interface RegisterResponse {
   userId: string;
-  channel: string;
+  channels: string[];
   contact: string;
   message?: string;
-  /** Present for EMAIL channel — login tokens returned immediately */
+  /** Present when user is ACTIVE — login tokens returned immediately */
   accessToken?: string;
   refreshToken?: string;
 }
 
 export async function register(payload: RegisterPayload): Promise<RegisterResponse> {
   const { data } = await api.post<LoginResponse | RegisterResponse>('/api/v1/auth/register', payload);
-  // EMAIL channel returns LoginResponse (with tokens for immediate login)
+  // If user is ACTIVE (verified immediately), login tokens are returned
   const loginResp = data as LoginResponse;
   if (loginResp.accessToken) {
     tokenStore.set(loginResp.accessToken);
     tokenStore.setTenantId(loginResp.user?.tenantId || null);
     schedulePreemptiveRefresh(loginResp.accessToken);
-    return { userId: loginResp.user.id, channel: 'EMAIL', contact: loginResp.user.email ?? '' };
+    return { userId: loginResp.user.id, channels: ['EMAIL'], contact: loginResp.user.email ?? '' };
   }
-  // PHONE / WHATSAPP channel returns { userId, channel, contact }
   return data as RegisterResponse;
 }
 

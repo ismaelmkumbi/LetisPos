@@ -78,27 +78,43 @@ public class AuthController {
     public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest req, HttpServletRequest httpReq) {
         User user = registerUseCase.register(req);
 
-        // Phone-based channels need OTP verification before login.
-        // Return the userId + channel so the frontend can show the OTP input screen.
-        if (user.getStatus() == UserStatus.PENDING) {
-            String channelStr = req.channel() != null ? req.channel().toUpperCase() : "EMAIL";
-            VerificationChannel channel = VerificationChannel.valueOf(channelStr);
-            String otp = sendVerificationUseCase.send(user, channel);
-            // In dev we log the OTP so the user can test without a real phone.
-            log.info("[DEV] {} OTP for user {}: {}", channel, user.getId(), otp);
-            return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
-                    "userId", user.getId().toString(),
-                    "channel", channel.name(),
-                    "contact", channel == VerificationChannel.EMAIL
-                            ? user.getEmail() : user.getPhoneNumber(),
-                    "message", "Verification code sent via " + channel.name().toLowerCase()
-            ));
+        // Send verification through ALL available channels automatically.
+        // The user does NOT pick — we send to email (always) and SMS/WhatsApp
+        // (if phone was provided).
+        java.util.List<String> channels = new java.util.ArrayList<>();
+        channels.add("EMAIL");
+        try {
+            sendVerificationUseCase.send(user, VerificationChannel.EMAIL);
+        } catch (Exception e) {
+            log.warn("Email verification send failed for user {}: {}", user.getId(), e.getMessage());
+        }
+
+        if (user.getPhoneNumber() != null && !user.getPhoneNumber().isBlank()) {
+            channels.add("WHATSAPP");
+            try {
+                sendVerificationUseCase.send(user, VerificationChannel.WHATSAPP);
+            } catch (Exception e) {
+                log.warn("WhatsApp verification send failed for user {}: {}", user.getId(), e.getMessage());
+            }
         }
 
         AuthResponse body = loginUseCase.loginAfterRegistration(user, httpReq.getHeader("User-Agent"), clientIp(httpReq));
         return ResponseEntity.status(HttpStatus.CREATED)
                 .header(HttpHeaders.SET_COOKIE, refreshCookies.attach(body.refreshToken()).toString())
-                .body(body);
+                .body(Map.of(
+                        "userId", user.getId().toString(),
+                        "channels", channels,
+                        "contact", user.getEmail(),
+                        "accessToken", body.accessToken(),
+                        "refreshToken", body.refreshToken(),
+                        "tokenType", body.tokenType(),
+                        "expiresIn", body.expiresIn(),
+                        "user", Map.of(
+                                "id", user.getId().toString(),
+                                "email", user.getEmail(),
+                                "tenantId", user.getTenantId() != null ? user.getTenantId().toString() : ""
+                        )
+                ));
     }
 
     @PostMapping("/password/change")

@@ -8,7 +8,6 @@ import io.smartpos.auth.domain.model.OutboxEvent;
 import io.smartpos.auth.domain.model.Tenant;
 import io.smartpos.auth.domain.model.User;
 import io.smartpos.auth.domain.model.UserStatus;
-import io.smartpos.auth.domain.model.VerificationChannel;
 import io.smartpos.auth.domain.repository.OutboxRepository;
 import io.smartpos.auth.domain.repository.UserRepository;
 import io.smartpos.auth.infrastructure.feign.BillingClient;
@@ -41,46 +40,23 @@ public class RegisterUserUseCase {
 
     @Transactional
     public User register(RegisterRequest req) {
-        // Validate channel
-        String channelStr = req.channel() != null ? req.channel().toUpperCase() : "EMAIL";
-        VerificationChannel channel;
-        try {
-            channel = VerificationChannel.valueOf(channelStr);
-        } catch (IllegalArgumentException e) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Invalid channel. Must be EMAIL or PHONE.");
+        // Email is always required
+        if (req.email() == null || req.email().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email is required.");
         }
 
-        // EMAIL channel has stricter duplicate checks
-        if (channel == VerificationChannel.EMAIL) {
-            if (req.email() == null || req.email().isBlank()) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email is required for EMAIL channel.");
+        // Check for duplicate email
+        userRepository.findByEmailIgnoreCase(req.email()).ifPresent(existing -> {
+            if (existing.getStatus() == UserStatus.PENDING) {
+                userRepository.delete(existing);
+                log.info("Removed stale PENDING user for email={} to allow re-registration", req.email());
+            } else {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already registered");
             }
-            userRepository.findByEmailIgnoreCase(req.email()).ifPresent(existing -> {
-                if (existing.getStatus() == UserStatus.PENDING) {
-                    userRepository.delete(existing);
-                    log.info("Removed stale PENDING user for email={} to allow re-registration", req.email());
-                } else {
-                    throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already registered");
-                }
-            });
-        }
+        });
 
-        // PHONE / WHATSAPP — both need a phone number
-        if (channel == VerificationChannel.PHONE || channel == VerificationChannel.WHATSAPP) {
-            if (req.phoneNumber() == null || req.phoneNumber().isBlank()) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                        "Phone number is required for " + channel + " channel.");
-            }
-        }
-
-        // Reject EMAIL-only users missing email
-        if (channel == VerificationChannel.EMAIL && (req.email() == null || req.email().isBlank())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email is required for EMAIL channel.");
-        }
-
-        // Prevent duplicate phone signups
-        if (channel == VerificationChannel.PHONE || channel == VerificationChannel.WHATSAPP) {
+        // Check for duplicate phone (if provided)
+        if (req.phoneNumber() != null && !req.phoneNumber().isBlank()) {
             userRepository.findByPhoneNumber(req.phoneNumber()).ifPresent(existing -> {
                 if (existing.getStatus() == UserStatus.PENDING) {
                     userRepository.delete(existing);
@@ -100,9 +76,6 @@ public class RegisterUserUseCase {
                     : null;
             tenant = tenantService.create(req.tenantName(), req.tenantSlug(), plan);
             tenantId = tenant.getId();
-
-            // Create subscription for the new tenant's billing plan
-            // Run in a separate transaction so failure doesn't rollback registration
             createSubscriptionAsync(tenant);
         }
 
@@ -119,22 +92,16 @@ public class RegisterUserUseCase {
             }
         }
 
-        // Derive username from email or phone number
-        String username = channel == VerificationChannel.EMAIL
-                ? req.email().toLowerCase()
-                : req.phoneNumber();
-
-        // Create user — set status based on channel:
-        // PHONE/WHATSAPP: PENDING until OTP verified; EMAIL: ACTIVE immediately
-        boolean requiresVerification = channel == VerificationChannel.PHONE
-                                    || channel == VerificationChannel.WHATSAPP;
+        // Create user with email always set, phone optional.
+        // Status is ACTIVE — verification is sent to all channels but login works immediately.
+        String username = req.email().toLowerCase();
         User user = User.builder()
-                .email(channel == VerificationChannel.EMAIL ? req.email().toLowerCase() : null)
-                .phoneNumber(channel == VerificationChannel.PHONE || channel == VerificationChannel.WHATSAPP
+                .email(req.email().toLowerCase())
+                .phoneNumber(req.phoneNumber() != null && !req.phoneNumber().isBlank()
                         ? req.phoneNumber() : null)
                 .username(username)
                 .passwordHash(passwordEncoder.encode(req.password()))
-                .status(requiresVerification ? UserStatus.PENDING : UserStatus.ACTIVE)
+                .status(UserStatus.ACTIVE)
                 .tenantId(tenantId)
                 .build();
         try {
@@ -146,7 +113,7 @@ public class RegisterUserUseCase {
         // Emit UserRegistered event via outbox so User Service can create a profile.
         publishUserRegistered(user, req);
 
-        log.info("Registered user id={} channel={} tenantId={}", user.getId(), channel, tenantId);
+        log.info("Registered user id={} email={} tenantId={}", user.getId(), req.email().toLowerCase(), tenantId);
         return user;
     }
 
