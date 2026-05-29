@@ -3,6 +3,7 @@ package io.smartpos.auth.infrastructure.whatsapp;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import java.net.URI;
@@ -18,6 +19,7 @@ import java.util.Map;
  */
 @Slf4j
 @Component
+@ConditionalOnProperty("smartpos.verification.whatsapp.access-token")
 @RequiredArgsConstructor
 public class MetaWhatsAppClient {
 

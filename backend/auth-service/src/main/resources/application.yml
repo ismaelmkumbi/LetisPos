@@ -113,10 +113,6 @@ smartpos:
       account-sid: ${platform.sms.twilio.account_sid:}
       auth-token: ${platform.sms.twilio.auth_token:}
       phone-number: ${platform.sms.twilio.phone_number:}
-    whatsapp:
-      access-token: ${WHATSAPP_ACCESS_TOKEN:}
-      phone-number-id: ${WHATSAPP_PHONE_NUMBER_ID:}
-      waba-id: ${WHATSAPP_WABA_ID:}
     app-base-url: ${APP_BASE_URL:http://localhost:5173}
     email-logo-url: ${EMAIL_LOGO_URL:https://letispos.com/email-logo.png}
   internal:
