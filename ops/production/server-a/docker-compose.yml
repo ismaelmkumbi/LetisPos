@@ -14,7 +14,8 @@ services:
       APP_BASE_URL: https://letispos.com
       AUDIT_SERVICE_URL: http://161.97.181.166:8095
       DB_PASSWORD: auth_pass
-      DB_URL: jdbc:postgresql://10.0.0.3:5432/auth_db      DB_USERNAME: auth_user
+      DB_URL: 'jdbc:postgresql://10.0.0.3:5432/auth_db'
+      DB_USERNAME: auth_user
       FLYWAY_VALIDATE_ON_MIGRATE: 'false'
       JWT_ALLOW_EPHEMERAL_KEYS: 'false'
       JWT_PRIVATE_KEY_PATH: /run/secrets/letispos-jwt/private.pem
@@ -64,7 +65,8 @@ services:
     environment:
       AUTH_JWKS_URI: http://auth-service:8081/.well-known/jwks.json
       DB_PASSWORD: control_hub_pass
-      DB_URL: jdbc:postgresql://10.0.0.3:5432/control_hub_db      DB_USER: control_hub_user
+      DB_URL: 'jdbc:postgresql://10.0.0.3:5432/control_hub_db'
+      DB_USER: control_hub_user
       FLYWAY_VALIDATE_ON_MIGRATE: 'false'
       SPRING_FLYWAY_VALIDATE_ON_MIGRATE: 'false'
       KAFKA_BOOTSTRAP: 10.0.0.3:9094
@@ -280,7 +282,8 @@ services:
     environment:
       AUTH_JWKS_URI: http://auth-service:8081/.well-known/jwks.json
       DB_PASSWORD: user_pass
-      DB_URL: jdbc:postgresql://10.0.0.3:5432/user_db      DB_USERNAME: user_user
+      DB_URL: 'jdbc:postgresql://10.0.0.3:5432/user_db'
+      DB_USERNAME: user_user
       FLYWAY_VALIDATE_ON_MIGRATE: 'false'
       KAFKA_BOOTSTRAP: 10.0.0.3:9094
       KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094

@@ -10,7 +10,7 @@ services:
     environment:
       AUTH_JWKS_URI: http://10.0.0.1:8081/.well-known/jwks.json
       DB_PASSWORD: commerce_pass
-      DB_URL: jdbc:postgresql://postgres:5432/commerce_db
+      DB_URL: 'jdbc:postgresql://postgres:5432/commerce_db'
       DB_USERNAME: commerce_user
       FLYWAY_VALIDATE_ON_MIGRATE: 'false'
       SPRING_FLYWAY_VALIDATE_ON_MIGRATE: 'false'

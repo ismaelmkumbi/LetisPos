@@ -162,7 +162,7 @@ services:
     container_name: smartpos-auth
     restart: unless-stopped
     environment:
-      DB_URL: jdbc:postgresql://postgres:5432/auth_db?preferQueryMode=simple
+      DB_URL: 'jdbc:postgresql://postgres:5432/auth_db?preferQueryMode=simple'
       DB_USER: ${AUTH_DB_USER:-auth_user}
       DB_USERNAME: ${AUTH_DB_USER:-auth_user}
       DB_PASSWORD: ${AUTH_DB_PASSWORD:?AUTH_DB_PASSWORD is required}
@@ -192,7 +192,7 @@ services:
     container_name: smartpos-user
     restart: unless-stopped
     environment:
-      DB_URL: jdbc:postgresql://postgres:5432/user_db?preferQueryMode=simple
+      DB_URL: 'jdbc:postgresql://postgres:5432/user_db?preferQueryMode=simple'
       DB_USERNAME: ${USER_DB_USER:-user_user}
       DB_PASSWORD: ${USER_DB_PASSWORD:?USER_DB_PASSWORD is required}
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
@@ -212,7 +212,7 @@ services:
     container_name: smartpos-product
     restart: unless-stopped
     environment:
-      DB_URL: jdbc:postgresql://postgres:5432/product_db?preferQueryMode=simple
+      DB_URL: 'jdbc:postgresql://postgres:5432/product_db?preferQueryMode=simple'
       DB_USERNAME: ${PRODUCT_DB_USER:-product_user}
       DB_PASSWORD: ${PRODUCT_DB_PASSWORD:?PRODUCT_DB_PASSWORD is required}
       REDIS_HOST: redis
@@ -233,7 +233,7 @@ services:
     container_name: smartpos-inventory
     restart: unless-stopped
     environment:
-      DB_URL: jdbc:postgresql://postgres:5432/inventory_db?preferQueryMode=simple
+      DB_URL: 'jdbc:postgresql://postgres:5432/inventory_db?preferQueryMode=simple'
       DB_USERNAME: ${INVENTORY_DB_USER:-inventory_user}
       DB_PASSWORD: ${INVENTORY_DB_PASSWORD:?INVENTORY_DB_PASSWORD is required}
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
@@ -253,7 +253,7 @@ services:
     container_name: smartpos-sales
     restart: unless-stopped
     environment:
-      DB_URL: jdbc:postgresql://postgres:5432/sales_db?preferQueryMode=simple
+      DB_URL: 'jdbc:postgresql://postgres:5432/sales_db?preferQueryMode=simple'
       DB_USERNAME: ${SALES_DB_USER:-sales_user}
       DB_PASSWORD: ${SALES_DB_PASSWORD:?SALES_DB_PASSWORD is required}
       REDIS_HOST: redis
@@ -275,7 +275,7 @@ services:
     container_name: smartpos-payment
     restart: unless-stopped
     environment:
-      DB_URL: jdbc:postgresql://postgres:5432/payment_db?preferQueryMode=simple
+      DB_URL: 'jdbc:postgresql://postgres:5432/payment_db?preferQueryMode=simple'
       DB_USERNAME: ${PAYMENT_DB_USER:-payment_user}
       DB_PASSWORD: ${PAYMENT_DB_PASSWORD:?PAYMENT_DB_PASSWORD is required}
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
@@ -295,7 +295,7 @@ services:
     container_name: smartpos-report
     restart: unless-stopped
     environment:
-      DB_URL: jdbc:postgresql://postgres:5432/report_db?preferQueryMode=simple
+      DB_URL: 'jdbc:postgresql://postgres:5432/report_db?preferQueryMode=simple'
       DB_USERNAME: ${REPORT_DB_USER:-report_user}
       DB_PASSWORD: ${REPORT_DB_PASSWORD:?REPORT_DB_PASSWORD is required}
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
@@ -318,7 +318,7 @@ services:
     container_name: smartpos-notification
     restart: unless-stopped
     environment:
-      DB_URL: jdbc:postgresql://postgres:5432/notification_db?preferQueryMode=simple
+      DB_URL: 'jdbc:postgresql://postgres:5432/notification_db?preferQueryMode=simple'
       DB_USERNAME: ${NOTIFICATION_DB_USER:-notification_user}
       DB_PASSWORD: ${NOTIFICATION_DB_PASSWORD:?NOTIFICATION_DB_PASSWORD is required}
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
@@ -338,7 +338,7 @@ services:
     container_name: smartpos-hrm
     restart: unless-stopped
     environment:
-      DB_URL: jdbc:postgresql://postgres:5432/hrm_db?preferQueryMode=simple
+      DB_URL: 'jdbc:postgresql://postgres:5432/hrm_db?preferQueryMode=simple'
       DB_USERNAME: ${HRM_DB_USER:-hrm_user}
       DB_PASSWORD: ${HRM_DB_PASSWORD:?HRM_DB_PASSWORD is required}
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
@@ -358,7 +358,7 @@ services:
     container_name: smartpos-ai
     restart: unless-stopped
     environment:
-      DB_URL: jdbc:postgresql://postgres:5432/ai_db?preferQueryMode=simple
+      DB_URL: 'jdbc:postgresql://postgres:5432/ai_db?preferQueryMode=simple'
       DB_USERNAME: ${AI_DB_USER:-ai_user}
       DB_PASSWORD: ${AI_DB_PASSWORD:?AI_DB_PASSWORD is required}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
@@ -381,7 +381,7 @@ services:
     container_name: smartpos-integration
     restart: unless-stopped
     environment:
-      DB_URL: jdbc:postgresql://postgres:5432/integration_db?preferQueryMode=simple
+      DB_URL: 'jdbc:postgresql://postgres:5432/integration_db?preferQueryMode=simple'
       DB_USERNAME: ${INTEGRATION_DB_USER:-integration_user}
       DB_PASSWORD: ${INTEGRATION_DB_PASSWORD:?INTEGRATION_DB_PASSWORD is required}
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
