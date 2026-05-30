@@ -96,6 +96,7 @@ public class DocumentService {
     public Document generate(String documentType, String referenceType, UUID referenceId,
                              Map<String, Object> contextData) throws Exception {
         UUID tenantId = TenantContext.require();
+        try {
 
         String templateFile = TEMPLATE_FILES.get(documentType);
         if (templateFile == null) {
@@ -185,6 +186,11 @@ public class DocumentService {
 
         log.info("Generated document {} ({}) for tenant={}", docNumber, documentType, tenantId);
         return saved;
+        } catch (Exception e) {
+            log.error("Document generation failed for type={} refType={} refId={}: {}",
+                documentType, referenceType, referenceId, e.getMessage(), e);
+            throw e;
+        }
     }
 
     public String getPresignedUrl(Document doc) throws Exception {
