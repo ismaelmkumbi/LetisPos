@@ -35,6 +35,7 @@ public class SystemJwtProvider {
 
     private volatile String token;
     private volatile Instant lastRefresh;
+    private volatile String systemTenantId;
 
     @PostConstruct
     public void init() {
@@ -46,6 +47,14 @@ public class SystemJwtProvider {
             refreshToken();
         }
         return token;
+    }
+
+    /** Returns the tenant ID associated with the system user, for use as fallback in scheduled tasks. */
+    public String getSystemTenantId() {
+        if (token == null || isExpiringSoon()) {
+            refreshToken();
+        }
+        return systemTenantId;
     }
 
     private boolean isExpiringSoon() {
@@ -97,6 +106,15 @@ public class SystemJwtProvider {
             if (response.getBody() != null && response.getBody().get("accessToken") != null) {
                 token = (String) response.getBody().get("accessToken");
                 lastRefresh = Instant.now();
+                // Extract tenant ID from the user object in the login response
+                Object userObj = response.getBody().get("user");
+                if (userObj instanceof Map<?,?> user) {
+                    Object tid = user.get("tenantId");
+                    if (tid != null && !tid.toString().isBlank()) {
+                        systemTenantId = tid.toString();
+                        log.info("System JWT obtained with tenantId={}", systemTenantId);
+                    }
+                }
                 return true;
             }
         } catch (Exception e) {

@@ -30,8 +30,16 @@ public class FeignJwtForwarder {
                     template.header("Authorization", "Bearer " + sysToken);
                 }
             }
-            TenantContext.get().map(UUID::toString)
-                    .ifPresent(tenantId -> template.header("X-Tenant-ID", tenantId));
+            String tenantId = TenantContext.get().map(UUID::toString).orElse(null);
+            if (tenantId != null) {
+                template.header("X-Tenant-ID", tenantId);
+            } else {
+                // Fallback: use the system user's tenant for scheduled/background tasks
+                String systemTid = systemJwt.getSystemTenantId();
+                if (systemTid != null && !systemTid.isBlank()) {
+                    template.header("X-Tenant-ID", systemTid);
+                }
+            }
             String cid = org.slf4j.MDC.get("traceId");
             if (cid != null) template.header("X-Correlation-Id", cid);
         };
