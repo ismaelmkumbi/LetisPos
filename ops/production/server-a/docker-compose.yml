@@ -26,7 +26,7 @@ services:
       RESEND_API_KEY: ${RESEND_API_KEY:-}
       PLATFORM_EMAIL_RESEND_API_KEY: ${RESEND_API_KEY:-}
       SERVER_PORT: '8081'
-      JAVA_TOOL_OPTIONS: -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0
+      JAVA_TOOL_OPTIONS: -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0 -Dnetworkaddress.cache.ttl=5 -Dnetworkaddress.cache.negative.ttl=5
         -XX:+UseZGC -XX:ZCollectionInterval=10 -XX:SoftMaxHeapSize=512M -XX:ZUncommitDelay=300
         -XX:+ExitOnOutOfMemoryError -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/tmp
       SPRING_DATA_REDIS_HOST: 10.0.0.3
@@ -74,7 +74,7 @@ services:
       SERVER_PORT: '8098'
       SPRING_DATA_REDIS_HOST: 10.0.0.3
       SPRING_KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094
-      JAVA_TOOL_OPTIONS: -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0
+      JAVA_TOOL_OPTIONS: -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0 -Dnetworkaddress.cache.ttl=5 -Dnetworkaddress.cache.negative.ttl=5
         -XX:+UseZGC -XX:ZCollectionInterval=10 -XX:SoftMaxHeapSize=512M -XX:ZUncommitDelay=300
         -XX:+ExitOnOutOfMemoryError -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/tmp
     healthcheck:
@@ -142,7 +142,7 @@ services:
       REPORT_URI: http://161.97.181.166:8087
       SALES_URI: http://10.0.0.3:8085
       SERVER_PORT: '8080'
-      JAVA_TOOL_OPTIONS: -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0
+      JAVA_TOOL_OPTIONS: -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0 -Dnetworkaddress.cache.ttl=5 -Dnetworkaddress.cache.negative.ttl=5
         -XX:+UseZGC -XX:ZCollectionInterval=10 -XX:SoftMaxHeapSize=512M -XX:ZUncommitDelay=300
         -XX:+ExitOnOutOfMemoryError -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/tmp
       SPRING_DATA_REDIS_HOST: 10.0.0.3
@@ -194,7 +194,7 @@ services:
       REPORT_URI: http://161.97.181.166:8087
       SALES_URI: http://10.0.0.3:8085
       SERVER_PORT: '8080'
-      JAVA_TOOL_OPTIONS: -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0
+      JAVA_TOOL_OPTIONS: -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0 -Dnetworkaddress.cache.ttl=5 -Dnetworkaddress.cache.negative.ttl=5
         -XX:+UseZGC -XX:ZCollectionInterval=10 -XX:SoftMaxHeapSize=512M -XX:ZUncommitDelay=300
         -XX:+ExitOnOutOfMemoryError -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/tmp
       SPRING_DATA_REDIS_HOST: 10.0.0.3
@@ -287,7 +287,7 @@ services:
       REDIS_HOST: 10.0.0.3
       REDIS_PORT: '6379'
       SERVER_PORT: '8082'
-      JAVA_TOOL_OPTIONS: -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0
+      JAVA_TOOL_OPTIONS: -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0 -Dnetworkaddress.cache.ttl=5 -Dnetworkaddress.cache.negative.ttl=5
         -XX:+UseZGC -XX:ZCollectionInterval=10 -XX:SoftMaxHeapSize=512M -XX:ZUncommitDelay=300
         -XX:+ExitOnOutOfMemoryError -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/tmp
       SPRING_DATA_REDIS_HOST: 10.0.0.3

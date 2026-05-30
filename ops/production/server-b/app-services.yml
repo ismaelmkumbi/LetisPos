@@ -25,7 +25,7 @@ services:
       S3_SECRET_KEY: smartpos-secret
       SALES_URI: http://10.0.0.3:8085
       SERVER_PORT: '8087'
-      JAVA_TOOL_OPTIONS: -XX:+UseContainerSupport -XX:MaxRAMPercentage=65.0 -XX:InitialRAMPercentage=50.0
+      JAVA_TOOL_OPTIONS: -XX:+UseContainerSupport -XX:MaxRAMPercentage=65.0 -XX:InitialRAMPercentage=50.0 -Dnetworkaddress.cache.ttl=5 -Dnetworkaddress.cache.negative.ttl=5
         -XX:+UseZGC -XX:ZCollectionInterval=10 -XX:+ExitOnOutOfMemoryError
       SPRING_DATA_REDIS_HOST: 10.0.0.3
       SPRING_KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094
@@ -90,7 +90,7 @@ services:
       SERVER_PORT: '8091'
       SPRING_DATA_REDIS_HOST: 10.0.0.3
       SPRING_KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094
-      JAVA_TOOL_OPTIONS: -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0
+      JAVA_TOOL_OPTIONS: -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0 -Dnetworkaddress.cache.ttl=5 -Dnetworkaddress.cache.negative.ttl=5
         -XX:+UseZGC -XX:ZCollectionInterval=10 -XX:SoftMaxHeapSize=512M -XX:ZUncommitDelay=300
         -XX:+ExitOnOutOfMemoryError -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/tmp
     healthcheck:
@@ -128,6 +128,7 @@ services:
       DB_USER: document_user
       FLYWAY_VALIDATE_ON_MIGRATE: 'false'
       GOTENBERG_URL: http://gotenberg:3000
+      SMARTPOS_GOTENBERG_URL: http://gotenberg:3000
       KAFKA_BOOTSTRAP: 10.0.0.3:9094
       KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094
       MINIO_ENDPOINT: http://10.0.0.1:9000
@@ -139,7 +140,7 @@ services:
       REDIS_PORT: '6379'
       SALES_URI: http://10.0.0.3:8085
       SERVER_PORT: '8093'
-      JAVA_TOOL_OPTIONS: -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0
+      JAVA_TOOL_OPTIONS: -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0 -Dnetworkaddress.cache.ttl=5 -Dnetworkaddress.cache.negative.ttl=5
         -XX:+UseZGC -XX:ZCollectionInterval=10 -XX:+ExitOnOutOfMemoryError
       SPRING_DATA_REDIS_HOST: 10.0.0.3
       SPRING_KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094
@@ -211,7 +212,7 @@ services:
       REDIS_HOST: 10.0.0.3
       REDIS_PORT: '6379'
       SERVER_PORT: '8095'
-      JAVA_TOOL_OPTIONS: -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0
+      JAVA_TOOL_OPTIONS: -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0 -Dnetworkaddress.cache.ttl=5 -Dnetworkaddress.cache.negative.ttl=5
         -XX:+UseZGC -XX:ZCollectionInterval=10 -XX:+ExitOnOutOfMemoryError
       SPRING_DATASOURCE_URL: jdbc:postgresql://10.0.0.3:5432/audit_db
       SPRING_DATA_REDIS_HOST: 10.0.0.3
@@ -254,7 +255,7 @@ services:
       REDIS_HOST: 10.0.0.3
       REDIS_PORT: '6379'
       SERVER_PORT: '8096'
-      JAVA_TOOL_OPTIONS: -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0
+      JAVA_TOOL_OPTIONS: -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0 -Dnetworkaddress.cache.ttl=5 -Dnetworkaddress.cache.negative.ttl=5
         -XX:+UseZGC -XX:ZCollectionInterval=10 -XX:+ExitOnOutOfMemoryError
       SPRING_DATASOURCE_URL: jdbc:postgresql://10.0.0.3:5432/billing_db
       SPRING_DATA_REDIS_HOST: 10.0.0.3
@@ -297,7 +298,7 @@ services:
       REDIS_HOST: 10.0.0.3
       REDIS_PORT: '6379'
       SERVER_PORT: '8097'
-      JAVA_TOOL_OPTIONS: -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0
+      JAVA_TOOL_OPTIONS: -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0 -Dnetworkaddress.cache.ttl=5 -Dnetworkaddress.cache.negative.ttl=5
         -XX:+UseZGC -XX:ZCollectionInterval=10 -XX:+ExitOnOutOfMemoryError
       SPRING_DATASOURCE_URL: jdbc:postgresql://10.0.0.3:5432/crm_db
       SPRING_DATA_REDIS_HOST: 10.0.0.3
@@ -340,7 +341,7 @@ services:
       REDIS_HOST: 10.0.0.3
       REDIS_PORT: '6379'
       SERVER_PORT: '8092'
-      JAVA_TOOL_OPTIONS: -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0
+      JAVA_TOOL_OPTIONS: -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0 -Dnetworkaddress.cache.ttl=5 -Dnetworkaddress.cache.negative.ttl=5
         -XX:+UseZGC -XX:ZCollectionInterval=10 -XX:+ExitOnOutOfMemoryError
       SPRING_DATA_REDIS_HOST: 10.0.0.3
       SPRING_KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094
@@ -382,7 +383,7 @@ services:
       REDIS_HOST: 10.0.0.3
       REDIS_PORT: '6379'
       SERVER_PORT: '8090'
-      JAVA_TOOL_OPTIONS: -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0
+      JAVA_TOOL_OPTIONS: -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0 -Dnetworkaddress.cache.ttl=5 -Dnetworkaddress.cache.negative.ttl=5
         -XX:+UseZGC -XX:ZCollectionInterval=10 -XX:+ExitOnOutOfMemoryError
       SPRING_DATA_REDIS_HOST: 10.0.0.3
       SPRING_KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094
@@ -424,7 +425,7 @@ services:
       REDIS_HOST: 10.0.0.3
       REDIS_PORT: '6379'
       SERVER_PORT: '8089'
-      JAVA_TOOL_OPTIONS: -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0
+      JAVA_TOOL_OPTIONS: -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0 -Dnetworkaddress.cache.ttl=5 -Dnetworkaddress.cache.negative.ttl=5
         -XX:+UseZGC -XX:ZCollectionInterval=10 -XX:+ExitOnOutOfMemoryError
       SPRING_DATA_REDIS_HOST: 10.0.0.3
       SPRING_KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094
