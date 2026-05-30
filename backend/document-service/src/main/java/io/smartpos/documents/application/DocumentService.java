@@ -105,8 +105,7 @@ public class DocumentService {
 
         Map<String, Object> mergedContext = new java.util.HashMap<>(contextData);
 
-        // Fetch real transaction data if reference provided (must run before company
-        // context so we have warehouseId for branding lookup).
+        // Fetch real transaction data if reference provided
         if (referenceType != null && referenceId != null) {
             try {
                 Map<String, Object> realData = fetchReferenceData(referenceType, referenceId);
@@ -116,7 +115,7 @@ public class DocumentService {
             }
         }
 
-        // Enrich company context from PosSetting (or use client override if provided).
+        // Enrich company context
         if (!mergedContext.containsKey("company")) {
             mergedContext.put("company", resolveCompanyContext(mergedContext));
             String locale = contextData != null ? String.valueOf(contextData.getOrDefault("locale", "en")) : "en";
@@ -127,15 +126,27 @@ public class DocumentService {
         if ("tax-invoice".equals(documentType)) {
             mergedContext.put("sellerTin", vfdService.getSellerTin());
         }
-        // Only watermark if explicitly requested (e.g. preview before sending)
         if (!mergedContext.containsKey("watermark")) {
             mergedContext.put("watermark", "");
         }
-        String html = templateRenderer.render(templateContent, mergedContext);
 
-        byte[] pdfBytes = gotenbergClient.convertHtmlToPdf(html,
+        String html;
+        try {
+            html = templateRenderer.render(templateContent, mergedContext);
+        } catch (Exception e) {
+            log.error("Template rendering failed for type={}: {}", documentType, e.getMessage(), e);
+            throw new RuntimeException("Document template rendering failed", e);
+        }
+
+        byte[] pdfBytes;
+        try {
+            pdfBytes = gotenbergClient.convertHtmlToPdf(html,
                 String.valueOf(mergedContext.getOrDefault("paperWidth", "8.27")),
                 String.valueOf(mergedContext.getOrDefault("paperHeight", "11.69")));
+        } catch (Exception e) {
+            log.error("PDF conversion failed for type={}: {}", documentType, e.getMessage(), e);
+            throw new RuntimeException("PDF generation failed — document service is unavailable", e);
+        }
 
         String docNumber = generateDocumentNumber(tenantId, documentType);
 
