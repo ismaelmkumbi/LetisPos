@@ -1,53 +1,7 @@
+networks:
+  server-b-net:
+    driver: bridge
 services:
-  report-service:
-    container_name: letispos-report
-    deploy:
-      resources:
-        limits:
-          memory: 896M
-        reservations:
-          memory: 384M
-    environment:
-      AUTH_JWKS_URI: https://letispos.com/.well-known/jwks.json
-      DB_PASSWORD: report_pass
-      DB_URL: 'jdbc:postgresql://10.0.0.3:5432/report_db'
-      DB_USERNAME: report_user
-      FLYWAY_VALIDATE_ON_MIGRATE: 'false'
-      INVENTORY_URI: http://10.0.0.3:8084
-      KAFKA_BOOTSTRAP: 10.0.0.3:9094
-      KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094
-      PAYMENT_URI: http://10.0.0.3:8086
-      PRODUCT_URI: http://10.0.0.3:8083
-      REDIS_HOST: 10.0.0.3
-      REDIS_PORT: '6379'
-      S3_ACCESS_KEY: smartpos
-      S3_ENDPOINT: http://10.0.0.1:9000
-      S3_SECRET_KEY: smartpos-secret
-      SALES_URI: http://10.0.0.3:8085
-      SERVER_PORT: '8087'
-      JAVA_TOOL_OPTIONS: -XX:+UseContainerSupport -XX:MaxRAMPercentage=65.0 -XX:InitialRAMPercentage=50.0 -Dnetworkaddress.cache.ttl=5 -Dnetworkaddress.cache.negative.ttl=5
-        -XX:+UseZGC -XX:ZCollectionInterval=10 -XX:+ExitOnOutOfMemoryError
-      SPRING_DATA_REDIS_HOST: 10.0.0.3
-      SPRING_KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094
-    healthcheck:
-      interval: 15s
-      retries: 10
-      start_period: 180s
-      test:
-      - CMD-SHELL
-      - wget -qO- http://localhost:8087/actuator/health || exit 1
-      timeout: 5s
-    image: ghcr.io/ismaelmkumbi/report-service:latest
-    logging:
-      driver: json-file
-      options:
-        max-file: '3'
-        max-size: 20m
-    networks:
-    - server-b-net
-    restart: unless-stopped
-    ports:
-    - 10.0.0.2:8087:8087
   ai-service:
     container_name: letispos-ai
     deploy:
@@ -57,42 +11,45 @@ services:
         reservations:
           memory: 384M
     environment:
+      AI_PROVIDER: ${AI_PROVIDER:-openai}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       AUTH_JWKS_URI: https://letispos.com/.well-known/jwks.json
       AUTH_SERVICE_URL: http://10.0.0.1:8081
       CUSTOMER_SERVICE_URL: http://10.0.0.3:8085
       DB_PASSWORD: ai_pass
-      DB_URL: 'jdbc:postgresql://10.0.0.3:5432/ai_db'
+      DB_URL: jdbc:postgresql://10.0.0.3:5432/ai_db
       DB_USERNAME: ai_user
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
       DOCUMENT_SERVICE_URL: http://document-service:8093
       FLYWAY_VALIDATE_ON_MIGRATE: 'false'
       INVENTORY_SERVICE_URL: http://10.0.0.3:8084
+      JAVA_TOOL_OPTIONS: -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0
+        -Dnetworkaddress.cache.ttl=5 -Dnetworkaddress.cache.negative.ttl=5 -XX:+UseZGC
+        -XX:ZCollectionInterval=10 -XX:SoftMaxHeapSize=512M -XX:ZUncommitDelay=300
+        -XX:+ExitOnOutOfMemoryError -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/tmp
       KAFKA_BOOTSTRAP: 10.0.0.3:9094
       KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094
-      MINIO_ENDPOINT: http://10.0.0.1:9000
       MINIO_ACCESS_KEY: smartpos
+      MINIO_ENDPOINT: http://10.0.0.1:9000
       MINIO_SECRET_KEY: smartpos-secret
-      SPRING_APPLICATION_JSON: '{"minio":{"endpoint":"http://10.0.0.1:9000","access-key":"smartpos","secret-key":"smartpos-secret"}}'
       NOTIFICATION_SERVICE_URL: http://notification-service:8089
-      REPORT_SERVICE_URL: http://report-service:8087
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://api.openai.com/v1}
-      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
       OPENAI_IMAGE_MODEL: ${OPENAI_IMAGE_MODEL:-gpt-image-1}
-      SMARTPOS_BRAND_IMAGE_GEN_PROVIDER: ${SMARTPOS_BRAND_IMAGE_GEN_PROVIDER:-openai-dalle}
-      AI_PROVIDER: ${AI_PROVIDER:-openai}
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
-      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
       PAYMENT_SERVICE_URL: http://10.0.0.3:8086
+      PLATFORM_AI_PROVIDER: openai
       PRODUCT_SERVICE_URL: http://10.0.0.3:8083
       REDIS_HOST: 10.0.0.3
       REDIS_PORT: '6379'
+      REPORT_SERVICE_URL: http://report-service:8087
       SALES_SERVICE_URL: http://10.0.0.3:8085
       SERVER_PORT: '8091'
+      SMARTPOS_BRAND_IMAGE_GEN_PROVIDER: ${SMARTPOS_BRAND_IMAGE_GEN_PROVIDER:-openai-dalle}
+      SPRING_APPLICATION_JSON: '{"minio":{"endpoint":"http://10.0.0.1:9000","access-key":"smartpos","secret-key":"smartpos-secret"}}'
       SPRING_DATA_REDIS_HOST: 10.0.0.3
       SPRING_KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094
-      JAVA_TOOL_OPTIONS: -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0 -Dnetworkaddress.cache.ttl=5 -Dnetworkaddress.cache.negative.ttl=5
-        -XX:+UseZGC -XX:ZCollectionInterval=10 -XX:SoftMaxHeapSize=512M -XX:ZUncommitDelay=300
-        -XX:+ExitOnOutOfMemoryError -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/tmp
+      USER_SERVICE_URL: https://letispos.com
     healthcheck:
       interval: 15s
       retries: 15
@@ -109,9 +66,141 @@ services:
         max-size: 20m
     networks:
     - server-b-net
-    restart: unless-stopped
     ports:
     - 10.0.0.2:8091:8091
+    restart: unless-stopped
+  audit-service:
+    container_name: letispos-audit
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 128M
+    environment:
+      AUTH_JWKS_URI: https://letispos.com/.well-known/jwks.json
+      DB_PASSWORD: audit_pass
+      DB_URL: jdbc:postgresql://10.0.0.3:5432/audit_db
+      DB_USERNAME: audit_user
+      FLYWAY_VALIDATE_ON_MIGRATE: 'false'
+      JAVA_TOOL_OPTIONS: -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0
+        -Dnetworkaddress.cache.ttl=5 -Dnetworkaddress.cache.negative.ttl=5 -XX:+UseZGC
+        -XX:ZCollectionInterval=10 -XX:+ExitOnOutOfMemoryError
+      KAFKA_BOOTSTRAP: 10.0.0.3:9094
+      KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094
+      REDIS_HOST: 10.0.0.3
+      REDIS_PORT: '6379'
+      SERVER_PORT: '8095'
+      SPRING_DATASOURCE_URL: jdbc:postgresql://10.0.0.3:5432/audit_db
+      SPRING_DATA_REDIS_HOST: 10.0.0.3
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094
+    healthcheck:
+      interval: 15s
+      retries: 10
+      start_period: 180s
+      test:
+      - CMD-SHELL
+      - wget -qO- http://localhost:8095/actuator/health || exit 1
+      timeout: 5s
+    image: ghcr.io/ismaelmkumbi/audit-service:latest
+    logging:
+      driver: json-file
+      options:
+        max-file: '3'
+        max-size: 20m
+    networks:
+    - server-b-net
+    ports:
+    - 10.0.0.2:8095:8095
+    restart: unless-stopped
+  billing-service:
+    container_name: letispos-billing
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 128M
+    environment:
+      AUTH_JWKS_URI: https://letispos.com/.well-known/jwks.json
+      DB_PASSWORD: billing_pass
+      DB_URL: jdbc:postgresql://10.0.0.3:5432/billing_db
+      DB_USERNAME: billing_user
+      FLYWAY_VALIDATE_ON_MIGRATE: 'false'
+      JAVA_TOOL_OPTIONS: -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0
+        -Dnetworkaddress.cache.ttl=5 -Dnetworkaddress.cache.negative.ttl=5 -XX:+UseZGC
+        -XX:ZCollectionInterval=10 -XX:+ExitOnOutOfMemoryError
+      KAFKA_BOOTSTRAP: 10.0.0.3:9094
+      KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094
+      REDIS_HOST: 10.0.0.3
+      REDIS_PORT: '6379'
+      SERVER_PORT: '8096'
+      SPRING_DATASOURCE_URL: jdbc:postgresql://10.0.0.3:5432/billing_db
+      SPRING_DATA_REDIS_HOST: 10.0.0.3
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094
+    healthcheck:
+      interval: 15s
+      retries: 10
+      start_period: 180s
+      test:
+      - CMD-SHELL
+      - wget -qO- http://localhost:8096/actuator/health || exit 1
+      timeout: 5s
+    image: ghcr.io/ismaelmkumbi/billing-service:latest
+    logging:
+      driver: json-file
+      options:
+        max-file: '3'
+        max-size: 20m
+    networks:
+    - server-b-net
+    ports:
+    - 10.0.0.2:8096:8096
+    restart: unless-stopped
+  crm-service:
+    container_name: letispos-crm
+    deploy:
+      resources:
+        limits:
+          memory: 640M
+        reservations:
+          memory: 128M
+    environment:
+      AUTH_JWKS_URI: https://letispos.com/.well-known/jwks.json
+      DB_PASSWORD: crm_pass
+      DB_URL: jdbc:postgresql://10.0.0.3:5432/crm_db
+      DB_USERNAME: crm_user
+      FLYWAY_VALIDATE_ON_MIGRATE: 'false'
+      JAVA_TOOL_OPTIONS: -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0
+        -Dnetworkaddress.cache.ttl=5 -Dnetworkaddress.cache.negative.ttl=5 -XX:+UseZGC
+        -XX:ZCollectionInterval=10 -XX:+ExitOnOutOfMemoryError
+      KAFKA_BOOTSTRAP: 10.0.0.3:9094
+      KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094
+      REDIS_HOST: 10.0.0.3
+      REDIS_PORT: '6379'
+      SERVER_PORT: '8097'
+      SPRING_DATASOURCE_URL: jdbc:postgresql://10.0.0.3:5432/crm_db
+      SPRING_DATA_REDIS_HOST: 10.0.0.3
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094
+    healthcheck:
+      interval: 15s
+      retries: 10
+      start_period: 180s
+      test:
+      - CMD-SHELL
+      - wget -qO- http://localhost:8097/actuator/health || exit 1
+      timeout: 5s
+    image: ghcr.io/ismaelmkumbi/crm-service:latest
+    logging:
+      driver: json-file
+      options:
+        max-file: '3'
+        max-size: 20m
+    networks:
+    - server-b-net
+    ports:
+    - 10.0.0.2:8097:8097
+    restart: unless-stopped
   document-service:
     container_name: letispos-document
     deploy:
@@ -124,15 +213,17 @@ services:
       AI_SERVICE_URI: http://ai-service:8091
       AUTH_JWKS_URI: https://letispos.com/.well-known/jwks.json
       DB_PASSWORD: document_pass
-      DB_URL: 'jdbc:postgresql://10.0.0.3:5432/document_db'
+      DB_URL: jdbc:postgresql://10.0.0.3:5432/document_db
       DB_USER: document_user
       FLYWAY_VALIDATE_ON_MIGRATE: 'false'
       GOTENBERG_URL: http://gotenberg:3000
-      SMARTPOS_GOTENBERG_URL: http://gotenberg:3000
+      JAVA_TOOL_OPTIONS: -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0
+        -Dnetworkaddress.cache.ttl=5 -Dnetworkaddress.cache.negative.ttl=5 -XX:+UseZGC
+        -XX:ZCollectionInterval=10 -XX:+ExitOnOutOfMemoryError
       KAFKA_BOOTSTRAP: 10.0.0.3:9094
       KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094
-      MINIO_ENDPOINT: http://109.199.122.118:9000
       MINIO_ACCESS_KEY: smartpos
+      MINIO_ENDPOINT: http://109.199.122.118:9000
       MINIO_SECRET_KEY: smartpos-secret
       NOTIFICATION_URI: http://notification-service:8089
       PAYMENT_URI: http://10.0.0.3:8086
@@ -140,8 +231,7 @@ services:
       REDIS_PORT: '6379'
       SALES_URI: http://10.0.0.3:8085
       SERVER_PORT: '8093'
-      JAVA_TOOL_OPTIONS: -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0 -Dnetworkaddress.cache.ttl=5 -Dnetworkaddress.cache.negative.ttl=5
-        -XX:+UseZGC -XX:ZCollectionInterval=10 -XX:+ExitOnOutOfMemoryError
+      SMARTPOS_GOTENBERG_URL: http://gotenberg:3000
       SPRING_DATA_REDIS_HOST: 10.0.0.3
       SPRING_KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094
     healthcheck:
@@ -160,9 +250,9 @@ services:
         max-size: 20m
     networks:
     - server-b-net
-    restart: unless-stopped
     ports:
     - 10.0.0.2:8093:8093
+    restart: unless-stopped
   gotenberg:
     command:
     - gotenberg
@@ -193,177 +283,6 @@ services:
     ports:
     - 10.0.0.2:3000:3000
     restart: unless-stopped
-  audit-service:
-    container_name: letispos-audit
-    deploy:
-      resources:
-        limits:
-          memory: 512M
-        reservations:
-          memory: 128M
-    environment:
-      AUTH_JWKS_URI: https://letispos.com/.well-known/jwks.json
-      DB_PASSWORD: audit_pass
-      DB_URL: 'jdbc:postgresql://10.0.0.3:5432/audit_db'
-      DB_USERNAME: audit_user
-      FLYWAY_VALIDATE_ON_MIGRATE: 'false'
-      KAFKA_BOOTSTRAP: 10.0.0.3:9094
-      KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094
-      REDIS_HOST: 10.0.0.3
-      REDIS_PORT: '6379'
-      SERVER_PORT: '8095'
-      JAVA_TOOL_OPTIONS: -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0 -Dnetworkaddress.cache.ttl=5 -Dnetworkaddress.cache.negative.ttl=5
-        -XX:+UseZGC -XX:ZCollectionInterval=10 -XX:+ExitOnOutOfMemoryError
-      SPRING_DATASOURCE_URL: jdbc:postgresql://10.0.0.3:5432/audit_db
-      SPRING_DATA_REDIS_HOST: 10.0.0.3
-      SPRING_KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094
-    healthcheck:
-      interval: 15s
-      retries: 10
-      start_period: 180s
-      test:
-      - CMD-SHELL
-      - wget -qO- http://localhost:8095/actuator/health || exit 1
-      timeout: 5s
-    image: ghcr.io/ismaelmkumbi/audit-service:latest
-    logging:
-      driver: json-file
-      options:
-        max-file: '3'
-        max-size: 20m
-    networks:
-    - server-b-net
-    restart: unless-stopped
-    ports:
-    - 10.0.0.2:8095:8095
-  billing-service:
-    container_name: letispos-billing
-    deploy:
-      resources:
-        limits:
-          memory: 512M
-        reservations:
-          memory: 128M
-    environment:
-      AUTH_JWKS_URI: https://letispos.com/.well-known/jwks.json
-      DB_PASSWORD: billing_pass
-      DB_URL: 'jdbc:postgresql://10.0.0.3:5432/billing_db'
-      DB_USERNAME: billing_user
-      FLYWAY_VALIDATE_ON_MIGRATE: 'false'
-      KAFKA_BOOTSTRAP: 10.0.0.3:9094
-      KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094
-      REDIS_HOST: 10.0.0.3
-      REDIS_PORT: '6379'
-      SERVER_PORT: '8096'
-      JAVA_TOOL_OPTIONS: -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0 -Dnetworkaddress.cache.ttl=5 -Dnetworkaddress.cache.negative.ttl=5
-        -XX:+UseZGC -XX:ZCollectionInterval=10 -XX:+ExitOnOutOfMemoryError
-      SPRING_DATASOURCE_URL: jdbc:postgresql://10.0.0.3:5432/billing_db
-      SPRING_DATA_REDIS_HOST: 10.0.0.3
-      SPRING_KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094
-    healthcheck:
-      interval: 15s
-      retries: 10
-      start_period: 180s
-      test:
-      - CMD-SHELL
-      - wget -qO- http://localhost:8096/actuator/health || exit 1
-      timeout: 5s
-    image: ghcr.io/ismaelmkumbi/billing-service:latest
-    logging:
-      driver: json-file
-      options:
-        max-file: '3'
-        max-size: 20m
-    networks:
-    - server-b-net
-    restart: unless-stopped
-    ports:
-    - 10.0.0.2:8096:8096
-  crm-service:
-    container_name: letispos-crm
-    deploy:
-      resources:
-        limits:
-          memory: 640M
-        reservations:
-          memory: 128M
-    environment:
-      AUTH_JWKS_URI: https://letispos.com/.well-known/jwks.json
-      DB_PASSWORD: crm_pass
-      DB_URL: 'jdbc:postgresql://10.0.0.3:5432/crm_db'
-      DB_USERNAME: crm_user
-      FLYWAY_VALIDATE_ON_MIGRATE: 'false'
-      KAFKA_BOOTSTRAP: 10.0.0.3:9094
-      KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094
-      REDIS_HOST: 10.0.0.3
-      REDIS_PORT: '6379'
-      SERVER_PORT: '8097'
-      JAVA_TOOL_OPTIONS: -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0 -Dnetworkaddress.cache.ttl=5 -Dnetworkaddress.cache.negative.ttl=5
-        -XX:+UseZGC -XX:ZCollectionInterval=10 -XX:+ExitOnOutOfMemoryError
-      SPRING_DATASOURCE_URL: jdbc:postgresql://10.0.0.3:5432/crm_db
-      SPRING_DATA_REDIS_HOST: 10.0.0.3
-      SPRING_KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094
-    healthcheck:
-      interval: 15s
-      retries: 10
-      start_period: 180s
-      test:
-      - CMD-SHELL
-      - wget -qO- http://localhost:8097/actuator/health || exit 1
-      timeout: 5s
-    image: ghcr.io/ismaelmkumbi/crm-service:latest
-    logging:
-      driver: json-file
-      options:
-        max-file: '3'
-        max-size: 20m
-    networks:
-    - server-b-net
-    restart: unless-stopped
-    ports:
-    - 10.0.0.2:8097:8097
-  integration-service:
-    container_name: letispos-integration
-    deploy:
-      resources:
-        limits:
-          memory: 512M
-        reservations:
-          memory: 128M
-    environment:
-      AUTH_JWKS_URI: https://letispos.com/.well-known/jwks.json
-      DB_PASSWORD: integration_pass
-      DB_URL: 'jdbc:postgresql://10.0.0.3:5432/integration_db'
-      DB_USERNAME: integration_user
-      FLYWAY_VALIDATE_ON_MIGRATE: 'false'
-      KAFKA_BOOTSTRAP: 10.0.0.3:9094
-      KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094
-      REDIS_HOST: 10.0.0.3
-      REDIS_PORT: '6379'
-      SERVER_PORT: '8092'
-      JAVA_TOOL_OPTIONS: -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0 -Dnetworkaddress.cache.ttl=5 -Dnetworkaddress.cache.negative.ttl=5
-        -XX:+UseZGC -XX:ZCollectionInterval=10 -XX:+ExitOnOutOfMemoryError
-      SPRING_DATA_REDIS_HOST: 10.0.0.3
-      SPRING_KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094
-    healthcheck:
-      interval: 15s
-      retries: 10
-      start_period: 180s
-      test:
-      - CMD-SHELL
-      - wget -qO- http://localhost:8092/actuator/health || exit 1
-      timeout: 5s
-    image: ghcr.io/ismaelmkumbi/integration-service:latest
-    logging:
-      driver: json-file
-      options:
-        max-file: '3'
-        max-size: 20m
-    networks:
-    - server-b-net
-    restart: unless-stopped
-    ports:
-    - 10.0.0.2:8092:8092
   hrm-service:
     container_name: letispos-hrm
     deploy:
@@ -375,16 +294,17 @@ services:
     environment:
       AUTH_JWKS_URI: https://letispos.com/.well-known/jwks.json
       DB_PASSWORD: hrm_pass
-      DB_URL: 'jdbc:postgresql://10.0.0.3:5432/hrm_db'
+      DB_URL: jdbc:postgresql://10.0.0.3:5432/hrm_db
       DB_USERNAME: hrm_user
       FLYWAY_VALIDATE_ON_MIGRATE: 'false'
+      JAVA_TOOL_OPTIONS: -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0
+        -Dnetworkaddress.cache.ttl=5 -Dnetworkaddress.cache.negative.ttl=5 -XX:+UseZGC
+        -XX:ZCollectionInterval=10 -XX:+ExitOnOutOfMemoryError
       KAFKA_BOOTSTRAP: 10.0.0.3:9094
       KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094
       REDIS_HOST: 10.0.0.3
       REDIS_PORT: '6379'
       SERVER_PORT: '8090'
-      JAVA_TOOL_OPTIONS: -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0 -Dnetworkaddress.cache.ttl=5 -Dnetworkaddress.cache.negative.ttl=5
-        -XX:+UseZGC -XX:ZCollectionInterval=10 -XX:+ExitOnOutOfMemoryError
       SPRING_DATA_REDIS_HOST: 10.0.0.3
       SPRING_KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094
     healthcheck:
@@ -403,9 +323,52 @@ services:
         max-size: 20m
     networks:
     - server-b-net
-    restart: unless-stopped
     ports:
     - 10.0.0.2:8090:8090
+    restart: unless-stopped
+  integration-service:
+    container_name: letispos-integration
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 128M
+    environment:
+      AUTH_JWKS_URI: https://letispos.com/.well-known/jwks.json
+      DB_PASSWORD: integration_pass
+      DB_URL: jdbc:postgresql://10.0.0.3:5432/integration_db
+      DB_USERNAME: integration_user
+      FLYWAY_VALIDATE_ON_MIGRATE: 'false'
+      JAVA_TOOL_OPTIONS: -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0
+        -Dnetworkaddress.cache.ttl=5 -Dnetworkaddress.cache.negative.ttl=5 -XX:+UseZGC
+        -XX:ZCollectionInterval=10 -XX:+ExitOnOutOfMemoryError
+      KAFKA_BOOTSTRAP: 10.0.0.3:9094
+      KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094
+      REDIS_HOST: 10.0.0.3
+      REDIS_PORT: '6379'
+      SERVER_PORT: '8092'
+      SPRING_DATA_REDIS_HOST: 10.0.0.3
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094
+    healthcheck:
+      interval: 15s
+      retries: 10
+      start_period: 180s
+      test:
+      - CMD-SHELL
+      - wget -qO- http://localhost:8092/actuator/health || exit 1
+      timeout: 5s
+    image: ghcr.io/ismaelmkumbi/integration-service:latest
+    logging:
+      driver: json-file
+      options:
+        max-file: '3'
+        max-size: 20m
+    networks:
+    - server-b-net
+    ports:
+    - 10.0.0.2:8092:8092
+    restart: unless-stopped
   notification-service:
     container_name: letispos-notification
     deploy:
@@ -417,23 +380,24 @@ services:
     environment:
       AUTH_JWKS_URI: https://letispos.com/.well-known/jwks.json
       DB_PASSWORD: notification_pass
-      DB_URL: 'jdbc:postgresql://10.0.0.3:5432/notification_db'
+      DB_URL: jdbc:postgresql://10.0.0.3:5432/notification_db
       DB_USERNAME: notification_user
       FLYWAY_VALIDATE_ON_MIGRATE: 'false'
+      JAVA_TOOL_OPTIONS: -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0
+        -Dnetworkaddress.cache.ttl=5 -Dnetworkaddress.cache.negative.ttl=5 -XX:+UseZGC
+        -XX:ZCollectionInterval=10 -XX:+ExitOnOutOfMemoryError
       KAFKA_BOOTSTRAP: 10.0.0.3:9094
       KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094
+      MAIL_FROM: noreply@send.letispos.com
+      MAIL_HOST: smtp.resend.com
+      MAIL_PASSWORD: re_2T5Pndzr_H2SbJKkkB5ty1gh1px6K9XAX
+      MAIL_PORT: '587'
+      MAIL_USERNAME: resend
       REDIS_HOST: 10.0.0.3
       REDIS_PORT: '6379'
       SERVER_PORT: '8089'
-      JAVA_TOOL_OPTIONS: -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0 -Dnetworkaddress.cache.ttl=5 -Dnetworkaddress.cache.negative.ttl=5
-        -XX:+UseZGC -XX:ZCollectionInterval=10 -XX:+ExitOnOutOfMemoryError
       SPRING_DATA_REDIS_HOST: 10.0.0.3
       SPRING_KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094
-      MAIL_HOST: smtp.resend.com
-      MAIL_PORT: '587'
-      MAIL_USERNAME: resend
-      MAIL_PASSWORD: re_2T5Pndzr_H2SbJKkkB5ty1gh1px6K9XAX
-      MAIL_FROM: noreply@send.letispos.com
     healthcheck:
       interval: 15s
       retries: 10
@@ -450,9 +414,56 @@ services:
         max-size: 20m
     networks:
     - server-b-net
-    restart: unless-stopped
     ports:
     - 10.0.0.2:8089:8089
-networks:
-  server-b-net:
-    driver: bridge
+    restart: unless-stopped
+  report-service:
+    container_name: letispos-report
+    deploy:
+      resources:
+        limits:
+          memory: 896M
+        reservations:
+          memory: 384M
+    environment:
+      AUTH_JWKS_URI: https://letispos.com/.well-known/jwks.json
+      DB_PASSWORD: report_pass
+      DB_URL: jdbc:postgresql://10.0.0.3:5432/report_db
+      DB_USERNAME: report_user
+      FLYWAY_VALIDATE_ON_MIGRATE: 'false'
+      INVENTORY_URI: http://10.0.0.3:8084
+      JAVA_TOOL_OPTIONS: -XX:+UseContainerSupport -XX:MaxRAMPercentage=65.0 -XX:InitialRAMPercentage=50.0
+        -Dnetworkaddress.cache.ttl=5 -Dnetworkaddress.cache.negative.ttl=5 -XX:+UseZGC
+        -XX:ZCollectionInterval=10 -XX:+ExitOnOutOfMemoryError
+      KAFKA_BOOTSTRAP: 10.0.0.3:9094
+      KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094
+      PAYMENT_URI: http://10.0.0.3:8086
+      PRODUCT_URI: http://10.0.0.3:8083
+      REDIS_HOST: 10.0.0.3
+      REDIS_PORT: '6379'
+      S3_ACCESS_KEY: smartpos
+      S3_ENDPOINT: http://10.0.0.1:9000
+      S3_SECRET_KEY: smartpos-secret
+      SALES_URI: http://10.0.0.3:8085
+      SERVER_PORT: '8087'
+      SPRING_DATA_REDIS_HOST: 10.0.0.3
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094
+    healthcheck:
+      interval: 15s
+      retries: 10
+      start_period: 180s
+      test:
+      - CMD-SHELL
+      - wget -qO- http://localhost:8087/actuator/health || exit 1
+      timeout: 5s
+    image: ghcr.io/ismaelmkumbi/report-service:latest
+    logging:
+      driver: json-file
+      options:
+        max-file: '3'
+        max-size: 20m
+    networks:
+    - server-b-net
+    ports:
+    - 10.0.0.2:8087:8087
+    restart: unless-stopped
