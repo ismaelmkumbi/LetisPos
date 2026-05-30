@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -33,9 +34,11 @@ public class SystemJwtProvider {
     @Value("${smartpos.report.system-auth.auth-url:http://localhost:8081/api/v1/auth/login}")
     private String authUrl;
 
+    @Value("${smartpos.report.system-auth.tenant-id:}")
+    private String configuredTenantId;
+
     private volatile String token;
     private volatile Instant lastRefresh;
-    private volatile String systemTenantId;
 
     @PostConstruct
     public void init() {
@@ -49,12 +52,9 @@ public class SystemJwtProvider {
         return token;
     }
 
-    /** Returns the tenant ID associated with the system user, for use as fallback in scheduled tasks. */
+    /** Returns the configured tenant ID for background tasks. */
     public String getSystemTenantId() {
-        if (token == null || isExpiringSoon()) {
-            refreshToken();
-        }
-        return systemTenantId;
+        return (configuredTenantId != null && !configuredTenantId.isBlank()) ? configuredTenantId : null;
     }
 
     private boolean isExpiringSoon() {
@@ -106,15 +106,6 @@ public class SystemJwtProvider {
             if (response.getBody() != null && response.getBody().get("accessToken") != null) {
                 token = (String) response.getBody().get("accessToken");
                 lastRefresh = Instant.now();
-                // Extract tenant ID from the user object in the login response
-                Object userObj = response.getBody().get("user");
-                if (userObj instanceof Map<?,?> user) {
-                    Object tid = user.get("tenantId");
-                    if (tid != null && !tid.toString().isBlank()) {
-                        systemTenantId = tid.toString();
-                        log.info("System JWT obtained with tenantId={}", systemTenantId);
-                    }
-                }
                 return true;
             }
         } catch (Exception e) {
