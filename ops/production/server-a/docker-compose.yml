@@ -12,7 +12,7 @@ services:
           memory: 192M
     environment:
       APP_BASE_URL: https://letispos.com
-      AUDIT_SERVICE_URL: http://10.0.0.2:8095
+      AUDIT_SERVICE_URL: http://161.97.181.166:8095
       DB_PASSWORD: auth_pass
       DB_URL: jdbc:postgresql://10.0.0.3:5432/auth_db      DB_USERNAME: auth_user
       FLYWAY_VALIDATE_ON_MIGRATE: 'false'
@@ -24,6 +24,7 @@ services:
       REDIS_HOST: 10.0.0.3
       REDIS_PORT: '6379'
       RESEND_API_KEY: ${RESEND_API_KEY:-}
+      PLATFORM_EMAIL_RESEND_API_KEY: ${RESEND_API_KEY:-}
       SERVER_PORT: '8081'
       JAVA_TOOL_OPTIONS: -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0
         -XX:+UseZGC -XX:ZCollectionInterval=10 -XX:SoftMaxHeapSize=512M -XX:ZUncommitDelay=300
@@ -119,26 +120,26 @@ services:
         reservations:
           memory: 256M
     environment:
-      AI_URI: http://10.0.0.2:8091
+      AI_URI: http://161.97.181.166:8091
       AUTH_JWKS_URI: http://auth-service:8081/.well-known/jwks.json
       AUTH_URI: http://auth-service:8081
-      BILLING_URI: http://10.0.0.2:8096
-      DOCUMENT_URI: http://10.0.0.2:8093
-      AUDIT_URI: http://10.0.0.2:8095
+      BILLING_URI: http://161.97.181.166:8096
+      DOCUMENT_URI: http://161.97.181.166:8093
+      AUDIT_URI: http://161.97.181.166:8095
       COMMERCE_URI: http://10.0.0.3:8094
-      CRM_URI: http://10.0.0.2:8097
+      CRM_URI: http://161.97.181.166:8097
       FLYWAY_VALIDATE_ON_MIGRATE: 'false'
-      HRM_URI: http://10.0.0.2:8090
-      INTEGRATION_URI: http://10.0.0.2:8092
+      HRM_URI: http://161.97.181.166:8090
+      INTEGRATION_URI: http://161.97.181.166:8092
       INVENTORY_URI: http://10.0.0.3:8084
       KAFKA_BOOTSTRAP: 10.0.0.3:9094
       KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094
-      NOTIFICATION_URI: http://10.0.0.2:8089
+      NOTIFICATION_URI: http://161.97.181.166:8089
       PAYMENT_URI: http://10.0.0.3:8086
       PRODUCT_URI: http://10.0.0.3:8083
       REDIS_HOST: 10.0.0.3
       REDIS_PORT: '6379'
-      REPORT_URI: http://10.0.0.2:8087
+      REPORT_URI: http://161.97.181.166:8087
       SALES_URI: http://10.0.0.3:8085
       SERVER_PORT: '8080'
       JAVA_TOOL_OPTIONS: -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0
@@ -171,26 +172,26 @@ services:
         reservations:
           memory: 256M
     environment:
-      AI_URI: http://10.0.0.2:8091
+      AI_URI: http://161.97.181.166:8091
       AUTH_JWKS_URI: http://auth-service:8081/.well-known/jwks.json
       AUTH_URI: http://auth-service:8081
-      BILLING_URI: http://10.0.0.2:8096
-      DOCUMENT_URI: http://10.0.0.2:8093
-      AUDIT_URI: http://10.0.0.2:8095
+      BILLING_URI: http://161.97.181.166:8096
+      DOCUMENT_URI: http://161.97.181.166:8093
+      AUDIT_URI: http://161.97.181.166:8095
       COMMERCE_URI: http://10.0.0.3:8094
-      CRM_URI: http://10.0.0.2:8097
+      CRM_URI: http://161.97.181.166:8097
       FLYWAY_VALIDATE_ON_MIGRATE: 'false'
-      HRM_URI: http://10.0.0.2:8090
-      INTEGRATION_URI: http://10.0.0.2:8092
+      HRM_URI: http://161.97.181.166:8090
+      INTEGRATION_URI: http://161.97.181.166:8092
       INVENTORY_URI: http://10.0.0.3:8084
       KAFKA_BOOTSTRAP: 10.0.0.3:9094
       KAFKA_BOOTSTRAP_SERVERS: 10.0.0.3:9094
-      NOTIFICATION_URI: http://10.0.0.2:8089
+      NOTIFICATION_URI: http://161.97.181.166:8089
       PAYMENT_URI: http://10.0.0.3:8086
       PRODUCT_URI: http://10.0.0.3:8083
       REDIS_HOST: 10.0.0.3
       REDIS_PORT: '6379'
-      REPORT_URI: http://10.0.0.2:8087
+      REPORT_URI: http://161.97.181.166:8087
       SALES_URI: http://10.0.0.3:8085
       SERVER_PORT: '8080'
       JAVA_TOOL_OPTIONS: -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0
