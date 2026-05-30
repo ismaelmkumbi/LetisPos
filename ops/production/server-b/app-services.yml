@@ -67,7 +67,7 @@ services:
     networks:
     - server-b-net
     ports:
-    - 10.0.0.2:8091:8091
+    - 0.0.0.0:8091:8091
     restart: unless-stopped
   audit-service:
     container_name: letispos-audit
@@ -111,7 +111,7 @@ services:
     networks:
     - server-b-net
     ports:
-    - 10.0.0.2:8095:8095
+    - 0.0.0.0:8095:8095
     restart: unless-stopped
   billing-service:
     container_name: letispos-billing
@@ -155,7 +155,7 @@ services:
     networks:
     - server-b-net
     ports:
-    - 10.0.0.2:8096:8096
+    - 0.0.0.0:8096:8096
     restart: unless-stopped
   crm-service:
     container_name: letispos-crm
@@ -199,7 +199,7 @@ services:
     networks:
     - server-b-net
     ports:
-    - 10.0.0.2:8097:8097
+    - 0.0.0.0:8097:8097
     restart: unless-stopped
   document-service:
     container_name: letispos-document
@@ -251,7 +251,7 @@ services:
     networks:
     - server-b-net
     ports:
-    - 10.0.0.2:8093:8093
+    - 0.0.0.0:8093:8093
     restart: unless-stopped
   gotenberg:
     command:
@@ -281,7 +281,7 @@ services:
     networks:
     - server-b-net
     ports:
-    - 10.0.0.2:3000:3000
+    - 0.0.0.0:3000:3000
     restart: unless-stopped
   hrm-service:
     container_name: letispos-hrm
@@ -324,7 +324,7 @@ services:
     networks:
     - server-b-net
     ports:
-    - 10.0.0.2:8090:8090
+    - 0.0.0.0:8090:8090
     restart: unless-stopped
   integration-service:
     container_name: letispos-integration
@@ -367,7 +367,7 @@ services:
     networks:
     - server-b-net
     ports:
-    - 10.0.0.2:8092:8092
+    - 0.0.0.0:8092:8092
     restart: unless-stopped
   notification-service:
     container_name: letispos-notification
@@ -415,7 +415,7 @@ services:
     networks:
     - server-b-net
     ports:
-    - 10.0.0.2:8089:8089
+    - 0.0.0.0:8089:8089
     restart: unless-stopped
   report-service:
     container_name: letispos-report
@@ -465,5 +465,5 @@ services:
     networks:
     - server-b-net
     ports:
-    - 10.0.0.2:8087:8087
+    - 0.0.0.0:8087:8087
     restart: unless-stopped
