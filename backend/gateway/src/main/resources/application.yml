@@ -49,6 +49,8 @@ spring:
           uri: ${INVENTORY_URI:http://localhost:8084}
           predicates:
             - Path=/api/v1/warehouses/**,/api/v1/stock/**,/api/v1/transfers/**,/api/v1/adjustments/**,/api/v1/stock-counts/**,/api/v1/batches/**,/api/v1/reorder-rules/**,/api/v1/goods-receipts/**,/api/v1/supplier-returns/**,/api/v1/inventory/**
+          filters:
+            - RewritePath=/api/v1/inventory/(?<remaining>.*), /api/v1/$\{remaining}
 
         # ---- Sales / POS Service (incl. recurring invoices, terminals, offline sync, returns) ----
         - id: sales-service
