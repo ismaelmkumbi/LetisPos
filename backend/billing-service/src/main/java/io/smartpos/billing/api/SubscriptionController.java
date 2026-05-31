@@ -158,6 +158,24 @@ public class SubscriptionController {
         return ResponseEntity.ok(Map.of("checkoutUrl", checkoutUrl));
     }
 
+    @PostMapping("/{id}/cancel")
+    @PreAuthorize("hasAuthority('billing.manage') or @tenantOwnershipCheck.isCurrentTenant(#tenantId)")
+    public ResponseEntity<Map<String, String>> cancel(
+            @PathVariable UUID id,
+            @RequestParam(required = false) UUID tenantId) {
+        Subscription sub = subscriptionRepo.findById(id)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Subscription not found"));
+        if ("CANCELLED".equals(sub.getStatus())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Subscription is already cancelled");
+        }
+        sub.setStatus("CANCELLED");
+        sub.setUpdatedAt(Instant.now());
+        subscriptionRepo.save(sub);
+        log.info("Subscription {} cancelled for tenant {}", id, sub.getTenantId());
+        return ResponseEntity.ok(Map.of("status", "cancelled", "message",
+            "Your subscription has been cancelled. Access continues until the end of the current billing period."));
+    }
+
     private boolean isInternal(HttpServletRequest request) {
         String token = request.getHeader("X-Internal-Token");
         return token != null && token.equals(sharedSecret);

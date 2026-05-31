@@ -31,6 +31,9 @@ public class Purchase {
     @Builder.Default
     private LocalDate date = LocalDate.now();
 
+    @Column(name = "due_date")
+    private LocalDate dueDate;
+
     @Column(name = "supplier_id")                   private UUID supplierId;
     @Column(name = "warehouse_id", nullable = false) private UUID warehouseId;
     @Column(name = "user_id")                       private UUID userId;

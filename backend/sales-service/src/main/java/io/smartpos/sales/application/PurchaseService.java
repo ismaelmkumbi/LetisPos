@@ -318,5 +318,17 @@ public class PurchaseService {
         return prefix + String.format("%06d", n);
     }
 
+    @Transactional(readOnly = true)
+    public List<PurchaseDto> outstanding() {
+        UUID tenantId = TenantContext.get().orElse(null);
+        List<Purchase> purchases;
+        if (tenantId != null) {
+            purchases = repo.findOutstandingByTenant(tenantId);
+        } else {
+            purchases = repo.findAllOutstanding();
+        }
+        return purchases.stream().map(PurchaseDto::from).toList();
+    }
+
     private static BigDecimal nz(BigDecimal v) { return v == null ? BigDecimal.ZERO : v; }
 }

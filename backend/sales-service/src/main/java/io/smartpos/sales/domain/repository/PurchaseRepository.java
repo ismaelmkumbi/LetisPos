@@ -66,4 +66,21 @@ public interface PurchaseRepository extends JpaRepository<Purchase, UUID> {
         ORDER BY p.receivedAt DESC
         """)
     List<Object[]> findLatestCostsByTenant(@Param("tenantId") UUID tenantId);
+
+    /** Returns purchases with outstanding balance (UNPAID or PARTIAL), ordered by date. */
+    @Query("""
+        SELECT p FROM Purchase p
+        WHERE p.tenantId = :tenantId
+          AND p.paymentStatus IN ('UNPAID', 'PARTIAL')
+        ORDER BY p.date DESC
+        """)
+    List<Purchase> findOutstandingByTenant(@Param("tenantId") UUID tenantId);
+
+    /** Returns all outstanding purchases across all tenants (admin). */
+    @Query("""
+        SELECT p FROM Purchase p
+        WHERE p.paymentStatus IN ('UNPAID', 'PARTIAL')
+        ORDER BY p.date DESC
+        """)
+    List<Purchase> findAllOutstanding();
 }

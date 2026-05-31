@@ -16,6 +16,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -100,6 +101,16 @@ public class PurchaseController {
             @PathVariable UUID id,
             @jakarta.validation.Valid @RequestBody ReceiveLineRequest req) {
         return service.receiveLine(id, req.lineId(), req.receivedQty());
+    }
+
+    /**
+     * Returns all outstanding (unpaid/partial) purchases for AR aging.
+     * Called internally by Payment Service and Report Service.
+     */
+    @GetMapping("/outstanding")
+    @PreAuthorize("hasAuthority('purchase.view') or hasAuthority('internal.sales.read')")
+    public List<PurchaseDto> outstanding() {
+        return service.outstanding();
     }
 
     private static UUID userIdFrom(Jwt jwt) { return jwt == null ? null : UUID.fromString(jwt.getSubject()); }

@@ -1,22 +1,28 @@
 package io.smartpos.payment.application;
 
 import io.smartpos.common.context.TenantContext;
+import io.smartpos.payment.infrastructure.feign.SalesClient;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class PaymentStatsService {
 
     private final EntityManager em;
+    private final SalesClient salesClient;
 
     public record PaymentStats(
             long count,
@@ -79,12 +85,42 @@ public class PaymentStatsService {
 
     @Transactional(readOnly = true)
     public List<AgingBucket> aging(LocalDate asOf) {
-        LocalDate end = asOf != null ? asOf : LocalDate.now();
-        // TODO: Query outstanding purchase payments grouped by age.
-        // Real AR tracking requires joining with the sales-service purchase
-        // data (grand_total - paid_total per purchase) to know outstanding
-        // amounts. Until that cross-service aggregation is available, return
-        // properly-shaped empty buckets so the frontend can render the table.
+        LocalDate today = asOf != null ? asOf : LocalDate.now();
+        try {
+            List<SalesClient.OutstandingPurchase> purchases = salesClient.outstandingPurchases();
+            if (purchases.isEmpty()) {
+                return emptyBuckets();
+            }
+
+            BigDecimal[] buckets = new BigDecimal[4]; // 0-30, 31-60, 61-90, 90+
+            int[] counts = new int[4];
+            for (SalesClient.OutstandingPurchase p : purchases) {
+                BigDecimal due = p.grandTotal().subtract(p.paidTotal());
+                if (due.compareTo(BigDecimal.ZERO) <= 0) continue;
+                // Use dueDate if available, otherwise purchase date
+                LocalDate refDate = p.dueDate() != null ? p.dueDate() : p.date();
+                long days = ChronoUnit.DAYS.between(refDate, today);
+                int bucket;
+                if (days <= 30)        bucket = 0;
+                else if (days <= 60)   bucket = 1;
+                else if (days <= 90)   bucket = 2;
+                else                   bucket = 3;
+                buckets[bucket] = buckets[bucket].add(due);
+                counts[bucket]++;
+            }
+            return List.of(
+                new AgingBucket("0-30 days", 0, 30, buckets[0], counts[0]),
+                new AgingBucket("31-60 days", 31, 60, buckets[1], counts[1]),
+                new AgingBucket("61-90 days", 61, 90, buckets[2], counts[2]),
+                new AgingBucket("90+ days", 91, Integer.MAX_VALUE, buckets[3], counts[3])
+            );
+        } catch (Exception e) {
+            log.warn("AR aging query failed, returning empty buckets: {}", e.getMessage());
+            return emptyBuckets();
+        }
+    }
+
+    private List<AgingBucket> emptyBuckets() {
         return List.of(
             new AgingBucket("0-30 days", 0, 30, BigDecimal.ZERO, 0),
             new AgingBucket("31-60 days", 31, 60, BigDecimal.ZERO, 0),

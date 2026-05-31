@@ -8,6 +8,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -42,4 +44,11 @@ public interface SalesClient {
 
     @GetMapping("/api/v1/purchases/{id}")
     PurchaseSummary getPurchase(@PathVariable("id") UUID purchaseId);
+
+    /** Outstanding purchase projection for AR aging. */
+    record OutstandingPurchase(UUID id, String ref, LocalDate date, LocalDate dueDate,
+                               String paymentStatus, BigDecimal grandTotal, BigDecimal paidTotal) {}
+
+    @GetMapping("/api/v1/purchases/outstanding")
+    List<OutstandingPurchase> outstandingPurchases();
 }
