@@ -16,7 +16,7 @@ public interface CustomerRepository extends JpaRepository<Customer, UUID> {
 
     @Query("""
            SELECT c FROM Customer c
-           WHERE (:search IS NULL OR
+           WHERE (COALESCE(:search, '') = '' OR
                   LOWER(c.name)  LIKE LOWER(CONCAT('%', :search, '%')) OR
                   LOWER(c.phone) LIKE LOWER(CONCAT('%', :search, '%')))
              AND (:active IS NULL OR c.active = :active)
