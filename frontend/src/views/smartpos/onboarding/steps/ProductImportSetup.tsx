@@ -1,7 +1,8 @@
-import { useState } from 'react';
-import { Box, Button, Stack, Typography } from '@mui/material';
+import { useState, useEffect } from 'react';
+import { Box, Button, CircularProgress, Stack, Typography } from '@mui/material';
 import { IconSparkles, IconPlus } from '@tabler/icons-react';
 import { brand } from 'src/theme/smartpos/brand';
+import { api } from 'src/api/smartpos/client';
 import ProductsImportDialog from 'src/views/smartpos/products/ProductsImportDialog';
 
 interface Props {
@@ -10,6 +11,18 @@ interface Props {
 
 export default function ProductImportSetup({ onComplete }: Props) {
   const [importOpen, setImportOpen] = useState(false);
+  const [checking, setChecking] = useState(true);
+
+  useEffect(() => {
+    api.get('/api/v1/products?size=1').then(({ data }) => {
+      const total = data?.totalElements ?? (Array.isArray(data) ? data.length : 0);
+      if (total > 0) onComplete(); // Already has products — skip
+    }).catch(() => {}).finally(() => setChecking(false));
+  }, [onComplete]);
+
+  if (checking) {
+    return <Box sx={{ textAlign: 'center', py: 4 }}><CircularProgress size={32} /></Box>;
+  }
 
   return (
     <Box>
