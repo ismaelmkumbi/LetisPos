@@ -3,8 +3,6 @@
  * cross-tenant data leakage through localStorage, sessionStorage,
  * React Query cache, and IndexedDB.
  */
-import { tokenStore } from 'src/api/smartpos/client';
-
 const PERSIST_KEYS = [
   // POS state — must be cleared to prevent cross-tenant POS linkage
   'smartpos.linkedTerminalId',
@@ -25,24 +23,26 @@ const PERSIST_KEYS = [
 ];
 
 export function clearAllSessionData() {
-  // 1. Clear auth tokens
-  tokenStore.clear();
-
-  // 2. Clear all persisted state keys
+  // Clear business-data localStorage keys
   for (const key of PERSIST_KEYS) {
     try { localStorage.removeItem(key); } catch { /* ignore */ }
   }
 
-  // 3. Clear sessionStorage
+  // Clear sessionStorage
   try { sessionStorage.clear(); } catch { /* ignore */ }
 
-  // 4. Clear React Query cache (if available on window)
+  // Clear React Query cache (if available on window)
   try {
     const w = window as unknown as Record<string, unknown>;
     if (typeof w.__REACT_QUERY_CLEAR__ === 'function') {
       (w.__REACT_QUERY_CLEAR__ as () => void)();
     }
   } catch { /* ignore */ }
+
+  // Note: auth tokens are NOT cleared here. The backend invalidates
+  // them via POST /api/v1/auth/logout. The subsequent page reload to
+  // /auth/login destroys all in-memory state. Clearing tokens here
+  // would cause a stale refresh attempt during page transition → 400.
 }
 
 /**
