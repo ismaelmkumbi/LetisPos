@@ -19,7 +19,7 @@ public interface CustomerRepository extends JpaRepository<Customer, UUID> {
            WHERE (:search IS NULL OR
                   LOWER(c.name)  LIKE LOWER(CONCAT('%', :search, '%')) OR
                   LOWER(c.phone) LIKE LOWER(CONCAT('%', :search, '%')) OR
-                  LOWER(c.email) LIKE LOWER(CONCAT('%', :search, '%')))
+                  c.email LIKE CONCAT('%', :search, '%'))
              AND (:active IS NULL OR c.active = :active)
              AND c.tenantId = :tenantId
            """)
