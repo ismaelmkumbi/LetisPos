@@ -8,6 +8,7 @@ import {
 } from 'src/api/smartpos/auth';
 import { bootstrapAuthSession, tokenStore, refreshAccessToken } from 'src/api/smartpos/client';
 import { getMyMenu } from 'src/api/smartpos/features';
+import { clearAllSessionData } from 'src/utils/sessionCleanup';
 
 /** Decode JWT payload without verification (data is already trusted from login response). */
 function decodeJwtPayload(token: string): Record<string, unknown> | null {
@@ -121,6 +122,7 @@ export function SmartPosAuthProvider({ children }: { children: React.ReactNode }
     })();
     const onLogout = () => {
       setUser(null);
+      clearAllSessionData();
       window.location.href = '/auth/login';
     };
     window.addEventListener('smartpos:auth:logout', onLogout);
@@ -145,6 +147,7 @@ export function SmartPosAuthProvider({ children }: { children: React.ReactNode }
 
   const logout = useCallback(async () => {
     await apiLogout();
+    clearAllSessionData();
     setUser(null);
     setTenants([]);
   }, []);

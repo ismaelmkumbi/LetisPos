@@ -13,6 +13,7 @@ import ChunkErrorBoundary from 'src/components/smartpos/ChunkErrorBoundary';
 import 'src/i18n/smartpos';
 import { useContext } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { registerQueryClientForCleanup } from 'src/utils/sessionCleanup';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -48,6 +49,7 @@ function ThemedApp() {
 }
 
 function App() {
+  registerQueryClientForCleanup(() => queryClient.clear());
   return (
     <QueryClientProvider client={queryClient}>
       <BrandProvider>
