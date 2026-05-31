@@ -6,6 +6,7 @@
  */
 import { useState, useCallback, useRef } from 'react';
 import {
+  Alert,
   IconButton,
   Menu,
   MenuItem,
@@ -63,6 +64,7 @@ export default function DocumentActionsBar({
   const [previewOpen, setPreviewOpen] = useState(false);
   const [emailOpen, setEmailOpen] = useState(false);
   const [whatsappOpen, setWhatsappOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const isTaxInvoice = doc?.documentType === 'tax-invoice';
   const hasDoc = !!doc;
@@ -77,6 +79,7 @@ export default function DocumentActionsBar({
     }
     try {
       setGenerating(true);
+      setError(null);
       const result = await generateDocument({
         documentType,
         referenceType,
@@ -87,7 +90,10 @@ export default function DocumentActionsBar({
       onGenerate?.(result);
       setPreviewOpen(true);
     } catch (err) {
-      console.error('Document generation failed', err);
+      const msg = (err as { response?: { data?: { detail?: string } }; message?: string })?.response?.data?.detail
+        ?? (err as Error).message
+        ?? 'Document generation failed. Please try again.';
+      setError(msg);
     } finally {
       setGenerating(false);
     }
@@ -158,6 +164,11 @@ export default function DocumentActionsBar({
 
   return (
     <>
+      {error && (
+        <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 1, borderRadius: '10px', fontSize: '0.82rem' }}>
+          {error}
+        </Alert>
+      )}
       <Tooltip title={triggerTooltip} arrow placement="top">
         <Badge
           color="success"
