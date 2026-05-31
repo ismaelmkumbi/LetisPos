@@ -150,6 +150,8 @@ export function SmartPosAuthProvider({ children }: { children: React.ReactNode }
     clearAllSessionData();
     setUser(null);
     setTenants([]);
+    // Force full page reload to destroy all React state, Query cache, and DOM
+    window.location.href = '/auth/login';
   }, []);
 
   const switchTenant = useCallback(async (tenantId: string) => {
