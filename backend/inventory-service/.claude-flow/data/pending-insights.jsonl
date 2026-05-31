@@ -1,0 +1,17 @@
+{"type":"edit","file":"/Users/ismaelmkumbi/Desktop/LetisPos/backend/ai-service/src/test/java/io/smartpos/ai/application/AssistantIntelligenceV3Test.java","timestamp":1779695775022}
+{"type":"edit","file":"/Users/ismaelmkumbi/Desktop/LetisPos/backend/ai-service/src/main/java/io/smartpos/ai/application/AssistantToolExecutor.java","timestamp":1779703453573}
+{"type":"edit","file":"/Users/ismaelmkumbi/Desktop/LetisPos/backend/ai-service/src/main/java/io/smartpos/ai/application/AssistantToolExecutor.java","timestamp":1779703534394}
+{"type":"edit","file":"/Users/ismaelmkumbi/Desktop/LetisPos/backend/ai-service/src/main/java/io/smartpos/ai/application/AssistantToolExecutor.java","timestamp":1779708343372}
+{"type":"edit","file":"/Users/ismaelmkumbi/Desktop/LetisPos/backend/ai-service/src/main/java/io/smartpos/ai/application/AssistantToolExecutor.java","timestamp":1779708350912}
+{"type":"edit","file":"/Users/ismaelmkumbi/Desktop/LetisPos/backend/ai-service/src/main/resources/application.yml","timestamp":1779716674774}
+{"type":"edit","file":"/Users/ismaelmkumbi/Desktop/LetisPos/backend/sales-service/src/main/java/io/smartpos/sales/domain/model/BrandAsset.java","timestamp":1779738442456}
+{"type":"edit","file":"/Users/ismaelmkumbi/Desktop/LetisPos/backend/sales-service/src/main/resources/db/migration/V19__brand_assets.sql","timestamp":1779738452464}
+{"type":"edit","file":"/Users/ismaelmkumbi/Desktop/LetisPos/backend/sales-service/src/main/java/io/smartpos/sales/domain/repository/BrandAssetRepository.java","timestamp":1779738462119}
+{"type":"edit","file":"/Users/ismaelmkumbi/Desktop/LetisPos/backend/sales-service/src/main/java/io/smartpos/sales/application/BrandAssetService.java","timestamp":1779738478039}
+{"type":"edit","file":"/Users/ismaelmkumbi/Desktop/LetisPos/backend/sales-service/src/main/java/io/smartpos/sales/api/BrandAssetController.java","timestamp":1779738487076}
+{"type":"edit","file":"/Users/ismaelmkumbi/Desktop/LetisPos/backend/sales-service/src/main/java/io/smartpos/sales/api/BrandAssetController.java","timestamp":1779738499629}
+{"type":"edit","file":"/Users/ismaelmkumbi/Desktop/LetisPos/frontend/src/views/smartpos/settings/BrandIdentityPage.tsx","timestamp":1779738521012}
+{"type":"edit","file":"/Users/ismaelmkumbi/Desktop/LetisPos/frontend/src/views/smartpos/settings/BrandIdentityPage.tsx","timestamp":1779738530249}
+{"type":"edit","file":"/Users/ismaelmkumbi/Desktop/LetisPos/frontend/src/views/smartpos/settings/BrandIdentityPage.tsx","timestamp":1779738552835}
+{"type":"edit","file":"/Users/ismaelmkumbi/Desktop/LetisPos/frontend/src/views/smartpos/settings/BrandIdentityPage.tsx","timestamp":1779738561529}
+{"type":"edit","file":"/Users/ismaelmkumbi/Desktop/LetisPos/frontend/src/views/smartpos/settings/BrandIdentityPage.tsx","timestamp":1779738579817}

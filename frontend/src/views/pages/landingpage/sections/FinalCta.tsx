@@ -44,7 +44,7 @@ const FinalCta: React.FC = () => {
             Join businesses already running on Letis. Start your free trial today — no credit card required.
           </Typography>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="center">
-            <CtaButton variant="primary" href="/auth/register?plan=starter" size="large">
+            <CtaButton variant="primary" href="/auth/login?plan=starter" size="large">
               Start free trial
             </CtaButton>
             <CtaButton variant="secondary" size="large" onClick={openDemo}>

@@ -1,0 +1,10 @@
+{"type":"edit","file":"/Users/ismaelmkumbi/Desktop/LetisPos/backend/sales-service/src/main/java/io/smartpos/sales/api/BrandController.java","timestamp":1779911146848}
+{"type":"edit","file":"/Users/ismaelmkumbi/Desktop/LetisPos/frontend/src/components/smartpos/brand/BrandLogoUploader.tsx","timestamp":1779947880944}
+{"type":"edit","file":"/Users/ismaelmkumbi/Desktop/LetisPos/frontend/src/components/smartpos/assistant/AIBrandingAssistant.tsx","timestamp":1779947895491}
+{"type":"edit","file":"/Users/ismaelmkumbi/Desktop/LetisPos/ops/docs/DEPLOY_BRANDING_ENGINE.md","timestamp":1779956225787}
+{"type":"edit","file":"/Users/ismaelmkumbi/Desktop/LetisPos/backend/ai-service/src/main/resources/application.yml","timestamp":1779956728105}
+{"type":"edit","file":"/Users/ismaelmkumbi/Desktop/LetisPos/backend/sales-service/src/main/java/io/smartpos/sales/api/dto/BrandProfileDto.java","timestamp":1780134789822}
+{"type":"edit","file":"/Users/ismaelmkumbi/Desktop/LetisPos/backend/sales-service/src/main/java/io/smartpos/sales/api/dto/ReceiptBrandingDto.java","timestamp":1780134808292}
+{"type":"edit","file":"/Users/ismaelmkumbi/Desktop/LetisPos/backend/sales-service/src/main/java/io/smartpos/sales/api/dto/EmailBrandingDto.java","timestamp":1780134808408}
+{"type":"edit","file":"/Users/ismaelmkumbi/Desktop/LetisPos/backend/gateway/src/main/resources/application.yml","timestamp":1780136820808}
+{"type":"edit","file":"/Users/ismaelmkumbi/Desktop/LetisPos/backend/document-service/src/main/java/io/smartpos/documents/application/DocumentService.java","timestamp":1780138277941}

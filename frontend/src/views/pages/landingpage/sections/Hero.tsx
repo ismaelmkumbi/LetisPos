@@ -132,7 +132,7 @@ const Hero: React.FC = () => {
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.4} sx={{ mb: 3.4 }}>
               <CtaButton
                 variant="primary"
-                href="/auth/register?plan=starter"
+                href="/auth/login?plan=starter"
                 size="large"
                 endIcon={<IconArrowRight size={18} />}
                 sx={{ minHeight: 52, boxShadow: '0 18px 42px rgba(22, 163, 74, 0.26)' }}

@@ -865,19 +865,19 @@ const Menuitems: MenuitemsType[] = [
     id: uniqueId(),
     title: 'Register',
     icon: IconUserPlus,
-    href: '/auth/register',
+    href: '/auth/login',
     children: [
       {
         id: uniqueId(),
         title: 'Side Register',
         icon: IconPoint,
-        href: '/auth/register',
+        href: '/auth/login',
       },
       {
         id: uniqueId(),
         title: 'Boxed Register',
         icon: IconPoint,
-        href: '/auth/register2',
+        href: '/auth/login2',
       },
     ],
   },
