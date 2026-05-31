@@ -101,6 +101,8 @@ export default function BrandIdentityPage() {
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [lastSavedProfile, setLastSavedProfile] = useState<BrandProfile | null>(null);
 
+  const tenantId = tokenStore.getTenantId();
+
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
@@ -114,7 +116,7 @@ export default function BrandIdentityPage() {
       .catch((e) => { if (!cancelled) setError(e instanceof Error ? e.message : 'Failed to load brand profile'); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [tokenStore.getTenantId()]); // Re-fetch when tenant changes
+  }, [tenantId]); // Re-fetch when tenant changes
 
   const update = useCallback((patch: Partial<BrandProfile>) => {
     setProfile((prev) => (prev ? { ...prev, ...patch } : prev));
