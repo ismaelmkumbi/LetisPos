@@ -1,7 +1,8 @@
-import { useState } from 'react';
-import { Alert, Box, Button, Stack, TextField, Typography } from '@mui/material';
+import { useState, useEffect } from 'react';
+import { Alert, Box, Button, CircularProgress, Stack, TextField, Typography } from '@mui/material';
 import { IconBuildingWarehouse } from '@tabler/icons-react';
 import { createWarehouse } from 'src/api/smartpos/inventory';
+import { api } from 'src/api/smartpos/client';
 import { brand } from 'src/theme/smartpos/brand';
 
 interface Props {
@@ -13,6 +14,16 @@ export default function WarehouseSetup({ onComplete }: Props) {
   const [city, setCity] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [checking, setChecking] = useState(true);
+
+  useEffect(() => {
+    api.get('/api/v1/warehouses?size=1').then(({ data }) => {
+      const list: unknown[] = data?.content ?? (Array.isArray(data) ? data : []);
+      if (list.length > 0) {
+        onComplete(); // Already has warehouse — skip
+      }
+    }).catch(() => {}).finally(() => setChecking(false));
+  }, [onComplete]);
 
   const handleSubmit = async () => {
     if (!name.trim()) return;
@@ -27,6 +38,10 @@ export default function WarehouseSetup({ onComplete }: Props) {
       setSubmitting(false);
     }
   };
+
+  if (checking) {
+    return <Box sx={{ textAlign: 'center', py: 4 }}><CircularProgress size={32} /></Box>;
+  }
 
   return (
     <Box>

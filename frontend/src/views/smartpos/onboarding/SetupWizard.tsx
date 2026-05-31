@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   Box,
   Button,
@@ -20,9 +20,17 @@ import DocumentThemeSetup from './steps/DocumentThemeSetup';
 
 const STEPS = ['Brand', 'Warehouse', 'Tax Rules', 'Products', 'Invoice Look', 'First Sale'];
 
-const STEP_KEYS: Array<
-  'brand' | 'warehouse' | 'tax' | 'products' | 'document_theme' | 'first_sale'
-> = ['brand', 'warehouse', 'tax', 'products', 'document_theme', 'first_sale'];
+const STEP_KEYS = ['brand', 'warehouse', 'tax', 'products', 'document_theme', 'first_sale'] as const;
+
+// Map API step keys to OnboardingState property names
+const STATE_KEY: Record<string, keyof import('src/api/smartpos/onboarding').OnboardingState> = {
+  brand: 'brand',
+  warehouse: 'warehouse',
+  tax: 'tax',
+  products: 'products',
+  document_theme: 'documentTheme',
+  first_sale: 'firstSale',
+};
 
 interface Props {
   open: boolean;
@@ -30,27 +38,36 @@ interface Props {
 }
 
 export default function SetupWizard({ open, onClose }: Props) {
-  const [activeStep, setActiveStep] = useState(0);
-  const { completeStep } = useOnboarding();
+  const { completeStep, state } = useOnboarding();
+
+  // Find which steps are already completed, and which index to start at
+  const stepState = useMemo(() => {
+    const done: boolean[] = STEP_KEYS.map((k) => !!state[STATE_KEY[k]]);
+    const firstIncomplete = done.indexOf(false);
+    return { done, startAt: firstIncomplete >= 0 ? firstIncomplete : 0 };
+  }, [state]);
+
+  const [activeStep, setActiveStep] = useState(stepState.startAt);
+
+  const advanceToNextIncomplete = () => {
+    for (let i = activeStep + 1; i < STEPS.length; i++) {
+      if (!stepState.done[i]) { setActiveStep(i); return; }
+    }
+    onClose();
+  };
 
   const handleComplete = () => {
     completeStep(STEP_KEYS[activeStep]);
-    if (activeStep < STEPS.length - 1) {
-      setActiveStep((prev) => prev + 1);
-    } else {
-      onClose();
+    advanceToNextIncomplete();
+  };
+
+  const handleBack = () => {
+    for (let i = activeStep - 1; i >= 0; i--) {
+      if (!stepState.done[i]) { setActiveStep(i); return; }
     }
   };
 
-  const handleBack = () => setActiveStep((prev) => Math.max(0, prev - 1));
-
-  const handleSkip = () => {
-    if (activeStep < STEPS.length - 1) {
-      setActiveStep((prev) => prev + 1);
-    } else {
-      onClose();
-    }
-  };
+  const handleSkip = () => advanceToNextIncomplete();
 
   const isLast = activeStep === STEPS.length - 1;
 
@@ -76,11 +93,11 @@ export default function SetupWizard({ open, onClose }: Props) {
           px: 3,
           py: 2,
           '& .MuiStepIcon-root.Mui-active': { color: brand.primary[600] },
-          '& .MuiStepIcon-root.Mui-completed': { color: brand.primary[600] },
+          '& .MuiStepIcon-root.Mui-completed': { color: brand.success.main },
         }}
       >
-        {STEPS.map((label) => (
-          <Step key={label}>
+        {STEPS.map((label, i) => (
+          <Step key={label} completed={stepState.done[i] || i < activeStep}>
             <StepLabel sx={{ '& .MuiStepLabel-label': { fontSize: 12, fontWeight: 600 } }}>
               {label}
             </StepLabel>
