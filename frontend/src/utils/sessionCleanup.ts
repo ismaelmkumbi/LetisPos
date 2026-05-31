@@ -38,7 +38,7 @@ export function clearAllSessionData() {
 
   // 4. Clear React Query cache (if available on window)
   try {
-    const w = window as Record<string, unknown>;
+    const w = window as unknown as Record<string, unknown>;
     if (typeof w.__REACT_QUERY_CLEAR__ === 'function') {
       (w.__REACT_QUERY_CLEAR__ as () => void)();
     }
@@ -50,5 +50,5 @@ export function clearAllSessionData() {
  * Call this once in App.tsx after creating the QueryClient.
  */
 export function registerQueryClientForCleanup(clearFn: () => void) {
-  (window as Record<string, unknown>).__REACT_QUERY_CLEAR__ = clearFn;
+  (window as unknown as Record<string, unknown>).__REACT_QUERY_CLEAR__ = clearFn;
 }
