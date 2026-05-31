@@ -23,7 +23,7 @@ public class Supplier {
 
     @Column(name = "name", nullable = false) private String name;
 
-    @Column(name = "email", columnDefinition = "citext") private String email;
+    @Column(name = "email") private String email;
     @Column(name = "phone")       private String phone;
     @Column(name = "tax_number")  private String taxNumber;
     @Column(name = "address")     private String address;
