@@ -42,6 +42,7 @@ import {
   resetBrandProfile,
   type BrandProfile,
 } from 'src/api/smartpos/brand';
+import { tokenStore } from 'src/api/smartpos/client';
 import BrandColorPicker from 'src/components/smartpos/brand/BrandColorPicker';
 import BrandLogoUploader from 'src/components/smartpos/brand/BrandLogoUploader';
 import AIBrandingAssistant from 'src/components/smartpos/assistant/AIBrandingAssistant';
@@ -113,7 +114,7 @@ export default function BrandIdentityPage() {
       .catch((e) => { if (!cancelled) setError(e instanceof Error ? e.message : 'Failed to load brand profile'); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, []);
+  }, [tokenStore.getTenantId()]); // Re-fetch when tenant changes
 
   const update = useCallback((patch: Partial<BrandProfile>) => {
     setProfile((prev) => (prev ? { ...prev, ...patch } : prev));
