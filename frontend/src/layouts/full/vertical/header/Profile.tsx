@@ -107,11 +107,12 @@ const Profile = () => {
           paper: {
             sx: {
               mt: 1,
-              width: 320,
+              width: { xs: 280, sm: 320 },
+              maxWidth: 'calc(100vw - 32px)',
               borderRadius: '16px',
               border: `1px solid ${brand.neutral[200]}`,
               boxShadow: '0 20px 50px rgba(15,23,42,0.12)',
-              overflow: 'visible',
+              overflow: 'hidden',
               animation: `${scaleIn} 0.2s cubic-bezier(0.16, 1, 0.3, 1) both`,
             },
           },
