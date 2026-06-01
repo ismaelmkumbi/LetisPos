@@ -128,7 +128,7 @@ public class PaymentStatsService {
     private record AgingRow(LocalDate date, LocalDate dueDate, BigDecimal due) {}
 
     private List<AgingBucket> computeBuckets(List<AgingRow> rows, LocalDate today) {
-        BigDecimal[] buckets = new BigDecimal[4]; // 0-30, 31-60, 61-90, 90+
+        BigDecimal[] buckets = { BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO };
         int[] counts = new int[4];
         for (AgingRow r : rows) {
             if (r.due().compareTo(BigDecimal.ZERO) <= 0) continue;
