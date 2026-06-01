@@ -529,7 +529,12 @@ export async function getPurchasesByCategory(params: { dateFrom?: string; dateTo
 export interface AgingBucket { label: string; daysFrom: number; daysTo: number; amount: number; invoiceCount: number; }
 export interface ArAging { buckets: AgingBucket[]; totalOutstanding: number; }
 export async function getArAging(params: { asOf?: string } = {}): Promise<ArAging> {
-  const { data } = await api.get<ArAging>('/api/v1/reports/payments/aging', { params });
+  const { data } = await api.get<ArAging>('/api/v1/payments/aging', { params });
+  return data;
+}
+
+export async function getApAging(params: { asOf?: string } = {}): Promise<ArAging> {
+  const { data } = await api.get<ArAging>('/api/v1/payments/ap-aging', { params });
   return data;
 }
 
