@@ -382,6 +382,12 @@ public class SaleService {
         return txTemplate.execute(status -> {
             Sale confirmed = saleRepo.findByIdWithLines(saved.getId()).orElseThrow();
             confirmed.confirm();
+
+            // Enforce credit limit for non-POS credit sales
+            if (!isPosFastPath && confirmed.getCustomerId() != null) {
+                enforceCreditLimit(confirmed);
+            }
+
             outbox.publish("Sale", confirmed.getId(), "SaleConfirmed", saleEventPayload(confirmed));
 
             if (isPosFastPath) {
@@ -671,18 +677,50 @@ public class SaleService {
     }
 
     /**
+     * Rejects the sale if the customer's outstanding balance after this sale
+     * would exceed their credit limit. Only applies to non-POS credit sales.
+     */
+    private void enforceCreditLimit(Sale sale) {
+        try {
+            ProductClient.CustomerCreditDto customer = productClient.getCustomer(sale.getCustomerId());
+            if (customer.creditLimit().compareTo(BigDecimal.ZERO) <= 0) return; // No limit set
+
+            BigDecimal outstanding = saleRepo.findOutstandingByTenant(sale.getTenantId()).stream()
+                    .filter(s -> sale.getCustomerId().equals(s.getCustomerId()))
+                    .filter(s -> !s.getId().equals(sale.getId())) // Exclude current sale
+                    .map(s -> s.getGrandTotal().subtract(s.getPaidTotal()))
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            BigDecimal newTotal = outstanding.add(sale.getGrandTotal());
+            if (newTotal.compareTo(customer.creditLimit()) > 0) {
+                throw new ResponseStatusException(HttpStatus.PAYMENT_REQUIRED,
+                        String.format("Credit limit exceeded. Outstanding: %,.0f, this sale: %,.0f, limit: %,.0f",
+                                outstanding, sale.getGrandTotal(), customer.creditLimit()));
+            }
+        } catch (ResponseStatusException e) {
+            throw e; // Re-throw our own exceptions
+        } catch (Exception e) {
+            log.warn("Credit limit check skipped for sale {}: {}", sale.getId(), e.getMessage());
+            // Best-effort: allow sale if product-service is down
+        }
+    }
+
+    /**
      * Lightweight projection for AR aging — only the fields Payment Service needs.
      */
     public record OutstandingSale(UUID id, String ref, LocalDate date, LocalDate dueDate,
-                                   String paymentStatus, BigDecimal grandTotal, BigDecimal paidTotal) {}
+                                   String paymentStatus, BigDecimal grandTotal, BigDecimal paidTotal,
+                                   boolean overdue) {}
 
     public List<OutstandingSale> outstanding() {
         UUID tenantId = TenantContext.require();
+        LocalDate today = LocalDate.now();
         List<Sale> sales = saleRepo.findOutstandingByTenant(tenantId);
         return sales.stream()
                 .map(s -> new OutstandingSale(
                         s.getId(), s.getRef(), s.getDate(), s.getDueDate(),
-                        s.getPaymentStatus().name(), s.getGrandTotal(), s.getPaidTotal()))
+                        s.getPaymentStatus().name(), s.getGrandTotal(), s.getPaidTotal(),
+                        s.getDueDate() != null && s.getDueDate().isBefore(today)))
                 .toList();
     }
 }

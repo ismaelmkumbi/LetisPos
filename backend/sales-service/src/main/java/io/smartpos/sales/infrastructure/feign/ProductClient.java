@@ -14,6 +14,11 @@ public interface ProductClient {
 
     record ProductNameDto(UUID id, String name, java.math.BigDecimal cost) {}
 
+    record CustomerCreditDto(UUID id, String name, java.math.BigDecimal creditLimit, boolean active) {}
+
     @GetMapping("/api/v1/products/{id}")
     ProductNameDto getProduct(@PathVariable UUID id);
+
+    @GetMapping("/api/v1/customers/{id}")
+    CustomerCreditDto getCustomer(@PathVariable UUID id);
 }
