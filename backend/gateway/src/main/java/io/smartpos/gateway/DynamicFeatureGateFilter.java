@@ -73,7 +73,9 @@ public class DynamicFeatureGateFilter implements GlobalFilter, Ordered {
             || path.startsWith("/api/v1/billing/plans")
             || path.startsWith("/api/v1/webhooks/")
             || path.startsWith("/.well-known/")
-            || path.startsWith("/actuator/");
+            || path.startsWith("/actuator/")
+            || path.startsWith("/api/v1/storefront/")
+            || path.equals("/api/v1/robots.txt");
     }
 
     @SuppressWarnings("unchecked")

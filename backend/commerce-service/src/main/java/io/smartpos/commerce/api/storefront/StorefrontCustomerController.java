@@ -6,6 +6,7 @@ import io.smartpos.commerce.application.StoreService;
 import io.smartpos.commerce.domain.model.Customer;
 import io.smartpos.commerce.domain.model.CustomerAddress;
 import io.smartpos.commerce.domain.model.Store;
+import io.smartpos.commerce.infrastructure.client.SalesServiceClient;
 import io.smartpos.common.context.TenantContext;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +23,7 @@ public class StorefrontCustomerController {
     private final StoreService storeService;
     private final CustomerAuthService authService;
     private final CustomerAddressService addressService;
+    private final SalesServiceClient salesServiceClient;
 
     // ---- Auth helpers ----
 
@@ -179,14 +181,13 @@ public class StorefrontCustomerController {
     @GetMapping("/me/orders")
     public ResponseEntity<Map<String, Object>> getOrders(
         @PathVariable String slug,
-        HttpServletRequest request) {
+        HttpServletRequest request,
+        @RequestParam(defaultValue = "0") int page,
+        @RequestParam(defaultValue = "20") int size) {
         resolveStore(slug);
         UUID customerId = requireCustomerId(request);
-        // Orders not implemented yet in commerce-service; return empty list for MVP
-        Map<String, Object> response = new LinkedHashMap<>();
-        response.put("customerId", customerId.toString());
-        response.put("orders", List.of());
-        return ResponseEntity.ok(response);
+        Map<String, Object> result = salesServiceClient.getOrdersByCustomer(customerId, page, size);
+        return ResponseEntity.ok(result);
     }
 
     @GetMapping("/me/addresses")

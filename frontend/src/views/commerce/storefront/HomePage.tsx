@@ -4,10 +4,7 @@ import {
   Card, Stack,
 } from '@mui/material';
 import {
-  ArrowForward, Discount, Bolt, Star, VerifiedUser,
-  DevicesOutlined, CheckroomOutlined, ChairOutlined,
-  SpaOutlined, SportsSoccerOutlined, MenuBookOutlined,
-  SportsEsportsOutlined, LocalGroceryStoreOutlined,
+  ArrowForward, Discount, Bolt, Star, VerifiedUser, Category as CategoryIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router';
 import FeaturedProducts from '../../../components/commerce/FeaturedProducts';
@@ -17,16 +14,11 @@ import { useStorefront } from '../../../context/CommerceContext';
 import { safeHtml } from '../../../utils/sanitize';
 import type { MarketingBanner, StorefrontProduct } from '../../../types/commerce';
 
-const categoryPills = [
-  { icon: <DevicesOutlined />, label: 'Electronics', categoryId: 'cat-electronics' },
-  { icon: <CheckroomOutlined />, label: 'Fashion', categoryId: 'cat-fashion' },
-  { icon: <ChairOutlined />, label: 'Home', categoryId: 'cat-home' },
-  { icon: <SpaOutlined />, label: 'Beauty', categoryId: 'cat-beauty' },
-  { icon: <SportsSoccerOutlined />, label: 'Sports', categoryId: 'cat-sports' },
-  { icon: <MenuBookOutlined />, label: 'Books', categoryId: 'cat-books' },
-  { icon: <SportsEsportsOutlined />, label: 'Gaming', categoryId: 'cat-gaming' },
-  { icon: <LocalGroceryStoreOutlined />, label: 'Groceries', categoryId: 'cat-groceries' },
-];
+interface CategoryPill {
+  icon: React.ReactNode;
+  label: string;
+  categoryId: string;
+}
 
 const features = [
   { icon: <Discount sx={{ fontSize: 40 }} />, title: 'Flash Deals', sub: 'Up to 70% off', color: '#EF4444', href: '/search?q=&sort=discount' },
@@ -50,6 +42,7 @@ const HomePage: React.FC = () => {
   const [heroBanner, setHeroBanner] = useState<MarketingBanner | null>(null);
   const [newArrivals, setNewArrivals] = useState<StorefrontProduct[]>([]);
   const [loadingArrivals, setLoadingArrivals] = useState(true);
+  const [categoryPills, setCategoryPills] = useState<CategoryPill[]>([]);
 
   useEffect(() => {
     storefront.getBanners(slug).then(banners => {
@@ -61,6 +54,20 @@ const HomePage: React.FC = () => {
       .then(data => setNewArrivals(data.content || []))
       .catch(() => {})
       .finally(() => setLoadingArrivals(false));
+
+    storefront.getCategories(slug)
+      .then((cats: Array<{ id: string; categoryId: string; nameOverride?: string }>) => {
+        const pills: CategoryPill[] = (cats || [])
+          .filter(c => c.categoryId)
+          .slice(0, 12)
+          .map(c => ({
+            icon: <CategoryIcon sx={{ fontSize: 18 }} />,
+            label: c.nameOverride || c.categoryId,
+            categoryId: c.categoryId,
+          }));
+        setCategoryPills(pills);
+      })
+      .catch(() => {});
   }, [slug]);
 
   return (
@@ -146,13 +153,14 @@ const HomePage: React.FC = () => {
         </Container>
       </Box>
 
-      {/* Category pills */}
+      {/* Category pills — dynamic from CMS */}
+      {categoryPills.length > 0 && (
       <Box sx={{ borderBottom: '1px solid #e5e7eb', bgcolor: '#fafafa' }}>
         <Container maxWidth="lg" sx={{ py: 2.5 }}>
           <Box sx={{ display: 'flex', gap: 1, overflowX: 'auto', pb: 0.5, '&::-webkit-scrollbar': { display: 'none' } }}>
             {categoryPills.map((cat) => (
               <Chip
-                key={cat.label}
+                key={cat.categoryId}
                 icon={<Box component="span" sx={{ display: 'flex', alignItems: 'center', '& .MuiSvgIcon-root': { fontSize: 18 } }}>{cat.icon}</Box>}
                 label={cat.label}
                 clickable
@@ -169,6 +177,7 @@ const HomePage: React.FC = () => {
           </Box>
         </Container>
       </Box>
+      )}
 
       {/* Features grid */}
       <Container maxWidth="lg" sx={{ py: 3 }}>

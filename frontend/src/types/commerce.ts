@@ -131,6 +131,7 @@ export interface CheckoutRequest {
   billingAddress: AddressInput;
   billingSameAsShipping: boolean;
   shippingMethod: string;
+  paymentMethodId?: string;
   customerNotes?: string;
 }
 

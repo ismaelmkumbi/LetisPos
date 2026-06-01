@@ -17,6 +17,7 @@ const BannerManager = Loadable(lazy(() => import('../../views/commerce/admin/Ban
 const SeoSettings = Loadable(lazy(() => import('../../views/commerce/admin/SeoSettings')));
 const DomainManager = Loadable(lazy(() => import('../../views/commerce/admin/DomainManager')));
 const CommerceOrders = Loadable(lazy(() => import('../../views/commerce/admin/CommerceOrders')));
+const GoLiveChecklist = Loadable(lazy(() => import('../../views/commerce/admin/GoLiveChecklist')));
 
 // Storefront
 const StorefrontLayout = Loadable(lazy(() => import('../../layouts/storefront/StorefrontLayout')));
@@ -60,6 +61,7 @@ export const commerceAdminRoutes = {
     { path: 'seo', element: <SeoSettings /> },
     { path: 'domains', element: <DomainManager /> },
     { path: 'orders', element: <CommerceOrders /> },
+    { path: 'go-live', element: <GoLiveChecklist /> },
   ],
 };
 

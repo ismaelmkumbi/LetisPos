@@ -103,7 +103,6 @@ const ProductDetailPage: React.FC = () => {
     ? Math.round((1 - product.price.amount / product.compareAtPrice) * 100)
     : 0;
   const rating = getProductRating(product.id);
-  const reviewCount = Math.abs(product.id.split('').reduce((a, c) => a + c.charCodeAt(0), 0)) % 300 + 20;
 
   const handleAddToCart = async () => {
     setAddingToCart(true);
@@ -217,15 +216,17 @@ const ProductDetailPage: React.FC = () => {
               {product.name}
             </Typography>
 
-            {/* Rating */}
+            {/* Rating — shown only when real reviews exist */}
+            {rating != null && (
             <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mb: 2 }}>
               {[1, 2, 3, 4, 5].map((star) => (
                 <Star key={star} sx={{ fontSize: 16, color: star <= Math.round(rating) ? '#F59E0B' : '#e5e7eb' }} />
               ))}
               <Typography variant="body2" color="text.secondary" sx={{ ml: 1 }}>
-                {rating} ({reviewCount} reviews)
+                {rating}
               </Typography>
             </Stack>
+            )}
 
             {/* Price */}
             <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1.5, mb: 3 }}>

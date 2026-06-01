@@ -71,13 +71,15 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           {product.name}
         </Typography>
 
-        {/* Rating */}
+        {/* Rating — only shown when real reviews exist */}
+        {getProductRating(product.id) != null && (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
           <Star sx={{ fontSize: 14, color: '#F59E0B' }} />
           <Typography variant="caption" fontWeight={600} color="text.secondary">
             {getProductRating(product.id)}
           </Typography>
         </Box>
+        )}
 
         <Box sx={{ mt: 'auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Box>

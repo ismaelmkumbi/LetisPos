@@ -35,6 +35,8 @@ public class SecurityConfig {
                         // Stripe webhook must be publicly reachable; HMAC verify
                         // happens inside StripeService.processWebhook().
                         .requestMatchers("/api/v1/payments/stripe/webhook").permitAll()
+                        // Internal service-to-service endpoint called by commerce-service during checkout
+                        .requestMatchers("/api/v1/payments/capture").permitAll()
                         .requestMatchers("/actuator/**", "/v3/api-docs/**", "/swagger-ui/**").permitAll()
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(o -> o.jwt(j -> j.jwtAuthenticationConverter(jwtConverter())))

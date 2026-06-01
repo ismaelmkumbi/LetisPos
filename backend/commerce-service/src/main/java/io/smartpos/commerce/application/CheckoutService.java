@@ -68,7 +68,7 @@ public class CheckoutService {
             shippingCost = shippingZoneService.calculateRate(storeId, req.shippingAddress);
         }
 
-        BigDecimal taxRate = new BigDecimal("0.10"); // TODO: make configurable
+        BigDecimal taxRate = paymentServiceClient.getActiveTaxRate();
         BigDecimal tax = subtotal.multiply(taxRate);
         BigDecimal total = subtotal.add(shippingCost).add(tax);
 

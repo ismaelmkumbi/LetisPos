@@ -262,6 +262,34 @@ public class PaymentService {
         }
     }
 
+    /**
+     * Capture a payment during storefront checkout. Creates a minimal payment
+     * record without requiring full accounting context (accountId, referenceId
+     * are resolved later when the order is created in sales service).
+     */
+    @Transactional
+    public PaymentDto capturePayment(BigDecimal amount, String currency, String notes, String paymentMethodId) {
+        UUID tenantId = TenantContext.require();
+        PaymentMethod method = PaymentMethod.STRIPE;
+        if (paymentMethodId != null) {
+            try { method = PaymentMethod.valueOf(paymentMethodId.toUpperCase()); }
+            catch (Exception e) { /* fall back to STRIPE */ }
+        }
+        Payment payment = Payment.builder()
+                .ref("CAP-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase())
+                .date(LocalDate.now())
+                .referenceType(ReferenceType.SALE)
+                .amount(amount)
+                .currency(currency != null ? currency : defaultCurrency)
+                .method(method)
+                .notes(notes)
+                .status(PaymentStatus.COMPLETED)
+                .tenantId(tenantId)
+                .build();
+        Payment saved = paymentRepo.save(payment);
+        return PaymentDto.from(saved);
+    }
+
     private String nextPaymentRef(ReferenceType rt, UUID tenantId) {
         String shortCode = switch (rt) {
             case SALE            -> "PSR";      // payment for sale (received)

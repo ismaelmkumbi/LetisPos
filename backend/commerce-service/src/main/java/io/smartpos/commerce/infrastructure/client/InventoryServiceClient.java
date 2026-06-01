@@ -2,8 +2,8 @@ package io.smartpos.commerce.infrastructure.client;
 
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
@@ -12,15 +12,17 @@ import java.util.UUID;
 
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class InventoryServiceClient {
 
-    private final RestClient.Builder restClientBuilder;
+    private final RestClient client;
+
+    public InventoryServiceClient(@Qualifier("inventoryServiceRestClient") RestClient client) {
+        this.client = client;
+    }
 
     @CircuitBreaker(name = "inventory-service", fallbackMethod = "getStockFallback")
     @Retry(name = "inventory-service")
     public Map<String, Object> getStock(UUID productId, UUID warehouseId) {
-        var client = restClientBuilder.build();
         return client.get()
             .uri("/api/v1/stock/warehouse/{warehouseId}/product/{productId}", warehouseId, productId)
             .retrieve()
@@ -36,7 +38,6 @@ public class InventoryServiceClient {
     @CircuitBreaker(name = "inventory-service", fallbackMethod = "reserveStockFallback")
     @Retry(name = "inventory-service")
     public Map<String, Object> reserveStock(UUID productId, UUID warehouseId, int quantity) {
-        var client = restClientBuilder.build();
         Map<String, Object> body = new java.util.LinkedHashMap<>();
         body.put("productId", productId.toString());
         body.put("warehouseId", warehouseId.toString());
@@ -57,7 +58,6 @@ public class InventoryServiceClient {
     @CircuitBreaker(name = "inventory-service", fallbackMethod = "releaseReservationFallback")
     @Retry(name = "inventory-service")
     public Map<String, Object> releaseReservation(UUID reservationId) {
-        var client = restClientBuilder.build();
         return client.post()
             .uri("/api/v1/stock/release/{reservationId}", reservationId)
             .retrieve()

@@ -63,7 +63,9 @@ public class SecurityConfig {
                                 "/api/v1/payments/stripe/webhook",
                                 "/webhooks/**",
                                 "/.well-known/jwks.json",
-                                "/actuator/**"
+                                "/actuator/**",
+                                "/api/v1/storefront/**",
+                                "/api/v1/robots.txt"
                         ).permitAll()
                         .anyExchange().authenticated())
                 .oauth2ResourceServer(o -> o.jwt(org.springframework.security.config.Customizer.withDefaults()))

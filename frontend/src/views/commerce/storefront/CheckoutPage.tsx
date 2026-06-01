@@ -98,6 +98,7 @@ const CheckoutPage: React.FC = () => {
         billingAddress: billingSameAsShipping ? shippingAddress : billingAddress,
         billingSameAsShipping,
         shippingMethod,
+        paymentMethodId: paymentMethod,
       });
       await refreshCart();
       navigate(`/store/${slug}/order-confirmed/${result.orderId}`, {

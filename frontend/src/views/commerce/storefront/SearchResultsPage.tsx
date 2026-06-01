@@ -54,15 +54,23 @@ const SearchResultsPage: React.FC = () => {
     return Array.from(brands).sort();
   }, [products]);
 
-  const categories = useMemo(
-    () => [
-      { id: 'cat-electronics', name: 'Electronics', slug: 'electronics' },
-      { id: 'cat-fashion', name: 'Fashion', slug: 'fashion' },
-      { id: 'cat-home', name: 'Home & Living', slug: 'home' },
-      { id: 'cat-sports', name: 'Sports & Outdoors', slug: 'sports' },
-    ],
-    [],
-  );
+  const [categories, setCategories] = useState<Array<{ id: string; name: string; slug: string }>>([]);
+
+  useEffect(() => {
+    storefront.getCategories(slug!)
+      .then((cats: Array<{ categoryId: string; nameOverride?: string; isVisible?: boolean }>) => {
+        setCategories(
+          (cats || [])
+            .filter(c => c.categoryId && c.isVisible !== false)
+            .map(c => ({
+              id: c.categoryId,
+              name: c.nameOverride || c.categoryId,
+              slug: c.categoryId,
+            }))
+        );
+      })
+      .catch(() => {});
+  }, [slug]);
 
   const filtersActive = activeFilterChips.length > 0;
 
