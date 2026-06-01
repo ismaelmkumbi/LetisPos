@@ -38,6 +38,18 @@ public class PaymentStatsController {
         return stats.aging(asOf);
     }
 
+    @GetMapping("/payments/ar-aging")
+    @PreAuthorize("isAuthenticated()")
+    public List<PaymentStatsService.AgingBucket> arAging(@RequestParam(required = false) LocalDate asOf) {
+        return stats.arAging(asOf);
+    }
+
+    @GetMapping("/payments/ap-aging")
+    @PreAuthorize("isAuthenticated()")
+    public List<PaymentStatsService.AgingBucket> apAging(@RequestParam(required = false) LocalDate asOf) {
+        return stats.apAging(asOf);
+    }
+
     @GetMapping("/expenses/stats")
     @PreAuthorize("hasAuthority('report.financial') or hasAuthority('expense.manage')")
     public PaymentStatsService.ExpenseStats expenseStats(@RequestParam(required = false) LocalDate dateFrom,

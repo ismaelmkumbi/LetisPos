@@ -93,4 +93,12 @@ public interface SaleRepository extends JpaRepository<Sale, UUID> {
         ORDER BY s.date DESC
         """)
     List<Object[]> findLinesNeedingCostBackfill(@Param("tenantId") UUID tenantId);
+
+    @Query("""
+        SELECT s FROM Sale s
+        WHERE s.tenantId = :tenantId
+          AND s.paymentStatus IN ('UNPAID', 'PARTIAL')
+        ORDER BY s.date ASC
+        """)
+    List<Sale> findOutstandingByTenant(@Param("tenantId") UUID tenantId);
 }

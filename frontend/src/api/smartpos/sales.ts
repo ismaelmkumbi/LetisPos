@@ -51,6 +51,7 @@ export interface Sale {
   id: UUID;
   ref: string;
   date: string;
+  dueDate?: string | null;
   customerId: UUID | null;
   warehouseId: UUID;
   userId: UUID | null;

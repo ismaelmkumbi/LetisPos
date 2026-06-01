@@ -45,10 +45,17 @@ public interface SalesClient {
     @GetMapping("/api/v1/purchases/{id}")
     PurchaseSummary getPurchase(@PathVariable("id") UUID purchaseId);
 
-    /** Outstanding purchase projection for AR aging. */
+    /** Outstanding purchase projection for AP aging. */
     record OutstandingPurchase(UUID id, String ref, LocalDate date, LocalDate dueDate,
                                String paymentStatus, BigDecimal grandTotal, BigDecimal paidTotal) {}
 
+    /** Outstanding sale projection for AR aging. */
+    record OutstandingSale(UUID id, String ref, LocalDate date, LocalDate dueDate,
+                           String paymentStatus, BigDecimal grandTotal, BigDecimal paidTotal) {}
+
     @GetMapping("/api/v1/purchases/outstanding")
     List<OutstandingPurchase> outstandingPurchases();
+
+    @GetMapping("/api/v1/sales/outstanding")
+    List<OutstandingSale> outstandingSales();
 }

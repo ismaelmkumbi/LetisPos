@@ -154,6 +154,13 @@ public class SaleController {
         return ResponseEntity.ok().headers(h).body(body);
     }
 
+    // ---- Outstanding (AR aging) ----
+    @GetMapping("/outstanding")
+    @PreAuthorize("hasAuthority('sale.view')")
+    public List<SaleService.OutstandingSale> outstanding() {
+        return saleService.outstanding();
+    }
+
     private static UUID userIdFrom(Jwt jwt) {
         return jwt == null ? null : UUID.fromString(jwt.getSubject());
     }

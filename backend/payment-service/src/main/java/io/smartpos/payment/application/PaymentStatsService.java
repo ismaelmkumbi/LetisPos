@@ -84,40 +84,70 @@ public class PaymentStatsService {
                               BigDecimal amount, int invoiceCount) {}
 
     @Transactional(readOnly = true)
-    public List<AgingBucket> aging(LocalDate asOf) {
+    public List<AgingBucket> arAging(LocalDate asOf) {
+        LocalDate today = asOf != null ? asOf : LocalDate.now();
+        try {
+            List<SalesClient.OutstandingSale> sales = salesClient.outstandingSales();
+            if (sales.isEmpty()) {
+                return emptyBuckets();
+            }
+            return computeBuckets(sales.stream()
+                    .map(s -> new AgingRow(s.date(), s.dueDate(),
+                            s.grandTotal().subtract(s.paidTotal())))
+                    .toList(), today);
+        } catch (Exception e) {
+            log.warn("AR aging query failed, returning empty buckets: {}", e.getMessage());
+            return emptyBuckets();
+        }
+    }
+
+    @Transactional(readOnly = true)
+    public List<AgingBucket> apAging(LocalDate asOf) {
         LocalDate today = asOf != null ? asOf : LocalDate.now();
         try {
             List<SalesClient.OutstandingPurchase> purchases = salesClient.outstandingPurchases();
             if (purchases.isEmpty()) {
                 return emptyBuckets();
             }
-
-            BigDecimal[] buckets = new BigDecimal[4]; // 0-30, 31-60, 61-90, 90+
-            int[] counts = new int[4];
-            for (SalesClient.OutstandingPurchase p : purchases) {
-                BigDecimal due = p.grandTotal().subtract(p.paidTotal());
-                if (due.compareTo(BigDecimal.ZERO) <= 0) continue;
-                // Use dueDate if available, otherwise purchase date
-                LocalDate refDate = p.dueDate() != null ? p.dueDate() : p.date();
-                long days = ChronoUnit.DAYS.between(refDate, today);
-                int bucket;
-                if (days <= 30)        bucket = 0;
-                else if (days <= 60)   bucket = 1;
-                else if (days <= 90)   bucket = 2;
-                else                   bucket = 3;
-                buckets[bucket] = buckets[bucket].add(due);
-                counts[bucket]++;
-            }
-            return List.of(
-                new AgingBucket("0-30 days", 0, 30, buckets[0], counts[0]),
-                new AgingBucket("31-60 days", 31, 60, buckets[1], counts[1]),
-                new AgingBucket("61-90 days", 61, 90, buckets[2], counts[2]),
-                new AgingBucket("90+ days", 91, Integer.MAX_VALUE, buckets[3], counts[3])
-            );
+            return computeBuckets(purchases.stream()
+                    .map(p -> new AgingRow(p.date(), p.dueDate(),
+                            p.grandTotal().subtract(p.paidTotal())))
+                    .toList(), today);
         } catch (Exception e) {
-            log.warn("AR aging query failed, returning empty buckets: {}", e.getMessage());
+            log.warn("AP aging query failed, returning empty buckets: {}", e.getMessage());
             return emptyBuckets();
         }
+    }
+
+    /** Keep legacy method for backward compatibility — delegates to AR aging. */
+    @Transactional(readOnly = true)
+    public List<AgingBucket> aging(LocalDate asOf) {
+        return arAging(asOf);
+    }
+
+    private record AgingRow(LocalDate date, LocalDate dueDate, BigDecimal due) {}
+
+    private List<AgingBucket> computeBuckets(List<AgingRow> rows, LocalDate today) {
+        BigDecimal[] buckets = new BigDecimal[4]; // 0-30, 31-60, 61-90, 90+
+        int[] counts = new int[4];
+        for (AgingRow r : rows) {
+            if (r.due().compareTo(BigDecimal.ZERO) <= 0) continue;
+            LocalDate refDate = r.dueDate() != null ? r.dueDate() : r.date();
+            long days = ChronoUnit.DAYS.between(refDate, today);
+            int bucket;
+            if (days <= 30)        bucket = 0;
+            else if (days <= 60)   bucket = 1;
+            else if (days <= 90)   bucket = 2;
+            else                   bucket = 3;
+            buckets[bucket] = buckets[bucket].add(r.due());
+            counts[bucket]++;
+        }
+        return List.of(
+            new AgingBucket("0-30 days", 0, 30, buckets[0], counts[0]),
+            new AgingBucket("31-60 days", 31, 60, buckets[1], counts[1]),
+            new AgingBucket("61-90 days", 61, 90, buckets[2], counts[2]),
+            new AgingBucket("90+ days", 91, Integer.MAX_VALUE, buckets[3], counts[3])
+        );
     }
 
     private List<AgingBucket> emptyBuckets() {

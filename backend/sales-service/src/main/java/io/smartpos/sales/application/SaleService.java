@@ -669,4 +669,20 @@ public class SaleService {
         }
         return detail;
     }
+
+    /**
+     * Lightweight projection for AR aging — only the fields Payment Service needs.
+     */
+    public record OutstandingSale(UUID id, String ref, LocalDate date, LocalDate dueDate,
+                                   String paymentStatus, BigDecimal grandTotal, BigDecimal paidTotal) {}
+
+    public List<OutstandingSale> outstanding() {
+        UUID tenantId = TenantContext.require();
+        List<Sale> sales = saleRepo.findOutstandingByTenant(tenantId);
+        return sales.stream()
+                .map(s -> new OutstandingSale(
+                        s.getId(), s.getRef(), s.getDate(), s.getDueDate(),
+                        s.getPaymentStatus().name(), s.getGrandTotal(), s.getPaidTotal()))
+                .toList();
+    }
 }

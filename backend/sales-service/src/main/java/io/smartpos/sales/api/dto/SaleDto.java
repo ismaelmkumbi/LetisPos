@@ -13,6 +13,7 @@ public record SaleDto(
         UUID id,
         String ref,
         LocalDate date,
+        LocalDate dueDate,
         UUID customerId,
         UUID warehouseId,
         UUID userId,
@@ -56,7 +57,7 @@ public record SaleDto(
     public static SaleDto from(Sale s) {
         BigDecimal due = s.getGrandTotal().subtract(s.getPaidTotal());
         return new SaleDto(
-                s.getId(), s.getRef(), s.getDate(), s.getCustomerId(),
+                s.getId(), s.getRef(), s.getDate(), s.getDueDate(), s.getCustomerId(),
                 s.getWarehouseId(), s.getUserId(), s.isPos(),
                 s.getStatus(), s.getPaymentStatus(),
                 s.getSubtotal(), s.getTaxTotal(), s.getTaxRate(), s.getTaxMethod(),
