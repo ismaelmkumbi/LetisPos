@@ -59,6 +59,39 @@ public class PaymentStatsService {
 
     public record ExpenseStats(BigDecimal total, long count) {}
 
+    public record DebtSummary(BigDecimal totalAR, int arCount, BigDecimal totalAP, int apCount) {}
+
+    @Transactional(readOnly = true)
+    public DebtSummary debtSummary() {
+        BigDecimal totalAR = BigDecimal.ZERO;
+        int arCount = 0;
+        BigDecimal totalAP = BigDecimal.ZERO;
+        int apCount = 0;
+        try {
+            var ar = salesClient.outstandingSales();
+            if (ar != null) {
+                for (var s : ar) {
+                    totalAR = totalAR.add(s.grandTotal().subtract(s.paidTotal()));
+                    arCount++;
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Debt summary AR fetch failed: {}", e.getMessage());
+        }
+        try {
+            var ap = salesClient.outstandingPurchases();
+            if (ap != null) {
+                for (var p : ap) {
+                    totalAP = totalAP.add(p.grandTotal().subtract(p.paidTotal()));
+                    apCount++;
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Debt summary AP fetch failed: {}", e.getMessage());
+        }
+        return new DebtSummary(totalAR, arCount, totalAP, apCount);
+    }
+
     @Transactional(readOnly = true)
     public ExpenseStats expenseStats(LocalDate from, LocalDate to) {
         StringBuilder jpql = new StringBuilder("""

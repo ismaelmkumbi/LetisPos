@@ -56,4 +56,10 @@ public class PaymentStatsController {
                                                          @RequestParam(required = false) LocalDate dateTo) {
         return stats.expenseStats(dateFrom, dateTo);
     }
+
+    @GetMapping("/payments/debt-summary")
+    @PreAuthorize("isAuthenticated()")
+    public PaymentStatsService.DebtSummary debtSummary() {
+        return stats.debtSummary();
+    }
 }
