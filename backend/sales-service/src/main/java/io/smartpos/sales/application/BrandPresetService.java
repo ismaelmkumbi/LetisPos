@@ -75,5 +75,19 @@ public class BrandPresetService {
         p.setAccentColor("#16A34A");
         p.setFontFamily("Inter, system-ui, sans-serif");
         p.setTypographyScale("default");
+        p.setLogoUrl("");
+        p.setLogoSvgUrl("");
+        p.setLogoMonochromeUrl("");
+        p.setLogoThermalUrl("");
+        p.setFaviconUrl("");
+        p.setWatermarkUrl("");
+        p.setStampUrl("");
+        p.setSignatureUrl("");
+        p.setQrCodeUrl("");
+        p.setWebsite("");
+        p.setFacebook("");
+        p.setInstagram("");
+        p.setTwitter("");
+        p.setLinkedin("");
     }
 }
