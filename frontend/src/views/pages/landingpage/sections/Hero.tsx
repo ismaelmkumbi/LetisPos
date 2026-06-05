@@ -197,10 +197,10 @@ const Hero: React.FC = () => {
                 <Box
                   sx={{
                     position: 'absolute',
-                    left: { xs: '7%', sm: '9%', md: '11%' },
-                    bottom: { xs: 22, sm: 30, md: -16 },
-                    width: { xs: 136, sm: 164, md: 196 },
-                    height: { xs: 104, sm: 124, md: 146 },
+                    left: { xs: '5%', sm: '6%', md: '5%' },
+                    bottom: { xs: 20, sm: 28, md: -12 },
+                    width: { xs: 124, sm: 150, md: 174 },
+                    height: { xs: 96, sm: 114, md: 132 },
                     borderRadius: '18px 18px 14px 14px',
                     background:
                       'linear-gradient(110deg, #111827 0%, #2B313A 42%, #171D25 68%, #05070A 100%)',
@@ -210,7 +210,7 @@ const Hero: React.FC = () => {
                     transform: {
                       xs: 'perspective(1100px) rotateY(-6deg) rotateX(3deg) scale(0.92)',
                       sm: 'perspective(1200px) rotateY(-7deg) rotateX(3deg) scale(0.9)',
-                      md: 'perspective(1300px) rotateY(-8deg) rotateX(3deg) scale(0.82)',
+                      md: 'perspective(1300px) rotateY(-8deg) rotateX(3deg) scale(0.78)',
                     },
                     transformStyle: 'preserve-3d',
                     transformOrigin: '50% 82%',
@@ -340,9 +340,9 @@ const Hero: React.FC = () => {
                 <Box
                   sx={{
                     position: 'absolute',
-                    right: { xs: '4%', md: '3%' },
+                    left: { xs: '4%', sm: '7%', md: '6%' },
+                    right: { xs: '4%', sm: '7%', md: '6%' },
                     top: { xs: 28, md: 32 },
-                    width: { xs: '88%', sm: '76%', md: '78%' },
                     zIndex: 2,
                   }}
                 >
