@@ -338,9 +338,11 @@ jobs:
             TAG=${{ github.event.inputs.tag || github.sha }}
 
             SVC="${{ needs.changes.outputs.services_a }}"
+            TARGETS=""
             if [ -n "$SVC" ]; then
               echo "Pulling changed services: $SVC"
               IMAGE_TAG=${TAG} docker compose -f docker-compose.yml pull $SVC 2>&1 || true
+              TARGETS="$TARGETS $SVC"
             else
               echo "No Server A backend services changed — skipping pull"
             fi
@@ -348,9 +350,15 @@ jobs:
             # Always pull frontend if it was built
             if [ "${{ needs.build-frontend.result }}" = "success" ]; then
               IMAGE_TAG=${TAG} docker compose -f docker-compose.yml pull frontend 2>&1 || true
+              TARGETS="$TARGETS frontend"
             fi
 
-            IMAGE_TAG=${TAG} docker compose -f docker-compose.yml up -d --remove-orphans
+            if [ -n "$(echo "$TARGETS" | xargs)" ]; then
+              echo "Updating Server A services: $TARGETS"
+              IMAGE_TAG=${TAG} docker compose -f docker-compose.yml up -d --no-deps $TARGETS
+            else
+              echo "No Server A services changed — skipping compose up"
+            fi
 
             # Wait for health checks
             echo "Waiting for services to become healthy..."
