@@ -7,8 +7,10 @@
  * reference barcode block.
  */
 import { createRoot } from 'react-dom/client';
+import { useEffect, useState } from 'react';
 import { Dialog, DialogContent, IconButton, Box, Button, Typography, Stack } from '@mui/material';
 import { IconPrinter, IconX } from '@tabler/icons-react';
+import { getBrandProfile, type BrandProfile } from 'src/api/smartpos/brand';
 import type { Sale, SaleLine } from 'src/api/smartpos/sales';
 import type { UUID } from 'src/api/smartpos/types';
 import { formatMoney } from 'src/utils/smartpos/currency';
@@ -39,7 +41,10 @@ export interface ReceiptConfig {
   paperSize: ReceiptPaper;
   autoPrint: boolean;
   showLogo: boolean;
+  logoUrl: string;
+  logoAlt: string;
   logoSize: number;
+  brandColor: string;
   showStoreName: boolean;
   showStoreAddress: boolean;
   showStorePhone: boolean;
@@ -76,7 +81,10 @@ const DEFAULTS: ReceiptConfig = {
   paperSize: '80mm',
   autoPrint: true,
   showLogo: true,
+  logoUrl: '',
+  logoAlt: 'Letis POS logo',
   logoSize: 64,
+  brandColor: '#0F9F60',
   showStoreName: true,
   showStoreAddress: true,
   showStorePhone: true,
@@ -111,6 +119,47 @@ export function getReceiptConfig(): ReceiptConfig {
     /* ignore */
   }
   return { ...DEFAULTS };
+}
+
+function firstText(...values: Array<string | null | undefined>) {
+  return values.find((value) => value && value.trim())?.trim() || '';
+}
+
+function safeHexColor(value: string | null | undefined, fallback: string) {
+  const color = firstText(value);
+  return /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i.test(color) ? color : fallback;
+}
+
+function mergeBrandReceiptConfig(config: ReceiptConfig, profile: BrandProfile | null): ReceiptConfig {
+  if (!profile) return config;
+
+  const businessName = firstText(profile.businessName, config.storeName);
+  const logoUrl = firstText(
+    profile.logoThermalUrl,
+    profile.logoMonochromeUrl,
+    profile.logoSvgUrl,
+    profile.logoUrl,
+    config.logoUrl,
+  );
+
+  return {
+    ...config,
+    storeName: businessName || config.storeName,
+    logoUrl,
+    logoAlt: businessName ? `${businessName} logo` : config.logoAlt,
+    brandColor: safeHexColor(profile.primaryColor, config.brandColor),
+    footerMessage: firstText(profile.tagline, config.footerMessage) || config.footerMessage,
+  };
+}
+
+async function getBrandedReceiptConfig(overrides: Partial<ReceiptConfig> = {}): Promise<ReceiptConfig> {
+  const config = { ...getReceiptConfig(), ...overrides };
+  try {
+    const profile = await getBrandProfile();
+    return mergeBrandReceiptConfig(config, profile);
+  } catch {
+    return config;
+  }
 }
 
 export function saveReceiptConfig(config: ReceiptConfig) {
@@ -252,7 +301,7 @@ function ReceiptStyles({ config }: { config: ReceiptConfig }) {
 
       /* Logo block — centered */
       .brand-mark { display: flex; justify-content: center; align-items: center; margin: 0 auto 10px; }
-      .brand-mark svg { width: ${logoSize}px; height: ${logoSize}px; }
+      .brand-mark svg, .brand-mark img { width: ${logoSize}px; max-width: 100%; max-height: ${logoSize}px; object-fit: contain; display: block; }
 
       /* Centered info block — store name + meta */
       .info { text-align: center; margin-bottom: 10px; }
@@ -316,7 +365,7 @@ function ReceiptStyles({ config }: { config: ReceiptConfig }) {
         .a4-footer     { page-break-inside: avoid; break-inside: avoid; }
         .a4-top        { page-break-after: avoid; }
       }
-      .a4-top { display: flex; justify-content: space-between; gap: 24px; padding: 26px 30px; background: linear-gradient(135deg, #ecfdf5 0%, #ffffff 52%, #eff6ff 100%); border-bottom: 1px solid #dbeafe; }
+      .a4-top { display: flex; justify-content: space-between; gap: 24px; padding: 26px 30px; background: linear-gradient(135deg, color-mix(in srgb, ${config.brandColor} 10%, #f8fafc) 0%, #ffffff 52%, #eff6ff 100%); border-bottom: 1px solid #dbeafe; }
       .a4-title { font-size: 30px; font-weight: 900; letter-spacing: -0.03em; margin: 0; }
       .a4-subtitle { margin: 5px 0 0; color: #64748b; font-weight: 700; }
       .a4-card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; padding: 18px 30px 0; }
@@ -327,14 +376,18 @@ function ReceiptStyles({ config }: { config: ReceiptConfig }) {
       .a4-table td { padding: 12px 8px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
       .a4-summary { margin: 18px 30px 0 auto; width: 310px; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; }
       .a4-summary .row { padding: 9px 14px; border-bottom: 1px solid #e2e8f0; }
-      .a4-summary .grand { background: #0f9f60; color: #fff; font-size: 16px; }
+      .a4-summary .grand { background: ${config.brandColor}; color: #fff; font-size: 16px; }
       .a4-footer { margin: 22px 30px 28px; padding-top: 16px; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; gap: 20px; align-items: flex-end; }
     `}</style>
   );
 }
 
-/** Inline Letis logo for receipts — printable, no external image fetch needed. */
-function ReceiptLogo() {
+/** Printable receipt logo. Uses tenant brand first, then platform fallback. */
+function ReceiptLogo({ config }: { config: ReceiptConfig }) {
+  if (config.logoUrl) {
+    return <img src={config.logoUrl} alt={config.logoAlt} />;
+  }
+
   return (
     <svg viewBox="0 0 64 64" role="img" aria-label="Letis POS" style={{ display: 'block' }}>
       <defs>
@@ -384,7 +437,7 @@ function ThermalReceipt({
     <>
       {config.showLogo && (
         <div className="brand-mark">
-          <ReceiptLogo />
+          <ReceiptLogo config={config} />
         </div>
       )}
       <div className="info">
@@ -626,7 +679,7 @@ function A4Receipt({
         >
           {config.showLogo && (
             <div style={{ width: 56, height: 56, flexShrink: 0 }}>
-              <ReceiptLogo />
+              <ReceiptLogo config={config} />
             </div>
           )}
           <div>
@@ -787,7 +840,19 @@ export function ReceiptPreviewModal({
   paymentMethod?: string;
   lookups?: ReceiptLookups;
 }) {
-  const config = getReceiptConfig();
+  const [config, setConfig] = useState<ReceiptConfig>(() => getReceiptConfig());
+
+  useEffect(() => {
+    if (!open) return undefined;
+    let cancelled = false;
+    getBrandedReceiptConfig()
+      .then((nextConfig) => {
+        if (!cancelled) setConfig(nextConfig);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open]);
 
   return (
     <Dialog
@@ -834,7 +899,7 @@ export function ReceiptPreviewModal({
             size="small"
             variant="contained"
             startIcon={<IconPrinter size={16} />}
-            onClick={() => printReceipt(sale, { paymentMethod, lookups })}
+            onClick={() => printReceipt(sale, { ...config, paymentMethod, lookups })}
             sx={{ textTransform: 'none', fontWeight: 700, borderRadius: '8px' }}
           >
             Print
@@ -894,23 +959,24 @@ export function ReceiptPreviewModal({
 export function printReceipt(sale: Sale, options: PrintReceiptOptions = {}) {
   if (typeof window === 'undefined') return;
   const { paymentMethod, lookups, ...configOverrides } = options;
-  const config = { ...getReceiptConfig(), ...configOverrides };
-  const host = document.createElement('div');
-  host.setAttribute('data-smartpos-receipt-print', 'true');
-  document.body.appendChild(host);
-  const root = createRoot(host);
-  root.render(
-    <ReceiptBody sale={sale} config={config} paymentMethod={paymentMethod} lookups={lookups} />,
-  );
-  // 500ms: enough for React to paint + fonts to load before the print dialog opens.
-  // Unmount after print dialog closes (1 second grace).
-  setTimeout(() => {
-    window.print();
+  getBrandedReceiptConfig(configOverrides).then((config) => {
+    const host = document.createElement('div');
+    host.setAttribute('data-smartpos-receipt-print', 'true');
+    document.body.appendChild(host);
+    const root = createRoot(host);
+    root.render(
+      <ReceiptBody sale={sale} config={config} paymentMethod={paymentMethod} lookups={lookups} />,
+    );
+    // 500ms: enough for React to paint + fonts/images to load before the print dialog opens.
+    // Unmount after print dialog closes (1 second grace).
     setTimeout(() => {
-      root.unmount();
-      host.remove();
-    }, 1000);
-  }, 500);
+      window.print();
+      setTimeout(() => {
+        root.unmount();
+        host.remove();
+      }, 1000);
+    }, 500);
+  });
 }
 
 /**
