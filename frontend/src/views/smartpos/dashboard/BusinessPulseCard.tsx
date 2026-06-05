@@ -13,7 +13,7 @@ import { IconArrowDown, IconArrowUp, IconTrendingUp, IconTrendingDown } from '@t
 import { useContext, memo } from 'react';
 import { CustomizerContext } from 'src/context/CustomizerContext';
 import { formatMoney } from 'src/utils/smartpos/currency';
-import { darkToneBg, PERIOD_LABELS, profitMargin } from './utils';
+import { PERIOD_LABELS, profitMargin } from './utils';
 import type { Dashboard, Period } from 'src/api/smartpos/reports';
 import type { Delta } from './types';
 import { brand } from 'src/theme/smartpos/brand';
@@ -36,34 +36,31 @@ function BusinessPulseCard({ data, salesSeries, period, delta }: BusinessPulseCa
   const periodLabel = PERIOD_LABELS[period];
   const margin      = profitMargin(data);
   const revenue     = data?.sales.net ?? 0;
-  const expenses    = data?.expenses.total ?? 0;
   const pulseBars   = salesSeries.slice(-12);
   const pulseMax    = Math.max(...pulseBars, 1);
 
   const tone = isLoss
     ? {
-        accent: brand.error.dark,
+        accent: isDark ? brand.error.main : brand.error.dark,
         accentSoft: '#FEF2F2',
-        border: '#FCA5A5',
+        border: isDark ? 'rgba(239,68,68,0.32)' : '#FCA5A5',
         text: '#7F1D1D',
         muted: '#B45353',
       }
     : {
-        accent: brand.primary[700],
+        accent: isDark ? brand.primary[400] : brand.primary[700],
         accentSoft: brand.primary[50],
-        border: brand.primary[200],
+        border: isDark ? 'rgba(74,222,128,0.14)' : brand.primary[200],
         text: brand.primary[900],
         muted: brand.primary[700],
       };
 
   const surface = isDark
-    ? isLoss ? '#2A1113' : '#0B2418'
+    ? isLoss ? '#21151A' : '#101B28'
     : isLoss ? '#FFF7F7' : '#F7FDF9';
 
-  const cogs = data?.cogs ?? 0;
-  const cogsLabel = cogs > 0 && revenue > 0
-    ? `${((cogs / revenue) * 100).toFixed(0)}% of revenue`
-    : 'cost of goods sold';
+  const grossSales = data?.sales.gross ?? 0;
+  const orderCount = data?.sales.count ?? 0;
 
   const supportStats = [
     {
@@ -72,14 +69,14 @@ function BusinessPulseCard({ data, salesSeries, period, delta }: BusinessPulseCa
       sub: 'net sales',
     },
     {
-      label: 'COGS',
-      value: formatMoney(cogs),
-      sub: cogsLabel,
+      label: 'Gross',
+      value: formatMoney(grossSales),
+      sub: 'before discounts',
     },
     {
-      label: 'Expenses',
-      value: formatMoney(expenses),
-      sub: 'total costs',
+      label: 'Orders',
+      value: orderCount.toLocaleString(),
+      sub: 'sales closed',
     },
     {
       label: 'Margin',
@@ -96,11 +93,12 @@ function BusinessPulseCard({ data, salesSeries, period, delta }: BusinessPulseCa
         minHeight: { xs: 164, sm: 170 },
         borderRadius: '12px',
         background: surface,
-        border: `1px solid ${isDark ? brand.neutral[700] : tone.border}`,
-        borderLeft: `4px solid ${tone.accent}`,
+        border: `1px solid ${isDark ? tone.border : tone.border}`,
         overflow: 'hidden',
         position: 'relative',
-        boxShadow: isDark ? 'none' : '0 10px 30px rgba(15,23,42,0.055)',
+        boxShadow: isDark
+          ? 'inset 0 1px 0 rgba(148,163,184,0.06), 0 14px 34px rgba(0,0,0,0.18)'
+          : '0 10px 30px rgba(15,23,42,0.055)',
       }}
     >
       <CardContent sx={{ p: { xs: 2, sm: 2.25 }, height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -131,8 +129,8 @@ function BusinessPulseCard({ data, salesSeries, period, delta }: BusinessPulseCa
               fontFamily: LBL_FONT,
               fontSize: 11,
               fontWeight: 700,
-              bgcolor: isDark ? `${tone.accent}22` : tone.accentSoft,
-              color: tone.accent,
+              bgcolor: isDark ? 'rgba(15,23,42,0.36)' : tone.accentSoft,
+              color: isDark ? brand.neutral[200] : tone.accent,
               border: `1px solid ${tone.border}`,
               '& .MuiChip-icon': { color: tone.accent, ml: '4px' },
             }}
@@ -148,7 +146,7 @@ function BusinessPulseCard({ data, salesSeries, period, delta }: BusinessPulseCa
         >
           <Typography
             sx={{
-              color: isDark ? '#F8FAFC' : isLoss ? brand.error.dark : brand.neutral[900],
+              color: isDark ? brand.neutral[50] : isLoss ? brand.error.dark : brand.neutral[900],
               fontWeight: 800,
               fontSize: { xs: 'clamp(1.7rem, 8vw, 2.05rem)', sm: 31 },
               lineHeight: 1,
@@ -168,8 +166,8 @@ function BusinessPulseCard({ data, salesSeries, period, delta }: BusinessPulseCa
               fontFamily: LBL_FONT,
               fontSize: 11,
               fontWeight: 700,
-              bgcolor: isDark ? (delta.positive ? darkToneBg.success : darkToneBg.error) : delta.positive ? brand.primary[50] : '#FEF2F2',
-              color: delta.positive ? brand.primary[isDark ? 300 : 700] : brand.error[isDark ? 'main' : 'dark'],
+              bgcolor: isDark ? 'rgba(15,23,42,0.34)' : delta.positive ? brand.primary[50] : '#FEF2F2',
+              color: delta.positive ? brand.primary[isDark ? 400 : 700] : brand.error[isDark ? 'main' : 'dark'],
               border: `1px solid ${isDark ? (delta.positive ? 'rgba(34,197,94,0.28)' : 'rgba(239,68,68,0.28)') : delta.positive ? brand.primary[100] : '#FECACA'}`,
               '& .MuiChip-icon': { color: delta.positive ? brand.primary[isDark ? 300 : 700] : brand.error[isDark ? 'main' : 'dark'], ml: '4px' },
             }}
@@ -202,7 +200,7 @@ function BusinessPulseCard({ data, salesSeries, period, delta }: BusinessPulseCa
               <Typography sx={{ fontFamily: LBL_FONT, color: isDark ? brand.neutral[500] : brand.neutral[500], fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 {stat.label}
               </Typography>
-              <Typography sx={{ color: isDark ? '#F8FAFC' : tone.text, fontSize: 14, fontWeight: 800, mt: 0.3, lineHeight: 1.2 }}>
+              <Typography sx={{ color: isDark ? brand.neutral[100] : tone.text, fontSize: 14, fontWeight: 800, mt: 0.3, lineHeight: 1.2 }}>
                 {stat.value}
               </Typography>
               <Typography sx={{ fontFamily: LBL_FONT, color: isDark ? brand.neutral[500] : brand.neutral[400], fontSize: 10, mt: 0.2 }}>
@@ -221,7 +219,7 @@ function BusinessPulseCard({ data, salesSeries, period, delta }: BusinessPulseCa
                   flex: 1,
                   height: `${Math.max(18, (value / pulseMax) * 100)}%`,
                   borderRadius: '2px 2px 0 0',
-                  bgcolor: isDark ? `${tone.accent}77` : `${tone.accent}33`,
+                  bgcolor: isDark ? 'rgba(74,222,128,0.20)' : `${tone.accent}33`,
                 }}
               />
             ))}

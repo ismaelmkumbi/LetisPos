@@ -4,7 +4,7 @@
  * Wired to AuthContext. Shows real user identity, tenant info,
  * quick links, and sign-out. Professional SaaS-grade design.
  */
-import React, { useState } from 'react';
+import React, { useContext, useState } from 'react';
 import { Link } from 'react-router';
 import {
   Avatar, Box, Button, Chip, Divider, IconButton, ListItemIcon,
@@ -15,6 +15,7 @@ import {
 } from '@tabler/icons-react';
 import { useAuth } from 'src/context/smartpos/AuthContext';
 import { brand } from 'src/theme/smartpos/brand';
+import { CustomizerContext } from 'src/context/CustomizerContext';
 
 const scaleIn = keyframes`
   from { opacity: 0; transform: scale(0.92) translateY(-4px); }
@@ -32,8 +33,10 @@ const menuItemSx = {
 
 const Profile = () => {
   const { user, logout, tenants } = useAuth();
+  const { activeMode } = useContext(CustomizerContext);
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const open = Boolean(anchorEl);
+  const isDark = activeMode === 'dark';
 
   const handleOpen = (e: React.MouseEvent<HTMLElement>) => setAnchorEl(e.currentTarget);
   const handleClose = () => setAnchorEl(null);
@@ -72,12 +75,12 @@ const Profile = () => {
           width: 44,
           height: 44,
           borderRadius: '10px',
-          border: `1px solid ${open ? brand.primary[300] : brand.neutral[200]}`,
-          bgcolor: open ? brand.primary[50] : '#FFFFFF',
+          border: `1px solid ${open ? (isDark ? brand.neutral[600] : brand.primary[300]) : isDark ? brand.neutral[700] : brand.neutral[200]}`,
+          bgcolor: open ? (isDark ? brand.neutral[800] : brand.primary[50]) : isDark ? '#0C1421' : '#FFFFFF',
           transition: 'all 0.2s ease',
           '&:hover': {
-            bgcolor: brand.primary[50],
-            borderColor: brand.primary[200],
+            bgcolor: isDark ? brand.neutral[800] : brand.primary[50],
+            borderColor: isDark ? brand.neutral[600] : brand.primary[200],
           },
         }}
       >

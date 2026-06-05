@@ -52,10 +52,11 @@ export default function DashboardPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
 
-  // Read initial values from URL, default to MONTH / all warehouses
+  // Read initial values from URL, default to a rolling period that avoids empty
+  // early-month dashboards while keeping current performance visible.
   const initPeriod = searchParams.get('period') as Period | null;
   const [period, setPeriod] = useState<Period>(
-    initPeriod && PERIODS.includes(initPeriod) ? initPeriod : 'MONTH',
+    initPeriod && PERIODS.includes(initPeriod) ? initPeriod : 'LAST_30_DAYS',
   );
   const [warehouseId, setWarehouseId] = useState<UUID | ''>(
     (searchParams.get('warehouseId') ?? '') as UUID | '',
@@ -90,7 +91,7 @@ export default function DashboardPage() {
   const expiringUnitsAtRisk = Array.isArray(dash.expiringBatches)
     ? dash.expiringBatches.reduce((sum: number, b: { onHand?: number }) => sum + (b?.onHand ?? 0), 0)
     : 0;
-  const sectionError = dash.recentSalesUnavailable && !dash.isLoading
+  const sectionError = dash.recentSalesUnavailable && !dash.isLoading && !data
     ? 'Live recent sales could not be loaded.'
     : null;
 

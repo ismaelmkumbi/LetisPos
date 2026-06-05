@@ -4,7 +4,7 @@
  * Polished dropdown with badge count and refined styling.
  * Uses static demo data — connect to API notifications when ready.
  */
-import React, { useState } from 'react';
+import React, { useContext, useState } from 'react';
 import {
   Avatar, Badge, Box, Button, Chip,
   IconButton, Menu, MenuItem, Stack, Typography, keyframes,
@@ -14,6 +14,7 @@ import { Link } from 'react-router';
 import * as dropdownData from './data';
 import Scrollbar from 'src/components/custom-scroll/Scrollbar';
 import { brand } from 'src/theme/smartpos/brand';
+import { CustomizerContext } from 'src/context/CustomizerContext';
 
 const scaleIn = keyframes`
   from { opacity: 0; transform: scale(0.92) translateY(-4px); }
@@ -27,7 +28,9 @@ const pulse = keyframes`
 
 const Notifications = () => {
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
+  const { activeMode } = useContext(CustomizerContext);
   const open = Boolean(anchorEl);
+  const isDark = activeMode === 'dark';
   const newCount = 5;
 
   const handleOpen = (e: React.MouseEvent<HTMLElement>) => setAnchorEl(e.currentTarget);
@@ -45,14 +48,14 @@ const Notifications = () => {
           width: 44,
           height: 44,
           borderRadius: '10px',
-          border: `1px solid ${open ? brand.primary[300] : brand.neutral[200]}`,
-          bgcolor: open ? brand.primary[50] : '#FFFFFF',
-          color: open ? brand.primary[600] : brand.neutral[600],
+          border: `1px solid ${open ? (isDark ? brand.neutral[600] : brand.primary[300]) : isDark ? brand.neutral[700] : brand.neutral[200]}`,
+          bgcolor: open ? (isDark ? brand.neutral[800] : brand.primary[50]) : isDark ? '#0C1421' : '#FFFFFF',
+          color: open ? (isDark ? brand.neutral[100] : brand.primary[600]) : isDark ? brand.neutral[300] : brand.neutral[600],
           transition: 'all 0.2s ease',
           '&:hover': {
-            bgcolor: brand.primary[50],
-            borderColor: brand.primary[200],
-            color: brand.primary[600],
+            bgcolor: isDark ? brand.neutral[800] : brand.primary[50],
+            borderColor: isDark ? brand.neutral[600] : brand.primary[200],
+            color: isDark ? brand.neutral[100] : brand.primary[600],
           },
         }}
       >
@@ -65,7 +68,7 @@ const Notifications = () => {
               width: 9,
               height: 9,
               borderRadius: '50%',
-              border: '2px solid #FFFFFF',
+              border: `2px solid ${isDark ? '#0C1421' : '#FFFFFF'}`,
               animation: `${pulse} 2s ease-in-out infinite`,
             },
           }}

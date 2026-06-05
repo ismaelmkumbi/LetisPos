@@ -28,16 +28,18 @@ export default function MetricCard({
   const spkH    = isXs ? 34 : 40;
 
   const borderColor = isDark ? brand.neutral[700] : brand.neutral[200];
+  const accentBorder = isDark ? `${color}38` : `${color}55`;
+  const accentSurface = isDark ? `${color}14` : `${color}12`;
+  const accentText = isDark ? brand.neutral[200] : color;
 
   const cardBase = {
     position: 'relative' as const,
     height: '100%',
     border: `1px solid ${borderColor}`,
-    borderLeft: `4px solid ${color}`,
     borderRadius: '12px',
-    bgcolor: isDark ? brand.neutral[800] : '#FFFFFF',
+    bgcolor: isDark ? '#111B2A' : '#FFFFFF',
     boxShadow: isDark
-      ? 'none'
+      ? `inset 0 1px 0 rgba(148,163,184,0.06), 0 0 0 1px ${accentBorder}`
       : '0 10px 30px rgba(15,23,42,0.05)',
     overflow: 'hidden' as const,
     transition: 'transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease',
@@ -59,8 +61,8 @@ export default function MetricCard({
           width: { xs: 32, sm: 36 },
           height: { xs: 32, sm: 36 },
           borderRadius: '9px',
-          bgcolor: `${color}15`,
-          color,
+          bgcolor: accentSurface,
+          color: accentText,
           display: 'grid',
           placeItems: 'center',
           mb: 1.25,
@@ -165,9 +167,9 @@ export default function MetricCard({
           '&:hover': {
             transform: 'translateY(-3px)',
             boxShadow: isDark
-              ? '0 8px 28px rgba(0,0,0,0.35)'
+              ? `0 8px 28px rgba(0,0,0,0.26), 0 0 0 1px ${accentBorder}`
               : `0 10px 28px rgba(15,23,42,0.10), 0 0 0 1px ${color}25`,
-            borderLeftColor: color,
+            borderColor: isDark ? `${color}55` : `${color}66`,
           },
         }}
       >

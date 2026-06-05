@@ -18,9 +18,10 @@ const Languages = [
 const Language = () => {
   const [anchorEl, setAnchorEl] = React.useState<HTMLElement | null>(null);
   const open = Boolean(anchorEl);
-  const { isLanguage, setIsLanguage } = useContext(CustomizerContext);
+  const { isLanguage, setIsLanguage, activeMode } = useContext(CustomizerContext);
   const currentLang = Languages.find((_lang) => _lang.value === isLanguage) || Languages[0];
   const { i18n } = useTranslation();
+  const isDark = activeMode === 'dark';
 
   const handleClick = (event: React.MouseEvent<HTMLElement>) => setAnchorEl(event.currentTarget);
   const handleClose = () => setAnchorEl(null);
@@ -42,12 +43,12 @@ const Language = () => {
           width: 44,
           height: 44,
           borderRadius: '10px',
-          border: `1px solid ${open ? brand.primary[300] : brand.neutral[200]}`,
-          bgcolor: open ? brand.primary[50] : '#FFFFFF',
+          border: `1px solid ${open ? (isDark ? brand.neutral[600] : brand.primary[300]) : isDark ? brand.neutral[700] : brand.neutral[200]}`,
+          bgcolor: open ? (isDark ? brand.neutral[800] : brand.primary[50]) : isDark ? '#0C1421' : '#FFFFFF',
           transition: 'all 0.2s ease',
           '&:hover': {
-            bgcolor: brand.primary[50],
-            borderColor: brand.primary[200],
+            bgcolor: isDark ? brand.neutral[800] : brand.primary[50],
+            borderColor: isDark ? brand.neutral[600] : brand.primary[200],
           },
         }}
       >

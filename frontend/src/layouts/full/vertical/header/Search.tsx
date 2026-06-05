@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useContext, useMemo, useState } from 'react';
 import {
   Box,
   Chip,
@@ -21,6 +21,7 @@ import { Link, useLocation } from 'react-router';
 import DemoMenuitems from '../sidebar/MenuItems';
 import { brand } from 'src/theme/smartpos/brand';
 import { useAuth } from 'src/context/smartpos/AuthContext';
+import { CustomizerContext } from 'src/context/CustomizerContext';
 import type { MenuNode } from 'src/api/smartpos/features';
 
 interface SearchRoute {
@@ -66,7 +67,9 @@ const Search = () => {
   const [search, setSearch] = useState('');
   const { pathname } = useLocation();
   const { user }= useAuth();
+  const { activeMode } = useContext(CustomizerContext);
   const onSmartPos = pathname.startsWith('/smartpos');
+  const isDark = activeMode === 'dark';
 
   const routes = useMemo(() => {
     if (onSmartPos) {
@@ -123,14 +126,14 @@ const Search = () => {
           width: 44,
           height: 44,
           borderRadius: '10px',
-          border: `1px solid ${brand.neutral[200]}`,
-          bgcolor: '#FFFFFF',
-          color: brand.neutral[600],
+          border: `1px solid ${isDark ? brand.neutral[700] : brand.neutral[200]}`,
+          bgcolor: isDark ? '#0C1421' : '#FFFFFF',
+          color: isDark ? brand.neutral[300] : brand.neutral[600],
           transition: 'all 0.2s ease',
           '&:hover': {
-            bgcolor: brand.primary[50],
-            borderColor: brand.primary[200],
-            color: brand.primary[600],
+            bgcolor: isDark ? brand.neutral[800] : brand.primary[50],
+            borderColor: isDark ? brand.neutral[600] : brand.primary[200],
+            color: isDark ? brand.neutral[100] : brand.primary[600],
           },
         }}
       >

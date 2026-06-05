@@ -45,13 +45,13 @@ const Header = () => {
     height: 40,
     borderRadius: '10px',
     border: `1px solid ${isDark ? brand.neutral[700] : brand.neutral[200]}`,
-    bgcolor: isDark ? brand.neutral[800] : '#FFFFFF',
+    bgcolor: isDark ? '#0C1421' : '#FFFFFF',
     color: isDark ? brand.neutral[300] : brand.neutral[600],
     transition: 'all 0.2s ease',
     '&:hover': {
-      bgcolor: isDark ? brand.neutral[700] : brand.primary[50],
+      bgcolor: isDark ? brand.neutral[800] : brand.primary[50],
       borderColor: isDark ? brand.neutral[600] : brand.primary[200],
-      color: brand.primary[600],
+      color: isDark ? brand.neutral[100] : brand.primary[600],
     },
   };
 
@@ -83,8 +83,8 @@ const Header = () => {
       sx={{
         height: 38,
         minWidth: mdDown ? 38 : 'auto',
-        background: `linear-gradient(135deg, ${brand.primary[500]} 0%, ${brand.primary[700]} 100%)`,
-        color: '#fff',
+        background: isDark ? brand.primary[700] : `linear-gradient(135deg, ${brand.primary[500]} 0%, ${brand.primary[700]} 100%)`,
+        color: brand.neutral[50],
         fontWeight: 700,
         fontSize: '0.813rem',
         px: mdDown ? 0 : 2.2,
@@ -93,7 +93,7 @@ const Header = () => {
         boxShadow: `0 6px 16px -8px ${brand.primary[600]}`,
         transition: 'all 0.2s ease',
         '&:hover': {
-          background: `linear-gradient(135deg, ${brand.primary[600]} 0%, ${brand.primary[800]} 100%)`,
+          background: isDark ? brand.primary[600] : `linear-gradient(135deg, ${brand.primary[600]} 0%, ${brand.primary[800]} 100%)`,
           transform: 'translateY(-1px)',
           boxShadow: `0 8px 22px -8px ${brand.primary[700]}`,
         },

@@ -30,6 +30,13 @@ interface KpiGridProps {
   purchasesDelta?: Delta;
 }
 
+const metricPalette = {
+  collected: '#14B8A6',
+  sales: brand.info.main,
+  orders: brand.warning.main,
+  aov: brand.purple.main,
+} as const;
+
 function KpiGrid({
   data,
   salesSeries,
@@ -60,14 +67,14 @@ function KpiGrid({
 
   return (
     <>
-      {/* Cash in Hand */}
+      {/* Collected Sales */}
       <Grid size={{ xs: 6, sm: 6, lg: 2 }} sx={{ minWidth: 0 }}>
         <MetricCard
-          label="Cash in Hand"
-          value={formatMoney(data?.payments.totalIn ?? 0)}
+          label="Collected Sales"
+          value={formatMoney(data?.sales.paid ?? data?.payments.totalIn ?? 0)}
           change={trendLabel(revenueTrend)}
           icon={<IconWallet size={20} />}
-          color={brand.primary[600]}
+          color={metricPalette.collected}
           series={salesSeries}
           delta={cashDelta}
           onClick={() => navigate('/smartpos/accounts')}
@@ -81,7 +88,7 @@ function KpiGrid({
           value={formatMoney(data?.sales.net ?? 0)}
           change={trendLabel(revenueTrend)}
           icon={<IconBriefcase size={20} />}
-          color={brand.info.main}
+          color={metricPalette.sales}
           series={salesSeries}
           delta={salesDelta}
           onClick={() => navigate('/smartpos/reports/sales')}
@@ -95,7 +102,7 @@ function KpiGrid({
           value={formatNumber(data?.sales.count ?? 0)}
           change={trendLabel(trend(orderSeries))}
           icon={<IconShoppingCart size={20} />}
-          color={brand.warning.main}
+          color={metricPalette.orders}
           series={orderSeries}
           delta={ordersDelta}
           onClick={() => navigate('/smartpos/sales')}
@@ -109,7 +116,7 @@ function KpiGrid({
           value={formatMoney(aov)}
           change={trendLabel(aovTrend)}
           icon={<IconReceipt size={20} />}
-          color={brand.primary[500]}
+          color={metricPalette.aov}
           series={aovSeries}
           onClick={() => navigate('/smartpos/reports/sales')}
         />
