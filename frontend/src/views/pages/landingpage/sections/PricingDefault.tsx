@@ -40,7 +40,7 @@ const PricingDefault: React.FC<PricingDefaultProps> = ({ billing, tiers }) => {
   };
 
   const getCtaProps = (tier: PricingTier) => {
-    if (tier.cta === 'Start free trial') {
+    if (tier.cta === 'Claim launch access') {
       return { href: `/auth/login?plan=${tier.planCode}` };
     }
     if (tier.cta === 'Contact sales') {

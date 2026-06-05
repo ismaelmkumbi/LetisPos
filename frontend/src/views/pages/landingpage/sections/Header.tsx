@@ -77,7 +77,7 @@ const Header: React.FC = () => {
                     Sign in
                   </CtaButton>
                   <CtaButton variant="primary" href="/auth/login?plan=starter">
-                    Start free trial
+                    Claim launch access
                   </CtaButton>
                 </Stack>
               </Stack>
@@ -163,7 +163,7 @@ const Header: React.FC = () => {
                 Sign in
               </CtaButton>
               <CtaButton variant="primary" href="/auth/login?plan=starter" fullWidth>
-                Start free trial
+                Claim launch access
               </CtaButton>
             </Stack>
           </Box>

@@ -93,7 +93,7 @@ export function plansToTiers(plans: PlanDefinition[]): PricingTier[] {
           ...parseFeatures(p.features),
           isEnterprise ? 'SLA Support' : p.code === 'PROFESSIONAL' ? 'Priority Support' : 'Email Support',
         ],
-        cta: isEnterprise ? 'Contact sales' : 'Start free trial',
+        cta: isEnterprise ? 'Contact sales' : 'Claim launch access',
         ctaVariant: (isBusiness ? 'primary' : 'secondary') as 'primary' | 'secondary',
         highlighted: isBusiness,
       };
@@ -116,7 +116,7 @@ export const pricingTiers: PricingTier[] = [
       'WhatsApp Receipts', 'Expiry Tracking',
       'Basic Reports', 'Email Support',
     ],
-    cta: 'Start free trial',
+    cta: 'Claim launch access',
     ctaVariant: 'secondary' as const,
     highlighted: false,
   },
@@ -136,7 +136,7 @@ export const pricingTiers: PricingTier[] = [
       'M-Pesa Payments', 'Marketing & Coupons',
       'Branches', 'Priority Email Support',
     ],
-    cta: 'Start free trial',
+    cta: 'Claim launch access',
     ctaVariant: 'primary' as const,
     highlighted: true,
   },
@@ -156,7 +156,7 @@ export const pricingTiers: PricingTier[] = [
       'Multi-Currency', 'Audit Logs',
       'Customer Analytics', 'Chat & Phone Support',
     ],
-    cta: 'Start free trial',
+    cta: 'Claim launch access',
     ctaVariant: 'secondary' as const,
     highlighted: false,
   },
@@ -190,12 +190,12 @@ export interface FaqItem {
 
 export const pricingFaqs: FaqItem[] = [
   {
-    question: 'Can I try Letis POS for free?',
-    answer: 'Yes! We offer a 30-day free trial with full access to all features in your chosen plan. No credit card required.',
+    question: 'Can I use Letis POS before paying?',
+    answer: 'Yes. Limited launch access lets you start using Letis POS for a limited time with no credit card required.',
   },
   {
     question: 'Do I need a credit card to start?',
-    answer: 'No. You can start your free trial without entering any payment information.',
+    answer: 'No. You can claim launch access without entering any payment information.',
   },
   {
     question: 'Can I upgrade or downgrade my plan later?',

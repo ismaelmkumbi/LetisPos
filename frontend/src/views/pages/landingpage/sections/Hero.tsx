@@ -5,6 +5,7 @@ import {
   IconBrain,
   IconCashRegister,
   IconCloudUpload,
+  IconClockHour4,
   IconShieldCheck,
 } from '@tabler/icons-react';
 import CtaButton from '../components/CtaButton';
@@ -137,7 +138,7 @@ const Hero: React.FC = () => {
                 endIcon={<IconArrowRight size={18} />}
                 sx={{ minHeight: 52, boxShadow: '0 18px 42px rgba(22, 163, 74, 0.26)' }}
               >
-                Start free trial
+                Claim launch access
               </CtaButton>
               <CtaButton
                 variant="secondary"
@@ -176,10 +177,10 @@ const Hero: React.FC = () => {
                   fontWeight: 750,
                 }}
               >
-                <IconCloudUpload size={20} color="#16A34A" />
-                System status:
+                <IconClockHour4 size={20} color="#16A34A" />
+                Limited launch access:
                 <Box component="span" sx={{ color: '#16A34A', fontWeight: 950 }}>
-                  Online
+                  Open now
                 </Box>
               </Stack>
 

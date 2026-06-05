@@ -41,11 +41,11 @@ const FinalCta: React.FC = () => {
               mx: 'auto',
             }}
           >
-            Join businesses already running on Letis. Start your free trial today — no credit card required.
+            Join businesses already running on Letis. Limited launch access is open now, no credit card required.
           </Typography>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="center">
             <CtaButton variant="primary" href="/auth/login?plan=starter" size="large">
-              Start free trial
+              Claim launch access
             </CtaButton>
             <CtaButton variant="secondary" size="large" onClick={openDemo}>
               Book a demo
