@@ -59,9 +59,10 @@ export function VerticalProvider({ children }: { children: React.ReactNode }) {
       setError(null);
       const tvs = await getMyVerticals();
       setActiveVerticals(mapTenantVerticals(tvs));
-    } catch (e: unknown) {
+    } catch {
+      // verticals endpoint may not be deployed yet — silent fallback
       setActiveVerticals([]);
-      setError(e instanceof Error ? e.message : 'Failed to load verticals');
+      setError(null);
     } finally {
       setLoading(false);
     }

@@ -34,34 +34,47 @@ export interface VerticalFieldDefinition {
 
 // ── API Calls ──────────────────────────────────────────────────────────────
 
-/** List all registered vertical definitions (system catalog). */
+/** List all registered vertical definitions (system catalog).
+ *  Returns empty array if product-service is not deployed. */
 export async function listVerticalDefinitions(): Promise<VerticalDefinition[]> {
-  const { data } = await api.get<VerticalDefinition[]>('/api/v1/verticals/fields');
-  return data;
+  try {
+    const { data } = await api.get<VerticalDefinition[]>('/api/v1/verticals/fields');
+    return data;
+  } catch { return []; }
 }
 
-/** Get field definitions for a specific vertical (for dynamic form rendering). */
+/** Get field definitions for a specific vertical (for dynamic form rendering).
+ *  Returns empty array if product-service is not deployed. */
 export async function getVerticalFields(
   verticalKey: string,
 ): Promise<VerticalFieldDefinition[]> {
-  const { data } = await api.get<VerticalFieldDefinition[]>(
-    `/api/v1/verticals/${verticalKey}/fields`,
-  );
-  return data;
+  try {
+    const { data } = await api.get<VerticalFieldDefinition[]>(
+      `/api/v1/verticals/${verticalKey}/fields`,
+    );
+    return data;
+  } catch { return []; }
 }
 
-/** Get active verticals for the current tenant. */
+/** Get active verticals for the current tenant.
+ *  When the verticals service is unavailable (404/500),
+ *  returns an empty array so the app doesn't crash. */
 export async function getMyVerticals(): Promise<TenantVertical[]> {
-  const { data } = await api.get<TenantVertical[]>('/api/v1/tenants/me/verticals');
-  return data;
+  try {
+    const { data } = await api.get<TenantVertical[]>('/api/v1/tenants/me/verticals');
+    return data;
+  } catch {
+    // product-service may not be deployed in all environments
+    return [];
+  }
 }
 
-/** Activate a vertical for the current tenant. */
+/** Activate a vertical for the current tenant. No-op if service unavailable. */
 export async function activateVertical(verticalKey: string): Promise<void> {
-  await api.post('/api/v1/tenants/me/verticals', { verticalKey });
+  try { await api.post('/api/v1/tenants/me/verticals', { verticalKey }); } catch {}
 }
 
-/** Deactivate a vertical for the current tenant. */
+/** Deactivate a vertical for the current tenant. No-op if service unavailable. */
 export async function deactivateVertical(verticalKey: string): Promise<void> {
-  await api.delete(`/api/v1/tenants/me/verticals/${verticalKey}`);
+  try { await api.delete(`/api/v1/tenants/me/verticals/${verticalKey}`); } catch {}
 }
