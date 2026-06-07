@@ -57,7 +57,7 @@ export default function DebtorsPage() {
   const [selectedDebtor, setSelectedDebtor] = useState<DebtorSummary | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  const { data: debtors, isLoading, error } = useQuery({
+  const { data: debtors, isLoading, error } = useQuery<DebtorSummary[]>({
     queryKey: ['debtors', search, overdueOnly],
     queryFn: () => listDebtors({ search: search || undefined, overdueOnly }),
     staleTime: 15_000,
@@ -103,8 +103,8 @@ export default function DebtorsPage() {
     <Box sx={{ p: 3 }}>
       <PageHeader title="Debtors (AR)" subtitle="Customers with outstanding balances" />
       <Stack direction="row" spacing={2} sx={{ mb: 3 }}>
-        <MetricCard label="Total Outstanding" value={fmt(debtors?.reduce((s, d) => s + d.outstanding, 0) || 0)} icon={<IconCash size={24} />} />
-        <MetricCard label="Overdue" value={fmt(debtors?.filter(d => d.overdue).reduce((s, d) => s + d.outstanding, 0) || 0)} icon={<IconCash size={24} />} />
+        <MetricCard label="Total Outstanding" value={fmt(debtors?.reduce((s: number, d) => s + d.outstanding, 0) || 0)} icon={<IconCash size={24} />} />
+        <MetricCard label="Overdue" value={fmt(debtors?.filter(d => d.overdue).reduce((s: number, d) => s + d.outstanding, 0) || 0)} icon={<IconCash size={24} />} />
       </Stack>
       <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 2 }}>
         <TextField size="small" placeholder="Search debtors..." value={search} onChange={(e) => setSearch(e.target.value)} sx={{ minWidth: 280 }} />
