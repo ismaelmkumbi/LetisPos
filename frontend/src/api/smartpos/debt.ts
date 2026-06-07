@@ -12,7 +12,7 @@
  * - GET /api/v1/payments (for collection activity)
  */
 import { api } from './client';
-import { listSales, type Sale } from './sales';
+import { listSales, type Sale, type Purchase } from './sales';
 import type { UUID, Customer } from './types';
 
 /** Per-debtor summary */
@@ -228,7 +228,7 @@ export async function listCreditors(params?: { search?: string }): Promise<Credi
 
   const allUnpaid = [...(purchasesPage.content || []), ...(partialPage.content || [])];
 
-  const bySupplier = new Map<UUID, any[]>();
+  const bySupplier = new Map<UUID, Purchase[]>();
   for (const p of allUnpaid) {
     if (!p.supplierId) continue;
     const existing = bySupplier.get(p.supplierId) || [];
@@ -238,9 +238,9 @@ export async function listCreditors(params?: { search?: string }): Promise<Credi
 
   const results: CreditorSummary[] = [];
   for (const [supplierId, purchases] of bySupplier) {
-    const outstanding = purchases.reduce((sum: number, p: any) => sum + (p.dueTotal || p.grandTotal || 0), 0);
+    const outstanding = purchases.reduce((sum, p) => sum + (p.dueTotal || p.grandTotal || 0), 0);
     const aging = computeAgingBuckets(
-      purchases.map((p: any) => ({ date: p.date, dueDate: p.dueDate, amount: p.dueTotal || p.grandTotal || 0 })),
+      purchases.map((p) => ({ date: p.date, dueDate: p.dueDate, amount: p.dueTotal || p.grandTotal || 0 })),
     );
 
     results.push({
@@ -320,7 +320,7 @@ export async function getDebtDashboard(): Promise<DebtDashboard> {
     const { data: paymentsPage } = await api.get('/api/v1/payments', {
       params: { referenceType: 'SALE', size: 10, sort: 'date,desc' },
     });
-    recentCollections = (paymentsPage.content || []).map((p: any) => ({
+    recentCollections = (paymentsPage.content || []).map((p: { date?: string; referenceNo?: string; amount?: number; customerName?: string }) => ({
       date: p.date,
       description: `Payment for ${p.referenceNo || 'sale'}`,
       type: 'PAYMENT' as const,

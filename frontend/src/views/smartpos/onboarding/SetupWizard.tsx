@@ -34,6 +34,8 @@ const STATE_KEY: Record<string, keyof import('src/api/smartpos/onboarding').Onbo
   first_sale: 'firstSale',
 };
 
+type OnboardingStepKey = Exclude<typeof STEP_KEYS[number], 'shop_type'>;
+
 interface Props {
   open: boolean;
   onClose: () => void;
@@ -66,7 +68,7 @@ export default function SetupWizard({ open, onClose }: Props) {
     const stepKey = STEP_KEYS[activeStep];
     const stateKey = STATE_KEY[stepKey];
     if (stateKey !== null) {
-      completeStep(stepKey as any); // shop_type has null stateKey, not passed
+      completeStep(stepKey as OnboardingStepKey); // shop_type has null stateKey, not passed
     }
     advanceToNextIncomplete();
   };

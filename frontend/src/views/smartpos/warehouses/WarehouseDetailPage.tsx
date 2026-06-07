@@ -130,7 +130,7 @@ export default function WarehouseDetailPage() {
         </Typography>
       ),
     },
-  ], []);
+  ], [brand]);
 
   if (loading) {
     return (

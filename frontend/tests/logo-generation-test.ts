@@ -19,9 +19,6 @@ const escapeXml = (value: string) =>
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
 
-const svgDataUri = (svg: string) =>
-  `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
-
 const initialsFor = (name: string | undefined | null) => {
   if (!name) return 'LP';
   const clean = name.trim();
@@ -84,7 +81,7 @@ const markGlyph = (industry: string, stroke: string, fill: string) => {
 
 type LogoMode = 'full' | 'mono' | 'thermal' | 'favicon';
 
-function buildLogo(profile: any, mode: LogoMode): string {
+function buildLogo(profile: TestProfile, mode: LogoMode): string {
   const isMono = mode === 'mono' || mode === 'thermal';
   const primary = isMono ? '#111827' : profile.primaryColor || brand.primary[600];
   const secondary = isMono ? '#111827' : profile.secondaryColor || brand.neutral[700];
@@ -244,8 +241,9 @@ for (const tc of testCases) {
       const filename = `${safeName}_${mode}.svg`;
       fs.writeFileSync(path.join(outputDir, filename), svg, 'utf-8');
       results.push(filename);
-    } catch (err: any) {
-      console.log(`${label} ❌ CRASH — ${err.message}`);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.log(`${label} ❌ CRASH — ${msg}`);
       failed++;
     }
   }

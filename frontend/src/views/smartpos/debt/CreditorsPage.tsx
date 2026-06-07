@@ -78,7 +78,7 @@ export default function CreditorsPage() {
           }}><IconFileInvoice size={18} /></IconButton></Tooltip>
         </Stack>),
     },
-  ], [queryClient]);
+  ], [queryClient, brand.warning.main]);
 
   if (error) return <Box sx={{ p: 3 }}><Alert severity="error">Failed to load creditors: {(error as Error).message}</Alert></Box>;
 

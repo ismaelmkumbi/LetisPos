@@ -45,6 +45,7 @@ import PageHeader from 'src/components/smartpos/PageHeader';
 import DataTable, { type Column, StatusBadge } from 'src/components/smartpos/DataTable';
 import { brand } from 'src/theme/smartpos/brand';
 import { premiumFieldSx } from 'src/components/smartpos/PosLayouts/shared';
+import type { Theme } from '@mui/material/styles';
 import {
   listUsers,
   updateUser,
@@ -66,7 +67,7 @@ import type { UUID } from 'src/api/smartpos/types';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-const fieldSx = (theme: any) => {
+const fieldSx = (theme: Theme) => {
   const base = premiumFieldSx(theme);
   return {
     ...base,

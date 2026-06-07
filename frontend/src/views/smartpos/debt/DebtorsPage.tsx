@@ -95,7 +95,7 @@ export default function DebtorsPage() {
           }}><IconFileInvoice size={18} /></IconButton></Tooltip>
         </Stack>),
     },
-  ], [queryClient]);
+  ], [queryClient, brand.error.main]);
 
   if (error) return <Box sx={{ p: 3 }}><Alert severity="error">Failed to load debtors: {(error as Error).message}</Alert></Box>;
 

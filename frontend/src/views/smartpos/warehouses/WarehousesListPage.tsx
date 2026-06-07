@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import {
   Alert, Avatar, Box, Button, Dialog, DialogActions,
@@ -123,7 +123,7 @@ export default function WarehousesListPage() {
 
   // ── Status toggle ──────────────────────────────────────────────────────
   const [toggling, setToggling] = useState<Set<string>>(new Set());
-  const handleToggleStatus = async (w: Warehouse) => {
+  const handleToggleStatus = useCallback(async (w: Warehouse) => {
     setToggling((prev) => new Set(prev).add(w.id));
     try {
       await toggleWarehouseStatus(w.id, !w.active);
@@ -133,7 +133,7 @@ export default function WarehousesListPage() {
     } finally {
       setToggling((prev) => { const next = new Set(prev); next.delete(w.id); return next; });
     }
-  };
+  }, []);
 
   // ── Delete single ──────────────────────────────────────────────────────
   const [deleteTarget, setDeleteTarget] = useState<Warehouse | null>(null);
@@ -319,7 +319,7 @@ export default function WarehousesListPage() {
         </Stack>
       ),
     },
-  ], [sel, summaries, toggling, t]);
+  ], [sel, summaries, toggling, t, brand, handleToggleStatus]);
 
   return (
     <Box>

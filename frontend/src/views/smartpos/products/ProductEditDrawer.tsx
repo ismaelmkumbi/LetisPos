@@ -349,7 +349,7 @@ export default function ProductEditDrawer({ open, initial, onClose, onSaved, onD
         })),
       );
       // Populate vertical extension data
-      setExtensionData((src as any).verticalExtensions ?? {});
+      setExtensionData(src.verticalExtensions ?? {});
     } else {
       setForm(emptyForm);
       setVariantDrafts([]);
