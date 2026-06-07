@@ -1,6 +1,12 @@
 -- Add "Debt Collection" section header and menu items
 -- Sits between Reports (sort_order 8) and Marketing (sort_order 9)
 
+-- Ensure the debt.collection feature exists before inserting menu items
+-- that reference it. This migration is the authoritative seed for this feature.
+INSERT INTO feature_definitions (key, label, category, sort_order)
+VALUES ('debt.collection', 'Debt Collection Module', 'FINANCE', 28)
+ON CONFLICT (key) DO NOTHING;
+
 INSERT INTO menu_definitions (key, label, icon, route, required_feature_key, sort_order, is_section_header)
 VALUES ('section-debt-collection', 'Debt Collection', 'coin', NULL, NULL, 8.5, true)
 ON CONFLICT (key) DO UPDATE SET
