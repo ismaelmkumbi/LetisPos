@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import {
   Box, Drawer, Typography, Stack, IconButton, Divider,
@@ -9,30 +9,46 @@ import {
   IconX, IconCalculator, IconBuildingWarehouse, IconArrowBackUp,
 } from '@tabler/icons-react';
 import { brand } from 'src/theme/smartpos/brand';
+import { useFeatures } from 'src/hooks/useFeatures';
 
-const moreLinks = [
-  { icon: <IconUsers size={20} strokeWidth={1.8} />, label: 'Customers', path: '/smartpos/customers' },
-  { icon: <IconTruck size={20} strokeWidth={1.8} />, label: 'Suppliers', path: '/smartpos/suppliers' },
-  { icon: <IconBuildingWarehouse size={20} strokeWidth={1.8} />, label: 'Warehouses', path: '/smartpos/warehouses' },
-  { icon: <IconArrowBackUp size={20} strokeWidth={1.8} />, label: 'Returns', path: '/smartpos/returns' },
-  { icon: <IconCalculator size={20} strokeWidth={1.8} />, label: 'Accounting', path: '/smartpos/accounting/chart-of-accounts' },
-  { icon: <IconChartBar size={20} strokeWidth={1.8} />, label: 'Reports', path: '/smartpos/reports' },
-  { icon: <IconSparkles size={20} strokeWidth={1.8} />, label: 'Insights', path: '/smartpos/ai' },
-  { icon: <IconUsersGroup size={20} strokeWidth={1.8} />, label: 'HRM', path: '/smartpos/hrm/employees' },
-  { icon: <IconBell size={20} strokeWidth={1.8} />, label: 'Notifications', path: '/smartpos/notifications/templates' },
-  { icon: <IconPlug size={20} strokeWidth={1.8} />, label: 'Integrations', path: '/smartpos/integrations' },
-  { icon: <IconSettings size={20} strokeWidth={1.8} />, label: 'Settings', path: '/smartpos/settings' },
+interface MoreLink {
+  icon: React.ReactNode;
+  label: string;
+  path: string;
+  /** The user must have this feature key to see this link. */
+  requireFeature?: string;
+}
+
+const moreLinks: MoreLink[] = [
+  { icon: <IconUsers size={20} strokeWidth={1.8} />, label: 'Customers', path: '/smartpos/customers', requireFeature: 'customer.view' },
+  { icon: <IconTruck size={20} strokeWidth={1.8} />, label: 'Suppliers', path: '/smartpos/suppliers', requireFeature: 'purchase.view' },
+  { icon: <IconBuildingWarehouse size={20} strokeWidth={1.8} />, label: 'Warehouses', path: '/smartpos/warehouses', requireFeature: 'product.view' },
+  { icon: <IconArrowBackUp size={20} strokeWidth={1.8} />, label: 'Returns', path: '/smartpos/returns', requireFeature: 'sale.view' },
+  { icon: <IconCalculator size={20} strokeWidth={1.8} />, label: 'Accounting', path: '/smartpos/accounting/chart-of-accounts', requireFeature: 'accounting.module' },
+  { icon: <IconChartBar size={20} strokeWidth={1.8} />, label: 'Reports', path: '/smartpos/reports', requireFeature: 'report.hub' },
+  { icon: <IconSparkles size={20} strokeWidth={1.8} />, label: 'Insights', path: '/smartpos/ai', requireFeature: 'ai.module' },
+  { icon: <IconUsersGroup size={20} strokeWidth={1.8} />, label: 'HRM', path: '/smartpos/hrm/employees', requireFeature: 'hrm.module' },
+  { icon: <IconBell size={20} strokeWidth={1.8} />, label: 'Notifications', path: '/smartpos/notifications/templates', requireFeature: 'notification.view' },
+  { icon: <IconPlug size={20} strokeWidth={1.8} />, label: 'Integrations', path: '/smartpos/integrations', requireFeature: 'integration.module' },
+  { icon: <IconSettings size={20} strokeWidth={1.8} />, label: 'Settings', path: '/smartpos/settings', requireFeature: 'setting.manage' },
 ];
 
 const MoreMenuSheet: React.FC = () => {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
+  const { hasFeature } = useFeatures();
 
   useEffect(() => {
     const handler = () => setOpen((v) => !v);
     window.addEventListener('toggle-more-menu', handler);
     return () => window.removeEventListener('toggle-more-menu', handler);
   }, []);
+
+  // Only show links the user has the required feature for (or links with no requirement).
+  const visibleLinks = useMemo(
+    () => moreLinks.filter((link) => !link.requireFeature || hasFeature(link.requireFeature)),
+    [hasFeature],
+  );
 
   const handleNav = (path: string) => {
     navigate(path);
@@ -75,7 +91,7 @@ const MoreMenuSheet: React.FC = () => {
       {/* Grid of links */}
       <Box sx={{ px: 2, pt: 2, pb: 2 }}>
         <Stack direction="row" flexWrap="wrap" useFlexGap sx={{ gap: 0.75 }}>
-          {moreLinks.map((link) => (
+          {visibleLinks.map((link) => (
             <Box
               key={link.label}
               onClick={() => handleNav(link.path)}

@@ -193,6 +193,21 @@ const SmartPosPrinterSettings = Loadable(
 const SmartPosBrandIdentity = Loadable(
   lazy(() => import('../views/smartpos/settings/BrandIdentityPage')),
 );
+const SmartPosShopType = Loadable(
+  lazy(() => import('../views/smartpos/settings/ShopTypePage')),
+);
+const SmartPosDrugCatalog = Loadable(
+  lazy(() => import('../views/smartpos/pharmacy/DrugCatalogPage')),
+);
+const SmartPosPrescriptions = Loadable(
+  lazy(() => import('../views/smartpos/pharmacy/PrescriptionsPage')),
+);
+const SmartPosPharmacyPatients = Loadable(
+  lazy(() => import('../views/smartpos/pharmacy/PatientsPage')),
+);
+const SmartPosControlledSubstances = Loadable(
+  lazy(() => import('../views/smartpos/pharmacy/ControlledSubstancesPage')),
+);
 const SmartPosDocTheme = Loadable(
   lazy(() => import('../views/smartpos/settings/DocumentThemePage')),
 );
@@ -291,11 +306,7 @@ const SmartPosSettings = Loadable(
   lazy(() => import('../views/smartpos/settings/SettingsPlaceholder')),
 );
 const SmartPosUsersRoles = Loadable(
-  lazy(() =>
-    import('../views/smartpos/settings/SettingsPlaceholder').then((m) => ({
-      default: m.UsersRolesSettings,
-    })),
-  ),
+  lazy(() => import('../views/smartpos/settings/UsersRolesPage')),
 );
 const SmartPosLocale = Loadable(
   lazy(() =>
@@ -356,6 +367,18 @@ const SmartPosEmailCampaigns = Loadable(
 );
 const SmartPosWhatsAppCampaigns = Loadable(
   lazy(() => import('../views/smartpos/marketing/WhatsAppCampaignsPage')),
+);
+const SmartPosDebtDashboard = Loadable(
+  lazy(() => import('../views/smartpos/debt/DebtDashboardPage')),
+);
+const SmartPosDebtors = Loadable(
+  lazy(() => import('../views/smartpos/debt/DebtorsPage')),
+);
+const SmartPosCreditors = Loadable(
+  lazy(() => import('../views/smartpos/debt/CreditorsPage')),
+);
+const SmartPosDebtDocuments = Loadable(
+  lazy(() => import('../views/smartpos/debt/DebtDocumentsPage')),
 );
 
 /* ****Pages***** */
@@ -630,6 +653,11 @@ const Router = [
       { path: 'billing/history', element: <PaymentHistoryPage /> },
       // Settings
       { path: 'settings/brand-identity', element: <SmartPosBrandIdentity /> },
+      { path: 'settings/shop-type', element: <SmartPosShopType /> },
+      { path: 'pharmacy/drugs', element: <SmartPosDrugCatalog /> },
+      { path: 'pharmacy/prescriptions', element: <SmartPosPrescriptions /> },
+      { path: 'pharmacy/patients', element: <SmartPosPharmacyPatients /> },
+      { path: 'pharmacy/controlled', element: <SmartPosControlledSubstances /> },
       { path: 'settings/document-themes', element: <SmartPosDocTheme /> },
       { path: 'settings/i18n', element: <SmartPosI18nAdmin /> },
       { path: 'settings/receipt', element: <SmartPosReceiptSettings /> },
@@ -671,6 +699,11 @@ const Router = [
       { path: 'purchases/:id/edit', element: <FeatureGate feature="purchase.view"><SmartPosPurchaseBuilder /></FeatureGate> },
       { path: 'purchases/received', element: <FeatureGate feature="purchase.view"><SmartPosGoodsReceived /></FeatureGate> },
       { path: 'purchases/returns', element: <FeatureGate feature="purchase.return"><SmartPosSupplierReturns /></FeatureGate> },
+      // Debt Collection
+      { path: 'debt/dashboard', element: <FeatureGate feature="debt.collection"><SmartPosDebtDashboard /></FeatureGate> },
+      { path: 'debt/debtors', element: <FeatureGate feature="debt.collection"><SmartPosDebtors /></FeatureGate> },
+      { path: 'debt/creditors', element: <FeatureGate feature="debt.collection"><SmartPosCreditors /></FeatureGate> },
+      { path: 'debt/documents', element: <FeatureGate feature="debt.collection"><SmartPosDebtDocuments /></FeatureGate> },
       // Money
       { path: 'accounts', element: <FeatureGate feature="account.manage"><SmartPosAccounts /></FeatureGate> },
       { path: 'payments', element: <FeatureGate feature="payment.view"><SmartPosPayments /></FeatureGate> },
@@ -700,13 +733,14 @@ const Router = [
       { path: 'reports/schedules', element: <FeatureGate feature="report.custom"><SmartPosReportSchedules /></FeatureGate> },
       { path: 'reports/builder', element: <FeatureGate feature="report.custom"><SmartPosReportBuilder /></FeatureGate> },
       { path: 'reports/exports', element: <FeatureGate feature="report.export"><SmartPosReports /></FeatureGate> },
-      // Settings
+      // Tenant settings — accessible to any authenticated tenant user.
+      // The backend menu filtering and client-side SidebarItems role filter
+      // control which items appear in the sidebar.
       { path: 'settings', element: <SmartPosSettings /> },
       { path: 'settings/users', element: <SmartPosUsersRoles /> },
       { path: 'settings/tenants', element: <Navigate to="/smartpos/admin/tenants/list" replace /> },
       { path: 'settings/locale', element: <SmartPosLocale /> },
-      { path: 'settings/onboarding', element: <SmartPosOnboarding /> },
-      { path: 'admin/branches', element: <RequireAuth><RequireAdmin><SmartPosBranches /></RequireAdmin></RequireAuth> },
+      { path: 'settings/onboarding', element: <SmartPosOnboarding /> },      { path: 'admin/branches', element: <RequireAuth><RequireAdmin><SmartPosBranches /></RequireAdmin></RequireAuth> },
       { path: 'admin/tenants', element: <RequireAuth><RequireAdmin><TenantDashboardPage /></RequireAdmin></RequireAuth> },
       { path: 'admin/tenants/list', element: <RequireAuth><RequireAdmin><TenantListPage /></RequireAdmin></RequireAuth> },
       { path: 'admin/tenants/:id', element: <RequireAuth><RequireAdmin><TenantDetailPage /></RequireAdmin></RequireAuth> },

@@ -54,6 +54,94 @@ function transformNode(node: MenuNode): Record<string, unknown> {
   };
 }
 
+/**
+ * Role hierarchy for client-side menu safety-net filtering.
+ * Higher = more privileged. Mirrors the backend ROLE_LEVEL map.
+ */
+const ROLE_LEVEL: Record<string, number> = {
+  SUPER_ADMIN: 5,
+  TENANT_ADMIN: 4,
+  OWNER: 3,
+  MANAGER: 2,
+  CASHIER: 1,
+};
+
+/** Route prefixes for platform-only items that require SUPER_ADMIN (level 5). */
+const PLATFORM_ROUTE_PREFIXES = [
+  '/smartpos/admin/tenants', '/smartpos/admin/platform-settings',
+  '/smartpos/admin/features', '/smartpos/admin/sessions',
+  '/smartpos/admin/api-keys', '/smartpos/admin/audit-logs',
+  '/smartpos/admin/error-logs', '/smartpos/admin/data-retention',
+  '/smartpos/admin/backups', '/smartpos/admin/troubleshooting',
+];
+
+/** Route prefixes that require at least TENANT_ADMIN (level 4). */
+const ADMIN_ROUTE_PREFIXES = ['/smartpos/admin', '/smartpos/integrations', '/smartpos/settings'];
+
+/** Route prefixes that require at least MANAGER (level 2). */
+const MANAGER_ROUTE_PREFIXES = [
+  '/smartpos/hrm', '/smartpos/accounting', '/smartpos/ai',
+  '/smartpos/crm', '/smartpos/marketing',
+  '/smartpos/reports/financial', '/smartpos/reports/employees',
+  '/smartpos/reports/profit-loss',
+];
+
+/**
+ * Compute the highest role level for the current user.
+ * Defaults to CASHIER level (1) if no recognized role is found.
+ */
+function computeMaxRoleLevel(roles: string[]): number {
+  if (!roles || roles.length === 0) return 1;
+  let max = 1;
+  for (const r of roles) {
+    max = Math.max(max, ROLE_LEVEL[r] ?? 1);
+  }
+  return max;
+}
+
+/**
+ * Client-side safety net: filter API menu nodes whose route implies a higher
+ * role than the user has. This is defense-in-depth — the primary filtering
+ * happens on the backend.
+ *
+ * Platform routes (level 5) are checked FIRST, before the broader admin
+ * prefix (level 4), so a TENANT_ADMIN sees tenant settings but not Platform
+ * Settings, Tenants list, Features manager, etc.
+ */
+function filterMenuNodesByRole(
+  nodes: MenuNode[],
+  maxRoleLevel: number,
+): MenuNode[] {
+  if (maxRoleLevel >= 5) return nodes; // SUPER_ADMIN sees everything
+  return nodes
+    .map((node) => {
+      const route = node.route ?? '';
+      // Platform routes → require SUPER_ADMIN (level 5)
+      if (PLATFORM_ROUTE_PREFIXES.some((p) => route.startsWith(p))) {
+        return null;
+      }
+      // Tenant admin prefixes → require level 4
+      if (maxRoleLevel < 4 && ADMIN_ROUTE_PREFIXES.some((p) => route.startsWith(p))) {
+        return null;
+      }
+      // Manager prefixes → require level 2
+      if (maxRoleLevel < 2 && MANAGER_ROUTE_PREFIXES.some((p) => route.startsWith(p))) {
+        return null;
+      }
+      // Recurse into children
+      if (node.children.length > 0) {
+        const filteredChildren = filterMenuNodesByRole(node.children, maxRoleLevel);
+        // Hide section headers whose children all got filtered out
+        if (node.sectionHeader && filteredChildren.length === 0) {
+          return null;
+        }
+        return { ...node, children: filteredChildren };
+      }
+      return node;
+    })
+    .filter((n): n is MenuNode => n !== null);
+}
+
 const SidebarItems = () => {
   const { pathname } = useLocation();
   const pathDirect = pathname;
@@ -68,17 +156,25 @@ const SidebarItems = () => {
   const isSmartPos = pathname.startsWith('/smartpos');
   const apiMenu: MenuNode[] = (user as any)?.menu ?? [];
 
+  // Client-side safety net: apply role-based filtering to the API menu.
+  const roles: string[] = (user as any)?.roles ?? [];
+  const maxRoleLevel = useMemo(() => computeMaxRoleLevel(roles), [roles]);
+  const filteredApiMenu = useMemo(
+    () => filterMenuNodesByRole(apiMenu, maxRoleLevel),
+    [apiMenu, maxRoleLevel],
+  );
+
   // For smartpos paths, render from the API menu. Otherwise keep the demo menu.
   const Menuitems = useMemo(() => {
-    if (isSmartPos && apiMenu.length > 0) {
-      return { source: 'api' as const, nodes: apiMenu };
+    if (isSmartPos && filteredApiMenu.length > 0) {
+      return { source: 'api' as const, nodes: filteredApiMenu };
     }
     return { source: 'demo' as const, nodes: null };
-  }, [isSmartPos, apiMenu]);
+  }, [isSmartPos, filteredApiMenu]);
 
   // Check if commerce links already exist in the API menu
   const hasCommerceInMenu = useMemo(() => {
-    if (!isSmartPos || apiMenu.length === 0) return false;
+    if (!isSmartPos || filteredApiMenu.length === 0) return false;
     const flat = new Set<string>();
     const walk = (nodes: MenuNode[]) => {
       for (const n of nodes) {
@@ -91,8 +187,8 @@ const SidebarItems = () => {
       }
       return false;
     };
-    return walk(apiMenu);
-  }, [isSmartPos, apiMenu]);
+    return walk(filteredApiMenu);
+  }, [isSmartPos, filteredApiMenu]);
 
   const closeMobileSidebar = () => setIsMobileSidebar(!isMobileSidebar);
 

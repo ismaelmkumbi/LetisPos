@@ -23,6 +23,52 @@ public class FeatureResolutionService {
 
     private static final List<String> PLAN_ORDER = List.of("STARTER", "BUSINESS", "PROFESSIONAL", "ENTERPRISE");
 
+    /**
+     * Role hierarchy for feature gating — higher number = more privileged.
+     * Used to determine which plan features a user actually receives based on
+     * their most privileged role. {@link #resolveFeatures} filters out features
+     * whose minimum required role exceeds the user's effective role level.
+     */
+    private static final Map<String, Integer> ROLE_LEVEL = Map.of(
+        "SUPER_ADMIN", 5,
+        "TENANT_ADMIN", 4,
+        "OWNER", 3,
+        "MANAGER", 2,
+        "CASHIER", 1
+    );
+
+    /**
+     * Features that require a minimum role level beyond CASHIER.
+     * Features NOT listed here default to level 1 (available to everyone).
+     * Feature keys must match those in feature_definitions table (V12 seed).
+     *
+     * <p>This prevents cashiers on high-tier plans from receiving features
+     * that their role should never have — like admin, HRM, or financial reports.</p>
+     */
+    private static final Map<String, Integer> FEATURE_MIN_ROLE_LEVEL = Map.ofEntries(
+        Map.entry("admin", 4),               // "Admin Access" — TENANT_ADMIN+
+        Map.entry("user.create", 4),         // TENANT_ADMIN+
+        Map.entry("user.update", 4),         // TENANT_ADMIN+
+        Map.entry("user.delete", 4),         // TENANT_ADMIN+
+        Map.entry("role.view", 4),           // TENANT_ADMIN+
+        Map.entry("role.manage", 4),         // TENANT_ADMIN+
+        Map.entry("billing.view", 4),        // TENANT_ADMIN+
+        Map.entry("billing.manage", 4),      // TENANT_ADMIN+
+        Map.entry("tenant.suspend", 5),      // SUPER_ADMIN only
+        Map.entry("session.manage", 4),      // TENANT_ADMIN+
+        Map.entry("report.custom", 4),       // TENANT_ADMIN+
+        Map.entry("branch.manage", 2),       // MANAGER+
+        Map.entry("hrm.module", 2),          // MANAGER+
+        Map.entry("hrm.manage", 2),          // MANAGER+
+        Map.entry("hrm.payroll.view", 2),    // MANAGER+
+        Map.entry("hrm.payroll.manage", 2),  // MANAGER+
+        Map.entry("report.financial", 2),    // MANAGER+
+        Map.entry("crm.module", 2),          // MANAGER+
+        Map.entry("ai.module", 2),           // MANAGER+
+        Map.entry("marketing.module", 2),    // MANAGER+
+        Map.entry("audit.view", 2)           // MANAGER+
+    );
+
     private final FeatureAssignmentRepository assignmentRepository;
     private final FeatureDefinitionRepository featureDefinitionRepository;
     private final UserProfileRepository userProfileRepository;
@@ -66,7 +112,33 @@ public class FeatureResolutionService {
         // Apply user overrides (highest priority)
         applyAssignments(features, assignmentRepository.findByAssignmentLevelAndTargetId(AssignmentLevel.USER, userId));
 
+        // Apply role-based filtering — a cashier on ENTERPRISE should not get admin features
+        int userRoleLevel = getUserMaxRoleLevel(userId);
+        features.removeIf(featureKey -> {
+            int minLevel = FEATURE_MIN_ROLE_LEVEL.getOrDefault(featureKey, 1);
+            return userRoleLevel < minLevel;
+        });
+
         return features;
+    }
+
+    /**
+     * Returns the highest numeric role level for the given user.
+     * Unknown users or users with no recognized role default to CASHIER level (1).
+     */
+    private int getUserMaxRoleLevel(String userId) {
+        if (userId == null) return 1;
+        try {
+            UUID id = UUID.fromString(userId);
+            return userProfileRepository.findById(id)
+                .map(u -> u.getRoles().stream()
+                    .map(r -> ROLE_LEVEL.getOrDefault(r.getName(), 1))
+                    .max(Integer::compareTo)
+                    .orElse(1))
+                .orElse(1);
+        } catch (IllegalArgumentException e) {
+            return 1;
+        }
     }
 
     private boolean isSuperAdmin(String userId) {

@@ -24,9 +24,10 @@ public class MenuController {
     @GetMapping("/api/v1/menu")
     public List<MenuNode> getMyMenu(Authentication auth) {
         Set<String> features = extractFeatures(auth);
+        Set<String> roles = extractRoles(auth);
         boolean isSuperAdmin = auth != null && auth.getAuthorities().stream()
             .anyMatch(a -> a.getAuthority().equals("ROLE_SUPER_ADMIN"));
-        return menuService.getFilteredTree(features, isSuperAdmin);
+        return menuService.getFilteredTree(features, roles, isSuperAdmin);
     }
 
     @GetMapping("/api/v1/admin/menu")
@@ -101,6 +102,22 @@ public class MenuController {
             if (auth instanceof org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken jwtAuth) {
                 Object featuresObj = jwtAuth.getToken().getClaims().get("features");
                 if (featuresObj instanceof List<?> list) {
+                    return new HashSet<>((List<String>) list);
+                }
+            }
+        } catch (Exception e) {
+            // Fall through to empty
+        }
+        return Set.of();
+    }
+
+    @SuppressWarnings("unchecked")
+    private Set<String> extractRoles(Authentication auth) {
+        if (auth == null) return Set.of();
+        try {
+            if (auth instanceof org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken jwtAuth) {
+                Object rolesObj = jwtAuth.getToken().getClaims().get("roles");
+                if (rolesObj instanceof List<?> list) {
                     return new HashSet<>((List<String>) list);
                 }
             }
