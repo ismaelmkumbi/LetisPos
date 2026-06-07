@@ -11,19 +11,21 @@ import {
 } from '@mui/material';
 import { brand } from 'src/theme/smartpos/brand';
 import { useOnboarding } from 'src/context/smartpos/OnboardingContext';
+import ShopTypeSetup from './steps/ShopTypeSetup';
+import BrandSetup from './steps/BrandSetup';
 import WarehouseSetup from './steps/WarehouseSetup';
 import TaxSetup from './steps/TaxSetup';
 import ProductImportSetup from './steps/ProductImportSetup';
-import FirstSaleGuide from './steps/FirstSaleGuide';
-import BrandSetup from './steps/BrandSetup';
 import DocumentThemeSetup from './steps/DocumentThemeSetup';
+import FirstSaleGuide from './steps/FirstSaleGuide';
 
-const STEPS = ['Brand', 'Warehouse', 'Tax Rules', 'Products', 'Invoice Look', 'First Sale'];
+const STEPS = ['Shop Type', 'Brand', 'Warehouse', 'Tax Rules', 'Products', 'Invoice Look', 'First Sale'];
 
-const STEP_KEYS = ['brand', 'warehouse', 'tax', 'products', 'document_theme', 'first_sale'] as const;
+const STEP_KEYS = ['shop_type', 'brand', 'warehouse', 'tax', 'products', 'document_theme', 'first_sale'] as const;
 
-// Map API step keys to OnboardingState property names
-const STATE_KEY: Record<string, keyof import('src/api/smartpos/onboarding').OnboardingState> = {
+// Map API step keys to OnboardingState property names (shop_type is tracked in verticals, not onboarding)
+const STATE_KEY: Record<string, keyof import('src/api/smartpos/onboarding').OnboardingState | null> = {
+  shop_type: null,  // tracked via tenant_verticals API, not onboarding state
   brand: 'brand',
   warehouse: 'warehouse',
   tax: 'tax',
@@ -40,9 +42,13 @@ interface Props {
 export default function SetupWizard({ open, onClose }: Props) {
   const { completeStep, state } = useOnboarding();
 
-  // Find which steps are already completed, and which index to start at
+  // Find which steps are already completed, skipping shop_type (not in onboarding state)
   const stepState = useMemo(() => {
-    const done: boolean[] = STEP_KEYS.map((k) => !!state[STATE_KEY[k]]);
+    const done: boolean[] = STEP_KEYS.map((k) => {
+      const stateKey = STATE_KEY[k];
+      if (stateKey === null) return false; // shop_type — always shown
+      return !!state[stateKey];
+    });
     const firstIncomplete = done.indexOf(false);
     return { done, startAt: firstIncomplete >= 0 ? firstIncomplete : 0 };
   }, [state]);
@@ -57,7 +63,11 @@ export default function SetupWizard({ open, onClose }: Props) {
   };
 
   const handleComplete = () => {
-    completeStep(STEP_KEYS[activeStep]);
+    const stepKey = STEP_KEYS[activeStep];
+    const stateKey = STATE_KEY[stepKey];
+    if (stateKey !== null) {
+      completeStep(stepKey as any); // shop_type has null stateKey, not passed
+    }
     advanceToNextIncomplete();
   };
 
@@ -106,12 +116,13 @@ export default function SetupWizard({ open, onClose }: Props) {
       </Stepper>
 
       <DialogContent sx={{ px: 3, py: 1 }}>
-        {activeStep === 0 && <BrandSetup onComplete={handleComplete} />}
-        {activeStep === 1 && <WarehouseSetup onComplete={handleComplete} />}
-        {activeStep === 2 && <TaxSetup onComplete={handleComplete} />}
-        {activeStep === 3 && <ProductImportSetup onComplete={handleComplete} />}
-        {activeStep === 4 && <DocumentThemeSetup onComplete={handleComplete} />}
-        {activeStep === 5 && <FirstSaleGuide onComplete={handleComplete} />}
+        {activeStep === 0 && <ShopTypeSetup />}
+        {activeStep === 1 && <BrandSetup onComplete={handleComplete} />}
+        {activeStep === 2 && <WarehouseSetup onComplete={handleComplete} />}
+        {activeStep === 3 && <TaxSetup onComplete={handleComplete} />}
+        {activeStep === 4 && <ProductImportSetup onComplete={handleComplete} />}
+        {activeStep === 5 && <DocumentThemeSetup onComplete={handleComplete} />}
+        {activeStep === 6 && <FirstSaleGuide onComplete={handleComplete} />}
       </DialogContent>
 
       <Box
@@ -141,7 +152,7 @@ export default function SetupWizard({ open, onClose }: Props) {
           )}
           <Button
             variant="contained"
-            onClick={handleSkip}
+            onClick={isLast ? onClose : handleSkip}
             sx={{
               textTransform: 'none',
               fontWeight: 700,
@@ -150,7 +161,7 @@ export default function SetupWizard({ open, onClose }: Props) {
               px: 3,
             }}
           >
-            {isLast ? 'Finish' : 'Skip'}
+            {isLast ? 'Finish' : 'Continue'}
           </Button>
         </Box>
       </Box>

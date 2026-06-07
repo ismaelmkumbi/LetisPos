@@ -1,5 +1,6 @@
 package io.smartpos.product.api.dto;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import io.smartpos.product.domain.model.Product;
 import io.smartpos.product.domain.model.ProductType;
 import io.smartpos.product.domain.model.TaxMethod;
@@ -7,6 +8,7 @@ import io.smartpos.product.domain.model.TaxMethod;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -51,9 +53,15 @@ public record ProductDto(
         List<BarcodeDto> barcodes,
         List<ComboItemDto> comboItems,
         Instant createdAt,
-        Instant updatedAt
+        Instant updatedAt,
+        // Vertical extensions (V22)
+        Map<String, JsonNode> verticalExtensions
 ) {
     public static ProductDto from(Product p) {
+        return from(p, Map.of());
+    }
+
+    public static ProductDto from(Product p, Map<String, JsonNode> verticalExtensions) {
         return new ProductDto(
                 p.getId(), p.getCode(), p.getName(), p.getDescription(),
                 p.getCategoryId(), p.getSubCategoryId(), p.getBrandId(), p.getUnitId(), p.getSupplierId(),
@@ -69,7 +77,8 @@ public record ProductDto(
                 p.getVariants().stream().map(VariantDto::from).collect(Collectors.toList()),
                 p.getBarcodes().stream().map(BarcodeDto::from).collect(Collectors.toList()),
                 p.getComboItems().stream().map(ComboItemDto::from).collect(Collectors.toList()),
-                p.getCreatedAt(), p.getUpdatedAt()
+                p.getCreatedAt(), p.getUpdatedAt(),
+                verticalExtensions
         );
     }
 }

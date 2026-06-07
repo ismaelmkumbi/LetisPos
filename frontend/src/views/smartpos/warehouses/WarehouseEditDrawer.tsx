@@ -13,7 +13,8 @@ import {
   type Warehouse, type WarehouseInput,
 } from 'src/api/smartpos/inventory';
 import EditDrawer from 'src/components/smartpos/EditDrawer';
-import { brand } from 'src/theme/smartpos/brand';
+import { useDynamicBrand } from 'src/theme/smartpos/dynamicBrand';
+import { parseApiError } from 'src/utils/smartpos/apiErrors';
 
 export interface WarehouseEditDrawerProps {
   open: boolean;
@@ -25,6 +26,7 @@ export interface WarehouseEditDrawerProps {
 const empty: WarehouseInput = { name: '', code: '', city: '', country: '', phone: '', email: '', zip: '', notes: '' };
 
 function SectionTitle({ icon, title, hint }: { icon: React.ReactNode; title: string; hint?: string }) {
+  const brand = useDynamicBrand();
   return (
     <Stack direction="row" spacing={1.5} alignItems="center">
       <Box sx={{
@@ -50,6 +52,7 @@ function SectionTitle({ icon, title, hint }: { icon: React.ReactNode; title: str
 }
 
 export default function WarehouseEditDrawer({ open, initial, onClose, onSaved }: WarehouseEditDrawerProps) {
+  const brand = useDynamicBrand();
   const [form, setForm] = useState<WarehouseInput>(empty);
   const [active, setActive] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -104,7 +107,7 @@ export default function WarehouseEditDrawer({ open, initial, onClose, onSaved }:
       }
       onClose();
     } catch (e: unknown) {
-      setError(e instanceof Error ? (e as Error).message : 'Save failed');
+      setError(parseApiError(e).message);
     } finally {
       setSubmitting(false);
     }

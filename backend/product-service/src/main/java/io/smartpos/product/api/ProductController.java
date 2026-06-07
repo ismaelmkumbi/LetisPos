@@ -234,7 +234,8 @@ public class ProductController {
                 items.add(new CreateProductRequest(code, name, null, null, null, null, null,
                         cost, price, null, null, null, null, null, null, null,
                         true, true, false, false, null, "CODE128", null, null,
-                        null, null, null, null, false, false, null, null, null, null));
+                        null, null, null, null, false, false, null, null, null, null,
+                        null));
             }
         }
         return productService.bulkCreate(new BulkCreateProductsRequest(items));

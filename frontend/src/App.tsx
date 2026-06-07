@@ -7,6 +7,7 @@ import { CustomizerContext } from 'src/context/CustomizerContext';
 import { SmartPosAuthProvider } from 'src/context/smartpos/AuthContext';
 import { OnboardingProvider } from 'src/context/smartpos/OnboardingContext';
 import { BrandProvider, useBrand } from 'src/context/smartpos/BrandContext';
+import { VerticalProvider } from 'src/context/smartpos/VerticalContext';
 import ThemeInjector from 'src/branding/components/ThemeInjector';
 import OfflineBanner from 'src/components/smartpos/OfflineBanner';
 import ChunkErrorBoundary from 'src/components/smartpos/ChunkErrorBoundary';
@@ -38,9 +39,11 @@ function ThemedApp() {
         <OfflineBanner />
         <ChunkErrorBoundary>
           <SmartPosAuthProvider>
-            <OnboardingProvider>
-              <RouterProvider router={router} />
-            </OnboardingProvider>
+            <VerticalProvider>
+              <OnboardingProvider>
+                <RouterProvider router={router} />
+              </OnboardingProvider>
+            </VerticalProvider>
           </SmartPosAuthProvider>
         </ChunkErrorBoundary>
       </RTL>

@@ -1,10 +1,13 @@
 package io.smartpos.product.api.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.JsonNode;
 import io.smartpos.product.domain.model.ProductType;
 import io.smartpos.product.domain.model.TaxMethod;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 public record UpdateProductRequest(
@@ -42,7 +45,9 @@ public record UpdateProductRequest(
         Boolean trackImei,
         // Variants & barcodes — when present, replace the full collection
         List<VariantInput> variants,
-        List<BarcodeInput> barcodes
+        List<BarcodeInput> barcodes,
+        // Vertical extensions (V22)
+        @JsonProperty("verticalExtensions") Map<String, JsonNode> verticalExtensions
 ) {
     public record VariantInput(
             String name, String code,

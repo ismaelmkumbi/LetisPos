@@ -1,6 +1,7 @@
 package io.smartpos.product.application;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.smartpos.product.api.dto.*;
 import io.smartpos.product.domain.model.*;
@@ -36,6 +37,7 @@ public class ProductService {
     private final PriceHistoryRepository priceHistoryRepo;
     private final OutboxRepository outboxRepo;
     private final ObjectMapper objectMapper;
+    private final VerticalExtensionService verticalExtService;
 
     @Transactional(readOnly = true)
     public Page<ProductDto> search(String search, UUID categoryId, UUID brandId,
@@ -48,8 +50,10 @@ public class ProductService {
     @Transactional(readOnly = true)
     @Cacheable(value = RedisCacheConfig.CACHE_PRODUCT, key = "#id")
     public ProductDto get(UUID id) {
-        return productRepo.findById(id).map(ProductDto::from)
+        Product p = productRepo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Product not found"));
+        Map<String, JsonNode> ext = verticalExtService.loadForProduct(id);
+        return ProductDto.from(p, ext);
     }
 
     @Transactional(readOnly = true)
@@ -129,8 +133,14 @@ public class ProductService {
         }
 
         Product saved = productRepo.save(p);
+
+        // Save vertical extensions (V22)
+        if (req.verticalExtensions() != null && !req.verticalExtensions().isEmpty()) {
+            verticalExtService.saveForProduct(saved.getId(), saved.getTenantId(), req.verticalExtensions());
+        }
+
         emit("ProductCreated", saved);
-        return ProductDto.from(saved);
+        return get(saved.getId()); // re-fetch with extensions
     }
 
     @Transactional
@@ -211,8 +221,14 @@ public class ProductService {
         }
 
         Product saved = productRepo.save(p);
+
+        // Save vertical extensions (V22)
+        if (req.verticalExtensions() != null && !req.verticalExtensions().isEmpty()) {
+            verticalExtService.saveForProduct(saved.getId(), saved.getTenantId(), req.verticalExtensions());
+        }
+
         emit("ProductUpdated", saved);
-        return ProductDto.from(saved);
+        return get(saved.getId()); // re-fetch with extensions
     }
 
     // ---- Duplicate ----
@@ -264,11 +280,13 @@ public class ProductService {
         }
 
         Product saved = productRepo.save(p);
-        emit("ProductCreated", saved);
-        return ProductDto.from(saved);
-    }
 
-    // ---- Bulk operations ----
+        // Copy vertical extensions from source product
+        verticalExtService.copyFromProduct(src.getId(), saved.getId(), saved.getTenantId());
+
+        emit("ProductCreated", saved);
+        return get(saved.getId()); // re-fetch with extensions
+    }
 
     public BulkCreateProductsResponse bulkCreate(BulkCreateProductsRequest req) {
         List<BulkCreateProductsResponse.Created> created = new ArrayList<>();
@@ -374,6 +392,7 @@ public class ProductService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Product not found"));
         p.softDelete();
         productRepo.save(p);
+        verticalExtService.deleteAll(id);
         emit("ProductDeleted", p);
     }
 

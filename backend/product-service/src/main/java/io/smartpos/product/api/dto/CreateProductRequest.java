@@ -2,10 +2,13 @@ package io.smartpos.product.api.dto;
 
 import io.smartpos.product.domain.model.ProductType;
 import io.smartpos.product.domain.model.TaxMethod;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.validation.constraints.*;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 public record CreateProductRequest(
@@ -47,7 +50,9 @@ public record CreateProductRequest(
         // Relations
         List<VariantInput> variants,
         List<BarcodeInput> barcodes,
-        List<ComboItemInput> comboItems
+        List<ComboItemInput> comboItems,
+        // Vertical extensions (V22) — key = "pharmacy", "hardware", etc.
+        @JsonProperty("verticalExtensions") Map<String, JsonNode> verticalExtensions
 ) {
     public record VariantInput(
             String name,

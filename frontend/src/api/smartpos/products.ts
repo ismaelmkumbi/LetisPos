@@ -92,6 +92,8 @@ export interface CreateProductBody {
   variants?: VariantInput[];
   barcodes?: { barcode: string; barcodeType?: string; primary?: boolean; variantId?: UUID }[];
   comboItems?: ComboItemInput[];
+  /** Vertical extension data keyed by vertical key (e.g., "pharmacy", "hardware"). */
+  verticalExtensions?: Record<string, Record<string, unknown>>;
 }
 
 export async function createProduct(body: CreateProductBody): Promise<Product> {

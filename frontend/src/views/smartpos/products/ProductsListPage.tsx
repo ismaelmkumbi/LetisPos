@@ -61,6 +61,7 @@ import FilterBar from 'src/components/smartpos/FilterBar';
 import BulkActionBar from 'src/components/smartpos/BulkActionBar';
 import { useSelection } from 'src/components/smartpos/useSelection';
 import EmptyStateGuide from 'src/components/smartpos/EmptyStateGuide';
+import { useVerticals } from 'src/context/smartpos/VerticalContext';
 import { brand } from 'src/theme/smartpos/brand';
 import { formatMoney } from 'src/utils/smartpos/currency';
 
@@ -81,9 +82,17 @@ function dataQualityScore(p: Product): number {
   return Math.round((checks.filter(Boolean).length / checks.length) * 100);
 }
 
+const VERTICAL_COLORS: Record<string, string> = {
+  pharmacy: '#E91E63',
+  hardware: '#2196F3',
+  supermarket: '#4CAF50',
+  restaurant: '#FF9800',
+};
+
 export default function ProductsListPage() {
   const { t } = useTranslation('smartpos');
   const navigate = useNavigate();
+  useVerticals(); // ensures VerticalProvider is mounted
   const [searchParams, setSearchParams] = useSearchParams();
   const searchRef = useRef<HTMLInputElement>(null);
 
@@ -535,6 +544,26 @@ export default function ProductsListPage() {
                     </Tooltip>
                   )}
                 </Stack>
+                {/* Vertical extension badges */}
+                {p.verticalExtensions && Object.keys(p.verticalExtensions).length > 0 && (
+                  <Stack direction="row" spacing={0.4} sx={{ mt: 0.25 }}>
+                    {Object.keys(p.verticalExtensions).map((vkey) => (
+                      <Chip
+                        key={vkey}
+                        label={vkey}
+                        size="small"
+                        sx={{
+                          height: 18,
+                          fontSize: '0.625rem',
+                          fontWeight: 700,
+                          bgcolor: VERTICAL_COLORS[vkey] ?? brand.neutral[400],
+                          color: '#fff',
+                          '& .MuiChip-label': { px: 0.75 },
+                        }}
+                      />
+                    ))}
+                  </Stack>
+                )}
               </Box>
             </Stack>
           </Tooltip>

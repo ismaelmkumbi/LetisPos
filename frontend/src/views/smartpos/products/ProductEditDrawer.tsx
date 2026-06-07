@@ -43,8 +43,12 @@ import EditDrawer from 'src/components/smartpos/EditDrawer';
 import ComboItemsEditor from './ComboItemsEditor';
 import ProductImageDropzone from './ProductImageDropzone';
 import { CustomizerContext } from 'src/context/CustomizerContext';
+import { useVerticals } from 'src/context/smartpos/VerticalContext';
 import { brand } from 'src/theme/smartpos/brand';
 import { formatMoney } from 'src/utils/smartpos/currency';
+import PharmacyExtensionForm from './verticals/PharmacyExtensionForm';
+import HardwareExtensionForm from './verticals/HardwareExtensionForm';
+import type { VerticalFormProps } from './verticals/registry';
 
 /** Minimal HTML-entity escape — safe for injecting into a print document. */
 const escapeHtml = (s: string) =>
@@ -79,6 +83,12 @@ const emptyVariant = (): VariantDraft => ({
   name: '', code: '', cost: '', price: '',
   wholesalePrice: '', minPrice: '', imageUrl: '',
 });
+
+// Lazy-load vertical form components (add new verticals here)
+const verticalForms: Record<string, React.ComponentType<VerticalFormProps>> = {
+  pharmacy: PharmacyExtensionForm,
+  hardware: HardwareExtensionForm,
+};
 
 type ProductDrawerForm = Omit<CreateProductBody, 'code'> & { code: string };
 
@@ -216,10 +226,14 @@ const emptyQuickAdd: QuickAddState = {
 export default function ProductEditDrawer({ open, initial, onClose, onSaved, onDuplicate, prefill }: ProductEditDrawerProps) {
   const { activeMode } = useContext(CustomizerContext);
   const isDark = activeMode === 'dark';
+  const { activeVerticals } = useVerticals();
   const [form, setForm]                   = useState<ProductDrawerForm>(emptyForm);
   const [variantDrafts, setVariantDrafts] = useState<VariantDraft[]>([]);
   const [submitting, setSubmitting]       = useState(false);
   const [error, setError]                 = useState<string | null>(null);
+
+  // Vertical extension data — keyed by vertical key
+  const [extensionData, setExtensionData] = useState<Record<string, Record<string, unknown>>>({});
 
   // lookup data
   const [categories, setCategories] = useState<Category[]>([]);
@@ -334,9 +348,12 @@ export default function ProductEditDrawer({ open, initial, onClose, onSaved, onD
           imageUrl:       v.imageUrl ?? '',
         })),
       );
+      // Populate vertical extension data
+      setExtensionData((src as any).verticalExtensions ?? {});
     } else {
       setForm(emptyForm);
       setVariantDrafts([]);
+      setExtensionData({});
     }
     setError(null);
   }, [initial, prefill, open]);
@@ -544,6 +561,7 @@ export default function ProductEditDrawer({ open, initial, onClose, onSaved, onD
       ...form,
       code: form.code.trim() || undefined,
       variants: variants.length > 0 ? variants : undefined,
+      verticalExtensions: Object.keys(extensionData).length > 0 ? extensionData : undefined,
     };
 
     try {
@@ -1357,6 +1375,42 @@ export default function ProductEditDrawer({ open, initial, onClose, onSaved, onD
             </Stack>
           </AccordionDetails>
         </Accordion>
+
+        {/* ───── Vertical Extension Sections (dynamic, per active vertical) ─── */}
+        {activeVerticals.map((vertical) => {
+          const FormComponent = verticalForms[vertical.key];
+          if (!FormComponent) return null;
+
+          const sectionKey = `vertical_${vertical.key}`;
+          return (
+            <Accordion
+              key={vertical.key}
+              expanded={openSections[sectionKey] ?? false}
+              onChange={() => toggle(sectionKey)}
+              disableGutters elevation={0}
+              sx={{
+                border: `1px solid ${brand.neutral[200]}`,
+                borderRadius: '14px !important',
+                '&:before': { display: 'none' },
+                mt: 1,
+              }}
+            >
+              <AccordionSummary expandIcon={<IconChevronDown size={18} />} sx={{ px: 2, py: 0.5 }}>
+                <SectionTitle
+                  icon={<IconPackage size={16} />}
+                  title={vertical.label}
+                  hint={`${vertical.label}-specific product attributes`}
+                />
+              </AccordionSummary>
+              <AccordionDetails sx={{ pt: 0, px: 2, pb: 2 }}>
+                <FormComponent
+                  data={extensionData[vertical.key] ?? {}}
+                  onChange={(data) => setExtensionData((prev) => ({ ...prev, [vertical.key]: data }))}
+                />
+              </AccordionDetails>
+            </Accordion>
+          );
+        })}
 
         {/* ───── Section 7 · Visibility & options ──────────────────────────── */}
         <Accordion

@@ -91,6 +91,8 @@ export interface Product {
   variants: Variant[];
   barcodes: Barcode[];
   comboItems?: ComboItem[];
+  /** Vertical extension data keyed by vertical key (e.g., "pharmacy", "hardware"). */
+  verticalExtensions?: Record<string, Record<string, unknown>>;
   createdAt: string;
   updatedAt: string;
 }

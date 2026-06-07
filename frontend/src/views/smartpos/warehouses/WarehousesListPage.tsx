@@ -21,10 +21,12 @@ import { PageHeader } from 'src/components/smartpos/PageHeader';
 import FilterBar, { type ActiveFilter } from 'src/components/smartpos/FilterBar';
 import BulkActionBar from 'src/components/smartpos/BulkActionBar';
 import { useSelection } from 'src/components/smartpos/useSelection';
-import { brand } from 'src/theme/smartpos/brand';
+import { useDynamicBrand } from 'src/theme/smartpos/dynamicBrand';
+import { parseApiError } from 'src/utils/smartpos/apiErrors';
 import WarehouseEditDrawer from './WarehouseEditDrawer';
 
 export default function WarehousesListPage() {
+  const brand = useDynamicBrand();
   const { t } = useTranslation('smartpos');
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -64,7 +66,7 @@ export default function WarehousesListPage() {
     setLoading(true);
     listWarehouses()
       .then((ws) => { if (!cancelled) setAllRows(ws); })
-      .catch((e) => { if (!cancelled) setError(e instanceof Error ? e.message : 'Failed to load'); })
+      .catch((e) => { if (!cancelled) setError(parseApiError(e).message); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [refreshToken]);
@@ -112,7 +114,7 @@ export default function WarehousesListPage() {
       setRefreshToken((n) => n + 1);
       sel.clearSelection();
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Batch delete failed');
+      setError(parseApiError(e).message);
     } finally {
       setBatchDeleting(false);
       setBatchDeleteOpen(false);
@@ -127,7 +129,7 @@ export default function WarehousesListPage() {
       await toggleWarehouseStatus(w.id, !w.active);
       setRefreshToken((n) => n + 1);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to update status');
+      setError(parseApiError(e).message);
     } finally {
       setToggling((prev) => { const next = new Set(prev); next.delete(w.id); return next; });
     }
@@ -141,7 +143,7 @@ export default function WarehousesListPage() {
       await deleteWarehouse(deleteTarget.id);
       setRefreshToken((n) => n + 1);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Delete failed');
+      setError(parseApiError(e).message);
     } finally {
       setDeleteTarget(null);
     }

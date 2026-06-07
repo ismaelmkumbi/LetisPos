@@ -10,7 +10,7 @@
  *  - Operational tokens for live status indicators across the Sales Desk.
  */
 
-export const brand = {
+export const staticBrand = {
   /** Primary — Letis Green */
   primary: {
     50:  '#ECFDF5',
@@ -70,38 +70,41 @@ export const brand = {
   },
 } as const;
 
+/** Backward-compatible alias — new code should use `useDynamicBrand()` instead. */
+export const brand = staticBrand;
+
 /** Convenience aliases — what 99% of components use. */
 export const brandTokens = {
-  primary:      brand.primary[600],
-  primaryLight: brand.primary[300],
-  primaryDark:  brand.primary[800],
-  primarySoft:  brand.primary[50],
+  primary:      staticBrand.primary[600],
+  primaryLight: staticBrand.primary[300],
+  primaryDark:  staticBrand.primary[800],
+  primarySoft:  staticBrand.primary[50],
 
-  accent:      brand.accent[500],
-  accentLight: brand.accent[300],
-  accentDark:  brand.accent[700],
-  accentSoft:  brand.accent[50],
+  accent:      staticBrand.accent[500],
+  accentLight: staticBrand.accent[300],
+  accentDark:  staticBrand.accent[700],
+  accentSoft:  staticBrand.accent[50],
 
-  text:        brand.neutral[900],
-  textMuted:   brand.neutral[500],
-  border:      brand.neutral[200],
+  text:        staticBrand.neutral[900],
+  textMuted:   staticBrand.neutral[500],
+  border:      staticBrand.neutral[200],
   surface:     '#FFFFFF',
-  background:  brand.neutral[50],
+  background:  staticBrand.neutral[50],
 
-  success: brand.success.main,
-  warning: brand.warning.main,
-  error:   brand.error.main,
-  info:    brand.info.main,
+  success: staticBrand.success.main,
+  warning: staticBrand.warning.main,
+  error:   staticBrand.error.main,
+  info:    staticBrand.info.main,
 } as const;
 
 /** Dark-mode overrides — teal is retained (lifted), neutrals invert. */
 export const brandTokensDark = {
   ...brandTokens,
-  primary:    brand.primary[400],
-  text:       brand.neutral[50],
-  textMuted:  brand.neutral[400],
-  border:     brand.neutral[700],
-  surface:    brand.neutral[800],
+  primary:    staticBrand.primary[400],
+  text:       staticBrand.neutral[50],
+  textMuted:  staticBrand.neutral[400],
+  border:     staticBrand.neutral[700],
+  surface:    staticBrand.neutral[800],
   background: '#0F172A',
 } as const;
 
@@ -110,12 +113,12 @@ export const brandTokensDark = {
  * Previously gradients; now flat to reduce template aesthetics.
  */
 export const brandGradients = {
-  hero:     `linear-gradient(135deg, ${brand.primary[600]} 0%, ${brand.primary[700]} 100%)`,
+  hero:     `linear-gradient(135deg, ${staticBrand.primary[600]} 0%, ${staticBrand.primary[700]} 100%)`,
   surface:  'linear-gradient(135deg, #ECFDF5 0%, #FFFFFF 100%)',
-  signal:   `linear-gradient(135deg, ${brand.primary[600]} 0%, ${brand.primary[700]} 100%)`,
+  signal:   `linear-gradient(135deg, ${staticBrand.primary[600]} 0%, ${staticBrand.primary[700]} 100%)`,
   midnight: 'linear-gradient(180deg, #0F172A 0%, #020617 100%)',
-  cta:      `linear-gradient(135deg, ${brand.primary[600]} 0%, ${brand.primary[700]} 100%)`,
+  cta:      `linear-gradient(135deg, ${staticBrand.primary[600]} 0%, ${staticBrand.primary[700]} 100%)`,
 } as const;
 
-export type BrandPalette = typeof brand;
+export type BrandPalette = typeof staticBrand;
 export type BrandTokens = typeof brandTokens;

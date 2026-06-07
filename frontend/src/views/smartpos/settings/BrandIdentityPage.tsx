@@ -33,7 +33,7 @@ import {
   FloatingSaveBar,
   CardSkeletonGroup,
 } from 'src/components/smartpos/SettingsHelpers';
-import { brand } from 'src/theme/smartpos/brand';
+import { useDynamicBrand } from 'src/theme/smartpos/dynamicBrand';
 import type { Theme } from '@mui/material/styles';
 import { premiumFieldSx } from 'src/components/smartpos/PosLayouts/shared';
 import {
@@ -43,6 +43,7 @@ import {
   type BrandProfile,
 } from 'src/api/smartpos/brand';
 import { tokenStore } from 'src/api/smartpos/client';
+import { useBrand } from 'src/context/smartpos/BrandContext';
 import BrandColorPicker from 'src/components/smartpos/brand/BrandColorPicker';
 import BrandLogoUploader from 'src/components/smartpos/brand/BrandLogoUploader';
 import AIBrandingAssistant from 'src/components/smartpos/assistant/AIBrandingAssistant';
@@ -92,6 +93,7 @@ const TONE_OPTIONS = [
 // ── Page ───────────────────────────────────────────────────────────────────
 
 export default function BrandIdentityPage() {
+  const brand = useDynamicBrand();
   const [profile, setProfile] = useState<BrandProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -102,6 +104,7 @@ export default function BrandIdentityPage() {
   const [lastSavedProfile, setLastSavedProfile] = useState<BrandProfile | null>(null);
 
   const tenantId = tokenStore.getTenantId();
+  const { refresh } = useBrand();
 
   useEffect(() => {
     let cancelled = false;
@@ -200,6 +203,7 @@ export default function BrandIdentityPage() {
       });
       setProfile(updated);
       setLastSavedProfile(updated);
+      await refresh();
       showInfo('Brand identity saved.');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Save failed');

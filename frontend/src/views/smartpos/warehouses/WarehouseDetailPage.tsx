@@ -16,10 +16,12 @@ import {
 import type { Page } from 'src/api/smartpos/types';
 import DataTable, { type Column } from 'src/components/smartpos/DataTable';
 import { PageHeader } from 'src/components/smartpos/PageHeader';
-import { brand } from 'src/theme/smartpos/brand';
+import { useDynamicBrand } from 'src/theme/smartpos/dynamicBrand';
+import { parseApiError } from 'src/utils/smartpos/apiErrors';
 import WarehouseEditDrawer from './WarehouseEditDrawer';
 
 export default function WarehouseDetailPage() {
+  const brand = useDynamicBrand();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
@@ -40,7 +42,7 @@ export default function WarehouseDetailPage() {
       const w = await getWarehouse(id);
       setWarehouse(w);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load warehouse');
+      setError(parseApiError(e).message);
     } finally {
       setLoading(false);
     }
@@ -75,7 +77,7 @@ export default function WarehouseDetailPage() {
       const updated = await toggleWarehouseStatus(warehouse.id, !warehouse.active);
       setWarehouse(updated);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to update status');
+      setError(parseApiError(e).message);
     } finally {
       setToggling(false);
     }
@@ -366,6 +368,7 @@ function SummaryTile({
   value: string;
   accent: { light: string; dark: string };
 }) {
+  const brand = useDynamicBrand();
   return (
     <Card sx={{
       flex: '1 1 0', minWidth: 0, borderRadius: '14px',
