@@ -147,7 +147,10 @@ public final class AiDtos {
             BigDecimal taxRate,
             BigDecimal quantity,
             Double confidence,
-            List<String> warnings
+            List<String> warnings,
+            String suggestedCategoryName,
+            String suggestedBrandName,
+            String suggestedUnitName
     ) {}
 
     public record ProductImportMapResponse(

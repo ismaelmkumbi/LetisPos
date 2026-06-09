@@ -48,6 +48,7 @@ import {
   IconCheck,
   IconCloudUpload,
   IconDeviceMobile,
+  IconDownload,
   IconFile,
   IconFileSpreadsheet,
   IconFileTypePdf,
@@ -63,6 +64,9 @@ import * as XLSX from 'xlsx';
 
 import {
   bulkCreateProducts,
+  createBrand,
+  createCategory,
+  createUnit,
   listBrands,
   listCategories,
   listProducts,
@@ -76,7 +80,7 @@ import {
   type MappedRow,
   type ImportRow,
 } from 'src/api/smartpos/aiProducts';
-import type { Brand, Category, Unit } from 'src/api/smartpos/types';
+import type { Brand, Category, Unit, UUID } from 'src/api/smartpos/types';
 import { CustomizerContext } from 'src/context/CustomizerContext';
 import { brand } from 'src/theme/smartpos/brand';
 import { tokenStore } from 'src/api/smartpos/client';
@@ -120,6 +124,10 @@ interface DraftRow extends Omit<
   minPrice: string;
   taxRate: string;
   include: boolean;
+  /** User-resolved mapping: maps suggested names to newly-created IDs */
+  resolvedCategoryId?: UUID | null;
+  resolvedBrandId?: UUID | null;
+  resolvedUnitId?: UUID | null;
 }
 
 const toDraft = (m: MappedRow): DraftRow => ({
@@ -471,27 +479,34 @@ export default function ProductsImportDialog({
         // Smart fuzzy column matching fallback
         const matches = matchColumns(headers);
         mapped = parsedRows.map((r) => {
-          const v = (idx: number) => (idx >= 0 ? r.values[idx] : undefined);
+          const v = (idx: number) => (idx >= 0 ? r.values[headers[idx]] : undefined);
           const findMatch = (key: string) => {
             const m = matches.find((x) => x.fieldKey === key);
             return m ? v(m.headerIndex) : undefined;
           };
           const nameVal = findMatch('name');
+          const descVal = findMatch('description');
+          const catVal = findMatch('category');
+          const brandVal = findMatch('brand');
+          const unitVal = findMatch('unit');
+          const name = bestEffortName(nameVal, descVal, r.values, matches, r.row);
           return {
             row: r.row,
-            name:
-              nameVal && String(nameVal).trim() ? String(nameVal).trim() : `Product ${r.row + 1}`,
+            name,
             description: findMatch('description') ?? null,
             categoryId: null,
             brandId: null,
             unitId: null,
+            suggestedCategoryName: catVal && String(catVal).trim() ? String(catVal).trim() : null,
+            suggestedBrandName: brandVal && String(brandVal).trim() ? String(brandVal).trim() : null,
+            suggestedUnitName: unitVal && String(unitVal).trim() ? String(unitVal).trim() : null,
             code: findMatch('code') ?? null,
             barcodeSymbology: 'CODE128',
             cost: toNumber(findMatch('cost')),
             price: toNumber(findMatch('price')),
-            wholesalePrice: toNumber(findMatch('wholesalePrice')),
-            minPrice: toNumber(findMatch('minPrice')),
-            taxRate: toNumber(findMatch('taxRate')),
+            wholesalePrice: toNumber(findMatch('wholesale')),
+            minPrice: toNumber(findMatch('min')),
+            taxRate: toNumber(findMatch('tax')),
             confidence: 0.3,
             warnings: ['No mapping was returned — used smart fuzzy column matching.'],
           };
@@ -628,31 +643,124 @@ export default function ProductsImportDialog({
   const runBulkSave = async () => {
     setBusy(true);
     setError(null);
+    setStatus('Creating categories, brands & units…');
+
+    // Auto-create user-approved categories, brands, and units
+    const createdCategoryIds = new Map<string, UUID>();
+    const createdBrandIds = new Map<string, UUID>();
+    const createdUnitIds = new Map<string, UUID>();
+
+    // Collect unique unmatched items from drafts with resolved IDs
+    const catsToCreate = new Set<string>();
+    const brandsToCreate = new Set<string>();
+    const unitsToCreate = new Set<string>();
+
+    for (const d of drafts) {
+      if (!d.include) continue;
+      if (!d.categoryId && !d.resolvedCategoryId && d.suggestedCategoryName?.trim()) {
+        catsToCreate.add(d.suggestedCategoryName.trim());
+      }
+      if (!d.brandId && !d.resolvedBrandId && d.suggestedBrandName?.trim()) {
+        brandsToCreate.add(d.suggestedBrandName.trim());
+      }
+      if (!d.unitId && !d.resolvedUnitId && d.suggestedUnitName?.trim()) {
+        unitsToCreate.add(d.suggestedUnitName.trim());
+      }
+    }
+
+    // Create categories
+    for (const name of catsToCreate) {
+      try {
+        const created = await createCategory({ name });
+        createdCategoryIds.set(name, created.id);
+        setCategories((prev) => [...prev, created]);
+      } catch {
+        // Category might already exist — try finding it
+        try {
+          const existing = categories.find((c) => c.name.toLowerCase() === name.toLowerCase());
+          if (existing) createdCategoryIds.set(name, existing.id);
+        } catch {
+          // silently continue — category will be null
+        }
+      }
+    }
+
+    // Create brands
+    for (const name of brandsToCreate) {
+      try {
+        const created = await createBrand({ name });
+        createdBrandIds.set(name, created.id);
+        setBrands((prev) => [...prev, created]);
+      } catch {
+        try {
+          const existing = brands.find((b) => b.name.toLowerCase() === name.toLowerCase());
+          if (existing) createdBrandIds.set(name, existing.id);
+        } catch {
+          // silently continue
+        }
+      }
+    }
+
+    // Create units
+    for (const name of unitsToCreate) {
+      try {
+        const created = await createUnit({ name, shortName: name.slice(0, 10), conversionFactor: 1 });
+        createdUnitIds.set(name, created.id);
+        setUnits((prev) => [...prev, created]);
+      } catch {
+        try {
+          const existing = units.find((u) => u.name.toLowerCase() === name.toLowerCase());
+          if (existing) createdUnitIds.set(name, existing.id);
+        } catch {
+          // silently continue
+        }
+      }
+    }
+
+    setStatus('Saving products…');
+
     const payload: CreateProductBody[] = drafts
       .filter((d) => d.include && d.name.trim())
-      .map((d) => ({
-        code: d.code?.trim() || generateCode(),
-        name: d.name.trim(),
-        description: d.description ?? undefined,
-        categoryId: d.categoryId ?? undefined,
-        brandId: d.brandId ?? undefined,
-        unitId: d.unitId ?? undefined,
-        barcodeSymbology: (d.barcodeSymbology ??
-          'CODE128') as CreateProductBody['barcodeSymbology'],
-        cost: toNumber(d.cost) ?? 0,
-        price: toNumber(d.price) ?? 0,
-        wholesalePrice: toNumber(d.wholesalePrice) ?? undefined,
-        minPrice: toNumber(d.minPrice) ?? undefined,
-        taxRate: toNumber(d.taxRate) ?? 0,
-        taxMethod: 'EXCLUSIVE',
-        type: 'STANDARD',
-        status: true,
-        sellable: true,
-      }));
+      .map((d) => {
+        // Resolve category: explicit ID → user-mapped ID → auto-created ID → null
+        const catId =
+          d.categoryId ??
+          d.resolvedCategoryId ??
+          (d.suggestedCategoryName ? createdCategoryIds.get(d.suggestedCategoryName.trim()) : null);
+        const brdId =
+          d.brandId ??
+          d.resolvedBrandId ??
+          (d.suggestedBrandName ? createdBrandIds.get(d.suggestedBrandName.trim()) : null);
+        const untId =
+          d.unitId ??
+          d.resolvedUnitId ??
+          (d.suggestedUnitName ? createdUnitIds.get(d.suggestedUnitName.trim()) : null);
+
+        return {
+          code: d.code?.trim() || generateCode(),
+          name: d.name.trim(),
+          description: d.description ?? undefined,
+          categoryId: catId ?? undefined,
+          brandId: brdId ?? undefined,
+          unitId: untId ?? undefined,
+          barcodeSymbology: (d.barcodeSymbology ??
+            'CODE128') as CreateProductBody['barcodeSymbology'],
+          cost: toNumber(d.cost) ?? 0,
+          price: toNumber(d.price) ?? 0,
+          wholesalePrice: toNumber(d.wholesalePrice) ?? undefined,
+          minPrice: toNumber(d.minPrice) ?? undefined,
+          taxRate: toNumber(d.taxRate) ?? 0,
+          taxMethod: 'EXCLUSIVE',
+          type: 'STANDARD',
+          status: true,
+          sellable: true,
+        };
+      });
 
     if (payload.length === 0) {
       setError('Nothing to save — every row is unchecked or has no name.');
       setBusy(false);
+      setStatus(null);
       return;
     }
 
@@ -666,6 +774,7 @@ export default function ProductsImportDialog({
       setError(e.response?.data?.message ?? e.message ?? 'Bulk save failed');
     } finally {
       setBusy(false);
+      setStatus(null);
     }
   };
 
@@ -1074,6 +1183,24 @@ export default function ProductsImportDialog({
                 Don't worry about exact spelling — smart mapping figures it out.
               </Alert>
             )}
+            {inputMode === 'spreadsheet' && (
+              <Button
+                variant="text"
+                size="small"
+                startIcon={<IconDownload size={14} />}
+                onClick={downloadTemplate}
+                sx={{
+                  textTransform: 'none',
+                  fontWeight: 600,
+                  fontSize: '0.75rem',
+                  borderRadius: '8px',
+                  color: brand.primary[600],
+                  alignSelf: 'flex-start',
+                }}
+              >
+                Download template (.xlsx)
+              </Button>
+            )}
             {inputMode === 'pdf' && (
               <Alert
                 severity="info"
@@ -1315,9 +1442,94 @@ export default function ProductsImportDialog({
                       {w}
                     </Typography>
                   ))}
+                  {warnings.length > 3 && (
+                    <Typography variant="caption" sx={{ color: brand.neutral[500] }}>
+                      +{warnings.length - 3} more
+                    </Typography>
+                  )}
                 </Stack>
               </Alert>
             )}
+
+            {/* ── Unmatched items resolution ── */}
+            <UnmatchedItems
+              drafts={drafts}
+              categories={categories}
+              brands={brands}
+              units={units}
+              onCreateCategory={async (name) => {
+                try {
+                  const created = await createCategory({ name });
+                  setCategories((prev) => [...prev, created]);
+                  setDrafts((d) =>
+                    d.map((r) =>
+                      r.suggestedCategoryName === name && !r.categoryId
+                        ? { ...r, resolvedCategoryId: created.id }
+                        : r,
+                    ),
+                  );
+                } catch {
+                  setError(`Failed to create category "${name}"`);
+                }
+              }}
+              onMapCategory={(suggestedName, existingId) => {
+                setDrafts((d) =>
+                  d.map((r) =>
+                    r.suggestedCategoryName === suggestedName && !r.categoryId
+                      ? { ...r, resolvedCategoryId: existingId }
+                      : r,
+                  ),
+                );
+              }}
+              onCreateBrand={async (name) => {
+                try {
+                  const created = await createBrand({ name });
+                  setBrands((prev) => [...prev, created]);
+                  setDrafts((d) =>
+                    d.map((r) =>
+                      r.suggestedBrandName === name && !r.brandId
+                        ? { ...r, resolvedBrandId: created.id }
+                        : r,
+                    ),
+                  );
+                } catch {
+                  setError(`Failed to create brand "${name}"`);
+                }
+              }}
+              onMapBrand={(suggestedName, existingId) => {
+                setDrafts((d) =>
+                  d.map((r) =>
+                    r.suggestedBrandName === suggestedName && !r.brandId
+                      ? { ...r, resolvedBrandId: existingId }
+                      : r,
+                  ),
+                );
+              }}
+              onCreateUnit={async (name) => {
+                try {
+                  const created = await createUnit({ name, shortName: name.slice(0, 10), conversionFactor: 1 });
+                  setUnits((prev) => [...prev, created]);
+                  setDrafts((d) =>
+                    d.map((r) =>
+                      r.suggestedUnitName === name && !r.unitId
+                        ? { ...r, resolvedUnitId: created.id }
+                        : r,
+                    ),
+                  );
+                } catch {
+                  setError(`Failed to create unit "${name}"`);
+                }
+              }}
+              onMapUnit={(suggestedName, existingId) => {
+                setDrafts((d) =>
+                  d.map((r) =>
+                    r.suggestedUnitName === suggestedName && !r.unitId
+                      ? { ...r, resolvedUnitId: existingId }
+                      : r,
+                  ),
+                );
+              }}
+            />
 
             <Box
               sx={{
@@ -1554,6 +1766,180 @@ export default function ProductsImportDialog({
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
+/** Shows unique unmatched categories/brands/units across all drafts with Create and Map actions. */
+function UnmatchedItems({
+  drafts,
+  categories,
+  brands,
+  units,
+  onCreateCategory,
+  onMapCategory,
+  onCreateBrand,
+  onMapBrand,
+  onCreateUnit,
+  onMapUnit,
+}: {
+  drafts: DraftRow[];
+  categories: Category[];
+  brands: Brand[];
+  units: Unit[];
+  onCreateCategory: (name: string) => Promise<void>;
+  onMapCategory: (suggestedName: string, existingId: UUID) => void;
+  onCreateBrand: (name: string) => Promise<void>;
+  onMapBrand: (suggestedName: string, existingId: UUID) => void;
+  onCreateUnit: (name: string) => Promise<void>;
+  onMapUnit: (suggestedName: string, existingId: UUID) => void;
+}) {
+  // Collect unique unmatched items
+  const unmatchedCats = new Map<string, number>(); // name → count
+  const unmatchedBrands = new Map<string, number>();
+  const unmatchedUnits = new Map<string, number>();
+
+  for (const d of drafts) {
+    if (d.include && !d.categoryId && !d.resolvedCategoryId && d.suggestedCategoryName?.trim()) {
+      const name = d.suggestedCategoryName.trim();
+      unmatchedCats.set(name, (unmatchedCats.get(name) ?? 0) + 1);
+    }
+    if (d.include && !d.brandId && !d.resolvedBrandId && d.suggestedBrandName?.trim()) {
+      const name = d.suggestedBrandName.trim();
+      unmatchedBrands.set(name, (unmatchedBrands.get(name) ?? 0) + 1);
+    }
+    if (d.include && !d.unitId && !d.resolvedUnitId && d.suggestedUnitName?.trim()) {
+      const name = d.suggestedUnitName.trim();
+      unmatchedUnits.set(name, (unmatchedUnits.get(name) ?? 0) + 1);
+    }
+  }
+
+  if (unmatchedCats.size === 0 && unmatchedBrands.size === 0 && unmatchedUnits.size === 0) return null;
+
+  return (
+    <Alert
+      severity="info"
+      icon={<IconAlertCircle size={18} />}
+      sx={{ borderRadius: '10px', '& .MuiAlert-message': { flex: 1 } }}
+    >
+      <Typography variant="caption" sx={{ fontWeight: 700, display: 'block', mb: 1 }}>
+        Unmatched items found in your data — resolve before saving:
+      </Typography>
+      <Stack spacing={1}>
+        {[...unmatchedCats.entries()].map(([name, count]) => (
+          <UnmatchedRow
+            key={`cat-${name}`}
+            label="Category"
+            name={name}
+            count={count}
+            existingItems={categories}
+            onCreate={() => onCreateCategory(name)}
+            onMap={(id) => onMapCategory(name, id)}
+          />
+        ))}
+        {[...unmatchedBrands.entries()].map(([name, count]) => (
+          <UnmatchedRow
+            key={`brd-${name}`}
+            label="Brand"
+            name={name}
+            count={count}
+            existingItems={brands}
+            onCreate={() => onCreateBrand(name)}
+            onMap={(id) => onMapBrand(name, id)}
+          />
+        ))}
+        {[...unmatchedUnits.entries()].map(([name, count]) => (
+          <UnmatchedRow
+            key={`unt-${name}`}
+            label="Unit"
+            name={name}
+            count={count}
+            existingItems={units}
+            onCreate={() => onCreateUnit(name)}
+            onMap={(id) => onMapUnit(name, id)}
+          />
+        ))}
+      </Stack>
+    </Alert>
+  );
+}
+
+function UnmatchedRow({
+  label,
+  name,
+  count,
+  existingItems,
+  onCreate,
+  onMap,
+}: {
+  label: string;
+  name: string;
+  count: number;
+  existingItems: { id: UUID; name: string }[];
+  onCreate: () => void;
+  onMap: (id: UUID) => void;
+}) {
+  return (
+    <Stack direction="row" spacing={1} alignItems="center">
+      <Chip
+        size="small"
+        label={label}
+        sx={{
+          height: 20,
+          fontSize: '0.65rem',
+          fontWeight: 700,
+          bgcolor: brand.neutral[200],
+          color: brand.neutral[700],
+          borderRadius: '4px',
+          '& .MuiChip-label': { px: 0.75 },
+        }}
+      />
+      <Typography variant="caption" sx={{ fontWeight: 600, color: brand.neutral[800], minWidth: 120 }}>
+        "{name}"
+      </Typography>
+      <Typography variant="caption" sx={{ color: brand.neutral[400] }}>
+        ({count} row{count !== 1 ? 's' : ''})
+      </Typography>
+      <Button
+        size="small"
+        variant="contained"
+        onClick={onCreate}
+        sx={{
+          textTransform: 'none',
+          fontSize: '0.7rem',
+          fontWeight: 600,
+          borderRadius: '6px',
+          py: 0.25,
+          px: 1,
+          minWidth: 'auto',
+          bgcolor: brand.primary[600],
+          '&:hover': { bgcolor: brand.primary[700] },
+        }}
+      >
+        Create
+      </Button>
+      <TextField
+        select
+        size="small"
+        value=""
+        onChange={(e) => {
+          if (e.target.value) onMap(e.target.value as UUID);
+        }}
+        sx={{
+          minWidth: 140,
+          '& .MuiOutlinedInput-root': { borderRadius: '6px', fontSize: '0.7rem' },
+          '& .MuiOutlinedInput-input': { py: 0.5 },
+        }}
+      >
+        <MenuItem value="">
+          <em>Map to existing…</em>
+        </MenuItem>
+        {existingItems.map((item) => (
+          <MenuItem key={item.id} value={item.id} sx={{ fontSize: '0.72rem' }}>
+            {item.name}
+          </MenuItem>
+        ))}
+      </TextField>
+    </Stack>
+  );
+}
+
 function DraftTableRow({
   draft,
   categories,
@@ -1675,63 +2061,132 @@ function DraftTableRow({
         />
       </TableCell>
       <TableCell sx={{ py: 0.5, px: 1 }}>
-        <TextField
-          select
-          size="small"
-          value={draft.categoryId ?? ''}
-          onChange={(e) => onPatch('categoryId', e.target.value || null)}
-          fullWidth
-          sx={baseInput}
-        >
-          <MenuItem value="">
-            <em>—</em>
-          </MenuItem>
-          {categories
-            .filter((c) => !c.parentId)
-            .map((c) => (
-              <MenuItem key={c.id} value={c.id} sx={{ fontSize: '0.75rem' }}>
-                {c.name}
+        <Stack direction="row" spacing={0.5} alignItems="center">
+          <TextField
+            select
+            size="small"
+            value={draft.categoryId ?? draft.resolvedCategoryId ?? ''}
+            onChange={(e) => onPatch('categoryId', e.target.value || null)}
+            fullWidth
+            sx={baseInput}
+          >
+            <MenuItem value="">
+              <em>—</em>
+            </MenuItem>
+            {categories
+              .filter((c) => !c.parentId)
+              .map((c) => (
+                <MenuItem key={c.id} value={c.id} sx={{ fontSize: '0.75rem' }}>
+                  {c.name}
+                </MenuItem>
+              ))}
+          </TextField>
+          {!draft.categoryId && !draft.resolvedCategoryId && draft.suggestedCategoryName && (
+            <Tooltip title={`Suggested: "${draft.suggestedCategoryName}" — not found in system`}>
+              <Chip
+                size="small"
+                label={draft.suggestedCategoryName.length > 14
+                  ? draft.suggestedCategoryName.slice(0, 14) + '…'
+                  : draft.suggestedCategoryName}
+                sx={{
+                  height: 18,
+                  fontSize: '0.6rem',
+                  fontWeight: 600,
+                  bgcolor: '#fff4e0',
+                  color: '#a36400',
+                  borderRadius: '4px',
+                  '& .MuiChip-label': { px: 0.5 },
+                  flexShrink: 0,
+                  maxWidth: 120,
+                }}
+              />
+            </Tooltip>
+          )}
+        </Stack>
+      </TableCell>
+      <TableCell sx={{ py: 0.5, px: 1 }}>
+        <Stack direction="row" spacing={0.5} alignItems="center">
+          <TextField
+            select
+            size="small"
+            value={draft.brandId ?? draft.resolvedBrandId ?? ''}
+            onChange={(e) => onPatch('brandId', e.target.value || null)}
+            fullWidth
+            sx={baseInput}
+          >
+            <MenuItem value="">
+              <em>—</em>
+            </MenuItem>
+            {brands.map((b) => (
+              <MenuItem key={b.id} value={b.id} sx={{ fontSize: '0.75rem' }}>
+                {b.name}
               </MenuItem>
             ))}
-        </TextField>
+          </TextField>
+          {!draft.brandId && !draft.resolvedBrandId && draft.suggestedBrandName && (
+            <Tooltip title={`Suggested: "${draft.suggestedBrandName}" — not found in system`}>
+              <Chip
+                size="small"
+                label={draft.suggestedBrandName.length > 14
+                  ? draft.suggestedBrandName.slice(0, 14) + '…'
+                  : draft.suggestedBrandName}
+                sx={{
+                  height: 18,
+                  fontSize: '0.6rem',
+                  fontWeight: 600,
+                  bgcolor: '#fff4e0',
+                  color: '#a36400',
+                  borderRadius: '4px',
+                  '& .MuiChip-label': { px: 0.5 },
+                  flexShrink: 0,
+                  maxWidth: 120,
+                }}
+              />
+            </Tooltip>
+          )}
+        </Stack>
       </TableCell>
       <TableCell sx={{ py: 0.5, px: 1 }}>
-        <TextField
-          select
-          size="small"
-          value={draft.brandId ?? ''}
-          onChange={(e) => onPatch('brandId', e.target.value || null)}
-          fullWidth
-          sx={baseInput}
-        >
-          <MenuItem value="">
-            <em>—</em>
-          </MenuItem>
-          {brands.map((b) => (
-            <MenuItem key={b.id} value={b.id} sx={{ fontSize: '0.75rem' }}>
-              {b.name}
+        <Stack direction="row" spacing={0.5} alignItems="center">
+          <TextField
+            select
+            size="small"
+            value={draft.unitId ?? draft.resolvedUnitId ?? ''}
+            onChange={(e) => onPatch('unitId', e.target.value || null)}
+            fullWidth
+            sx={baseInput}
+          >
+            <MenuItem value="">
+              <em>—</em>
             </MenuItem>
-          ))}
-        </TextField>
-      </TableCell>
-      <TableCell sx={{ py: 0.5, px: 1 }}>
-        <TextField
-          select
-          size="small"
-          value={draft.unitId ?? ''}
-          onChange={(e) => onPatch('unitId', e.target.value || null)}
-          fullWidth
-          sx={baseInput}
-        >
-          <MenuItem value="">
-            <em>—</em>
-          </MenuItem>
-          {units.map((u) => (
-            <MenuItem key={u.id} value={u.id} sx={{ fontSize: '0.75rem' }}>
-              {u.name}
-            </MenuItem>
-          ))}
-        </TextField>
+            {units.map((u) => (
+              <MenuItem key={u.id} value={u.id} sx={{ fontSize: '0.75rem' }}>
+                {u.name}
+              </MenuItem>
+            ))}
+          </TextField>
+          {!draft.unitId && !draft.resolvedUnitId && draft.suggestedUnitName && (
+            <Tooltip title={`Suggested: "${draft.suggestedUnitName}" — not found in system`}>
+              <Chip
+                size="small"
+                label={draft.suggestedUnitName.length > 14
+                  ? draft.suggestedUnitName.slice(0, 14) + '…'
+                  : draft.suggestedUnitName}
+                sx={{
+                  height: 18,
+                  fontSize: '0.6rem',
+                  fontWeight: 600,
+                  bgcolor: '#fff4e0',
+                  color: '#a36400',
+                  borderRadius: '4px',
+                  '& .MuiChip-label': { px: 0.5 },
+                  flexShrink: 0,
+                  maxWidth: 120,
+                }}
+              />
+            </Tooltip>
+          )}
+        </Stack>
       </TableCell>
       <TableCell sx={{ py: 0.5, px: 1 }}>
         <TextField
@@ -1857,4 +2312,98 @@ function toNumber(v: string | number | null | undefined): number | undefined {
 
 function generateCode(): string {
   return String(Math.floor(1e12 + Math.random() * 9e12));
+}
+
+/** Generate and download an Excel template file with proper headers + one sample row. */
+function downloadTemplate() {
+  const headers = [
+    'Name', 'Code', 'Category', 'Brand', 'Unit',
+    'Cost', 'Price', 'Wholesale Price', 'Tax %', 'Description', 'Barcode',
+  ];
+  const sampleRow = [
+    'Example Product', '', 'Electronics', '', 'Pieces',
+    5000, 10000, 9200, 18, 'A sample product for reference', '',
+  ];
+  const ws = XLSX.utils.aoa_to_sheet([headers, sampleRow]);
+  // Set column widths for readability
+  ws['!cols'] = headers.map((h) => ({ wch: Math.max(h.length + 4, 14) }));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Products');
+  XLSX.writeFile(wb, 'smartpos_product_template.xlsx');
+}
+
+/**
+ * Try multiple strategies to extract a plausible product name from row values.
+ * Falls back to "Product N" only as absolute last resort.
+ */
+function bestEffortName(
+  nameMatch: string | undefined,
+  descMatch: string | undefined,
+  values: Record<string, string>,
+  matches: { fieldKey: string; headerIndex: number }[],
+  rowIndex: number,
+): string {
+  // 1. Direct name match (non-empty)
+  if (nameMatch && String(nameMatch).trim()) return String(nameMatch).trim();
+
+  // 2. Use description as name (truncated)
+  if (descMatch && String(descMatch).trim()) {
+    const d = String(descMatch).trim();
+    return d.length > 80 ? d.slice(0, 80) + '…' : d;
+  }
+
+  // 3. Find the best name-like cell among ALL values
+  // Get indices matched to numeric/ID fields so we can deprioritize them
+  const numericFieldKeys = new Set(['cost', 'price', 'wholesale', 'min', 'tax', 'stock', 'stockAlert']);
+  const numericIndices = new Set(
+    matches.filter((m) => numericFieldKeys.has(m.fieldKey)).map((m) => m.headerIndex),
+  );
+
+  let bestText = '';
+  let bestScore = -1;
+
+  for (const [header, val] of Object.entries(values)) {
+    const text = String(val).trim();
+    if (!text) continue;
+
+    // Find this header's index
+    const headerIdx = Object.keys(values).indexOf(header);
+
+    // Score each cell for "name-likeness"
+    let score = 0;
+
+    // Skip purely numeric values
+    if (/^[\d.,\s-]+$/.test(text)) continue;
+
+    // Skip very short values (likely codes, not names)
+    if (text.length < 3) continue;
+
+    // Prefer longer text (product names tend to be descriptive)
+    score += Math.min(text.length, 60);
+
+    // Prefer values with letters AND spaces (real product names)
+    if (/[a-zA-Z]/.test(text) && /\s/.test(text)) score += 20;
+
+    // Prefer values with mixed case or non-ASCII (Swahili names etc.)
+    if (/[a-z]/.test(text) && /[A-Z]/.test(text)) score += 10;
+
+    // Penalize if this column is matched to a numeric/ID field
+    if (numericIndices.has(headerIdx)) score -= 50;
+
+    // Penalize if it looks like a barcode (all digits, long)
+    if (/^\d{8,}$/.test(text)) score -= 40;
+
+    // Penalize pure uppercase (likely codes)
+    if (/^[A-Z0-9\s_-]+$/.test(text) && text.length < 10) score -= 20;
+
+    if (score > bestScore) {
+      bestScore = score;
+      bestText = text;
+    }
+  }
+
+  if (bestText) return bestText;
+
+  // 4. Absolute last resort
+  return `Product ${rowIndex + 1}`;
 }

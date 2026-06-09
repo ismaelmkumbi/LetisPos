@@ -150,15 +150,29 @@ public class ProductAiService {
                   "minPrice":         number|null,
                   "taxRate":          number|null,
                   "confidence":       number,        // 0.0 - 1.0
-                  "warnings":         string[]
+                  "warnings":         string[],
+                  "suggestedCategoryName": string|null,  // raw category from spreadsheet if no ID match
+                  "suggestedBrandName":    string|null,  // raw brand from spreadsheet if no ID match
+                  "suggestedUnitName":     string|null   // raw unit from spreadsheet if no ID match
                 }
               ],
               "warnings": string[]                   // global notes (e.g. unrecognised columns)
             }
 
             Rules:
-              - Only use category/brand/unit IDs from the provided lists. If none
-                fits, return null AND add a warning like "category 'XYZ' not found".
+              - Only use category/brand/unit IDs from the provided lists. Match by
+                NAME SIMILARITY — case-insensitive, ignore accents and spacing.
+                "Vifaa vya Bajaji" matches "vifaa vya bajaji". "Electronics" matches
+                "ELECTRONICS". If a close match exists (≥80% similarity), use its ID.
+                If NO match exists, set the ID to null AND populate
+                suggestedCategoryName / suggestedBrandName / suggestedUnitName with
+                the RAW value from the spreadsheet so the operator can create or map
+                it later.
+              - CRITICAL: The product NAME must come from the spreadsheet values.
+                Look for the column most likely to contain product names (longer text
+                cells with mixed words, not numeric codes). NEVER generate generic
+                names like "Product 1", "Product 2". If you cannot determine a name,
+                set name to "" and add a warning.
               - Trim whitespace, parse numbers, infer obvious column meanings.
               - Skip blank rows — do not emit them.
               - Output ONLY the JSON object — no commentary, no markdown.
@@ -681,7 +695,10 @@ public class ProductAiService {
                         bd(r, "taxRate"),
                         bd(r, "quantity"),
                         num(r, "confidence", 0.0),
-                        wlist
+                        wlist,
+                        str(r, "suggestedCategoryName", null),
+                        str(r, "suggestedBrandName", null),
+                        str(r, "suggestedUnitName", null)
                 ));
             }
         }
@@ -782,7 +799,10 @@ public class ProductAiService {
                         bd(r, "taxRate"),
                         bd(r, "quantity"),
                         num(r, "confidence", 0.0),
-                        warnings
+                        warnings,
+                        str(r, "suggestedCategoryName", null),
+                        str(r, "suggestedBrandName", null),
+                        str(r, "suggestedUnitName", null)
                 ));
             }
         }

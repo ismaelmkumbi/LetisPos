@@ -128,6 +128,12 @@ export interface MappedRow {
   taxRate?: number | null;
   confidence: number;
   warnings: string[];
+  /** Raw category value from spreadsheet when no matching ID was found */
+  suggestedCategoryName?: string | null;
+  /** Raw brand value from spreadsheet when no matching ID was found */
+  suggestedBrandName?: string | null;
+  /** Raw unit value from spreadsheet when no matching ID was found */
+  suggestedUnitName?: string | null;
 }
 
 export interface ProductImportMapResponse {
