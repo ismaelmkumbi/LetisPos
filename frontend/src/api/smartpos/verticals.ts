@@ -71,10 +71,10 @@ export async function getMyVerticals(): Promise<TenantVertical[]> {
 
 /** Activate a vertical for the current tenant. No-op if service unavailable. */
 export async function activateVertical(verticalKey: string): Promise<void> {
-  try { await api.post('/api/v1/tenants/me/verticals', { verticalKey }); } catch {}
+  try { await api.post('/api/v1/tenants/me/verticals', { verticalKey }); } catch { /* no-op if service unavailable */ }
 }
 
 /** Deactivate a vertical for the current tenant. No-op if service unavailable. */
 export async function deactivateVertical(verticalKey: string): Promise<void> {
-  try { await api.delete(`/api/v1/tenants/me/verticals/${verticalKey}`); } catch {}
+  try { await api.delete(`/api/v1/tenants/me/verticals/${verticalKey}`); } catch { /* no-op if service unavailable */ }
 }
